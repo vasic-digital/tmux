@@ -1,0 +1,87 @@
+# HelixQA Challenges for the vasic-digital optimized tmux build.
+# Each Challenge is a one-line condition the test harness verifies.
+# These mirror scripts/tmux/tests/0[1-8]_*.sh but carry §11.4 captured-evidence
+# semantics — the Challenge passes only when the runtime evidence is observed,
+# not when the test exited 0.
+
+challenges:
+  - id: TMUX-CH-01
+    title: tmux binary smoke test
+    description: tmux from the ATMOSphere build reports the expected version.
+    prerequisite: tmux/build/bin/tmux is executable
+    test_script: scripts/tmux/tests/01_smoke.sh
+    pass_condition: |
+      stdout contains "tmux 3.6a"
+    evidence: stdout transcript
+    severity: blocker
+
+  - id: TMUX-CH-02
+    title: tmux session lifecycle
+    description: new-session, list-sessions, kill-server work end-to-end.
+    test_script: scripts/tmux/tests/02_session.sh
+    pass_condition: |
+      session is listed AND kill-server returns clean
+    evidence: stdout transcript + ps shows no orphaned tmux server
+    severity: blocker
+
+  - id: TMUX-CH-03
+    title: jemalloc loaded via LD_PRELOAD
+    description: |
+      The wrapper script's LD_PRELOAD actually engages — running tmux
+      server process has libjemalloc.so mapped in /proc/<pid>/maps.
+    test_script: scripts/tmux/tests/03_jemalloc_loaded.sh
+    pass_condition: |
+      grep "jemalloc" /proc/<server-pid>/maps returns a match
+    evidence: /proc/PID/maps grep output
+    severity: critical
+
+  - id: TMUX-CH-04
+    title: history-limit configuration honored
+    description: A user-configured history-limit overrides the default.
+    test_script: scripts/tmux/tests/04_history_limit.sh
+    pass_condition: |
+      tmux show-options -g history-limit returns the configured value
+    evidence: tmux command output
+    severity: high
+
+  - id: TMUX-CH-05
+    title: clear-history releases memory (the "apparent leak" check)
+    description: |
+      Fill scrollback to ~50000 lines, measure tmux server RSS, run
+      clear-history, measure again. RSS must drop meaningfully.
+    test_script: scripts/tmux/tests/05_clear_history_releases.sh
+    pass_condition: |
+      RSS_after / RSS_peak <= 0.95  OR  drop >= 5 MB  OR  drop >= 1 MB (jemalloc-tolerant)
+    evidence: VmRSS deltas from /proc/PID/status
+    severity: critical
+
+  - id: TMUX-CH-06
+    title: 10 concurrent panes — RSS bounded
+    description: Spawning 10 panes does not blow up server RSS.
+    test_script: scripts/tmux/tests/06_concurrent_panes.sh
+    pass_condition: |
+      delta_RSS < 20 MB
+    evidence: VmRSS before/after delta
+    severity: high
+
+  - id: TMUX-CH-07
+    title: 30-second sustained session
+    description: Server RSS does not grow unboundedly during sustained activity.
+    test_script: scripts/tmux/tests/07_long_session.sh
+    pass_condition: |
+      growth in 25 s < 50% of T+5s baseline
+    evidence: VmRSS time-series
+    severity: critical
+
+  - id: TMUX-CH-08
+    title: wrapper applies oom_score_adj=-500
+    description: |
+      The tmx wrapper script successfully applies
+      oom_score_adj=-500 to the tmux server it spawns. This is the
+      single most impactful protection against §12 host-distress events
+      cascading into operator session loss.
+    test_script: scripts/tmux/tests/08_oom_score_adj.sh
+    pass_condition: |
+      cat /proc/<server-pid>/oom_score_adj  ==  "-500"
+    evidence: /proc/PID/oom_score_adj reading
+    severity: blocker

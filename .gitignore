@@ -1,0 +1,21 @@
+# Build artifacts
+tmux/build/
+scripts/oom_set
+*.o
+*.lo
+*.la
+*.tmp
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Test logs
+/tmp/__*.log
+/tmp/.*tmux*
+
+# Generated wrapper (installed via setup.sh; never committed)
+scripts/tmx

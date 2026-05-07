@@ -1,0 +1,6 @@
+[submodule "tmux"]
+	path = tmux
+	url = https://github.com/tmux/tmux.git
+[submodule "Containers"]
+	path = Containers
+	url = git@github.com:vasic-digital/Containers.git

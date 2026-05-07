@@ -1,0 +1,42 @@
+# docker-compose.tmux-build.yml — tmux source build container, isolated from
+# host per §12.9 architecture. Memory bounded so an OOM in this container
+# never escalates to user.slice.
+#
+# Usage: invoked by scripts/tmux/build_tmux_containerized.sh.
+# Do NOT `podman-compose up` directly; the orchestrator pre-builds the image
+# with the correct BUILD_UID/BUILD_GID matching the host operator.
+
+version: "3.8"
+
+services:
+  tmux-build:
+    image: tmx-build:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.tmux-build
+      args:
+        BUILD_UID: ${BUILD_UID:-1000}
+        BUILD_GID: ${BUILD_GID:-1000}
+    container_name: tmx-build
+
+    # §12.9 hard limits (much smaller than AOSP — tmux peaks at ~500 MB)
+    mem_limit: 2g
+    mem_swappiness: 10
+    memswap_limit: 3g
+    cpus: 2
+
+    # No network needed during the actual build (deps were bundled at image build)
+    network_mode: none
+
+    # Run as host operator (UID 1000) so build artifacts have correct ownership
+    userns_mode: keep-id
+
+    # Volumes — read-write source tree, read-only build script
+    volumes:
+      - ../tmux:/tmux-src:rw
+      - ./build_inside_container.sh:/build.sh:ro
+
+    working_dir: /tmux-src
+
+    # The actual build command (orchestrator passes flags via env)
+    command: bash /build.sh
