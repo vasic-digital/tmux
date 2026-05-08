@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$REPO_ROOT/scripts/oom_set.c"
 OUT="$REPO_ROOT/scripts/oom_set"
 INSTALL_PATH="/usr/local/bin/tmx-oom-set"

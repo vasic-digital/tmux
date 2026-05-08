@@ -1,7 +1,7 @@
 # Dockerfile.tmux-build — minimal Ubuntu 22.04 base for building tmux from
 # source with jemalloc support, isolated from the host per §12.9 architecture.
 #
-# Usage: invoked by scripts/tmux/build_tmux_containerized.sh — do NOT run
+# Usage: invoked by scripts/build_containerized.sh — do NOT run
 # `docker build` directly; the orchestrator handles UID/GID matching and
 # volume mounts.
 

@@ -109,4 +109,4 @@ done
 
 echo ""
 echo "[install_tmux_deps] done. Now run (without sudo):"
-echo "  bash scripts/build_tmux.sh"
+echo "  bash scripts/build_containerized.sh"

@@ -7,7 +7,7 @@
 #      (libjemalloc-dev recommended — install via `sudo bash scripts/install_tmux_deps.sh`)
 #   2. Containerized build (podman/docker, isolated cgroup, mem_limit=2g)
 #   3. Generate tmx wrapper (LD_PRELOAD=jemalloc + oom_score_adj=-500)
-#   4. Run verification gate (verify_tmux.sh — full 8-test suite)
+#   4. Run verification gate (verify.sh — full 14-test suite)
 #   5. ONLY IF GREEN: install ~/.tmux.conf + .bashrc snippet + PATH export
 #
 # §11.4 invariant: step 5 is GATED by step 4. Failing tests means no PATH export.
@@ -21,7 +21,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 # ── arg parsing ─────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ fi
 echo ""
 echo "[setup_tmux] step 2 — containerized build"
 if [ "$MODE" = "rebuild" ] || [ ! -x tmux/build/bin/tmux ]; then
-    bash scripts/build_tmux_containerized.sh
+    bash scripts/build_containerized.sh
 else
     echo "  binary already present at tmux/build/bin/tmux — use --rebuild to force"
 fi
@@ -132,7 +132,7 @@ fi
 # Step 4 — verification gate (THE GUARD)
 echo ""
 echo "[setup_tmux] step 4 — verification gate"
-if ! bash scripts/verify_tmux.sh; then
+if ! bash scripts/verify.sh; then
     echo ""
     echo "[setup_tmux] ✗ verification RED. Aborting before PATH-export."
     echo "  Per §11.4 anti-bluff covenant, we DO NOT expose unverified binaries."
@@ -154,7 +154,7 @@ if [ -f ~/.tmux.conf ] && ! grep -q 'vasic-digital optimized tmux configuration'
     echo "  ⚠ ~/.tmux.conf exists and is NOT ours — backing up to ~/.tmux.conf.pre-atmosphere"
     cp -n ~/.tmux.conf ~/.tmux.conf.pre-atmosphere
 fi
-cp scripts/tmux.conf.atmosphere ~/.tmux.conf
+cp scripts/tmux.conf.template ~/.tmux.conf
 echo "  ✓ ~/.tmux.conf installed"
 
 if grep -q '─── vasic-digital optimized tmux' ~/.bashrc 2>/dev/null; then

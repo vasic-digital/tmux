@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# build_tmux_containerized.sh — build tmux from source inside an isolated
-# podman container, per §12.9 architecture. Mirrors scripts/build_containerized.sh
-# but with much smaller resource limits (tmux peaks at ~500 MB during build).
+# build_containerized.sh — build tmux from source inside an isolated
+# podman container, per §12.9 architecture. Resource limits: 2 CPUs, 2 GB RAM
+# (tmux peaks at ~500 MB during build).
 #
-# Usage: bash scripts/build_tmux_containerized.sh
+# Usage: bash scripts/build_containerized.sh
 #
 # Output: <project>/tmux/build/bin/tmux (host-visible via volume mount)
 #
@@ -13,14 +13,8 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
-
-# §12 host safety preflight
-    # shellcheck source=/dev/null
-        echo "[build_tmux_containerized] §12 host safety preflight..."
-    fi
-fi
 
 # Detect podman or docker
 if command -v podman >/dev/null 2>&1; then
@@ -41,7 +35,7 @@ if ! $CONTAINER_CMD image exists "$IMAGE" 2>/dev/null; then
     $CONTAINER_CMD build \
         --build-arg BUILD_UID="$(id -u)" \
         --build-arg BUILD_GID="$(id -g)" \
-        -f docker/Dockerfile.tmux-build \
+        -f docker/Dockerfile \
         -t "$IMAGE" .
 fi
 

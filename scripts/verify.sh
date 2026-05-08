@@ -8,7 +8,7 @@
 
 set -uo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMUX_BIN="$REPO_ROOT/tmux/build/bin/tmux"
 WRAPPER="$REPO_ROOT/scripts/tmx"
 
@@ -21,7 +21,7 @@ if [ ! -x "$TMUX_BIN" ]; then
     echo ""
     echo "RED: $TMUX_BIN is not executable."
     echo "     Did the containerized build complete successfully?"
-    echo "     Run: bash scripts/build_tmux_containerized.sh"
+    echo "     Run: bash scripts/build_containerized.sh"
     exit 1
 fi
 

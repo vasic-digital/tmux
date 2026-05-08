@@ -9,7 +9,7 @@
 
 set -uo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TMUX_BIN="${TMUX_BIN:-$REPO_ROOT/tmux/build/bin/tmux}"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 EXPECTED_VERSION="${EXPECTED_VERSION:-3.6a}"

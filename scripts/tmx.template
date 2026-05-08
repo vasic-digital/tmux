@@ -53,30 +53,27 @@ _apply_host_color() {
 
 # Probe host topology (systemd version, cgroup hierarchy) and classify.
 # Implements §11.4.3 per-host-topology dispatch seam.
-# Output: TMX_CLASSIFICATION = tmx-supported | tmx-degraded | tmx-unsupported
+# Classification: tmx-supported | tmx-degraded | tmx-unsupported
+_scope_ok=0  # 1 = systemd-run --user --scope works
 _probe_topology() {
-    local sd_ver=0 cgv2=0
+    local sd_ver=0
     if command -v systemctl >/dev/null 2>&1; then
         sd_ver=$(systemctl --version 2>/dev/null | head -1 | awk '{print $2}')
     fi
-    if mount 2>/dev/null | grep -q "cgroup2 on /sys/fs/cgroup"; then
-        cgv2=1
+    # Functional probe: try creating a transient scope
+    if [ "${sd_ver:-0}" -ge 230 ] 2>/dev/null && \
+       systemd-run --user --scope --collect --quiet \
+           bash -c "exit 0" 2>/dev/null; then
+        _scope_ok=1
     fi
-    # Classification:
-    #   supported  = systemd >= 230 AND cgroup v2 (full isolation)
-    #   degraded   = systemd >= 230 but no cgroup v2 (partial)
-    #   unsupported = systemd < 230 (no --user --scope at all)
-    if [ "${sd_ver:-0}" -ge 230 ] && [ "$cgv2" -eq 1 ]; then
-        TMX_CLASSIFICATION="tmx-supported"
-    elif [ "${sd_ver:-0}" -ge 230 ]; then
-        TMX_CLASSIFICATION="tmx-degraded"
-    else
-        TMX_CLASSIFICATION="tmx-unsupported"
-    fi
-    export TMX_CLASSIFICATION
 }
-
 _probe_topology
+export TMX_CLASSIFICATION
+if [ "$_scope_ok" -eq 1 ]; then
+    TMX_CLASSIFICATION="tmx-supported"
+else
+    TMX_CLASSIFICATION="tmx-degraded"
+fi
 
 # Parse out -S socket arg
 SOCK=""
@@ -90,7 +87,16 @@ for arg in "$@"; do
 done
 
 if [ "$#" -eq 0 ] || echo " $* " | grep -qE ' (new-session|new|start-server) '; then
-    "$TMUX_BIN" "$@" &
+    if [ "$_scope_ok" -eq 1 ]; then
+        systemd-run --user --scope --collect --quiet \
+            -p "MemoryMax=${TMX_MEM:-8G}" \
+            -p "CPUQuota=${TMX_CPU:-200}%" \
+            -p "TasksMax=4096" \
+            -p "Delegate=yes" \
+            "$TMUX_BIN" "$@" &
+    else
+        "$TMUX_BIN" "$@" &
+    fi
     TMUX_PID=$!
     _apply_oom_score "$SOCK"
     _apply_host_color "$SOCK"

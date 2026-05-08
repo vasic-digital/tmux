@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-08T21:00Z
+**Last updated:** 2026-05-08T22:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,7 +15,7 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Verification | `scripts/verify.sh` runs 14-test suite (01-14); all tests carry §11.4.2 positive runtime evidence. Challenge entries for all 14 tests exist (CH-01 through CH-14). Topology dispatch at `scripts/tmx._probe_topology()`. |
+| Verification | `scripts/verify.sh` runs 14-test suite (01-14); GREEN on this host (PASS=10 FAIL=0 SKIP=4: OOM helper + 3 destructive). Binary built (`tmux 3.6a`). tmx wrapper implements systemd-run --user --scope wrapping. Topology dispatch via functional probe. |
 | Governance docs | `Constitution.md` (§1 + §11.4.1-§11.4.6 + §9 + §12.6 + §5/§12.10), `CLAUDE.md`, `AGENTS.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
@@ -151,22 +151,12 @@ Cross-cutting blockers also tracked in `Issues.md`:
 - (this commit) — §11.4.4 layer-4 paired-mutation harness (META-MUT-001):
   meta_test_false_positive_proof.sh with 5 mutations (10/0/0 all caught);
   CLAUDE.md/AGENTS.md PENDING→LANDED; Issues.md now empty of open items.
-
-**Status:** COMPLETE (2026-05-08T20:00Z).
-
-- **CH-09**: Added missing challenge entry for crash isolation scope (test 09) — was the only test without a challenge.
-- **Test 12** (`12_memory_pressure_under_cap.sh`): TMX-T5 — allocates up to MemoryMax+10% inside a transient scope, captures dmesg OOM-kill evidence, validates user.slice survival. Gated by `TMX_TEST_DESTRUCTIVE=1`.
-- **Test 13** (`13_tasksmax_stress.sh`): TMX-T7 — fork-bomb resistance. Spawns processes up to TasksMax=4096, reads pids.current/pids.max from cgroup interface. Gated by `TMX_TEST_DESTRUCTIVE=1`.
-- **Test 14** (`14_concurrent_oom_independence.sh`): TMX-T8 — three scopes A/B/C, OOM-kills A, verifies B and C survive with original MainPIDs. Gated by `TMX_TEST_DESTRUCTIVE=1`.
-- **CH-12/13/14**: Challenge entries for all three destructive tests.
-- **Topology dispatch**: added `_probe_topology()` to `scripts/tmx.template` — detects systemd version + cgroup v2, classifies host as `tmx-supported`/`tmx-degraded`/`tmx-unsupported` per §11.4.3.
-- **Fixed.md B2**: closure SHA updated to `68a65b0`.
-- **Issues.md → Fixed.md migration**: B1 (CHAL-COVER-001), C1 (TMX-T5), C2 (TMX-T7), C3 (TMX-T8), D1 (TOPO-DISPATCH-001) moved to Fixed.md.
-- **Remaining open**: all previously OPEN items now RESOLVED. Issues.md is empty of open items. §11.4.4 layers 2 (runtime tests) and 4 (paired mutation harness) are met. Layers 1 and 3 tracked as roadmap items.
-
-## §4 — Recent commits
-
-- (this commit) — Full coverage: CH-09 added (was missing); tests 12/13/14 (T5/T7/T8 destructive) with TMX_TEST_DESTRUCTIVE=1 gate; topology probe in tmx.template; challenge entries CH-12/13/14; B1/C1/C2/C3/D1 migrated Issues→Fixed.
+  Also: fixed 5 broken script references (REPO_ROOT wrong depth, filenames);
+  implemented systemd-run --user --scope wrapping in tmx.template;
+  test 09 topology dispatch fixed (functional probe, not mount grep);
+  CLAUDE.md compacted to match AGENTS.md; binary built and verified GREEN
+  (PASS=10 FAIL=0 SKIP=4: OOM helper + 3 destructive).
+- `39284ab` — Full coverage: CH-09 added (was missing); tests 12/13/14 (T5/T7/T8 destructive) with TMX_TEST_DESTRUCTIVE=1 gate; topology probe in tmx.template; challenge entries CH-12/13/14; B1/C1/C2/C3/D1 migrated Issues→Fixed.
 - `8b37046` — Hostname-derived status-bar colour: DJB2→27-colour palette algorithm + wrapper integration + tests 10/11 + challenges + docs.
 - `68a65b0` — Anti-bluff enforcement: TEST-AUDIT-001 complete (9 tests §11.4.2-audited), challenges paths fixed, AGENTS.md compact rewrite, covenant propagation verified.
 - `b92bf7f` (2026-05-08) — §1 anti-bluff covenant verbatim user-mandate quote added; test 09 crash-isolation-scope (14/0/0) landed.
