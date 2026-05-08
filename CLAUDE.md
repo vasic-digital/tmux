@@ -8,6 +8,10 @@ vasic-digital tmux: a hardened, jemalloc-aware, OOM-protected, verified-by-test 
 
 ## Critical mandate — anti-bluff covenant
 
+**Forensic anchor — direct user mandate (verbatim, 2026-04-28 + 2026-05-07 + 2026-05-08, repeatedly reasserted):**
+
+> "We had been in position that all tests do execute with success and all Challenges as well, but in reality the most of the features does not work and can't be used! This MUST NOT be the case and execution of tests and Challenges MUST guarantee the quality, the completion and full usability by end users of the product!"
+
 > **The bar for shipping is "users can use the feature," not "tests pass."**
 
 Every PASS must carry runtime evidence the feature works.  Metadata-only / configuration-only / "absence-of-error" PASS without evidence is a critical defect.
@@ -16,7 +20,7 @@ FAIL-bluffs are equally forbidden — a test that exits FAIL because of a script
 
 Tests AND Challenges (HelixQA bank entries) are bound equally — both must produce positive runtime evidence.
 
-The full mandate is in `Constitution.md` §1 (and propagated from upstream `vasic-digital` projects).
+The full mandate is in `Constitution.md` §1 (and propagated from upstream `vasic-digital` projects). Non-compliance is a release blocker regardless of context.
 
 ## Test-interrupt-on-discovery
 

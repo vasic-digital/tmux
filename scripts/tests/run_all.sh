@@ -27,10 +27,10 @@ FAIL_NAMES=""
 SKIP_NAMES=""
 
 echo "════════════════════════════════════════════════════════════════"
-echo "  tmux validation suite (8 tests, against $TMUX_BIN)"
+echo "  tmux validation suite (9 tests, against $TMUX_BIN)"
 echo "════════════════════════════════════════════════════════════════"
 
-for t in "$REPO_ROOT/scripts/tests/"0[1-8]_*.sh; do
+for t in "$REPO_ROOT/scripts/tests/"0[1-9]_*.sh; do
     [ -f "$t" ] || continue
     name=$(basename "$t")
     echo ""
