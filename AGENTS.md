@@ -32,7 +32,7 @@ Never `git push` directly — use `commit_all.sh`.
 |---|---|
 | `tmux/` | upstream submodule (tag `3.6a`) — **do not modify** |
 | `Containers/` | vasic-digital cgroup helpers submodule |
-| `scripts/` | build, verify, install, 11 tests, challenges, wrapper template |
+| `scripts/` | build, verify, install, 14 tests, challenges, wrapper template |
 | `scripts/tmx` | generated wrapper (`.gitignore`'d — edit `tmx.template`) |
 | `docker/` | container build definitions |
 | `docs/` | containerization plan + guides |
@@ -50,6 +50,8 @@ Never `git push` directly — use `commit_all.sh`.
 - **Host topology dispatch** (§11.4.3): tests MUST detect topology (systemd version, cgroup v1/v2) and SKIP-with-reason — never silently degrade.
 - **Data safety** (§9): destructive git ops (force-push, history rewrite) need backup-first protocol. Force-push never automatic.
 - **Memory budget** (§12.6): `Σ(active TMX_MEM) ≤ 0.6 × MemTotal`. Default `TMX_MEM=8G`.
+- **Destructive tests** (T5/T7/T8): tests 12/13/14 require `TMX_TEST_DESTRUCTIVE=1` env — run only on dedicated test hosts.
+- **Topology dispatch** (§11.4.3): `scripts/tmx` classifies host as `tmx-supported`/`tmx-degraded`/`tmx-unsupported` via `_probe_topology()`.
 
 ## Files to never edit directly
 

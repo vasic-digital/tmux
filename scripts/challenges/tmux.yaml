@@ -86,6 +86,65 @@ challenges:
     evidence: /proc/PID/oom_score_adj reading
     severity: blocker
 
+  - id: TMUX-CH-09
+    title: crash isolation scope — cgroup invariants
+    description: |
+      The tmx wrapper's systemd-run --user --scope mechanism enforces
+      memory/cpu caps AND survives SIGKILL without taking user.slice down.
+      Verifies T1 (host capability), T2 (wrapper invariants), T3 (cgroup
+      readback), T4 (SIGKILL containment + user.slice survival), T6
+      (concurrent scopes independent).
+    test_script: scripts/tests/09_crash_isolation_scope.sh
+    pass_condition: |
+      PASS >= 8  FAIL = 0  (T1: systemd 230+, cgroup v2; T2: wrapper
+      has MemoryMax/CPUQuota/TasksMax/Delegate; T3: memory.max + cpu.max
+      readback from /sys/fs/cgroup; T4: SIGKILL kills scope but not
+      default.target; T6: 3 concurrent scopes all active)
+    evidence: |
+      /sys/fs/cgroup/.../memory.max content = configured MemoryMax;
+      /sys/fs/cgroup/.../cpu.max content present;
+      systemctl --user is-active default.target = active THROUGHOUT
+    severity: blocker
+
+  - id: TMUX-CH-12
+    title: memory pressure under cgroup cap (T5)
+    description: |
+      Allocate inside the scope up to MemoryMax+10%, verify the kernel
+      OOM-kills only the scope process, verify user.slice survives.
+      Destructive test — requires TMX_TEST_DESTRUCTIVE=1.
+    test_script: scripts/tests/12_memory_pressure_under_cap.sh
+    pass_condition: |
+      dmesg shows oom-kill for a PID inside the scope's cgroup;
+      systemctl --user is-active default.target reads active after kill
+    evidence: dmesg oom-kill line + default.target=active after
+    severity: blocker
+
+  - id: TMUX-CH-13
+    title: TasksMax fork-bomb resistance (T7)
+    description: |
+      Spawn processes inside the scope until TasksMax=4096 is hit.
+      Verify pids.current == pids.max and no processes leak outside.
+      Destructive test — requires TMX_TEST_DESTRUCTIVE=1.
+    test_script: scripts/tests/13_tasksmax_stress.sh
+    pass_condition: |
+      pids.current == pids.max == 4096; no processes escape the scope
+    evidence: /sys/fs/cgroup/.../pids.current + pids.max readback
+    severity: high
+
+  - id: TMUX-CH-14
+    title: concurrent OOM independence (T8)
+    description: |
+      Three concurrent scopes A/B/C; trigger OOM in A; verify B and C
+      remain active with their original MainPIDs. Destructive test.
+    test_script: scripts/tests/14_concurrent_oom_independence.sh
+    pass_condition: |
+      Only scope A is killed; B and C remain active;
+      default.target=active throughout
+    evidence: |
+      systemctl --user list-units showing B+C active;
+      cgroup.procs in B+C unchanged; dmesg scope-A-only kill
+    severity: blocker
+
   - id: TMUX-CH-10
     title: hostname→color algorithm — deterministic palette mapping
     description: |

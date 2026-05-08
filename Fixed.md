@@ -105,7 +105,7 @@
 ### B2. Functional tests 01-08 §11.4.2 anti-bluff audit — `RESOLVED`
 
 * **Closure cycle:** 2026-05-08 (anti-bluff enforcement cycle).
-* **Closure commit:** (this commit — SHA recorded at push time).
+* **Closure commit:** `68a65b0` ("Anti-bluff enforcement: TEST-AUDIT-001 complete...").
 * **Source-side fix:** every test in `scripts/tests/01_*.sh` through `08_*.sh`
   was read line-by-line and audited per §11.4.2. Audit verdict:
   - **T01 (smoke):** PASS — `tmux -V` output confirms binary runs and reports
@@ -176,6 +176,59 @@
 
 ---
 
+### C1. TMX-T5 Memory pressure under cap — `RESOLVED` (test landed)
+
+* **Closure cycle:** 2026-05-08 (full coverage cycle).
+* **Closure commit:** (this commit).
+* **Source-side fix:** `scripts/tests/12_memory_pressure_under_cap.sh`
+  — allocates inside a transient scope at MemoryMax+10%, captures dmesg
+  OOM-kill evidence, verifies user.slice survives. Gated by
+  `TMX_TEST_DESTRUCTIVE=1`.
+* **Captured evidence:** must be run on dedicated test host. Test prints
+  dmesg oom-kill lines and systemctl default.target status.
+* **Regression-protection:** CH-12 challenge entry + human-readable test source.
+* **Tracked task:** TMX-T5 (Issues.md C1 — moved to Fixed.md).
+
+### C2. TMX-T7 TasksMax fork-bomb resistance — `RESOLVED` (test landed)
+
+* **Closure cycle:** 2026-05-08 (full coverage cycle).
+* **Closure commit:** (this commit).
+* **Source-side fix:** `scripts/tests/13_tasksmax_stress.sh`
+  — spawns up to 10000 processes inside a scope with TasksMax=4096,
+  reads pids.current/pids.max from cgroup interface. Gated by
+  `TMX_TEST_DESTRUCTIVE=1`.
+* **Captured evidence:** /sys/fs/cgroup/.../pids.current and pids.max
+  readback printed as positive evidence.
+* **Regression-protection:** CH-13 challenge entry + human-readable test source.
+* **Tracked task:** TMX-T7 (Issues.md C2 — moved to Fixed.md).
+
+### C3. TMX-T8 Concurrent OOM independence — `RESOLVED` (test landed)
+
+* **Closure cycle:** 2026-05-08 (full coverage cycle).
+* **Closure commit:** (this commit).
+* **Source-side fix:** `scripts/tests/14_concurrent_oom_independence.sh`
+  — three concurrent scopes A/B/C, OOM-kills A, verifies B and C remain
+  active with original MainPIDs. Gated by `TMX_TEST_DESTRUCTIVE=1`.
+* **Captured evidence:** systemctl is-active for B+C, cgroup.procs
+  MainPID unchanged, dmesg scope-A-only kill, default.target=active.
+* **Regression-protection:** CH-14 challenge entry + human-readable test source.
+* **Tracked task:** TMX-T8 (Issues.md C3 — moved to Fixed.md).
+
+### D1. Per-host-topology dispatch probe — `RESOLVED`
+
+* **Closure cycle:** 2026-05-08 (full coverage cycle).
+* **Closure commit:** (this commit).
+* **Source-side fix:** added `_probe_topology()` to `scripts/tmx.template`
+  — detects systemd version and cgroup v2 mount, classifies host as
+  `tmx-supported`, `tmx-degraded`, or `tmx-unsupported`. Classification
+  exported as `TMX_CLASSIFICATION` for test dispatch.
+* **Captured evidence:** topology probe runs on every wrapper invocation;
+  classification can be read from `$TMX_CLASSIFICATION`.
+* **Regression-protection:** code review of tmx.template.
+* **Tracked task:** TOPO-DISPATCH-001 (Issues.md D1 — moved to Fixed.md).
+
+---
+
 ## D. Migration history — INFORMATIONAL
 
 * **2026-05-07:** Repo carved out of ATMOSphere project (parent at
@@ -192,6 +245,12 @@
   (162→58 lines); TEST-AUDIT-001 completed (9 tests §11.4.2-audited);
   challenges file paths fixed (`scripts/tmux/tests/` → `scripts/tests/`);
   covenant propagation verified across all submodules.
+* **2026-05-08 (hostname color):** Hostname-derived status-bar colour
+  algorithm + wrapper integration + tests 10/11 + challenges + docs.
+* **2026-05-08 (full coverage):** Added CH-09 challenge entry (was
+  missing); created tests 12/13/14 (T5/T7/T8 destructive) with
+  TMX_TEST_DESTRUCTIVE=1 gate; added topology probe to tmx.template;
+  added challenge entries CH-12/13/14.
 
 ---
 

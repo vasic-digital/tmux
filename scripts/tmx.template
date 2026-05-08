@@ -11,6 +11,7 @@
 set -u
 
 TMUX_BIN="__TMUX_BIN__"
+TMX_CLASSIFICATION=""    # set by _probe_topology()
 JEMALLOC_PATH="__JEMALLOC_PATH__"
 OOM_HELPER="/usr/local/bin/tmx-oom-set"
 TMX_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -49,6 +50,33 @@ _apply_host_color() {
     color=$("$TMX_DIR/hostname_color.sh" 2>/dev/null) || color="green"
     "$TMUX_BIN" -S "$sock" set -g status-style "bg=$color" 2>/dev/null || true
 }
+
+# Probe host topology (systemd version, cgroup hierarchy) and classify.
+# Implements §11.4.3 per-host-topology dispatch seam.
+# Output: TMX_CLASSIFICATION = tmx-supported | tmx-degraded | tmx-unsupported
+_probe_topology() {
+    local sd_ver=0 cgv2=0
+    if command -v systemctl >/dev/null 2>&1; then
+        sd_ver=$(systemctl --version 2>/dev/null | head -1 | awk '{print $2}')
+    fi
+    if mount 2>/dev/null | grep -q "cgroup2 on /sys/fs/cgroup"; then
+        cgv2=1
+    fi
+    # Classification:
+    #   supported  = systemd >= 230 AND cgroup v2 (full isolation)
+    #   degraded   = systemd >= 230 but no cgroup v2 (partial)
+    #   unsupported = systemd < 230 (no --user --scope at all)
+    if [ "${sd_ver:-0}" -ge 230 ] && [ "$cgv2" -eq 1 ]; then
+        TMX_CLASSIFICATION="tmx-supported"
+    elif [ "${sd_ver:-0}" -ge 230 ]; then
+        TMX_CLASSIFICATION="tmx-degraded"
+    else
+        TMX_CLASSIFICATION="tmx-unsupported"
+    fi
+    export TMX_CLASSIFICATION
+}
+
+_probe_topology
 
 # Parse out -S socket arg
 SOCK=""
