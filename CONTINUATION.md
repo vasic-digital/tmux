@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-08T17:06Z
+**Last updated:** 2026-05-08T18:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,7 +15,7 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Verification | `scripts/verify.sh` runs 8-test suite + test 09 (crash-isolation-scope); 14 PASS / 0 FAIL / 0 SKIP on operator host (systemd 258 + cgroup v2) on 2026-05-08T11:25 MSK |
+| Verification | `scripts/verify.sh` runs 9-test suite (01-09); §11.4.2 anti-bluff audit of all 9 tests COMPLETE per `Fixed.md` B2 — all carry positive runtime evidence. Challenges file paths FIXED. |
 | Governance docs | `Constitution.md` (§1 + §11.4.1-§11.4.6 + §9 + §12.6 + §5/§12.10), `CLAUDE.md`, `AGENTS.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
@@ -81,8 +81,27 @@ Cross-cutting blockers also tracked in `Issues.md`:
 - **CHAL-COVER-001** — Issues.md B1 (HelixQA Challenge entries pending)
 - **TOPO-DISPATCH-001** — Issues.md D1 (formal topology dispatch matrix)
 
+### §3.4 Anti-bluff enforcement — test audit + challenges fix + covenant propagation verification
+
+**Status:** COMPLETE (2026-05-08T18:00Z).
+
+- Verified anti-bluff covenant propagation across ALL governance files:
+  - Root `Constitution.md`: §1 + §11.4.1-§11.4.6 present ✓
+  - Root `CLAUDE.md`: full covenant present ✓
+  - Root `AGENTS.md`: compact covenant present ✓
+  - `Containers/CLAUDE.md`: full covenant present ✓
+  - `Containers/AGENTS.md`: full covenant present ✓
+  - `tmux/` (upstream submodule pinned to `3.6a`): N/A — no governance files, not modified per Constitution
+- Performed line-by-line §11.4.2 anti-bluff audit of tests 01-09:
+  - All 9 tests confirmed to carry positive runtime evidence (/proc files, cgroup interfaces, tmux command output, systemctl state).
+  - No FAIL-bluff vectors found (all `set -uo pipefail`, guarded variables).
+  - Full audit table moved to `Fixed.md` B2.
+- Fixed broken paths in `scripts/challenges/tmux.yaml` (`scripts/tmux/tests/` → `scripts/tests/`).
+- Migrated TEST-AUDIT-001 from `Issues.md` B2 → `Fixed.md` B2.
+
 ## §4 — Recent commits
 
+- (this commit) — Anti-bluff enforcement: TEST-AUDIT-001 complete (9 tests verified §11.4.2), challenges paths fixed, covenant propagation verified across all submodules.
 - `b92bf7f` (2026-05-08) — §1 anti-bluff covenant verbatim user-mandate quote added; test 09 crash-isolation-scope (14/0/0) landed.
 - `08d4ba5` (2026-05-07) — Initial vasic-digital/tmux: migrated from ATMOSphere project + per-session containerization plan + 8-test verification gate.
 

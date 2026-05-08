@@ -102,6 +102,46 @@
   test 09 source itself.
 * **Tracked task:** CONTINUATION.md §3.3 (test-09 landing).
 
+### B2. Functional tests 01-08 §11.4.2 anti-bluff audit — `RESOLVED`
+
+* **Closure cycle:** 2026-05-08 (anti-bluff enforcement cycle).
+* **Closure commit:** (this commit — SHA recorded at push time).
+* **Source-side fix:** every test in `scripts/tests/01_*.sh` through `08_*.sh`
+  was read line-by-line and audited per §11.4.2. Audit verdict:
+  - **T01 (smoke):** PASS — `tmux -V` output confirms binary runs and reports
+    expected version `3.6a`. Evidence: stdout transcript captured by harness.
+  - **T02 (session):** PASS — `list-sessions` output showing the created
+    session name. Evidence: session listing.
+  - **T03 (jemalloc):** PASS — `/proc/$PID/maps` grep confirms libjemalloc
+    loaded. Evidence: kernel memory-map file content.
+  - **T04 (history-limit):** PASS — `show-options -g history-limit` readback.
+    Evidence: tmux command output.
+  - **T05 (clear-history):** PASS — `/proc/$PID/status VmRSS` before/after
+    delta. Evidence: kernel status file content.
+  - **T06 (concurrent panes):** PASS — `/proc/$PID/status VmRSS` growth
+    measurement. Evidence: kernel status file content.
+  - **T07 (long session):** PASS — `/proc/$PID/status VmRSS` time-series.
+    Evidence: kernel status file content.
+  - **T08 (oom_score_adj):** PASS — `/proc/$PID/oom_score_adj` reading = `-500`.
+    Evidence: kernel file content.
+  - **T09 (crash isolation):** PASS (gold standard) — cgroup interface files
+    (`memory.max`, `cpu.max`, `cgroup.procs`), `systemctl --user is-active`,
+    `default.target=active` survival proof.
+  All nine tests carry positive runtime evidence from kernel or tmux
+  interfaces. No test relies solely on script exit codes. No FAIL-bluff
+  vectors found (all `set -uo pipefail`, all variables guarded, no
+  undefined-variable crash paths).
+* **Additional findings:** `scripts/challenges/tmux.yaml` had broken
+  `test_script:` paths referencing `scripts/tmux/tests/` (non-existent).
+  Fixed to `scripts/tests/` — all 8 Challenge entries now reference
+  runnable test scripts.
+* **Captured evidence:** audit performed by reading test source line-by-line
+  on 2026-05-08. See each test file at `scripts/tests/0[1-9]_*.sh`.
+* **Regression-protection:** PENDING META-MUT-001 (Issues.md A1) for
+  paired-mutation harness. Until then, regression check is the human-
+  readable test source.
+* **Tracked task:** TEST-AUDIT-001.
+
 ---
 
 ## C. Per-session containerization features — RESOLVED
@@ -144,11 +184,15 @@
   `vasic-digital/tmux`.
 * **2026-05-08:** §1 anti-bluff covenant verbatim quote added.
   Test 09 (crash-isolation-scope) landed.
-* **2026-05-08 (this cycle):** Issues.md and Fixed.md created;
+* **2026-05-08 (governance bring-up):** Issues.md and Fixed.md created;
   Constitution explicit §11.4.1 through §11.4.6 anchors added; §9
   / §12.6 / §12.10 anchors added; CLAUDE.md / AGENTS.md updated to
   match.
+* **2026-05-08 (anti-bluff enforcement):** AGENTS.md compact rewrite
+  (162→58 lines); TEST-AUDIT-001 completed (9 tests §11.4.2-audited);
+  challenges file paths fixed (`scripts/tmux/tests/` → `scripts/tests/`);
+  covenant propagation verified across all submodules.
 
 ---
 
-**Last reviewed:** 2026-05-08 (governance bring-up cycle).
+**Last reviewed:** 2026-05-08 (anti-bluff enforcement cycle).

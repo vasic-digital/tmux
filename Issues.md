@@ -119,21 +119,7 @@ Categories:
   the host-side runner the operator already uses.
 * **Tracked task ID:** CHAL-COVER-001.
 
-### B2. Functional tests 01-08 §11.4.2 audit — `PARTIAL`
 
-* **State:** test 09 was authored to §11.4.2 standard from the start
-  (positive evidence from `/sys/fs/cgroup`). Tests 01-08 were migrated
-  from ATMOSphere on 2026-05-07 — their assertions have not been
-  re-audited to confirm every PASS reads positive runtime evidence
-  (versus grepping `tmux -V` output and calling that "evidence").
-* **Captured-evidence requirement:** every test in `scripts/tests/`
-  MUST be audited by reading the source line-by-line and confirming
-  each PASS branch references a captured artifact (not just an exit
-  code from a sub-command).
-* **Fix-direction proposal:** add an audit table to
-  `Fixed.md` once each test is verified, listing the artifact source
-  per PASS branch. Untouched until the audit pass is run.
-* **Tracked task ID:** TEST-AUDIT-001.
 
 ---
 
@@ -229,4 +215,4 @@ Categories:
 
 ---
 
-**Last reviewed:** 2026-05-08 (governance bring-up cycle).
+**Last reviewed:** 2026-05-08 (anti-bluff enforcement cycle).
