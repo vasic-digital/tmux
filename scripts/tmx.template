@@ -13,6 +13,7 @@ set -u
 TMUX_BIN="__TMUX_BIN__"
 JEMALLOC_PATH="__JEMALLOC_PATH__"
 OOM_HELPER="/usr/local/bin/tmx-oom-set"
+TMX_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [ -n "$JEMALLOC_PATH" ] && [ -f "$JEMALLOC_PATH" ]; then
     export LD_PRELOAD="${LD_PRELOAD:+$LD_PRELOAD:}$JEMALLOC_PATH"
@@ -37,6 +38,18 @@ _apply_oom_score() {
     # sudo bash scripts/build_oom_set.sh --install
 }
 
+# Apply hostname-derived status-bg colour — set on the running server so
+# the tmux status line visually distinguishes this host from others.
+# Deterministic: same hostname always produces the same colour.
+_apply_host_color() {
+    local sock="${1:-}"
+    [ -n "$sock" ] || return 0
+    sleep 0.3
+    local color
+    color=$("$TMX_DIR/hostname_color.sh" 2>/dev/null) || color="green"
+    "$TMUX_BIN" -S "$sock" set -g status-style "bg=$color" 2>/dev/null || true
+}
+
 # Parse out -S socket arg
 SOCK=""
 i=1
@@ -52,7 +65,10 @@ if [ "$#" -eq 0 ] || echo " $* " | grep -qE ' (new-session|new|start-server) '; 
     "$TMUX_BIN" "$@" &
     TMUX_PID=$!
     _apply_oom_score "$SOCK"
+    _apply_host_color "$SOCK"
     wait $TMUX_PID
 else
+    # For attach/ls/kill: set colour if socket exists, then exec
+    _apply_host_color "$SOCK"
     exec "$TMUX_BIN" "$@"
 fi

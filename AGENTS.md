@@ -19,7 +19,7 @@ Canonical authority: [`Constitution.md`](Constitution.md) (§anchors below).
 | Build only | `bash scripts/setup.sh --build-only` |
 | Verify only | `bash scripts/setup.sh --verify-only` |
 | Verification gate | `bash scripts/verify.sh` |
-| Run all 9 tests | `bash scripts/tests/run_all.sh` |
+| Run all tests | `bash scripts/tests/run_all.sh` |
 | Single test | `bash scripts/tests/0N_*.sh` |
 | Commit + push (both github+gitlab) | `bash commit_all.sh "message"` |
 | Per-session cgroup wrapper | `tmx {new\|attach\|ls\|kill}` |
@@ -32,7 +32,7 @@ Never `git push` directly — use `commit_all.sh`.
 |---|---|
 | `tmux/` | upstream submodule (tag `3.6a`) — **do not modify** |
 | `Containers/` | vasic-digital cgroup helpers submodule |
-| `scripts/` | build, verify, install, 9 tests, challenges, wrapper template |
+| `scripts/` | build, verify, install, 11 tests, challenges, wrapper template |
 | `scripts/tmx` | generated wrapper (`.gitignore`'d — edit `tmx.template`) |
 | `docker/` | container build definitions |
 | `docs/` | containerization plan + guides |

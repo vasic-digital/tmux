@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-08T18:00Z
+**Last updated:** 2026-05-08T19:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,7 +15,7 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Verification | `scripts/verify.sh` runs 9-test suite (01-09); §11.4.2 anti-bluff audit of all 9 tests COMPLETE per `Fixed.md` B2 — all carry positive runtime evidence. Challenges file paths FIXED. |
+| Verification | `scripts/verify.sh` runs 11-test suite (01-11); §11.4.2 anti-bluff audit of all tests COMPLETE. Challenge entries for tests 10-11 added. |
 | Governance docs | `Constitution.md` (§1 + §11.4.1-§11.4.6 + §9 + §12.6 + §5/§12.10), `CLAUDE.md`, `AGENTS.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
@@ -99,9 +99,22 @@ Cross-cutting blockers also tracked in `Issues.md`:
 - Fixed broken paths in `scripts/challenges/tmux.yaml` (`scripts/tmux/tests/` → `scripts/tests/`).
 - Migrated TEST-AUDIT-001 from `Issues.md` B2 → `Fixed.md` B2.
 
+### §3.5 Hostname-derived status-bar colour — algorithm + wrapper + 2 tests + challenges
+
+**Status:** COMPLETE (2026-05-08T19:00Z).
+
+- Created `scripts/hostname_color.sh` — DJB2 hash over hostname → curated 27-colour palette. Deterministic, testable standalone.
+- Updated `scripts/tmx.template` — added `_apply_host_color()` function that invokes `hostname_color.sh` and applies `set -g status-style bg=<colour>` on the running tmux server. Applied on both new-session and attach paths.
+- Created `scripts/tests/10_hostname_color_algorithm.sh` — 5 invariants (deterministic, valid `colourNNN`, palette member, spread ≥12/16, empty-fallback to system hostname). All 5 PASS on this host.
+- Created `scripts/tests/11_hostname_color_integration.sh` — verifies wrapper applies correct colour to tmux server. SKIPs if binary/wrapper not yet built.
+- Updated `scripts/tests/run_all.sh` — glob changed from `0[1-9]_*.sh` to `[0-9][0-9]_*.sh` to support tests 10+.
+- Updated `scripts/challenges/tmux.yaml` — added TMUX-CH-10 (algorithm) and TMUX-CH-11 (integration).
+- Updated `docs/research/customization/colors.md` — added implementation documentation covering algorithm, integration, verification, usage, and anti-bluff covenant.
+- Updated `AGENTS.md` — bump test count from 9 to 11.
+
 ## §4 — Recent commits
 
-- (this commit) — Anti-bluff enforcement: TEST-AUDIT-001 complete (9 tests verified §11.4.2), challenges paths fixed, covenant propagation verified across all submodules.
+- (this commit) — Hostname-derived status-bar colour: DJB2→27-colour palette algorithm + wrapper integration + tests 10/11 + challenges + docs.
 - `b92bf7f` (2026-05-08) — §1 anti-bluff covenant verbatim user-mandate quote added; test 09 crash-isolation-scope (14/0/0) landed.
 - `08d4ba5` (2026-05-07) — Initial vasic-digital/tmux: migrated from ATMOSphere project + per-session containerization plan + 8-test verification gate.
 

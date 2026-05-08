@@ -85,3 +85,30 @@ challenges:
       cat /proc/<server-pid>/oom_score_adj  ==  "-500"
     evidence: /proc/PID/oom_score_adj reading
     severity: blocker
+
+  - id: TMUX-CH-10
+    title: hostname→color algorithm — deterministic palette mapping
+    description: |
+      The hostname_color.sh script maps any hostname to a deterministic
+      tmux 256-colour from a curated palette. Same hostname always
+      produces the same colour. Different hostnames produce varied colours.
+    test_script: scripts/tests/10_hostname_color_algorithm.sh
+    pass_condition: |
+      PASS=5  FAIL=0  (all 5 invariants: deterministic, valid colourNNN,
+      palette member, spread ≥12/16, empty-fallback to system hostname)
+    evidence: stdout transcript with hash + palette-index + colour
+    severity: high
+
+  - id: TMUX-CH-11
+    title: hostname colour applied to tmux status-bg via wrapper
+    description: |
+      The tmx wrapper computes the hostname-derived colour and applies
+      it as status-style bg on the running tmux server. The colour
+      persists across sessions.
+    test_script: scripts/tests/11_hostname_color_integration.sh
+    pass_condition: |
+      tmx wrapper contains _apply_host_color + hostname_color.sh ref;
+      status-style bg matches expected hostname colour on first and
+      subsequent sessions
+    evidence: 'show -g status-style' output matched to hostname_color.sh result
+    severity: high
