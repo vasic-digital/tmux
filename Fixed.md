@@ -46,13 +46,34 @@
 | **Closure cycle** | Which Phase / version landed the fix |
 | **Closure commit** | Git SHA where the fix was committed (this repo) |
 | **Source-side fix** | The change at the helper-library / wrapper / test source — never patched in call sites (Constitution §11.4.1) |
-| **Captured evidence (4-layer)** | (a) pre-build / static-source check, (b) runtime test producing positive artifact, (c) Challenge entry, (d) paired mutation — for tmux scope, layers (c) and (d) are PENDING per Issues.md A1 / B1 |
+| **Captured evidence (4-layer)** | (a) pre-build / static-source check, (b) runtime test producing positive artifact, (c) Challenge entry, (d) paired mutation — for tmux scope, layer (d) met by `meta_test_false_positive_proof.sh`; layer (c) met by challenge entries CH-01 through CH-14 |
 | **Regression-protection** | Pre-build gate name + paired mutation name in `scripts/tests/meta_test_*.sh` (when META-MUT-001 lands) |
 | **Tracked task** | The Issues.md ID before migration |
 
 ---
 
 ## A. Tooling / harness gaps — RESOLVED
+
+### A1. Meta-test paired-mutation harness (META-MUT-001) — `RESOLVED`
+
+* **Closure cycle:** 2026-05-08 (final coverage cycle).
+* **Closure commit:** (this commit).
+* **Source-side fix:** created `scripts/tests/meta_test_false_positive_proof.sh`
+  — §11.4.4 layer-4 paired-mutation harness. Registers 5 mutations across
+  `scripts/hostname_color.sh` and `scripts/tmx.template`:
+  - M1: break hostname_color output format → test 10 T2 FAILs (invalid colourNNN)
+  - M2: force hash to zero → test 10 T3 FAILs (no spread)
+  - M3: single-entry palette → test 10 T3 FAILs (hash collision)
+  - M4: remove systemd-run flag from template → test 09 T2 FAILs
+  - M5: remove Delegate=yes from template → test 09 T2 FAILs
+  Each mutation: apply → assert FAIL → revert → assert PASS. All 5 caught
+  on this host (10 PASS / 0 FAIL / 0 SKIP).
+* **Captured evidence:** meta-test output on 2026-05-08: 10 PASS / 0 FAIL /
+  0 SKIP. Each PASS records the mutation name, target file, and whether
+  the test correctly FAILed under mutation and PASSed after revert.
+* **Regression-protection:** the meta-test itself is the regression guard.
+  Run via `bash scripts/tests/meta_test_false_positive_proof.sh`.
+* **Tracked task:** META-MUT-001 (Issues.md A1).
 
 ### A0. Initial migration from ATMOSphere project to standalone `vasic-digital/tmux` repo
 
@@ -96,10 +117,8 @@
   pre-kill, sending SIGKILL, observing scope inactive post-kill,
   observing `default.target=active` throughout (user.slice survival
   is the load-bearing §1 invariant).
-* **Regression-protection:** PENDING — Issues.md A1 (META-MUT-001)
-  tracks the paired-mutation harness that will lock this guarantee
-  in. Until that lands, the regression check is the human-readable
-  test 09 source itself.
+* **Regression-protection:** `scripts/tests/meta_test_false_positive_proof.sh`
+  M4+M5 — mutations against the wrapper prove T2 catches regressions.
 * **Tracked task:** CONTINUATION.md §3.3 (test-09 landing).
 
 ### B2. Functional tests 01-08 §11.4.2 anti-bluff audit — `RESOLVED`
@@ -137,9 +156,8 @@
   runnable test scripts.
 * **Captured evidence:** audit performed by reading test source line-by-line
   on 2026-05-08. See each test file at `scripts/tests/0[1-9]_*.sh`.
-* **Regression-protection:** PENDING META-MUT-001 (Issues.md A1) for
-  paired-mutation harness. Until then, regression check is the human-
-  readable test source.
+* **Regression-protection:** `meta_test_false_positive_proof.sh` M1-M3
+  cover hostname_color.sh mutations.
 * **Tracked task:** TEST-AUDIT-001.
 
 ---
@@ -171,7 +189,8 @@
   test 09 is part of the suite by default.
 * **Captured evidence:** 14 PASS / 0 FAIL / 0 SKIP on 2026-05-08T11:25
   MSK (host: operator's daily driver, systemd 258, cgroup v2).
-* **Regression-protection:** PENDING META-MUT-001 (Issues.md A1).
+* **Regression-protection:** `meta_test_false_positive_proof.sh` M4+M5
+  cover wrapper mutation detection.
 * **Tracked task:** CONTINUATION.md §3.3.
 
 ---
@@ -251,6 +270,10 @@
   missing); created tests 12/13/14 (T5/T7/T8 destructive) with
   TMX_TEST_DESTRUCTIVE=1 gate; added topology probe to tmx.template;
   added challenge entries CH-12/13/14.
+* **2026-05-08 (layer 4 landed):** Created
+  `scripts/tests/meta_test_false_positive_proof.sh` — paired-mutation
+  harness with 5 registered mutations (all caught: 10 PASS / 0 FAIL).
+  A1 META-MUT-001 → Fixed.md A1.
 
 ---
 

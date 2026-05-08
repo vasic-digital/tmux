@@ -44,7 +44,7 @@ Never `git push` directly — use `commit_all.sh`.
 
 ## Critical rules
 
-- **Test-interrupt-on-discovery** (§11.4.4): any defect found during a test cycle **stops the cycle**. Fix at root cause + land 4 layers (pre-build gate / runtime test / HelixQA Challenge / paired mutation) + rebuild + repeat. Layers 1,3,4 currently PENDING per `Issues.md` A1/B1.
+- **Test-interrupt-on-discovery** (§11.4.4): any defect found during a test cycle **stops the cycle**. Fix at root cause + land 4 layers (pre-build gate / runtime test / HelixQA Challenge / paired mutation) + rebuild + repeat. Layer 4 (paired mutation) landed in `scripts/tests/meta_test_false_positive_proof.sh`.
 - **CONTINUATION.md invariant** (§12.10): update in **same commit** as any non-trivial state change. ISO timestamp on first 10 lines. Sections §0 / §3 / §8 mandatory.
 - **Issues→Fixed migration**: resolved items move to `Fixed.md` in same commit. Never let them linger in `Issues.md`; never delete outright.
 - **Host topology dispatch** (§11.4.3): tests MUST detect topology (systemd version, cgroup v1/v2) and SKIP-with-reason — never silently degrade.

@@ -78,25 +78,7 @@ Categories:
 
 ## A. Tooling / harness gaps
 
-### A1. Meta-test paired-mutation harness — `OPEN`
 
-* **State:** the constitution-level §1 covenant requires every gate to
-  have a paired mutation that proves the gate catches regressions. This
-  repo has 8 functional tests + test 09 (crash-isolation-scope) but no
-  `meta_test_*.sh` harness yet. CLAUDE.md / AGENTS.md already reference
-  the pattern ("when that file exists in v2") — promised, not landed.
-* **Captured-evidence requirement:** for every test under
-  `scripts/tests/`, a paired mutation must mutate the test source (or
-  the wrapper / scope settings) so the test FAILs, then restore and
-  prove the test PASSes. Mutation must use the same
-  `LIKELY`-forbidden vocabulary discipline as §11.4.6.
-* **Fix-direction proposal:** create
-  `scripts/tests/meta_test_false_positive_proof.sh` mirroring the
-  ATMOSphere pattern. Start with mutations against test 09 (rename
-  `MemoryMax=` literal in `scripts/tmx`, assert T2 invariant FAILs;
-  mutate the wrapper to skip `systemd-run --user --scope`, assert T3
-  cgroup-readback FAILs).
-* **Tracked task ID:** META-MUT-001.
 
 ---
 

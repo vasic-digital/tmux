@@ -58,9 +58,10 @@ root cause, land all four layers (pre-build gate / runtime test /
 HelixQA Challenge / paired mutation), full rebuild, repeat from the
 beginning.
 
-For tmux scope, layers 1, 3, 4 are PENDING per `Issues.md` A1, B1
-(META-MUT-001, CHAL-COVER-001). Layer 2 is met by `scripts/tests/`
-(test 09 the canonical example).
+Layer 2 (runtime test) met by `scripts/tests/` (test 09 the canonical
+example). Layer 4 (paired mutation) met by
+`scripts/tests/meta_test_false_positive_proof.sh`. Layers 1, 3 pending
+tracked as needed on roadmap.
 
 ## §11.4.5 — Audio + video quality analysis (Constitution §11.4.5)
 
@@ -155,7 +156,7 @@ The moment any defect is rediscovered, re-produced, or newly identified during a
 
 - `commit_all.sh "message"` — never `git push` directly
 - `scripts/verify.sh` — never bypass when modifying tmux build
-- All changes that touch a script must add or update a paired mutation in `scripts/tests/meta_test_*.sh` (when META-MUT-001 lands per `Issues.md` A1)
+- All changes that touch a script must add or update a paired mutation in `scripts/tests/meta_test_false_positive_proof.sh` (per §11.4.4 layer 4)
 
 ## Continuation invariant
 
