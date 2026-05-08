@@ -1,12 +1,12 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-08T11:30 MSK
+**Last updated:** 2026-05-08T17:06Z
 
 ## §0 — How to resume work in any CLI agent
 
 Paste this prompt:
 
-> Read `CONTINUATION.md` at the repo root. Identify the topmost item under `§3 Active work` with status IN PROGRESS or BLOCKED. Re-read `Constitution.md`, `CLAUDE.md`, `AGENTS.md` for mandates. Resume from current state. Update this document as you work.
+> Read `CONTINUATION.md` at the repo root. Identify the topmost item under `§3 Active work` with status IN PROGRESS or BLOCKED. Re-read `Constitution.md`, `CLAUDE.md`, `AGENTS.md`, `Issues.md`, `Fixed.md` for mandates and current backlog. Resume from current state. Update this document as you work.
 
 ## §1 — Snapshot
 
@@ -15,31 +15,43 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Verification | `scripts/verify.sh` runs 8-test suite; VERIFIED GREEN against ATMOSphere host (6 PASS / 0 FAIL / 2 honest SKIP) on 2026-05-07 |
+| Verification | `scripts/verify.sh` runs 8-test suite + test 09 (crash-isolation-scope); 14 PASS / 0 FAIL / 0 SKIP on operator host (systemd 258 + cgroup v2) on 2026-05-08T11:25 MSK |
+| Governance docs | `Constitution.md` (§1 + §11.4.1-§11.4.6 + §9 + §12.6 + §5/§12.10), `CLAUDE.md`, `AGENTS.md`, `Issues.md`, `Fixed.md`, this document |
 
-## §2 — Mandates
+## §2 — Mandates (canonical authority)
 
-- `Constitution.md` §1 anti-bluff covenant
-- `Constitution.md` §5 continuation-doc invariant
+- `Constitution.md` §1 anti-bluff covenant (verbatim user-mandate quote propagated)
+- `Constitution.md` §11.4.1 FAIL-bluffs equally forbidden
+- `Constitution.md` §11.4.2 recorded-evidence requirement
+- `Constitution.md` §11.4.3 per-host-topology test dispatch
+- `Constitution.md` §11.4.4 test-interrupt-on-discovery + 4-layer test coverage
+- `Constitution.md` §11.4.5 audio + video quality analysis (N/A for tmux scope; principle generalized)
+- `Constitution.md` §11.4.6 — No-guessing mandate (verbatim user-mandate quote)
+- `Constitution.md` §9 absolute data safety
+- `Constitution.md` §12.6 60% host memory budget (per-session `TMX_MEM` is the enforcement)
+- `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
 
-### §3.1 Local migration + GH/GL push (this session, 2026-05-07)
+### §3.1 Governance bring-up — Issues.md / Fixed.md / explicit §11.4.x anchors landed
 
-**Status:** IN PROGRESS
+**Status:** COMPLETE (2026-05-08T17:06Z).
 
-- ✅ Local repo skeleton at `~/Projects/tmux/`
-- ✅ Scripts migrated (8 tests + setup + verify + build_containerized + build_oom_set + oom_set.c)
-- ✅ Docker layer migrated
-- ✅ docs/GUIDE.md migrated
-- ✅ Agnostic-ized: 0 ATMOSphere/Android-15/atmosphere-tmux references remain
-- ✅ Constitution + CLAUDE.md + AGENTS.md + README + .gitignore written
-- ⏳ Add `tmux/` and `Containers/` submodules
-- ⏳ Write `commit_all.sh` for this repo
-- ⏳ Initial commit
-- ⏳ Create GH repo (`gh repo create vasic-digital/tmux --private`)
-- ⏳ Create GL repo (`glab repo create vasic-digital/tmux`)
-- ⏳ Add remotes + push
+- Created `Issues.md` (open / in-flight tracker) with:
+  - Categories A-E, status conventions OPEN / PARTIAL / BLOCKED / RUNNING / INVESTIGATED
+  - Status reclassification rules referencing §11.4.6
+  - Seeded items: META-MUT-001, CHAL-COVER-001, TEST-AUDIT-001, TMX-T5, TMX-T7, TMX-T8, TOPO-DISPATCH-001
+- Created `Fixed.md` (closed archive) with:
+  - A0 initial migration (commit `08d4ba5`, 2026-05-07)
+  - B0 §1 covenant propagation (commit `b92bf7f`, 2026-05-08)
+  - C0 test 09 crash-isolation-scope landed and green (commit `b92bf7f`, 2026-05-08)
+- Updated `Constitution.md`:
+  - Explicit §11.4.1, §11.4.2, §11.4.3, §11.4.4, §11.4.5 anchors added (preserving §1 prose verbatim)
+  - §11.4.6 no-guessing mandate added with verbatim user-mandate quote
+  - §9 absolute data safety added
+  - §12.6 60% host memory budget added (TMX_MEM enforcement seam)
+  - §5 expanded into full §12.10 continuation-document mandate
+- Updated `CLAUDE.md` and `AGENTS.md` to carry every numbered anchor + canonical-authority cross-references
 
 ### §3.2 Per-session containerization (Phase B — multi-session work)
 
@@ -47,38 +59,37 @@ Paste this prompt:
 
 Web research output: `docs/CONTAINERIZATION_PLAN.md` recommends `systemd-run --user --scope` (cgroup-v2 transient scope) over podman-per-session. Wrapper at `scripts/tmx` implements `tmx {new|attach|ls|kill}` with `MemoryMax=$TMX_MEM` (default 8G), `CPUQuota=$TMX_CPU` (default 200%), `TasksMax=4096`, `Delegate=yes`.
 
-### §3.3 Comprehensive test coverage for the per-session model
+Test 09 (`scripts/tests/09_crash_isolation_scope.sh`) — 14 PASS / 0 FAIL / 0 SKIP — verifies T1 (host capability), T2 (wrapper invariants), T3 (cgroup interface evidence), T4 (SIGKILL containment + user.slice survival), T6 (concurrent registration independence). Source-line breakdown:
 
-**Status:** TEST 09 LANDED + 14/0/0 PASS on this host (2026-05-08T11:25 MSK).
+- **T1:** systemd 258 + cgroup v2 mounted ✓
+- **T2:** tmx wrapper invokes `systemd-run --user --scope` + sets MemoryMax/CPUQuota/TasksMax/Delegate=yes ✓
+- **T3:** transient scope created; `/sys/fs/cgroup/.../memory.max` reads 268435456 bytes (matches set 256M) + `/sys/fs/cgroup/.../cpu.max` reads `50000 100000` (50% quota over 100ms period) — both POSITIVE EVIDENCE per §1 ✓
+- **T4:** spawn scope, read MainPID from `cgroup.procs`, SIGKILL it, verify scope inactive AFTER kill, verify `default.target=active` THROUGHOUT (user.slice survives — Constitution §1 invariant) ✓
+- **T6:** 3 concurrent scopes, all registered + active simultaneously ✓
 
-`scripts/tests/09_crash_isolation_scope.sh` — 4-section invariant verifier:
+### §3.3 Pending tests — moved to Issues.md
 
-- **T1 (host capability):** systemd 258 + cgroup v2 mounted ✓
-- **T2 (wrapper invariants):** tmx wrapper invokes `systemd-run --user --scope` + sets MemoryMax/CPUQuota/TasksMax/Delegate=yes ✓
-- **T3 (cgroup interface evidence):** transient scope created; `/sys/fs/cgroup/.../memory.max` reads 268435456 bytes (matches set 256M) + `/sys/fs/cgroup/.../cpu.max` reads `50000 100000` (50% quota over 100ms period) — both POSITIVE EVIDENCE per §1 covenant ✓
-- **T4 (SIGKILL containment):** spawn scope, read MainPID from `cgroup.procs`, SIGKILL it, verify scope inactive AFTER kill, verify `default.target=active` THROUGHOUT (user.slice survives — Constitution §1 invariant) ✓
-- **T6 (concurrent independence):** 3 concurrent scopes, all registered + active simultaneously ✓
+The previously-listed deferred tests (T5 memory pressure under cap, TasksMax stress, Concurrent OOM independence) have migrated to `Issues.md`:
 
-Updated `scripts/tests/run_all.sh` to include test 09 (glob pattern `0[1-9]_*.sh`).
+- **TMX-T5** — Issues.md C1 (PARTIAL; operator-unblock runbook for dedicated test host)
+- **TMX-T7** — Issues.md C2 (OPEN; new test 11 planned)
+- **TMX-T8** — Issues.md C3 (OPEN; new test 12 planned)
 
-**Remaining tests to add (lower priority):**
-- T5 (memory pressure under cap — actually allocate up to MemoryMax and verify enforcement) — risky on shared host, deferred to dedicated test runner
-- TasksMax stress — fork bomb resistance
-- Concurrent OOM (one scope OOMs, sibling scopes unaffected)
+Cross-cutting blockers also tracked in `Issues.md`:
 
-**Constitution §1 covenant propagated 2026-05-08:** verbatim user-mandate quote ("We had been in position that all tests do execute with success and all Challenges as well, but in reality the most of the features does not work and can't be used!") added to Constitution.md, CLAUDE.md, AGENTS.md.
+- **META-MUT-001** — Issues.md A1 (paired-mutation harness needed before §11.4.4 layer-4 coverage is real)
+- **CHAL-COVER-001** — Issues.md B1 (HelixQA Challenge entries pending)
+- **TOPO-DISPATCH-001** — Issues.md D1 (formal topology dispatch matrix)
 
-- Crash-isolation test: `tmx new A`, `tmx new B`, kill -9 the A container, verify B's panes still alive
-- Memory-cap test: trigger OOM in session A, verify only A dies
-- CPU-cap test: stress -c 4 in session, verify cap enforced
-- Attach/detach UX test: confirm operator can attach without noticing the container
-- Crash recovery: detached session survives container restart
-- HelixQA Challenge entries for each test
+## §4 — Recent commits
+
+- `b92bf7f` (2026-05-08) — §1 anti-bluff covenant verbatim user-mandate quote added; test 09 crash-isolation-scope (14/0/0) landed.
+- `08d4ba5` (2026-05-07) — Initial vasic-digital/tmux: migrated from ATMOSphere project + per-session containerization plan + 8-test verification gate.
 
 ## §8 — Resumption recipe
 
 1. `cd ~/Projects/tmux`
 2. Read this document
-3. Read `Constitution.md`, `CLAUDE.md`
-4. Find the topmost IN PROGRESS item, resume
-
+3. Read `Constitution.md`, `CLAUDE.md`, `AGENTS.md`, `Issues.md`, `Fixed.md`
+4. Find the topmost IN PROGRESS / OPEN item, resume
+5. Update this document in the SAME commit as the work itself (§12.10 invariant)
