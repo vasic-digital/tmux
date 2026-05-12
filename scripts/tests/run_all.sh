@@ -16,7 +16,7 @@ EXPECTED_VERSION="${EXPECTED_VERSION:-3.6a}"
 export TMUX_BIN WRAPPER EXPECTED_VERSION
 
 if [ ! -x "$TMUX_BIN" ]; then
-    echo "ERROR: TMUX_BIN $TMUX_BIN not executable. Did you run build_tmux_containerized.sh?"
+    echo "ERROR: TMUX_BIN $TMUX_BIN not executable. Did you run build_containerized.sh?"
     exit 2
 fi
 

@@ -53,25 +53,33 @@ The orchestrator runs five gated phases:
 │   ├── docker-compose.tmux-build.yml      # mem_limit:2g, cpus:2, network:none
 │   └── build_inside_container.sh          # Runs autogen + configure + make + install (in-container)
 └── scripts/
-    ├── install_deps.sh               # Host package installer (sudo, OS-aware)
-    ├── build_tmux_containerized.sh        # Orchestrator that runs the container
-    ├── tmux.conf.atmosphere               # Optimized config template
-    ├── tmx.template           # Wrapper template (LD_PRELOAD + OOM score)
+    ├── install_deps.sh                    # Host package installer (sudo, OS-aware)
+    ├── build_containerized.sh             # Orchestrator that runs the container
+    ├── tmux.conf.template                 # Optimized config template
+    ├── tmx.template                       # Wrapper template (LD_PRELOAD + OOM + scope + colour)
     ├── bashrc_snippet.template            # PATH-export snippet for ~/.bashrc
+    ├── hostname_color.sh                  # Deterministic hostname → status-bg colour
     ├── tests/
-    │   ├── 01_smoke.sh                    # Binary version
-    │   ├── 02_session.sh                  # new-session/list-sessions/kill-server
-    │   ├── 03_jemalloc_loaded.sh          # /proc/PID/maps grep for jemalloc
-    │   ├── 04_history_limit.sh            # show-options after config
-    │   ├── 05_clear_history_releases.sh   # The article's "apparent leak" check
-    │   ├── 06_concurrent_panes.sh         # 10-pane RSS bounding
-    │   ├── 07_long_session.sh             # 30-s sustained activity
-    │   ├── 08_oom_score_adj.sh            # /proc/PID/oom_score_adj == -500
-    │   └── run_all.sh                     # Orchestrator
+    │   ├── 01_smoke.sh                            # Binary version
+    │   ├── 02_session.sh                          # new-session/list-sessions/kill-server
+    │   ├── 03_jemalloc_loaded.sh                  # /proc/PID/maps grep for jemalloc
+    │   ├── 04_history_limit.sh                    # show-options after config
+    │   ├── 05_clear_history_releases.sh           # The article's "apparent leak" check
+    │   ├── 06_concurrent_panes.sh                 # 10-pane RSS bounding
+    │   ├── 07_long_session.sh                     # 30-s sustained activity
+    │   ├── 08_oom_score_adj.sh                    # /proc/PID/oom_score_adj == -500
+    │   ├── 09_crash_isolation_scope.sh            # cgroup-v2 transient scope readbacks + crash containment
+    │   ├── 10_hostname_color_algorithm.sh         # DJB2 hash → palette determinism + spread
+    │   ├── 11_hostname_color_integration.sh       # wrapper applies expected status-bg
+    │   ├── 12_memory_pressure_under_cap.sh        # destructive: alloc up to MemoryMax, OOM-kill evidence
+    │   ├── 13_tasksmax_stress.sh                  # destructive: fork-bomb resistance via TasksMax
+    │   ├── 14_concurrent_oom_independence.sh      # destructive: kill scope A, B + C survive
+    │   ├── meta_test_false_positive_proof.sh     # §11.4.4 layer-4 paired-mutation harness
+    │   └── run_all.sh                             # Orchestrator
     ├── challenges/
     │   └── tmux.yaml                      # HelixQA Challenges (mirrors tests with §11.4 evidence semantics)
-    ├── verify.sh                     # Gate that decides green/red
-    └── setup.sh                      # Master orchestrator (one command)
+    ├── verify.sh                          # Gate that decides green/red
+    └── setup.sh                           # Master orchestrator (one command)
 ```
 
 ---
@@ -88,8 +96,16 @@ The orchestrator runs five gated phases:
 | 06 concurrent panes | 10 panes don't OOM the server | severe leak |
 | 07 long session | 25 s sustained activity grows < 50% | gradual leak |
 | 08 oom_score_adj | wrapper applies -500 | wrapper script broken — biggest §12-protection benefit gone |
+| 09 crash isolation scope | cgroup-v2 transient scope enforces MemoryMax/CPUQuota/TasksMax; SIGKILL containment does not take user.slice down | per-session isolation broken |
+| 10 hostname colour algorithm | DJB2 → 27-palette deterministic on same hostname; spread ≥ 12/16 across distinct names | host distinguishability broken |
+| 11 hostname colour integration | wrapper applies expected status-bg to running server; persists on second session | colour-on-attach broken |
+| 12 memory pressure under cap (destructive, `TMX_TEST_DESTRUCTIVE=1`) | allocation up to MemoryMax triggers OOM-kill of scope only; user.slice survives | memory cap not enforced |
+| 13 TasksMax stress (destructive) | fork-bomb caps at TasksMax=4096; cgroup pids interface readback | task-count cap not enforced |
+| 14 concurrent OOM independence (destructive) | kill scope A → scopes B and C survive with original MainPIDs | scope independence broken |
 
-**Severity hierarchy:** Test 01 + 02 + 08 are **blockers** (verify gate refuses green if these fail). Tests 03, 06, 07 are **critical** (gate refuses unless explicitly overridden). Tests 04, 05 are advisory; their failure produces WARN but not RED.
+Plus a §11.4.4 layer-4 paired-mutation harness (`meta_test_false_positive_proof.sh`) with 6 registered mutations against tests 09 / 10. The gate is considered self-validating only when all mutations are caught.
+
+**Severity hierarchy:** Test 01 + 02 + 08 + 09 are **blockers** (verify gate refuses green if these fail). Tests 03, 06, 07, 10, 11 are **critical** (gate refuses unless explicitly overridden). Tests 04, 05 are advisory; their failure produces WARN but not RED. Tests 12 / 13 / 14 are destructive and opt-in (`TMX_TEST_DESTRUCTIVE=1`) — run only on dedicated test hosts.
 
 ---
 
@@ -166,7 +182,7 @@ sudo setcap cap_sys_resource+ep ./oom_set
 sudo install -m 755 ./oom_set /usr/local/bin/tmx-oom-set
 ```
 
-Then update the wrapper to call `atmosphere-oom-set "$server_pid" -500` instead of writing directly.
+Then update the wrapper to call `tmx-oom-set "$server_pid" -500` instead of writing directly.
 
 Pro: no per-invocation sudo. Helper has only one capability (minimal blast radius).
 Con: requires one-time root setup; the helper binary must be audited (it's tiny so this is easy).

@@ -31,7 +31,7 @@ NAME="tmx-build"
 
 # Build the image if missing
 if ! $CONTAINER_CMD image exists "$IMAGE" 2>/dev/null; then
-    echo "[build_tmux_containerized] building image $IMAGE..."
+    echo "[build_containerized] building image $IMAGE..."
     $CONTAINER_CMD build \
         --build-arg BUILD_UID="$(id -u)" \
         --build-arg BUILD_GID="$(id -g)" \
@@ -43,7 +43,7 @@ fi
 $CONTAINER_CMD rm -f "$NAME" >/dev/null 2>&1 || true
 
 # Launch
-echo "[build_tmux_containerized] launching container $NAME (mem_limit=2g, cpus=2)..."
+echo "[build_containerized] launching container $NAME (mem_limit=2g, cpus=2)..."
 $CONTAINER_CMD run --rm \
     --name "$NAME" \
     --network none \
@@ -60,11 +60,11 @@ $CONTAINER_CMD run --rm \
 # Verify host-side that the binary appeared
 if [ -x "$REPO_ROOT/tmux/build/bin/tmux" ]; then
     echo ""
-    echo "[build_tmux_containerized] ✓ binary produced: $REPO_ROOT/tmux/build/bin/tmux"
+    echo "[build_containerized] ✓ binary produced: $REPO_ROOT/tmux/build/bin/tmux"
     "$REPO_ROOT/tmux/build/bin/tmux" -V
     echo ""
-    echo "[build_tmux_containerized] next: bash scripts/tests/run_all.sh   — validates the binary"
+    echo "[build_containerized] next: bash scripts/tests/run_all.sh   — validates the binary"
 else
-    echo "[build_tmux_containerized] ✗ binary missing after container exit — inspect output above"
+    echo "[build_containerized] ✗ binary missing after container exit — inspect output above"
     exit 3
 fi

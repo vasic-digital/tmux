@@ -12,7 +12,7 @@ SOCKET="/tmp/atm_tmux_test_$$"
 echo "── Test 08: wrapper sets oom_score_adj=-500 ──"
 
 if [ ! -x "$WRAPPER" ]; then
-    echo "SKIP: wrapper $WRAPPER not yet generated (run setup_tmux.sh first)"
+    echo "SKIP: wrapper $WRAPPER not yet generated (run setup.sh first)"
     exit 0
 fi
 

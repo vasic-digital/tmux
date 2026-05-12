@@ -50,7 +50,7 @@ if [ "$INSTALL" -eq 1 ]; then
     echo "  ✓ installed: $INSTALL_PATH"
     echo "  ✓ getcap shows: $(getcap "$INSTALL_PATH")"
     echo ""
-    echo "Now re-run: bash scripts/setup_tmux.sh"
+    echo "Now re-run: bash scripts/setup.sh"
     echo "  (setup will detect the helper and Test 08 will PASS)"
 else
     echo "[build_oom_set] build complete (no install)."

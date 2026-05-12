@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# install_tmux_deps.sh — install build dependencies for tmux from-source build.
+# install_deps.sh — install build dependencies for tmux from-source build.
 #
-# Usage: sudo bash scripts/install_tmux_deps.sh
+# Usage: sudo bash scripts/install_deps.sh
 #
 # Detects package manager (apt/dnf/yum/pacman/zypper) and installs:
 #   - libevent (>= 2.1) headers
@@ -24,7 +24,7 @@ fi
 
 . /etc/os-release 2>/dev/null || { echo "ERROR: /etc/os-release missing — unsupported OS"; exit 2; }
 
-echo "[install_tmux_deps] OS=$ID  VERSION=$VERSION_ID  ($PRETTY_NAME)"
+echo "[install_deps] OS=$ID  VERSION=$VERSION_ID  ($PRETTY_NAME)"
 
 # Package name mapping per OS family.
 case "$ID" in
@@ -58,7 +58,7 @@ case "$ID" in
         ;;
 esac
 
-echo "[install_tmux_deps] using $PM to install: $PKGS"
+echo "[install_deps] using $PM to install: $PKGS"
 echo ""
 
 case "$PM" in
@@ -86,7 +86,7 @@ case "$PM" in
 esac
 
 echo ""
-echo "[install_tmux_deps] verification:"
+echo "[install_deps] verification:"
 for tool in gcc make autoconf automake pkg-config; do
     if command -v $tool >/dev/null 2>&1; then
         echo "  ✓ $tool: $(command -v $tool)"
@@ -108,5 +108,5 @@ for lib in libevent ncurses jemalloc; do
 done
 
 echo ""
-echo "[install_tmux_deps] done. Now run (without sudo):"
+echo "[install_deps] done. Now run (without sudo):"
 echo "  bash scripts/build_containerized.sh"
