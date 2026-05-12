@@ -54,6 +54,54 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A2. Audit cycle 2026-05-13 — tmux submodule pin-drift caught + governance staleness fixed — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Triggering event:** user invoked `/init` followed by "what is
+  left unfinished, no-bluff policy heavily enforced everywhere".
+* **Source-side fix:**
+  - tmux submodule reverted from `3f651d9f` (`3.6a-329-g3f651d9f`,
+    329 commits past pin) back to `cc117b5` (tag `3.6a`). User
+    decision after `git tag --sort=-v:refname` confirmed no newer
+    stable tag exists.
+  - `README.md`: rewrote line 5 ("eight verification tests"), line 33
+    summary (`PASS=6 FAIL=0 SKIP=2`), line 37 ("8 tests cover"), and
+    line 39 (2-SKIP list) to reflect current 14-test / PASS=10 / SKIP=4
+    state with `TMX_TEST_DESTRUCTIVE=1` callout and §11.4.4 harness ref.
+  - `CLAUDE.md`: added project summary + cross-links + workflow;
+    fixed `0N_*.sh` → `NN_*.sh` glob; named the four layers inline;
+    added "Files to never edit directly" section.
+  - `AGENTS.md`: mirrored CLAUDE.md improvements (project summary,
+    cross-links, NN_*.sh glob fix, meta-test row).
+  - `Issues.md`: restored A/B/C/D/E section headers (C and D were
+    missing despite conventions list referencing them).
+  - `CONTINUATION.md`: timestamp 2026-05-08T22:00Z → 2026-05-13T00:00Z;
+    §3.8 entry added per §12.10 invariant.
+  - `scripts/tests/meta_test_false_positive_proof.sh`: M6 added — injects
+    `$$` (PID) into the hostname_color hash after the loop, making the
+    algorithm non-deterministic per-invocation. Test 10 T1 (same hostname
+    twice = same colour) must FAIL under M6 — this is the dedicated
+    coverage for the "same-host = same-color" user invariant that was
+    previously only protected by side-effect.
+  - `docs/GUIDE.md`: `verify_tmux.sh` → `verify.sh` (3×), `setup_tmux.sh`
+    → `setup.sh` (3×), `install_tmux_deps.sh` → `install_deps.sh` (3×),
+    "8 tests" → "14 tests" (2×). The phantom-script bluff is closed.
+* **Captured evidence:**
+  - Pre-revert: `git -C tmux describe --tags HEAD` →
+    `3.6a-329-g3f651d9f`.
+  - Post-revert: `git -C tmux describe --tags --exact-match HEAD` →
+    `3.6a`.
+  - `grep -E "(8 tests|PASS=6|SKIP=2)" README.md` returns no matches
+    post-fix (was 3 lines pre-fix).
+  - `grep "0N_\*\.sh" CLAUDE.md AGENTS.md` returns no matches post-fix.
+* **Regression-protection:** the `f4132aa Auto-commit` itself remains
+  in history as a §12.10 / §11.4.6 violation (opaque message, silent
+  submodule mutation, no CONTINUATION update). Cannot rewrite per §9
+  data safety. Future opaque "Auto-commit" entries should be caught by
+  this Fixed.md entry serving as forensic anchor.
+* **Tracked task:** none originally — caught during /init audit cycle.
+
 ### A1. Meta-test paired-mutation harness (META-MUT-001) — `RESOLVED`
 
 * **Closure cycle:** 2026-05-08 (final coverage cycle).

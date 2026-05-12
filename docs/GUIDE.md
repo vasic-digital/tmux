@@ -24,10 +24,10 @@ A reproducible, containerized build of `tmux 3.6a` (latest stable) with:
 
 ```bash
 # Step 0 — install build deps (one-time, requires sudo)
-sudo bash scripts/install_tmux_deps.sh
+sudo bash scripts/install_deps.sh
 
 # Step 1 — build + verify + install (no sudo)
-bash scripts/setup_tmux.sh
+bash scripts/setup.sh
 ```
 
 The orchestrator runs five gated phases:
@@ -37,7 +37,7 @@ The orchestrator runs five gated phases:
 | 1 | Verify host build deps present | aborts if `gcc` / `pkg-config libevent` missing |
 | 2 | Containerized build (podman, mem_limit=2g) | aborts if container cannot be built or fails to produce `tmux/build/bin/tmux` |
 | 3 | Generate `tmx` wrapper script (LD_PRELOAD + OOM score) | aborts if wrapper template missing |
-| 4 | **Verification gate** — run all 8 tests via `verify_tmux.sh` | **STOPS HERE if any FAIL — no PATH export** |
+| 4 | **Verification gate** — run all 14 tests via `verify.sh` | **STOPS HERE if any FAIL — no PATH export** |
 | 5 | Install `~/.tmux.conf` + `~/.bashrc` snippet | only runs if Phase 4 GREEN |
 
 ---
@@ -53,7 +53,7 @@ The orchestrator runs five gated phases:
 │   ├── docker-compose.tmux-build.yml      # mem_limit:2g, cpus:2, network:none
 │   └── build_inside_container.sh          # Runs autogen + configure + make + install (in-container)
 └── scripts/
-    ├── install_tmux_deps.sh               # Host package installer (sudo, OS-aware)
+    ├── install_deps.sh               # Host package installer (sudo, OS-aware)
     ├── build_tmux_containerized.sh        # Orchestrator that runs the container
     ├── tmux.conf.atmosphere               # Optimized config template
     ├── tmx.template           # Wrapper template (LD_PRELOAD + OOM score)
@@ -70,13 +70,13 @@ The orchestrator runs five gated phases:
     │   └── run_all.sh                     # Orchestrator
     ├── challenges/
     │   └── tmux.yaml                      # HelixQA Challenges (mirrors tests with §11.4 evidence semantics)
-    ├── verify_tmux.sh                     # Gate that decides green/red
-    └── setup_tmux.sh                      # Master orchestrator (one command)
+    ├── verify.sh                     # Gate that decides green/red
+    └── setup.sh                      # Master orchestrator (one command)
 ```
 
 ---
 
-## §4 The 8 verification tests — what they prove
+## §4 The 14 verification tests — what they prove
 
 | Test | Proves | If FAIL |
 |---|---|---|
@@ -97,12 +97,12 @@ The orchestrator runs five gated phases:
 
 | Goal | Command |
 |---|---|
-| Install everything | `sudo bash scripts/install_tmux_deps.sh && bash scripts/setup_tmux.sh` |
-| Re-verify after upstream pull | `bash scripts/verify_tmux.sh` |
-| Force rebuild | `bash scripts/setup_tmux.sh --rebuild` |
-| Uninstall | `bash scripts/setup_tmux.sh --uninstall` |
+| Install everything | `sudo bash scripts/install_deps.sh && bash scripts/setup.sh` |
+| Re-verify after upstream pull | `bash scripts/verify.sh` |
+| Force rebuild | `bash scripts/setup.sh --rebuild` |
+| Uninstall | `bash scripts/setup.sh --uninstall` |
 | Run a specific test | `TMUX_BIN=$(pwd)/tmux/build/bin/tmux bash scripts/tests/03_jemalloc_loaded.sh` |
-| Update tmux to a new pinned tag | `cd tmux && git checkout <new-tag> && cd .. && bash scripts/setup_tmux.sh --rebuild` |
+| Update tmux to a new pinned tag | `cd tmux && git checkout <new-tag> && cd .. && bash scripts/setup.sh --rebuild` |
 
 ---
 
@@ -116,7 +116,7 @@ The forensic record (§12 incidents) does NOT name tmux as a root cause. The act
 
 2. **Reproducibility.** The system tmux on a future host might be 1.x with known leaks. Pinning to 3.6a + jemalloc removes that variable.
 
-3. **Documentation as a teaching artifact.** The 8 tests + Challenges show *exactly* what "tmux is healthy" means in measurable terms. Future engineers can re-run these on any new host.
+3. **Documentation as a teaching artifact.** The 14 tests + Challenges show *exactly* what "tmux is healthy" means in measurable terms. Future engineers can re-run these on any new host.
 
 **This is justified Defense-in-Depth, not a fix for an existing problem.** The investigation explicitly recorded that the article's premise doesn't apply to us; we still proceeded because the marginal cost is small and the upside is non-zero.
 

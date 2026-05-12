@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-08T22:00Z
+**Last updated:** 2026-05-13T00:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -125,6 +125,23 @@ Cross-cutting blockers also tracked in `Issues.md`:
 - **Fixed.md B2**: closure SHA updated to `68a65b0`.
 - **Issues.md → Fixed.md migration**: B1 (CHAL-COVER-001), C1 (TMX-T5), C2 (TMX-T7), C3 (TMX-T8), D1 (TOPO-DISPATCH-001) moved to Fixed.md.
 
+### §3.8 Audit cycle 2026-05-13 — submodule pin-drift caught + governance staleness fixed
+
+**Status:** COMPLETE (2026-05-13T00:00Z).
+
+Triggering event: user invoked `/init` followed by "what is left unfinished, no-bluff policy heavily enforced everywhere". Audit found and remediated:
+
+- **CRITICAL §1 / §11.4.6 bluff**: `f4132aa Auto-commit` (2026-05-13) silently bumped tmux submodule from `cc117b5` (tag `3.6a`) to `3f651d9f` (`3.6a-329-g3f651d9f` — 329 commits past the only stable tag). Governance docs across Constitution / CLAUDE / AGENTS / CONTINUATION / README still claimed "pinned to tag 3.6a". User decision: revert to tag (newer stable tag does not exist; 329 commits are unreleased upstream master). Submodule pointer reverted to `cc117b5`.
+- **README.md staleness**: line 5 ("eight verification tests"), line 33 (`PASS=6 FAIL=0 SKIP=2`), line 37 ("8 tests cover"), line 39 (2-SKIP list) — all rewritten to current 14-test / PASS=10 SKIP=4 / 4-SKIP-list state with explicit `TMX_TEST_DESTRUCTIVE=1` callout and §11.4.4 layer-4 harness reference.
+- **CLAUDE.md drift**: added top-of-file project summary + canonical-doc cross-links + fresh-conversation workflow; fixed `0N_*.sh` glob → `NN_*.sh`; named the four layers inline in the Test-interrupt rule; added "Files to never edit directly" section (parity with AGENTS.md).
+- **AGENTS.md drift**: mirrored CLAUDE.md project summary + cross-links; fixed same `0N_*.sh` glob bug; added meta-test row to commands table.
+- **Issues.md format**: restored A / B / C / D / E section headers as empty sections (was: A / B / E only, with C and D missing despite conventions list referencing them). All bodies note "landed in `Fixed.md`" with item IDs for traceability.
+- **CONTINUATION.md timestamp**: 2026-05-08T22:00Z → 2026-05-13T00:00Z; this entry added under §3.8 per §12.10 invariant.
+- **M6 mutation added** (`scripts/tests/meta_test_false_positive_proof.sh`): injects `$$` into the hostname_color hash, making the algorithm non-deterministic per-invocation. Test 10 T1 must FAIL under this mutation. Closes the audit-flagged gap: until M6, the "same-host = same-color" user invariant was protected by side-effect only (no dedicated anti-randomness mutation).
+- **`docs/GUIDE.md` phantom-script bluff fixed**: 3 occurrences each of `verify_tmux.sh` → `verify.sh`, `setup_tmux.sh` → `setup.sh`, `install_tmux_deps.sh` → `install_deps.sh`; "8 tests" → "14 tests" (2×).
+
+The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque commit message, silent submodule mutation, no CONTINUATION update. Cannot rewrite history per §9 data safety; documenting here is the audit trail.
+
 ### §3.7 §11.4.4 layer-4 paired-mutation harness landed (A1 META-MUT-001)
 
 **Status:** COMPLETE (2026-05-08T21:00Z).
@@ -148,7 +165,9 @@ Cross-cutting blockers also tracked in `Issues.md`:
 
 ## §4 — Recent commits
 
-- (this commit) — §11.4.4 layer-4 paired-mutation harness (META-MUT-001):
+- (this commit, 2026-05-13) — Audit cycle: tmux submodule reverted from `3f651d9f` to `cc117b5` (3.6a tag) after silent pin-drift caught; README.md test-count + PASS/SKIP staleness fixed (8→14 tests, PASS=6→10, SKIP=2→4); CLAUDE.md + AGENTS.md gained project summary, cross-links, fresh-conversation workflow, `NN_*.sh` glob fix, named four layers, "Files to never edit directly"; Issues.md restored A/B/C/D/E section headers; CONTINUATION.md §3.8 + timestamp refresh per §12.10. See §3.8.
+- `f4132aa` — Auto-commit: opaque submodule bumps (Containers `e377dea`→`af51968` legitimate upstream governance; tmux `cc117b5`→`3f651d9f` reverted in this commit). §12.10 / §11.4.6 violation documented in §3.8.
+- (previous commit) — §11.4.4 layer-4 paired-mutation harness (META-MUT-001):
   meta_test_false_positive_proof.sh with 5 mutations (10/0/0 all caught);
   CLAUDE.md/AGENTS.md PENDING→LANDED; Issues.md now empty of open items.
   Also: fixed 5 broken script references (REPO_ROOT wrong depth, filenames);

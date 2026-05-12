@@ -177,6 +177,23 @@ else
     _skip "M5: scripts/tmx not found — wrapper not yet generated"
 fi
 
+# ── M6: hostname_color.sh — break determinism via $$ injection ──────
+# Mutate: inject PID into hash after the loop so each invocation differs.
+# Test 10 T1 (deterministic check — same hostname twice = same colour)
+# should FAIL: two invocations of the algo are separate bash processes,
+# so $$ differs, so the resulting colour differs.
+# This closes the "same-host-same-color" invariant the user mandated:
+# without this mutation, no explicit harness proved the algorithm could
+# not be made non-deterministic.
+# Revert via false → falls through to backup restore in run_mutation.
+run_mutation \
+    "M6: hostname_color non-deterministic via \$\$ injection" \
+    "scripts/hostname_color.sh" \
+    "sed -i 's|^done\$|done; h=\$\$|' \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/10_hostname_color_algorithm.sh" \
+    "FAIL.*T1"
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY
 # ═══════════════════════════════════════════════════════════════════════

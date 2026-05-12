@@ -78,15 +78,25 @@ Categories:
 
 ## A. Tooling / harness gaps
 
-
+(none open at this time — A1 META-MUT-001 landed in `Fixed.md`.)
 
 ---
 
 ## B. Anti-bluff completeness across the existing test surface
 
+(none open at this time — B1 CHAL-COVER-001, B2 TEST-AUDIT-001 landed in `Fixed.md`.)
+
 ---
 
+## C. Per-session containerization features pending evidence
 
+(none open at this time — C1 TMX-T5, C2 TMX-T7, C3 TMX-T8 landed in `Fixed.md`.)
+
+---
+
+## D. Host-capability + topology dispatch gaps
+
+(none open at this time — D1 TOPO-DISPATCH-001 landed in `Fixed.md`.)
 
 ---
 
@@ -96,4 +106,4 @@ Categories:
 
 ---
 
-**Last reviewed:** 2026-05-08 (full coverage cycle).
+**Last reviewed:** 2026-05-13 (audit cycle: tmux submodule pin-drift caught + reverted; README/AGENTS/CLAUDE staleness fixed; CONTINUATION refreshed).

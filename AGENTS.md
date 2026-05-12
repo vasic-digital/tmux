@@ -1,6 +1,10 @@
 # AGENTS.md — vasic-digital tmux
 
-Canonical authority: [`Constitution.md`](Constitution.md) (§anchors below).
+Verified hardened tmux 3.6a build with jemalloc, OOM protection, and per-session cgroup isolation via the `tmx` wrapper. Built around a hard verification gate that refuses to expose the binary unless functional tests pass.
+
+Canonical authority: [`Constitution.md`](Constitution.md) (§anchors below). Live handoff state: [`CONTINUATION.md`](CONTINUATION.md). Open work: [`Issues.md`](Issues.md). Containerization design: [`docs/CONTAINERIZATION_PLAN.md`](docs/CONTAINERIZATION_PLAN.md).
+
+**Fresh-conversation workflow**: read `CONTINUATION.md` first (§0/§3/§8 are mandatory), then `Issues.md` for OPEN/PARTIAL/BLOCKED/RUNNING items.
 
 ## Core mandate — anti-bluff covenant (§1)
 
@@ -20,7 +24,8 @@ Canonical authority: [`Constitution.md`](Constitution.md) (§anchors below).
 | Verify only | `bash scripts/setup.sh --verify-only` |
 | Verification gate | `bash scripts/verify.sh` |
 | Run all tests | `bash scripts/tests/run_all.sh` |
-| Single test | `bash scripts/tests/0N_*.sh` |
+| Single test | `bash scripts/tests/NN_*.sh` (zero-padded, 01..14) |
+| Meta-test (paired mutation) | `bash scripts/tests/meta_test_false_positive_proof.sh` |
 | Commit + push (both github+gitlab) | `bash commit_all.sh "message"` |
 | Per-session cgroup wrapper | `tmx {new\|attach\|ls\|kill}` |
 

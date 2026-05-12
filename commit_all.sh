@@ -8,7 +8,14 @@ MSG="$1"
 
 LOCK="$(git rev-parse --git-dir)/.commit_all.lock"
 exec 9>"$LOCK"
-flock -n 9 || { echo "ERROR: another commit_all.sh is already running"; exit 1; }
+if command -v flock >/dev/null 2>&1; then
+    flock -n 9 || { echo "ERROR: another commit_all.sh is already running"; exit 1; }
+else
+    # flock is GNU/Linux util-linux; macOS / Alpine-busybox lack it. The
+    # § operator-honest path is to declare the degradation explicitly
+    # rather than print a wrong "another instance is running" message.
+    echo "[commit_all] WARN: 'flock' not available on this host — concurrent-run protection disabled."
+fi
 
 echo "[commit_all] git status..."
 git status --short
