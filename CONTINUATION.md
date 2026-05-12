@@ -139,6 +139,7 @@ Triggering event: user invoked `/init` followed by "what is left unfinished, no-
 - **CONTINUATION.md timestamp**: 2026-05-08T22:00Z → 2026-05-13T00:00Z; this entry added under §3.8 per §12.10 invariant.
 - **M6 mutation added** (`scripts/tests/meta_test_false_positive_proof.sh`): injects `$$` into the hostname_color hash, making the algorithm non-deterministic per-invocation. Test 10 T1 must FAIL under this mutation. Closes the audit-flagged gap: until M6, the "same-host = same-color" user invariant was protected by side-effect only (no dedicated anti-randomness mutation).
 - **`docs/GUIDE.md` phantom-script bluff fixed**: 3 occurrences each of `verify_tmux.sh` → `verify.sh`, `setup_tmux.sh` → `setup.sh`, `install_tmux_deps.sh` → `install_deps.sh`; "8 tests" → "14 tests" (2×).
+- **GUIDE.md "severity hierarchy" pre-existing bluff caught** (Fixed.md A3): documented "blockers / critical / advisory" classification does not exist in `run_all.sh` — every test is treated equally (any FAIL = RED). Rewritten to describe the actual gate logic. Caught while extending the table for tests 09-14; would have been silently doubled otherwise.
 
 The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque commit message, silent submodule mutation, no CONTINUATION update. Cannot rewrite history per §9 data safety; documenting here is the audit trail.
 

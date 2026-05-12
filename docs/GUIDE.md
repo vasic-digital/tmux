@@ -105,7 +105,7 @@ The orchestrator runs five gated phases:
 
 Plus a §11.4.4 layer-4 paired-mutation harness (`meta_test_false_positive_proof.sh`) with 6 registered mutations against tests 09 / 10. The gate is considered self-validating only when all mutations are caught.
 
-**Severity hierarchy:** Test 01 + 02 + 08 + 09 are **blockers** (verify gate refuses green if these fail). Tests 03, 06, 07, 10, 11 are **critical** (gate refuses unless explicitly overridden). Tests 04, 05 are advisory; their failure produces WARN but not RED. Tests 12 / 13 / 14 are destructive and opt-in (`TMX_TEST_DESTRUCTIVE=1`) — run only on dedicated test hosts.
+**Gate logic** (`scripts/tests/run_all.sh` + `scripts/verify.sh`): every test is treated equally. Any test line starting with `FAIL` aborts the gate (exit 1, no PATH export). Tests that emit a `SKIP` line are counted as SKIP and do not block (intended for honest precondition gates — see Constitution §11.4.2). Tests 12 / 13 / 14 are destructive and opt-in via `TMX_TEST_DESTRUCTIVE=1` — they SKIP by default on non-dedicated hosts. There is no per-test "blocker / critical / advisory" hierarchy in the gate code: the rule is "any FAIL = RED".
 
 ---
 

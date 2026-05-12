@@ -54,6 +54,31 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A3. GUIDE.md "severity hierarchy" bluff (pre-existing) — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Discovery context:** while updating `docs/GUIDE.md` §4 to add tests
+  09-14 to the table, I almost extended the existing "severity hierarchy"
+  paragraph by adding test 09 to "blockers" and 10/11 to "critical".
+  Before committing, audited `scripts/verify.sh` + `scripts/tests/run_all.sh`
+  to confirm — and found NO such per-test classification in the gate logic.
+  Every test that emits a line starting with `FAIL` is treated equally
+  (exit 1, no PATH export). The severity hierarchy described in the docs
+  did not exist in the code.
+* **Source-side fix:** replaced the "Severity hierarchy: 01+02+08 blockers,
+  03/06/07 critical, 04/05 advisory" paragraph in `docs/GUIDE.md` §4 with
+  an honest description of the actual gate logic: "any FAIL = RED, every
+  test treated equally; SKIPs are honest precondition gates; tests 12/13/14
+  are destructive and opt-in via `TMX_TEST_DESTRUCTIVE=1`."
+* **Captured evidence:** `scripts/tests/run_all.sh:41-49` — single uniform
+  FAIL-detection branch with no per-test weighting; `scripts/verify.sh:41`
+  — single `if run_all.sh; then exit 0 else exit 1` gate.
+* **Regression-protection:** no dedicated mutation needed — the bluff was
+  documentation-only and the actual gate code is correct.
+* **Tracked task:** none originally — caught during /init audit cycle while
+  extending the existing prose.
+
 ### A2. Audit cycle 2026-05-13 — tmux submodule pin-drift caught + governance staleness fixed — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.
