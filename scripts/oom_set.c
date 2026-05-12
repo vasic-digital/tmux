@@ -5,13 +5,13 @@
  * without itself being setuid root.
  *
  * Build:
- *   bash scripts/tmux/build_oom_set.sh
+ *   bash scripts/build_oom_set.sh
  *
  * Permissions installed by build_oom_set.sh:
  *   sudo setcap cap_sys_resource+ep /usr/local/bin/tmx-oom-set
  *
  * Usage (called by tmx wrapper):
- *   atmosphere-oom-set <pid> <score>
+ *   tmx-oom-set <pid> <score>
  *   exit 0 = success, 1 = bad args, 2 = open failed, 3 = write failed
  *
  * Safety constraints (audit-friendly):
