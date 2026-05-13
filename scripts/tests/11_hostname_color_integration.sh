@@ -88,6 +88,34 @@ else
     _skip "T5: could not read status-style" "server gone"
 fi
 
+# ── T6: DEFAULT-SOCKET path (no -S passed) — exercises the operator's ─
+#       actual use case `tmx new -s X`. This catches the §11.4.1 FAIL-bluff
+#       where _apply_host_color silently bailed via
+#       `[ -n "$sock" ] || return 0` when no -S was passed (Fixed.md A10).
+#       Without this assertion, test 11 PASS=5 even though `tmx new -s X`
+#       in production left the operator with the tmux default `bg=green`.
+"$TMUX_BIN" kill-server 2>/dev/null || true   # ensure default socket starts clean
+DEFAULT_BG_BEFORE=$("$TMUX_BIN" show -g status-style 2>/dev/null | grep -oP 'bg=\K\S+' || echo "none")
+"$WRAPPER" new-session -d -s defsock_test "sleep 30" 2>/dev/null &
+DEFAULT_WPID=$!
+sleep 2
+DEFAULT_ACTUAL=$("$TMUX_BIN" show -g status-style 2>/dev/null | grep -oP 'bg=\K\S+' || echo "")
+if [ -z "$DEFAULT_ACTUAL" ]; then
+    _skip "T6: could not read status-style from default-socket server" "wrapper may not have started server"
+elif [ "$DEFAULT_ACTUAL" = "green" ]; then
+    _fail "T6: status-bg 'green' (tmux DEFAULT) — colour was NOT applied via default-socket path. This is the operator-facing bug from Fixed.md A10. Expected '$HOST_COLOR'."
+else
+    DA_NORM=$(echo "$DEFAULT_ACTUAL" | tr '[:upper:]' '[:lower:]')
+    HC_NORM=$(echo "$HOST_COLOR" | tr '[:upper:]' '[:lower:]')
+    if [ "$DA_NORM" = "$HC_NORM" ]; then
+        _pass "T6: default-socket path applies host colour — status-bg '$DEFAULT_ACTUAL' matches '$HOST_COLOR' (positive evidence: tmux show -g status-style with NO -S)"
+    else
+        _fail "T6: default-socket status-bg '$DEFAULT_ACTUAL' does not match expected '$HOST_COLOR'"
+    fi
+fi
+"$TMUX_BIN" kill-server 2>/dev/null || true
+kill "$DEFAULT_WPID" 2>/dev/null || true
+
 # ── Cleanup ────────────────────────────────────────────────────────────
 "$TMUX_BIN" -S "$SOCKET" kill-server 2>/dev/null || true
 kill "$WPID" 2>/dev/null || true

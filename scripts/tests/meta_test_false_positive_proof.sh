@@ -162,38 +162,80 @@ run_mutation \
 # ── M4: tmx wrapper — remove systemd-run --user --scope ─────────────
 # Mutate: rename systemd-run in generated wrapper
 # Test 09 T2.1 should SKIP (wrapper no longer contains systemd-run)
-WRAPPER_PATH="$REPO_ROOT/scripts/tmx"
-if [ -f "$WRAPPER_PATH" ]; then
+# Target priority: scripts/tmx-vm (Darwin install) > scripts/tmx (Linux).
+# On Darwin host the scripts/tmx is the SSH bridge, not the wrapper —
+# mutating it doesn't change what test 09 sees. test_vm.sh sets WRAPPER=
+# scripts/tmx-vm so the mutation must target that file.
+if [ -f "$REPO_ROOT/scripts/tmx-vm" ]; then
+    M4_TARGET="scripts/tmx-vm"
+elif [ -f "$REPO_ROOT/scripts/tmx" ]; then
+    M4_TARGET="scripts/tmx"
+else
+    M4_TARGET=""
+fi
+if [ -n "$M4_TARGET" ]; then
     run_mutation \
         "M4: tmx wrapper remove systemd-run flag" \
-        "scripts/tmx" \
+        "$M4_TARGET" \
         "sed -i 's|systemd-run --user --scope|systemd-run-bogus --user --scope|' \"\$target_abs\"" \
         "sed -i 's|systemd-run-bogus --user --scope|systemd-run --user --scope|' \"\$target_abs\"" \
         "scripts/tests/09_crash_isolation_scope.sh" \
         "SKIP.*T2"
 else
-    _skip "M4: scripts/tmx not found — wrapper not yet generated"
+    _skip "M4: no wrapper present (neither scripts/tmx-vm nor scripts/tmx)"
 fi
 
 # ── M5: tmx wrapper — corrupt MemoryMax option name ─────────────────
-# Mutate: rename "MemoryMax=" → "MemMax=" in the wrapper. Pattern is
-# kept simple so it matches the literal text in the generated wrapper
-# regardless of how `${TMX_MEM:-8G}` is rendered (the previous version
-# of M5 baked the variable expansion into the pattern, which `eval`
-# expanded before sed saw it, causing the pattern to never match —
-# silent no-op + escaped mutation = §11.4.1 FAIL-bluff in the gate itself).
-# Test 09 T2.2 greps for "MemoryMax" in the wrapper; renaming to MemMax
-# breaks the grep → T2.2 FAILs → mutation caught.
-if [ -f "$WRAPPER_PATH" ]; then
+# Mutate: rename "MemoryMax=" → "MemMax=" in the wrapper. Same target
+# priority as M4 — must mutate the file that test 09 actually reads
+# (scripts/tmx-vm on Darwin install, scripts/tmx on Linux).
+if [ -n "$M4_TARGET" ]; then
     run_mutation \
         "M5: tmx wrapper corrupt MemoryMax" \
-        "scripts/tmx" \
+        "$M4_TARGET" \
         "sed -i 's|MemoryMax=|MemMax=|' \"\$target_abs\"" \
         "sed -i 's|MemMax=|MemoryMax=|' \"\$target_abs\"" \
         "scripts/tests/09_crash_isolation_scope.sh" \
         "FAIL.*T2"
 else
-    _skip "M5: scripts/tmx not found — wrapper not yet generated"
+    _skip "M5: no wrapper present"
+fi
+
+# ── M7: tmx-vm wrapper — re-introduce empty-SOCK early return in ────
+#        _apply_host_color (the Fixed.md A10 bug). Mutation rewrites the
+#        new code `[ -n "$sock" ] && target=(-S "$sock")` back to the
+#        broken `[ -n "$sock" ] || return 0` so the wrapper silently bails
+#        for the default-socket path. Test 11 T6 must FAIL.
+#        Delimiter `#` chosen over `|` because the replacement contains
+#        `||` which would collide with `|` as the sed s-command delimiter.
+WRAPPER_PATH_VM="$REPO_ROOT/scripts/tmx-vm"
+if [ -f "$WRAPPER_PATH_VM" ]; then
+    run_mutation \
+        "M7: re-introduce SOCK-empty early return" \
+        "scripts/tmx-vm" \
+        "sed -i 's#\\[ -n \"\$sock\" \\] && target=(-S \"\$sock\")#[ -n \"\$sock\" ] || return 0#g' \"\$target_abs\"" \
+        "false" \
+        "scripts/tests/11_hostname_color_integration.sh" \
+        "FAIL.*T6"
+else
+    _skip "M7: scripts/tmx-vm not found — VM wrapper not yet generated (run setup.sh)"
+fi
+
+# ── M8: tmx-vm wrapper — hardcode bg=green in set status-style call. ─
+#        Catches the case where the SET call fires but with a hardcoded
+#        wrong colour. test 11 T4.1 (explicit-socket) and T6 (default-
+#        socket) both compare against the deterministic hostname-derived
+#        colour, so either path catches this mutation.
+if [ -f "$WRAPPER_PATH_VM" ]; then
+    run_mutation \
+        "M8: hardcode bg=green in status-style" \
+        "scripts/tmx-vm" \
+        "sed -i 's|set -g status-style \"bg=\$color\"|set -g status-style \"bg=green\"|' \"\$target_abs\"" \
+        "false" \
+        "scripts/tests/11_hostname_color_integration.sh" \
+        "FAIL.*T"
+else
+    _skip "M8: scripts/tmx-vm not found — VM wrapper not yet generated (run setup.sh)"
 fi
 
 # ── M6: hostname_color.sh — break determinism via $$ injection ──────

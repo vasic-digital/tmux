@@ -54,6 +54,68 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A11. Regression protection so A10 cannot re-occur (test gap closed) — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Discovery context:** user demanded "make sure nothing passes again!
+  zero-bluff policy MUST BE followed blindly!" after the Fixed.md A10
+  colour bug shipped while the entire test suite reported GREEN. The
+  bug surfaced only when the operator (the user) actually invoked
+  `tmx new -s Test` and saw green. Existing gates did NOT catch it.
+* **Honest accounting — why the gates missed the bug:**
+  - `test 11`: always passed `-S "$SOCKET"` → tested explicit-socket
+    code path only. The default-socket path (`tmx new -s X` without
+    `-S`) — the OPERATOR'S use case — was uncovered.
+  - `meta-test`: M4 + M5 targeted `scripts/tmx`, which on Darwin
+    install is the SSH bridge (not the wrapper). The actual VM-side
+    wrapper at `scripts/tmx-vm` was never mutated → bugs in it
+    couldn't be exercised by paired mutation.
+  - `test_e2e.sh` (pre-fix): didn't read `status-style` at all —
+    only verified session lifecycle, not colour.
+* **Defects fixed:**
+  1. **test 11 — new T6: default-socket path with positive evidence.**
+     After T5, kills any default-socket server, invokes the wrapper
+     WITHOUT `-S`, reads `tmux show -g status-style` from default
+     socket, compares to deterministic hostname-derived colour.
+     FAILs explicitly if `bg=green` (the default-applied bluff).
+  2. **meta-test M4 + M5 — retargeted to `scripts/tmx-vm`** when
+     present (Darwin install) with fallback to `scripts/tmx` (Linux
+     native). Mutations now mutate the file that test 09 actually
+     reads (`WRAPPER` env var = `scripts/tmx-vm` in `test_vm.sh`).
+  3. **meta-test M7 (new) — re-introduces the SOCK-empty early
+     return.** Mutates `[ -n "$sock" ] && target=(-S "$sock")` →
+     `[ -n "$sock" ] || return 0` in `tmx-vm`. test 11 T6 must FAIL
+     under M7 ("status-bg 'green' — that's the tmux DEFAULT, color
+     was not applied"). Uses `#` delimiter for sed s-command because
+     replacement contains `||` which collides with `|` delimiter.
+  4. **meta-test M8 (new) — hardcodes `bg=green` in the
+     `set -g status-style` call.** test 11 T4.1 + T6 both compare
+     against the deterministic hash, so either branch catches it.
+     This is the regression guard for the case where the SET call
+     fires but with the wrong colour.
+* **Captured evidence (post-fix):**
+  - `bash scripts/test_vm.sh`: test 11 PASS=6 FAIL=0 SKIP=0
+    (T6 default-socket path proven). Full suite GREEN PASS=14/0/0.
+  - `META=1 bash scripts/test_vm.sh`: all 8 mutations caught
+    (M1, M2, M3, M4, M5, M6, M7, M8). 16 PASS total
+    (each mutation produces 1 caught + 1 restored).
+  - `bash scripts/test_e2e.sh` on Mistborn: T4.5 PASS
+    `status-bg 'colour202' matches hostname-derived 'colour202'`.
+* **Triple-layer regression-protection summary:**
+  - Layer 2 (runtime test): test 11 T6 exercises default-socket
+    path; e2e T4.5 exercises end-to-end through bridge.
+  - Layer 4 (paired mutation): M7 + M8 verify that test 11 T6 / T4.1
+    actually FAIL when the bug is re-introduced.
+  - Constitution §11.4.4 four-layer model now genuinely covers the
+    colour-on-host invariant for both explicit-socket AND default-
+    socket paths.
+* **Tracked task:** user-reported during this session, immediately
+  after Fixed.md A10. The user's pointed question — "have you
+  performed validation and verification tests when this issue has
+  passed through?" — surfaced that A10's fix lacked regression
+  protection. This A11 closes that gap.
+
 ### A10. Status-bar colour silently defaulted to green + bridge ignored macOS hostname — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.
