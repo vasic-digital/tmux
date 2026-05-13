@@ -184,8 +184,8 @@ rm -f scripts/tmx-mac.template.bak 2>/dev/null || true
 # with `sudo bash scripts/build_oom_set.sh --install` to get full OOM
 # protection without the wrapper needing sudo per launch. See §8 of guide.
 echo ""
-echo "[setup] step 3b — building oom_set helper (no install)"
-if [ -f scripts/oom_set.c ] && [ -x scripts/build_oom_set.sh ]; then
+echo "[setup] step 3b — building oom_set helper (Linux only; SKIP on Darwin)"
+if [ "$HOST_OS" = "Linux" ] && [ -f scripts/oom_set.c ] && [ -x scripts/build_oom_set.sh ]; then
     bash scripts/build_oom_set.sh 2>&1 | grep -E "wrote|complete" | sed 's/^/  /'
     if [ -x /usr/local/bin/tmx-oom-set ]; then
         echo "  ✓ /usr/local/bin/tmx-oom-set installed (cap_sys_resource+ep) — Test 08 will PASS"

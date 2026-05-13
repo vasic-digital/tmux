@@ -130,11 +130,27 @@ _apply_oom_score() {
 }
 
 # Apply hostname-derived status-bar bg colour on the running server.
+# On Darwin we prefer LocalHostName (e.g. "Mistborn") over the FQDN
+# (e.g. "Mistborn.local") because that's what zsh's %m, the operator's
+# prompts, and the prior bridge-era behaviour all show. This keeps the
+# colour stable across "native" and "bridge" architectures.
 _apply_host_color() {
     local sock_label="$1"
     sleep 0.3
+    local hname=""
+    if [ -n "${TMX_HOSTNAME:-}" ]; then
+        hname="$TMX_HOSTNAME"
+    elif [ "$HOST_OS" = "Darwin" ] && command -v scutil >/dev/null 2>&1; then
+        hname=$(scutil --get LocalHostName 2>/dev/null || true)
+    fi
     local color
-    color=$("$TMX_DIR/hostname_color.sh" ${TMX_HOSTNAME:+"$TMX_HOSTNAME"} 2>/dev/null) || color="green"
+    if [ -n "$hname" ]; then
+        color=$("$TMX_DIR/hostname_color.sh" "$hname" 2>/dev/null) || color="green"
+        # Propagate to tmux env so #{TMX_HOSTNAME} in status-right resolves.
+        "$TMUX_BIN" -L "$sock_label" set-environment -g TMX_HOSTNAME "$hname" 2>/dev/null || true
+    else
+        color=$("$TMX_DIR/hostname_color.sh" 2>/dev/null) || color="green"
+    fi
     "$TMUX_BIN" -L "$sock_label" set -g status-style "bg=$color" 2>/dev/null || true
 }
 

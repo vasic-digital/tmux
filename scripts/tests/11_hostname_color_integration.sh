@@ -61,8 +61,16 @@ else
 fi
 
 # ── T3: compute the expected colour for THIS host ─────────────────────
-HOST_COLOR=$("$ALGO" 2>/dev/null) || HOST_COLOR="green"
-echo "  expected status-bg: $HOST_COLOR (host: $(hostname))"
+# Mirror the wrapper's hostname resolution: on Darwin, prefer scutil
+# LocalHostName (e.g. "Mistborn") over the FQDN (e.g. "Mistborn.local").
+# This keeps the test in sync with the wrapper's _apply_host_color logic.
+HOST_HN_FOR_COLOR=""
+if [ "$(uname -s)" = "Darwin" ] && command -v scutil >/dev/null 2>&1; then
+    HOST_HN_FOR_COLOR=$(scutil --get LocalHostName 2>/dev/null || true)
+fi
+[ -z "$HOST_HN_FOR_COLOR" ] && HOST_HN_FOR_COLOR=$(hostname)
+HOST_COLOR=$("$ALGO" "$HOST_HN_FOR_COLOR" 2>/dev/null) || HOST_COLOR="green"
+echo "  expected status-bg: $HOST_COLOR (host: $HOST_HN_FOR_COLOR)"
 
 # ── T4: create a session via the wrapper; status-bg matches expected ──
 "$WRAPPER" new -s "$A_NAME" -d 2>/dev/null

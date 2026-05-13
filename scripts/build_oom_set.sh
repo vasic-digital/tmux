@@ -15,6 +15,17 @@
 
 set -euo pipefail
 
+# OS gate: oom_set.c uses Linux-only headers (sys/capability.h) and writes
+# to /proc/<pid>/oom_score_adj — a Linux-specific procfs interface.
+# On Darwin there's no procfs, no cap_sys_resource. SKIP cleanly.
+HOST_OS="$(uname -s)"
+if [ "$HOST_OS" != "Linux" ]; then
+    echo "[build_oom_set] SKIP: $HOST_OS doesn't have /proc/<pid>/oom_score_adj"
+    echo "                this helper is Linux-specific. On macOS, sessions"
+    echo "                use POSIX RLIMIT_CPU + RLIMIT_NPROC instead."
+    exit 0
+fi
+
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$REPO_ROOT/scripts/oom_set.c"
 OUT="$REPO_ROOT/scripts/oom_set"

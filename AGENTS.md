@@ -8,11 +8,16 @@ Canonical authority: [`Constitution.md`](Constitution.md) (§anchors below). Liv
 
 ## Core mandate — anti-bluff covenant (§1)
 
+**Forensic anchor — verbatim user mandate:**
+
+> "We had been in position that all tests do execute with success and all Challenges as well, but in reality the most of the features does not work and can't be used! This MUST NOT be the case and execution of tests and Challenges MUST guarantee the quality, the completion and full usability by end users of the product!"
+
 **The bar for shipping is "users can use the feature," not "tests pass."**
 
 - Every PASS must carry **positive runtime evidence** (cgroup file content, not just existence).
 - **FAIL-bluffs** (test exits FAIL due to script bug, not product defect) are equally forbidden — fix at source layer, never in call sites.
 - **No-guessing (§11.4.6)**: never use `likely`/`probably`/`maybe`/`seems`/`appears` in cause descriptions. Either prove with forensic evidence or mark `UNCONFIRMED:` / `PENDING_FORENSICS:`.
+- **Operator-path coverage (§11.4.7)**: every gate test MUST exercise the SAME entry point an end-user invokes. Propagated to `Containers/CONSTITUTION.md`.
 
 ## Commands (exact)
 

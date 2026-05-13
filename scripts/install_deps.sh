@@ -1,23 +1,50 @@
 #!/usr/bin/env bash
 # install_deps.sh — install build dependencies for tmux from-source build.
 #
-# Usage: sudo bash scripts/install_deps.sh
+# Usage:
+#   Linux:  sudo bash scripts/install_deps.sh
+#   macOS:  bash scripts/install_deps.sh   (no sudo — uses Homebrew)
 #
-# Detects package manager (apt/dnf/yum/pacman/zypper) and installs:
+# Detects OS first, then on Linux detects package manager
+# (apt/dnf/yum/pacman/zypper).
+#
+# Packages installed:
 #   - libevent (>= 2.1) headers
 #   - ncurses headers
-#   - jemalloc headers (for runtime LD_PRELOAD optimisation)
-#   - autoconf, automake, pkg-config, gcc, make (build chain)
+#   - jemalloc headers (for runtime LD_PRELOAD / DYLD_INSERT_LIBRARIES optimisation)
+#   - autoconf, automake, pkg-config, gcc, make, bison, utf8proc
 #
-# OS coverage: ALT Linux (apt-rpm), Debian/Ubuntu (apt-get), Fedora/RHEL (dnf),
-# Arch (pacman), openSUSE (zypper), Alpine (apk).
+# OS coverage:
+#   macOS Darwin  → Homebrew
+#   ALT Linux (apt-rpm), Debian/Ubuntu (apt-get), Fedora/RHEL (dnf),
+#   Arch (pacman), openSUSE (zypper), Alpine (apk).
 #
 # Idempotent — safe to re-run.
 
 set -euo pipefail
 
+HOST_OS="$(uname -s)"
+
+# ── Darwin branch: brew installs the deps build_native.sh needs ──────
+if [ "$HOST_OS" = "Darwin" ]; then
+    if ! command -v brew >/dev/null 2>&1; then
+        echo "ERROR: Homebrew not installed on macOS."
+        echo "  Install via:"
+        echo "    /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+        exit 2
+    fi
+    BREWS="libevent jemalloc automake autoconf pkg-config bison utf8proc"
+    echo "[install_deps] Darwin: brew install $BREWS"
+    # shellcheck disable=SC2086
+    brew install $BREWS
+    echo "[install_deps] ✓ Darwin build deps ready (no sudo needed)."
+    echo "[install_deps] next: bash scripts/setup.sh"
+    exit 0
+fi
+
+# ── Linux branch (requires root for system package install) ──────────
 if [ "$(id -u)" != "0" ]; then
-    echo "ERROR: this script needs root (it installs system packages)."
+    echo "ERROR: this script needs root on Linux (it installs system packages)."
     echo "       run with: sudo bash $0"
     exit 1
 fi

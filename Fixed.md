@@ -54,6 +54,111 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A14. Verification + validation cycle 2026-05-13 (operator-requested) — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Discovery context:** operator invoked
+  `superpowers:verification-before-completion` + asked for full
+  verification + governance propagation + install + commit/push.
+  Each verification command was run FRESH in this session per the
+  Iron Law of that skill — no completion claims without fresh evidence.
+* **Fresh runtime evidence captured (all from this session):**
+
+  ```
+  # git sync
+  HEAD   = 230b60a (working tree clean; only `? tmux` = gitignored build subtree)
+  github = 230b60a
+  gitlab = 230b60a
+  Containers HEAD = fd92850 (origin synced)
+
+  # bash scripts/setup.sh --verify-only
+  SUMMARY: PASS=10  FAIL=0  SKIP=5
+  GREEN: tmux binary verified — safe to PATH-export.
+  (SKIPs are Linux-specific tests: 08 oom_score_adj, 09 crash isolation,
+   12-14 destructive cgroup. SKIP-with-reason per §11.4.3 topology dispatch.)
+
+  # bash scripts/test_e2e.sh
+  SUMMARY: PASS=9  FAIL=0  SKIP=0
+  GREEN: tmx end-to-end stack verified (bridge + wrapper + session lifecycle)
+
+  # bash scripts/tests/15_per_session_cgroup_distinct.sh on macOS
+  Tests: PASS=6  FAIL=0  SKIP=0
+   T1: distinct scopes  T2: distinct PIDs  T3+T4: rlimits applied
+   T5: TMX_CPU_HARD_SEC=3600 override = 3600  T6: host user = milosvasic
+
+  # tmx new -s VerifyDemo -d  + send-keys + capture-pane
+  Prompt: " milosvasic@Mistborn  ~/Projects/tmux   main ± "
+  id: uid=501(milosvasic) gid=20(staff) groups=...,admin,...
+  hostname: Mistborn.local
+  which brew: /opt/homebrew/bin/brew
+  ulimit -t: 86400 (RLIMIT_CPU enforced)
+  ulimit -u: 2666  (RLIMIT_NPROC enforced)
+  ```
+
+* **Two real defects caught during the fresh verify cycle:**
+  - **D1**: After the bridge architecture was removed, the wrapper
+    used `$(hostname)` (FQDN = "Mistborn.local") instead of the
+    operator's identity ("Mistborn" via `scutil --get LocalHostName`).
+    Colour drifted from `colour202` to `colour13`. Fix: wrapper's
+    `_apply_host_color` now reads `scutil` on Darwin AND sets the
+    tmux `TMX_HOSTNAME` env so the status-right `#{TMX_HOSTNAME}`
+    interpolation resolves. Test 11 T3 updated to mirror the same
+    resolution. Re-run: T4.1 PASS `bg=colour202 matches expected`.
+  - **D2**: `scripts/install_deps.sh` and `scripts/build_oom_set.sh`
+    weren't OS-aware out of the box. `install_deps.sh` now detects
+    Darwin and uses `brew install` (no sudo); `build_oom_set.sh`
+    SKIPs cleanly on non-Linux with a reason (oom_score_adj is a
+    Linux /proc interface). `setup.sh` step 3b only invokes
+    build_oom_set on Linux. **Every script now recognises host OS
+    and applies the right action out of the box** per operator
+    mandate 2026-05-13.
+
+* **Governance propagation verified + completed:**
+  - Verbatim user-mandate quote now present in: root `Constitution.md`
+    (existing), `CLAUDE.md` (added in this cycle), `AGENTS.md` (added),
+    `Containers/CONSTITUTION.md` (existing), `Containers/CLAUDE.md`
+    (already 2 mentions), `Containers/AGENTS.md` (already 2 mentions).
+  - §11.4.7 (operator-path test coverage rule) now referenced in:
+    root `Constitution.md`, `CLAUDE.md`, `AGENTS.md`,
+    `Containers/CONSTITUTION.md`, `Containers/CLAUDE.md` (added),
+    `Containers/AGENTS.md` (added).
+
+* **Anti-bluff audit results (each test classified):**
+  - **Runtime-evidence-only**: 03 (jemalloc loaded, /proc/maps or
+    vmmap readback), 05 (RSS deltas), 06 (RSS bounded), 07 (RSS
+    growth), 08 (/proc/oom_score_adj readback), 12-14 (cgroup +
+    dmesg/journalctl readbacks), 15 (cgroup + send-keys+capture-pane).
+  - **Output-of-binary evidence**: 01 (smoke = `tmux -V`), 02
+    (session lifecycle = `tmux ls`), 04 (history-limit = `show -g`),
+    10 (algorithm output).
+  - **Mixed static+runtime**: 09 (T2 greps wrapper for invariant
+    strings AS A STATIC CHECK + T3 reads memory.max for RUNTIME
+    proof — paired per §11.4.7), 11 (T1/T2 grep wrapper + T3-T6
+    runtime status-style readback).
+  - **No test relies on grep-on-script-content as the sole assertion.**
+    Every static check is paired with a runtime readback. Confirms
+    §11.4.7 invariant.
+
+* **Challenges audit (scripts/challenges/tmux.yaml):**
+  - All challenges (CH-01 through CH-15) specify `evidence:` that is
+    REAL runtime state — `/proc/PID/maps`, VmRSS deltas, cgroup
+    interface readbacks, systemctl is-active, kernel log lines,
+    captured stdout from binary invocations. Zero challenges close
+    on "exit code 0" alone. No bluff.
+
+* **Install state (this session):**
+  - `bash scripts/setup.sh` end-to-end GREEN.
+  - `zsh -c 'source ~/.zshrc; which tmx; tmx -V'` →
+    `/Users/milosvasic/Projects/tmux/scripts/tmx` + `tmux 3.6a`.
+  - Shell snippets in both `~/.bashrc` and `~/.zshrc` (2 markers
+    each = section start + end).
+  - macOS isolation working: per-session CPU + NPROC limits enforced;
+    XNU memory-cap gap documented in setup.sh closing message +
+    GUIDE.md §5.6 + README architecture diagram.
+
+* **Tracked task:** operator's verification request 2026-05-13.
+
 ### A13. Per-session isolation: each `tmx new -s X` in its own cgroup + Constitution §11.4.7 — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.
