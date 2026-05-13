@@ -1,10 +1,12 @@
 # vasic-digital tmux — optimized + verified containerized build
 
-A reproducible, hardened build of [`tmux`](https://github.com/tmux/tmux) with built-in jemalloc support, OOM-protection helper, and a comprehensive verification gate. Designed to run on **any Linux host** (Ubuntu, ALT, Fedora, Arch, openSUSE, Alpine) where podman or docker is available.
+A reproducible, hardened build of [`tmux`](https://github.com/tmux/tmux) with built-in jemalloc support, OOM-protection helper, and a comprehensive verification gate. **Runs natively on any Linux host** (Ubuntu, ALT, Fedora, Arch, openSUSE, Alpine) where podman or docker is available. **macOS hosts** (Apple Silicon + Intel) are supported via a transparent bridge into the podman machine VM — the operator gets a working `tmx` command on the macOS shell with no manual SSH-juggling.
 
 **The 14 verification tests are why this matters**: a typical "build tmux from source" guide assumes the build worked. This project ships a hard wall — `bash scripts/setup.sh` will refuse to PATH-export the binary unless functional tests pass with positive runtime evidence (cgroup interface readbacks, `/proc` files, real session output), backed by a §11.4.4 layer-4 paired-mutation harness that proves the gates aren't themselves bluffs. SKIPs document precondition gates (CAP_SYS_RESOURCE, libjemalloc presence, destructive-test opt-in) explicitly. No PASS-bluffs.
 
 ## Quick install (one command)
+
+**Linux host:**
 
 ```bash
 git clone --recurse-submodules git@github.com:vasic-digital/tmux.git ~/Projects/tmux
@@ -13,7 +15,59 @@ sudo bash scripts/install_deps.sh    # one-time host build deps
 bash scripts/setup.sh                 # build + verify + install (no sudo)
 ```
 
-After `setup.sh` reports GREEN: open a new shell or `source ~/.bashrc` → `tmx` invokes the verified vasic-digital build (system `tmux` untouched).
+**macOS host (Apple Silicon or Intel):**
+
+```bash
+brew install podman                   # one-time: container runtime
+podman machine init && podman machine start
+git clone --recurse-submodules git@github.com:vasic-digital/tmux.git ~/Projects/tmux
+cd ~/Projects/tmux
+bash scripts/setup.sh                 # build + VM-verify + install bridge
+```
+
+After `setup.sh` reports GREEN: open a new shell, or source the rc for your shell (`source ~/.bashrc` or `source ~/.zshrc`). Then `tmx new|attach|ls|kill` invokes the verified vasic-digital build; the system `tmux` command stays untouched and reachable side-by-side.
+
+## Architecture
+
+```
+                    ┌────────────────────────────────┐
+                    │       OPERATOR SHELL           │
+                    │   $ tmx new mywork             │
+                    └──────────────┬─────────────────┘
+                                   │
+        ┌──────────────────────────┴──────────────────────────┐
+        │                                                     │
+   Linux host                                          macOS host
+   scripts/tmx                                         scripts/tmx
+   = Linux wrapper                                     = SSH bridge
+        │                                                     │
+        │ exec systemd-run --user --scope                     │ ssh -t -p <vm-port>
+        │     -p MemoryMax=8G -p CPUQuota=200%                │     core@127.0.0.1
+        │     -p TasksMax=4096 -p Delegate=yes                │     <repo>/scripts/tmx-vm <args>
+        │     tmux/build/bin/tmux <args>                      │
+        │                                                     ▼
+        │                                            ┌──────────────────────┐
+        │                                            │  podman machine VM   │
+        │                                            │  Fedora CoreOS 42    │
+        │                                            │  systemd 257         │
+        │                                            │                      │
+        │                                            │  scripts/tmx-vm      │
+        │                                            │  = Linux wrapper     │
+        │                                            │  (same logic as ←)   │
+        ▼                                            ▼
+    ┌──────────────────────────────────────────────────────────┐
+    │  Verified hardened tmux 3.6a (Linux ELF, jemalloc-linked) │
+    │  Running in cgroup-v2 transient scope:                    │
+    │  ├ MemoryMax            (default 8 GB, override $TMX_MEM) │
+    │  ├ CPUQuota             (default 200 %, override $TMX_CPU)│
+    │  ├ TasksMax = 4096                                        │
+    │  ├ Delegate = yes                                         │
+    │  └ /usr/local/bin/tmx-oom-set sets oom_score_adj=-500     │
+    │  Status-bar bg = DJB2(hostname) → 27-colour palette       │
+    └──────────────────────────────────────────────────────────┘
+```
+
+On the macOS path, the bridge does `podman machine inspect` at every call to discover the SSH endpoint (port can change across machine restarts) and dispatches via raw `ssh -t` for TTY allocation. The verified Linux ELF binary executes in the VM where cgroup-v2 + systemd + jemalloc + procfs all work as designed; the operator's macOS terminal sees the SSH-forwarded TTY.
 
 ## What you get
 

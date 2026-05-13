@@ -113,12 +113,66 @@ Plus a §11.4.4 layer-4 paired-mutation harness (`meta_test_false_positive_proof
 
 | Goal | Command |
 |---|---|
-| Install everything | `sudo bash scripts/install_deps.sh && bash scripts/setup.sh` |
-| Re-verify after upstream pull | `bash scripts/verify.sh` |
+| Install everything (Linux) | `sudo bash scripts/install_deps.sh && bash scripts/setup.sh` |
+| Install everything (macOS) | `brew install podman && podman machine init && podman machine start && bash scripts/setup.sh` |
+| Re-verify after upstream pull (Linux) | `bash scripts/verify.sh` |
+| Re-verify after upstream pull (macOS) | `bash scripts/test_vm.sh` |
+| Run full destructive suite | `TMX_TEST_DESTRUCTIVE=1 bash scripts/test_vm.sh` |
+| Run §11.4.4 paired-mutation meta-test | `META=1 bash scripts/test_vm.sh` |
 | Force rebuild | `bash scripts/setup.sh --rebuild` |
 | Uninstall | `bash scripts/setup.sh --uninstall` |
 | Run a specific test | `TMUX_BIN=$(pwd)/tmux/build/bin/tmux bash scripts/tests/03_jemalloc_loaded.sh` |
 | Update tmux to a new pinned tag | `cd tmux && git checkout <new-tag> && cd .. && bash scripts/setup.sh --rebuild` |
+
+---
+
+## §5.5 macOS bridge (Darwin hosts)
+
+The verified binary is Linux ELF (`tmux 3.6a`, ARM aarch64 or x86_64) and cannot execute natively on Darwin. To preserve the §11.4 anti-bluff contract (no unverified install) AND give macOS users a working `tmx` command, the setup pipeline diverges on Darwin:
+
+| Step | Linux host | macOS host (Darwin) |
+|---|---|---|
+| 1. Host capability | check podman/docker + libjemalloc via ldconfig | check podman + that `podman machine` is running |
+| 2. Build | container build (writes `tmux/build/bin/tmux` Linux ELF) | identical — works on Darwin via podman machine |
+| 3. Wrapper generation | `scripts/tmx` = Linux wrapper (with host paths) | `scripts/tmx-vm` = Linux wrapper (with VM paths) **and** `scripts/tmx` = SSH bridge |
+| 4. Verification gate | `bash scripts/verify.sh` on host | `bash scripts/test_vm.sh` (regenerates `tmx-vm`, runs `verify.sh` **inside the VM** via `podman machine ssh`) — §11.4 verified in target env |
+| 5. Install | append snippet to `~/.bashrc` (+ `~/.zshrc` if present) | identical |
+
+### Bridge mechanics
+
+`scripts/tmx-mac.template` generates `scripts/tmx` on Darwin. On invocation it:
+
+1. Verifies `podman machine list` shows "Currently running".
+2. Calls `podman machine inspect` to discover the SSH endpoint (port can change across machine restarts — bridge is re-discovery-safe).
+3. Verifies `scripts/tmx-vm` exists inside the VM (set up by `setup.sh` and refreshed by `test_vm.sh`).
+4. Quotes arguments via `printf %q` and runs `ssh -t -i <identity> -p <port> core@127.0.0.1 "<vm-repo>/scripts/tmx-vm <args>"`.
+
+The `-t` flag allocates a TTY so interactive tmux runs through the SSH terminal. To detach from a session and keep it running in the VM after disconnect, use the standard tmux `Ctrl-B d`. The session persists in the VM's tmux server until explicit `tmx kill-session` or `tmx kill-server` (or VM shutdown).
+
+### Architecture (Mermaid)
+
+```mermaid
+flowchart LR
+    OP[Operator shell] -->|tmx new mywork| TMX[scripts/tmx]
+    subgraph Darwin[macOS host]
+        TMX -->|bridge: ssh -t| SSHD[podman machine VM<br/>port 51347]
+    end
+    subgraph LinuxNative[Linux host - direct]
+        TMX2[scripts/tmx<br/>Linux wrapper] -->|exec systemd-run --user --scope| WRAP
+    end
+    subgraph VM[podman machine VM<br/>Fedora CoreOS 42 + systemd 257]
+        SSHD --> VMTMX[scripts/tmx-vm<br/>Linux wrapper]
+        VMTMX -->|exec systemd-run --user --scope<br/>MemoryMax CPUQuota TasksMax Delegate| WRAP[transient scope]
+        WRAP --> TMUX[tmux 3.6a<br/>jemalloc-linked<br/>oom_score_adj=-500]
+        TMUX -->|set -g status-style<br/>bg=DJB2 hostname| STATUS[colour palette<br/>27 distinct entries]
+    end
+```
+
+### Limitations on Darwin
+
+- **Single TTY per ssh session.** A fresh terminal must SSH again to attach to existing sessions. Inside one terminal, `tmx attach -t mywork` works as expected.
+- **Latency.** TTY traffic is forwarded over the local-loopback SSH tunnel. On Apple Silicon this is negligible (~microseconds).
+- **VM lifetime.** Sessions persist in the VM's tmux server. `podman machine stop` kills all sessions. To survive macOS reboots, the VM needs to be started before `tmx` invocations (auto-start with `podman machine set --rootful=false --autostart` if desired).
 
 ---
 

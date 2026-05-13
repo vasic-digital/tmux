@@ -1,6 +1,6 @@
 # AGENTS.md — vasic-digital tmux
 
-Verified hardened tmux 3.6a build with jemalloc, OOM protection, and per-session cgroup isolation via the `tmx` wrapper. Built around a hard verification gate that refuses to expose the binary unless functional tests pass.
+Verified hardened tmux 3.6a build with jemalloc, OOM protection, and per-session cgroup isolation via the `tmx` wrapper. Built around a hard verification gate that refuses to expose the binary unless functional tests pass. Runs natively on Linux; on macOS, `scripts/tmx` is a bridge that SSHes into the podman machine VM and invokes `scripts/tmx-vm` there (same wrapper logic, SSH-TTY layer added).
 
 Canonical authority: [`Constitution.md`](Constitution.md) (§anchors below). Live handoff state: [`CONTINUATION.md`](CONTINUATION.md). Open work: [`Issues.md`](Issues.md). Containerization design: [`docs/CONTAINERIZATION_PLAN.md`](docs/CONTAINERIZATION_PLAN.md).
 

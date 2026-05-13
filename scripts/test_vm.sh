@@ -44,7 +44,9 @@ if ! podman machine ssh "test -x $VM_REPO/tmux/build/bin/tmux" 2>/dev/null; then
     exit 3
 fi
 
-echo "[test_vm] regenerating $VM_REPO/scripts/tmx with VM-native paths..."
+echo "[test_vm] regenerating $VM_REPO/scripts/tmx-vm with VM-native paths..."
+# tmx-vm is the Linux wrapper invoked INSIDE the VM. The macOS host's
+# scripts/tmx is the BRIDGE (different file, doesn't conflict).
 # Resolve libjemalloc inside the VM (not the host, since the binary loads
 # against VM glibc / libjemalloc).
 VM_JEMALLOC=$(podman machine ssh "ldconfig -p 2>/dev/null | awk '/libjemalloc\\.so\\.[0-9]/ {print \$NF; exit}'" 2>/dev/null | tr -d '\r' || true)
@@ -57,17 +59,19 @@ echo "[test_vm] VM libjemalloc: $VM_JEMALLOC"
 
 podman machine ssh "sed -e 's|__TMUX_BIN__|$VM_REPO/tmux/build/bin/tmux|g' \
                           -e 's|__JEMALLOC_PATH__|$VM_JEMALLOC|g' \
-                          $VM_REPO/scripts/tmx.template > $VM_REPO/scripts/tmx \
-                          && chmod +x $VM_REPO/scripts/tmx"
+                          $VM_REPO/scripts/tmx.template > $VM_REPO/scripts/tmx-vm \
+                          && chmod +x $VM_REPO/scripts/tmx-vm"
 
 echo "[test_vm] running suite in VM..."
 echo ""
+VM_TMUX_BIN="$VM_REPO/tmux/build/bin/tmux"
+VM_WRAPPER="$VM_REPO/scripts/tmx-vm"
 if [ "${META:-0}" = "1" ]; then
-    podman machine ssh "bash $VM_REPO/scripts/tests/meta_test_false_positive_proof.sh"
+    podman machine ssh "TMUX_BIN=$VM_TMUX_BIN WRAPPER=$VM_WRAPPER bash $VM_REPO/scripts/tests/meta_test_false_positive_proof.sh"
 else
     if [ "${TMX_TEST_DESTRUCTIVE:-0}" = "1" ]; then
-        podman machine ssh "TMX_TEST_DESTRUCTIVE=1 bash $VM_REPO/scripts/verify.sh"
+        podman machine ssh "TMUX_BIN=$VM_TMUX_BIN WRAPPER=$VM_WRAPPER TMX_TEST_DESTRUCTIVE=1 bash $VM_REPO/scripts/verify.sh"
     else
-        podman machine ssh "bash $VM_REPO/scripts/verify.sh"
+        podman machine ssh "TMUX_BIN=$VM_TMUX_BIN WRAPPER=$VM_WRAPPER bash $VM_REPO/scripts/verify.sh"
     fi
 fi

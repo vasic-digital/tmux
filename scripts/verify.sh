@@ -9,8 +9,9 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TMUX_BIN="$REPO_ROOT/tmux/build/bin/tmux"
-WRAPPER="$REPO_ROOT/scripts/tmx"
+TMUX_BIN="${TMUX_BIN:-$REPO_ROOT/tmux/build/bin/tmux}"
+WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
+export TMUX_BIN WRAPPER
 
 echo "════════════════════════════════════════════════════════════════"
 echo "  tmux verification gate (per §11.4 anti-bluff covenant)"
