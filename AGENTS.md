@@ -28,6 +28,7 @@ Canonical authority: [`Constitution.md`](Constitution.md) (§anchors below). Liv
 | Meta-test (paired mutation) | `bash scripts/tests/meta_test_false_positive_proof.sh` |
 | Containerized test run (bounded subset) | `bash scripts/test_containerized.sh` |
 | VM test run (full suite incl. user-systemd) | `bash scripts/test_vm.sh` (use `TMX_TEST_DESTRUCTIVE=1` / `META=1`) |
+| End-to-end (bridge + wrapper + session) | `bash scripts/test_e2e.sh` |
 | Commit + push (both github+gitlab) | `bash commit_all.sh "message"` |
 | Per-session cgroup wrapper | `tmx {new\|attach\|ls\|kill}` |
 

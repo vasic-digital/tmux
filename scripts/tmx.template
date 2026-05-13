@@ -87,22 +87,74 @@ for arg in "$@"; do
 done
 
 if [ "$#" -eq 0 ] || echo " $* " | grep -qE ' (new-session|new|start-server) '; then
+    # Detect whether the operator wants an interactive attach. tmux's
+    # `new`/`new-session` without `-d` creates the session AND attaches
+    # the calling terminal — needs a TTY. Our wrapper's previous design
+    # `cmd &; _apply_*; wait` backgrounded the tmux client, which
+    # disconnects it from the controlling terminal's foreground process
+    # group → "open terminal failed: not a terminal" for interactive use.
+    #
+    # Fix: split the lifecycle. Create the session DETACHED in the
+    # cgroup-scoped server, apply OOM + colour, THEN exec a foreground
+    # attach (or exit silently if the operator passed -d themselves).
+    INTERACTIVE=1
+    for a in "$@"; do
+        case "$a" in
+            -d|-D) INTERACTIVE=0 ;;
+        esac
+    done
+
+    # Build args: ensure tmux starts detached so the wrapper retains TTY
+    # control for the subsequent attach.
+    NEW_ARGS=()
+    INJECTED_D=0
+    if [ "$INTERACTIVE" -eq 1 ]; then
+        for a in "$@"; do
+            NEW_ARGS+=("$a")
+            case "$a" in
+                new|new-session|start-server)
+                    if [ "$INJECTED_D" -eq 0 ]; then
+                        NEW_ARGS+=("-d")
+                        INJECTED_D=1
+                    fi
+                    ;;
+            esac
+        done
+        # If no subcommand keyword was present (bare `tmx`), prefix new -d.
+        if [ "$INJECTED_D" -eq 0 ]; then
+            NEW_ARGS=("new-session" "-d" "${NEW_ARGS[@]}")
+            INJECTED_D=1
+        fi
+    else
+        NEW_ARGS=("$@")
+    fi
+
+    # Step 1: create the session inside the cgroup-scoped server (detached).
     if [ "$_scope_ok" -eq 1 ]; then
         systemd-run --user --scope --collect --quiet \
             -p "MemoryMax=${TMX_MEM:-8G}" \
             -p "CPUQuota=${TMX_CPU:-200}%" \
             -p "TasksMax=4096" \
             -p "Delegate=yes" \
-            "$TMUX_BIN" "$@" &
+            "$TMUX_BIN" "${NEW_ARGS[@]}"
     else
-        "$TMUX_BIN" "$@" &
+        "$TMUX_BIN" "${NEW_ARGS[@]}"
     fi
-    TMUX_PID=$!
+
+    # Step 2: apply colour + OOM score on the now-running server.
     _apply_oom_score "$SOCK"
     _apply_host_color "$SOCK"
-    wait $TMUX_PID
+
+    # Step 3: if the user wanted interactive, attach in foreground (TTY).
+    if [ "$INTERACTIVE" -eq 1 ]; then
+        if [ -n "$SOCK" ]; then
+            exec "$TMUX_BIN" -S "$SOCK" attach
+        else
+            exec "$TMUX_BIN" attach
+        fi
+    fi
 else
-    # For attach/ls/kill: set colour if socket exists, then exec
+    # For attach/ls/kill: set colour if socket exists, then exec.
     _apply_host_color "$SOCK"
     exec "$TMUX_BIN" "$@"
 fi

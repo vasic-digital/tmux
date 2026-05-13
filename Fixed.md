@@ -54,6 +54,70 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A9. Interactive `tmx new` "not a terminal" + full e2e automation — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Discovery context:** user ran `tmx new -s Test` interactively after
+  setup and hit `open terminal failed: not a terminal`. The bridge +
+  ssh -t allocated a TTY on the VM correctly, but the WRAPPER itself
+  was assuming detached mode.
+* **Defect — wrapper's `cmd & wait` pattern disconnects from TTY:**
+  - `scripts/tmx.template` previously did:
+    ```
+    systemd-run --user --scope ... "$TMUX_BIN" "$@" &
+    TMUX_PID=$!
+    _apply_oom_score "$SOCK"
+    _apply_host_color "$SOCK"
+    wait $TMUX_PID
+    ```
+  - The `&` puts systemd-run + tmux into background. Background
+    processes are removed from the terminal's foreground process
+    group → tmux's client cannot read from the controlling TTY →
+    "open terminal failed: not a terminal".
+  - `tmx new -s Test -d` (detached) worked because tmux daemonizes
+    and exits without needing TTY. `tmx new -s Test` (interactive)
+    failed because tmux client needed TTY.
+  - **§11.4.1 FAIL-bluff:** the wrapper APPEARED to work in tests
+    (which all use `-d`) but failed in the actual operator use case.
+* **Fix — split lifecycle: detached-create then exec-attach:**
+  - Wrapper now detects `-d`/`-D` in args (`INTERACTIVE` flag).
+  - If interactive: injects `-d` after the `new`/`new-session` keyword,
+    runs systemd-run in foreground (no `&`, no `wait`) so it inherits
+    the calling TTY (held by ssh -t on Darwin, native on Linux),
+    applies OOM + colour, then `exec $TMUX_BIN attach` to take over
+    the foreground for the client.
+  - If already detached: NEW_ARGS unchanged, no attach after.
+  - Bare `tmx` (no args) gets prefix `new-session -d` so it follows
+    the interactive path.
+* **New tool — `scripts/test_e2e.sh`:** the operator-facing end-to-end
+  automation user asked for. 7 tests in sequence:
+  - T1: prerequisites (scripts/tmx exists; podman machine running on Darwin)
+  - T2: `tmx -V` returns "tmux 3.6a" through the bridge
+  - T3: `tmx new -s <session> -d` creates session, visible in `tmx ls`
+  - T4: `tmx send-keys` + `tmx capture-pane -p` round-trip — operator-
+    visible pane content captured as positive runtime evidence
+  - T5: session survives without attached client (analogue of Ctrl-B d)
+  - T6: `tmx kill-session -t <session>` cleans up
+  Trap on EXIT calls kill-session to ensure cleanup even on failure.
+* **Captured evidence (post-fix):**
+  - `bash scripts/test_e2e.sh` on Darwin 24.5.0 Apple Silicon:
+    `SUMMARY: PASS=7 FAIL=0 SKIP=0` + `GREEN: tmx end-to-end stack verified
+    (bridge + wrapper + session lifecycle)`. The captured pane in T4
+    showed the literal marker string echoed by the command sent via
+    `tmx send-keys`, proving the whole stack carries operator intent
+    through to the VM's tmux server and back.
+  - `TMX_TEST_DESTRUCTIVE=1 bash scripts/test_vm.sh`: still GREEN
+    PASS=14 FAIL=0 SKIP=0 — wrapper change did NOT regress any
+    existing test (test 09 T2.x grep-based — invariants still present;
+    tests 08/11/12/13/14 all pass `-d` explicitly so use the
+    non-interactive code path).
+* **Regression-protection:** test_e2e.sh is now the canonical operator-
+  facing gate. Future wrapper changes that break interactive new-session
+  will FAIL T2 (tmx -V) or T3 (session-create) since those exercise the
+  full stack. Documented in CLAUDE.md + AGENTS.md command tables.
+* **Tracked task:** user-reported during this session.
+
 ### A8. macOS `tmx` operational + side-by-side coexistence end-to-end — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.
