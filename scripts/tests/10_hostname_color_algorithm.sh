@@ -60,13 +60,17 @@ else
 fi
 
 # ── T4: output is in the curated palette ──────────────────────────────
-# Extract palette from the script source
-PALETTE_LINE=$(grep -oP "(?<=\=\().*(?=\))" "$ALGO" 2>/dev/null || true)
-if [ -z "$PALETTE_LINE" ]; then
-    # Fallback: read PALETTE=( ... ) block
-    PALETTE_LINE=$(sed -n '/^PALETTE=(/,/^)/p' "$ALGO" | tr '\n' ' ' | sed 's/^PALETTE=(//;s/)$//')
-fi
-# Split into array
+# Extract palette from the script source. Strategy: take everything between
+# `PALETTE=(` and the FIRST subsequent `)`, then collapse whitespace. This
+# avoids sed-portability bugs around `)$` not matching when `tr '\n' ' '`
+# leaves a trailing space (Darwin + GNU sed both affected).
+PALETTE_LINE=$(awk '/^PALETTE=\(/{flag=1; sub(/^PALETTE=\(/, ""); }
+                    flag{
+                        if (match($0, /\)/)) { print substr($0, 1, RSTART-1); exit }
+                        else { print }
+                    }' "$ALGO" | tr '\n' ' ')
+# Split into array (whitespace-separated). `read -ra <<<` only reads one
+# line, so awk output must be flattened by tr first.
 read -ra PALETTE <<<"$PALETTE_LINE"
 C4=$("$ALGO" "palette-check")
 IN_PALETTE=0
