@@ -9,7 +9,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 ALGO="$REPO_ROOT/scripts/hostname_color.sh"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 TMUX_BIN="${TMUX_BIN:-$REPO_ROOT/tmux/build/bin/tmux}"
-SOCKET="/tmp/atm_tmx_test_color_$$"
+SOCKET="/tmp/tmx_test_color_$$"
 echo "── Test 11: hostname colour applied by wrapper ──"
 
 # ── Pre-check: binary and wrapper must exist ──────────────────────────

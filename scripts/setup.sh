@@ -41,11 +41,23 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+# Portable in-place range delete between two marker lines.
+# `sed -i` works differently on GNU (Linux) and BSD (macOS) — the BSD form
+# requires `-i ''`. Using perl avoids the divergence; flip-flop `..` matches
+# lines between the start and end markers inclusive, and `print unless` keeps
+# everything outside that range. This is the only operation that touches
+# the operator's ~/.bashrc directly.
+_strip_bashrc_snippet() {
+    local file="$1"
+    [ -f "$file" ] || return 0
+    perl -i -ne 'print unless /^# ─── vasic-digital optimized tmux/ .. /^# ─── end vasic-digital optimized tmux/' "$file"
+}
+
 # ── uninstall path ──────────────────────────────────────────────────────────
 if [ "$MODE" = "uninstall" ]; then
     echo "[setup] uninstalling…"
     if [ -f ~/.bashrc ]; then
-        sed -i '/^# ─── vasic-digital optimized tmux/,/^# ─── end vasic-digital optimized tmux/d' ~/.bashrc
+        _strip_bashrc_snippet ~/.bashrc
         echo "  ✓ removed snippet from ~/.bashrc"
     fi
     if [ -f ~/.tmux.conf ] && grep -q 'vasic-digital optimized tmux configuration' ~/.tmux.conf; then
@@ -151,14 +163,14 @@ echo ""
 echo "[setup] step 5 — installing user config"
 
 if [ -f ~/.tmux.conf ] && ! grep -q 'vasic-digital optimized tmux configuration' ~/.tmux.conf; then
-    echo "  ⚠ ~/.tmux.conf exists and is NOT ours — backing up to ~/.tmux.conf.pre-atmosphere"
-    cp -n ~/.tmux.conf ~/.tmux.conf.pre-atmosphere
+    echo "  ⚠ ~/.tmux.conf exists and is NOT ours — backing up to ~/.tmux.conf.pre-vasic-digital"
+    cp -n ~/.tmux.conf ~/.tmux.conf.pre-vasic-digital
 fi
 cp scripts/tmux.conf.template ~/.tmux.conf
 echo "  ✓ ~/.tmux.conf installed"
 
 if grep -q '─── vasic-digital optimized tmux' ~/.bashrc 2>/dev/null; then
-    sed -i '/^# ─── vasic-digital optimized tmux/,/^# ─── end vasic-digital optimized tmux/d' ~/.bashrc
+    _strip_bashrc_snippet ~/.bashrc
 fi
 sed \
     -e "s|__DATE__|$(date '+%Y-%m-%d')|" \

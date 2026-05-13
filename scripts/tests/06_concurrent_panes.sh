@@ -3,7 +3,7 @@
 # measure tmux server RSS growth. PASS if growth is bounded (< 20 MB total).
 set -uo pipefail
 TMUX_BIN="${TMUX_BIN:?}"
-SOCKET="/tmp/atm_tmux_test_$$"
+SOCKET="/tmp/tmx_test_$$"
 echo "── Test 06: 10 concurrent panes — RSS bounded ──"
 
 # Defensive jemalloc lookup

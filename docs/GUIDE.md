@@ -1,4 +1,4 @@
-# ATMOSphere Optimized tmux — User & Operator Guide
+# vasic-digital Optimized tmux — User & Operator Guide
 
 **Status:** Phase 38, Bug #33 (this session, 2026-05-07).
 **Constitution alignment:** §11.4 anti-bluff covenant (gated PATH export), §12.9 containerized build pattern, §12.10 continuation-doc invariant.
@@ -213,7 +213,7 @@ Con: tmux runs in a different cgroup hierarchy; some plugins / `$TMUX_PANE` inte
 
 For most operators: **Option C** if you're already on a systemd-based distro and use tmux as your "main" workspace. **Option B** if you launch tmux ad-hoc from terminals. **Option A** if you only want OOM protection during high-risk tasks (a single sudo-tmux session for the AOSP build window).
 
-For ATMOSphere's actual production use — which is what triggered Phase 38 — none of these is mandatory. The `oom_score_adj` work is the smallest of the three benefits we get from the new build (the bigger ones being jemalloc + bounded `history-limit` + reproducible 3.6a pin). The covenant tests SKIP cleanly and the binary is GREEN as-is.
+For most production use, none of these is mandatory. The `oom_score_adj` work is the smallest of the three benefits we get from the new build (the bigger ones being jemalloc + bounded `history-limit` + reproducible 3.6a pin). The covenant tests SKIP cleanly and the binary is GREEN as-is.
 
 ---
 

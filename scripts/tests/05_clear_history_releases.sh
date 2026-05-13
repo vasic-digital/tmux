@@ -5,7 +5,7 @@
 # absolute drop >= 1 MB). With jemalloc, drops are usually larger.
 set -uo pipefail
 TMUX_BIN="${TMUX_BIN:?}"
-SOCKET="/tmp/atm_tmux_test_$$"
+SOCKET="/tmp/tmx_test_$$"
 echo "── Test 05: clear-history releases memory ──"
 
 # Defensive jemalloc lookup (ldconfig may not be in PATH for non-root)

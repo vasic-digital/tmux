@@ -3,7 +3,7 @@
 # the running tmux process has libjemalloc mapped in its address space.
 set -euo pipefail
 TMUX_BIN="${TMUX_BIN:?}"
-SOCKET="/tmp/atm_tmux_test_$$"
+SOCKET="/tmp/tmx_test_$$"
 echo "── Test 03: jemalloc loaded via LD_PRELOAD ──"
 
 # Find libjemalloc on the host (defensive — ldconfig may not be in PATH for non-root)

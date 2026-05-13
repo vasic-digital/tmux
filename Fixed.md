@@ -54,6 +54,95 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A7. Final sweep: env-specific wrapper + §255 violations + sed portability — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Discovery context:** user "Fix anything left now! Enforce anti-bluff
+  policy!" — comprehensive sweep surfaced four more real defects:
+* **Defect 1 — `scripts/tmx` is environment-bound but presented as universal:**
+  - `test_containerized.sh` generates the wrapper with paths
+    `/repo/tmux/build/bin/tmux` (container's mount point).
+  - The same wrapper file is then unusable in the VM (where the path is
+    `/Users/$USER/Projects/tmux/tmux/build/bin/tmux`) — tmux fails to
+    start with "Failed to find executable /repo/tmux/build/bin/tmux:
+    No such file or directory", confused error masquerading as test
+    08 "tmux server PID not found" and test 11 "colour changed on
+    second session" (T5 actually starts a fresh defaultless server
+    because the wrapper-launched one never came up).
+  - **§11.4.6 forensic:** hidden assumption ("wrapper works
+    everywhere") that doesn't hold. Discovered only after the rename
+    sweep regressed previously-PASSing tests.
+  - **Fix:** added `scripts/test_vm.sh` orchestrator that regenerates
+    `scripts/tmx` with VM-native paths immediately before running the
+    suite via `podman machine ssh`. Both `test_containerized.sh` (for
+    container-only subset) and `test_vm.sh` (for full suite with
+    user-systemd) now own the wrapper-regeneration step for their
+    target environment. Operators don't share `scripts/tmx` across
+    contexts.
+* **Defect 2 — Constitution §255 violations in production code:**
+  - `docs/GUIDE.md:1` title was "ATMOSphere Optimized tmux".
+  - `docs/GUIDE.md:216` referenced "ATMOSphere's actual production use".
+  - `scripts/challenges/tmux.yaml:10` described "tmux from the
+    ATMOSphere build".
+  - `scripts/oom_set.c:29` claimed "License: same as ATMOSphere
+    project (open AOSP fork)".
+  - `scripts/tmux.conf.template:5` cited "per ATMOSphere optimization
+    research, 2026-05-07".
+  - `scripts/tests/02_session.sh:6`, `03_jemalloc_loaded.sh`,
+    `04_history_limit.sh`, `05_clear_history_releases.sh`,
+    `06_concurrent_panes.sh`, `07_long_session.sh`,
+    `08_oom_score_adj.sh`, `11_hostname_color_integration.sh` used
+    socket/session names with `atm_tmux_test_*` / `atm_test_*` /
+    `atm_tmx_test_color_*` prefixes.
+  - `scripts/setup.sh:154-155` named the backup file
+    `~/.tmux.conf.pre-atmosphere`.
+  - Per Constitution §255 (`No project coupling — any reference to
+    "ATMOSphere"... anywhere in this repo is a regression`), every
+    one is a §1 / §255 bluff.
+  - **Fix:** `perl -i -pe` sweep across tests + setup.sh renamed
+    `atm_*` → `tmx_*` (sockets/sessions) and `pre-atmosphere` →
+    `pre-vasic-digital`. Manual edits cleaned the documentation +
+    yaml + tmux.conf + oom_set.c attribution lines. Only remaining
+    "ATMOSphere" mentions are in Constitution / CONTINUATION /
+    Fixed.md / Constitution-CITES-the-rule context — permitted per
+    §255's "historical context in commit messages OK" interpretation.
+* **Defect 3 — `setup.sh` `sed -i` portability:**
+  - Lines 48 + 161 used `sed -i '...' ~/.bashrc`. GNU sed (Linux):
+    works. BSD sed (macOS): fails because `-i` requires an explicit
+    empty backup arg. An operator running `bash scripts/setup.sh
+    --uninstall` on macOS would error out.
+  - **Fix:** centralized in `_strip_bashrc_snippet()` using
+    `perl -i -ne 'print unless /<marker-start>/ .. /<marker-end>/'`.
+    Portable across GNU/BSD; same flip-flop range delete semantics.
+* **Defect 4 — Stale test fixtures didn't trip the gate:**
+  - Multiple `/tmp/atm_tmux_test_*` files accumulating in VM `/tmp`
+    from prior runs. Not a bluff per se but operator-confusing.
+  - **No code fix** — these are runtime artifacts. Documented here so
+    future audits can `find /tmp -name 'atm_*' -delete` to confirm
+    none are still being written.
+* **Captured evidence (post-fix):**
+  - `bash scripts/test_vm.sh`: regenerates wrapper, runs suite,
+    `SUMMARY: PASS=10 FAIL=0 SKIP=4 — GREEN`.
+  - `TMX_TEST_DESTRUCTIVE=1 bash scripts/test_vm.sh`:
+    `SUMMARY: PASS=14 FAIL=0 SKIP=0 — GREEN`. All destructive paths
+    pass with positive runtime evidence:
+    - test 12: kernel OOM-kill detected in dmesg/journalctl-k
+    - test 13: `pids.max=256` cgroup readback + `fork: retry: Resource
+      temporarily unavailable` kernel evidence
+    - test 14: scope B + C MainPIDs unchanged after A's OOM
+  - `META=1 bash scripts/test_vm.sh`:
+    `MUTATIONS CAUGHT (PASS): 12 — GREEN`.
+  - `grep -rn 'atm_\\|ATMOSphere' scripts docker docs --include='*.sh'
+    --include='*.template' --include='*.c' --include='*.yaml' --include='*.conf'`:
+    no matches (in non-historical files).
+* **Regression-protection:** wrapper regeneration is now per-environment
+  (container or VM), no shared-file assumption. The sed-portability
+  helper `_strip_bashrc_snippet()` is reused by both install + uninstall
+  paths so they can't diverge. The §255 vocabulary sweep was script-
+  based (perl -i -pe), reproducible.
+* **Tracked task:** none originally — caught during final-sweep cycle.
+
 ### A6. Install-mechanism bluffs that broke side-by-side coexistence — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.

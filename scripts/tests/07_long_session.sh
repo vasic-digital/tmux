@@ -3,7 +3,7 @@
 # PASS if RSS at T+30s is no more than 50% above RSS at T+5s.
 set -uo pipefail
 TMUX_BIN="${TMUX_BIN:?}"
-SOCKET="/tmp/atm_tmux_test_$$"
+SOCKET="/tmp/tmx_test_$$"
 echo "── Test 07: 30s sustained session, no runaway growth ──"
 
 # Defensive jemalloc lookup

@@ -3,8 +3,8 @@
 # Robust against libtinfo stderr pollution.
 set -uo pipefail
 TMUX_BIN="${TMUX_BIN:?}"
-SOCKET="/tmp/atm_tmux_test_$$"
-CONFIG="/tmp/atm_tmux_conf_$$"
+SOCKET="/tmp/tmx_test_$$"
+CONFIG="/tmp/tmx_test_conf_$$"
 echo "── Test 04: history-limit respect ──"
 echo "set -g history-limit 1500" > "$CONFIG"
 "$TMUX_BIN" -S "$SOCKET" -f "$CONFIG" new-session -d -s histtest "sleep 30" 2>/dev/null

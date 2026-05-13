@@ -26,7 +26,7 @@
  *      explicitly rejected to prevent accidentally setting kernel oom
  *      score adj.
  *
- * License: same as ATMOSphere project (open AOSP fork, see parent LICENSE).
+ * License: Apache 2.0 — see LICENSE at repo root.
  */
 
 #include <stdio.h>

@@ -3,8 +3,8 @@
 # kill-server cleans up. Robust against libtinfo stderr pollution.
 set -uo pipefail
 TMUX_BIN="${TMUX_BIN:?}"
-SESSION="atm_test_$$"
-SOCKET="/tmp/atm_tmux_test_$$"
+SESSION="tmx_test_$$"
+SOCKET="/tmp/tmx_test_$$"
 echo "── Test 02: session lifecycle ──"
 "$TMUX_BIN" -S "$SOCKET" new-session -d -s "$SESSION" "sleep 30" 2>/dev/null
 sleep 0.3

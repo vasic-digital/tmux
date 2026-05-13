@@ -8,7 +8,7 @@
 set -uo pipefail
 TMUX_BIN="${TMUX_BIN:?}"
 WRAPPER="${WRAPPER:?WRAPPER not set — must be the absolute path to tmx wrapper script}"
-SOCKET="/tmp/atm_tmux_test_$$"
+SOCKET="/tmp/tmx_test_$$"
 echo "── Test 08: wrapper sets oom_score_adj=-500 ──"
 
 if [ ! -x "$WRAPPER" ]; then

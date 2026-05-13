@@ -7,7 +7,7 @@
 challenges:
   - id: TMUX-CH-01
     title: tmux binary smoke test
-    description: tmux from the ATMOSphere build reports the expected version.
+    description: tmux from the vasic-digital build reports the expected version.
     prerequisite: tmux/build/bin/tmux is executable
     test_script: scripts/tests/01_smoke.sh
     pass_condition: |
