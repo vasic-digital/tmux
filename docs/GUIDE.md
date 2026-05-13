@@ -168,6 +168,53 @@ flowchart LR
     end
 ```
 
+---
+
+## §5.6 Per-session isolation (default since 2026-05-13)
+
+Each `tmx new -s NAME` invocation produces its own tmux server inside its own cgroup-v2 transient scope. OOM in one session's processes is contained to that session's scope — every other session, the user.slice, and the host shell survive.
+
+### Naming and unit derivation
+
+- **Socket**: `tmx-<sanitised-NAME>` (under `/tmp/tmux-<uid>/`). Tmux uses this via `-L tmx-NAME`. The wrapper handles all routing automatically.
+- **Scope unit**: `tmx-<sanitised-NAME>.scope` (in user systemd). Operator-targetable by name: `systemctl --user status tmx-mywork.scope`.
+- **Sanitisation**: characters outside `[A-Za-z0-9._-]` are replaced with `_`. If the resulting scope already exists, `tmx new` errors explicitly with the path so the operator can release it.
+
+### Caps (per session, not per server)
+
+| Cap | Default | Override | Source |
+|---|---|---|---|
+| `MemoryMax` | host-adaptive: `max(MemTotal × 60% / 4, 2 GB)` | `TMX_MEM=8G tmx new -s heavy` | Constitution §12.6 budget shared across 4 concurrent sessions; 2 GB floor |
+| `CPUQuota` | `200%` (2 cores) | `TMX_CPU=400 tmx new -s build` | Operator decision 2026-05-13; oversubscription is acceptable (kernel time-slices) |
+| `TasksMax` | `4096` | (no env override; edit `scripts/tmx.template` if needed) | Same as production wrapper |
+| `Delegate` | `yes` | (always on) | Allows the tmux server to manage subordinate cgroups for its sessions |
+| `oom_score_adj` | `-500` on the tmux server PID | (helper-managed) | Survives general OOM cascades |
+
+### Cleanup
+
+`tmx kill-session -t NAME` does TWO things (operator decision 2026-05-13, belt-and-suspenders):
+1. `tmux -L tmx-NAME kill-session -t NAME` — tmux's own cleanup
+2. `systemctl --user stop tmx-NAME.scope` — explicit scope stop for faster cgroup reclaim
+
+`tmx kill-server` enumerates every `/tmp/tmux-<uid>/tmx-*` socket, kills each server, and stops each `tmx-*.scope` unit.
+
+### Verifying isolation per session
+
+```
+$ tmx new -s a -d
+$ tmx new -s b -d
+$ systemctl --user list-units --type=scope --no-legend | grep tmx-
+tmx-a.scope loaded active running ...
+tmx-b.scope loaded active running ...
+
+$ cat /sys/fs/cgroup/user.slice/user-501.slice/user@501.service/app.slice/tmx-a.scope/memory.max
+2147483648
+$ cat /sys/fs/cgroup/user.slice/user-501.slice/user@501.service/app.slice/tmx-a.scope/cgroup.procs
+<PIDs for session a — distinct from session b's>
+```
+
+The Test 15 + Test 16 + e2e T7 in `scripts/tests/` automate these checks with positive runtime evidence per Constitution §11.4.2.
+
 ### Limitations on Darwin
 
 - **Single TTY per ssh session.** A fresh terminal must SSH again to attach to existing sessions. Inside one terminal, `tmx attach -t mywork` works as expected.

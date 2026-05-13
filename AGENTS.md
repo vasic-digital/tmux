@@ -60,6 +60,8 @@ Never `git push` directly — use `commit_all.sh`.
 - **Memory budget** (§12.6): `Σ(active TMX_MEM) ≤ 0.6 × MemTotal`. Default `TMX_MEM=8G`.
 - **Destructive tests** (T5/T7/T8): tests 12/13/14 require `TMX_TEST_DESTRUCTIVE=1` env — run only on dedicated test hosts.
 - **Topology dispatch** (§11.4.3): `scripts/tmx` classifies host as `tmx-supported`/`tmx-degraded`/`tmx-unsupported` via `_probe_topology()`.
+- **§11.4.7 — Operator-path test coverage** (User mandate, 2026-05-13): tests MUST exercise the same entry point operators use (`tmx new -s X`, not hand-spawned scopes). Layer-4 mutations target `scripts/tmx-vm` (the body), not `scripts/tmx` (the Darwin bridge). Propagated to `Containers/CONSTITUTION.md` at same depth.
+- **Per-session isolation** (2026-05-13): each `tmx new -s NAME` = own server (socket `tmx-NAME`) inside own scope `tmx-NAME.scope` with host-adaptive `MemoryMax` + `CPUQuota=200%` + `TasksMax=4096`. OOM in one session does NOT cascade.
 
 ## Files to never edit directly
 

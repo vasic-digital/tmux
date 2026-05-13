@@ -132,17 +132,43 @@ challenges:
     severity: high
 
   - id: TMUX-CH-14
-    title: concurrent OOM independence (T8)
+    title: concurrent OOM independence via the OPERATOR PATH (T8)
     description: |
-      Three concurrent scopes A/B/C; trigger OOM in A; verify B and C
-      remain active with their original MainPIDs. Destructive test.
+      Three sessions A/B/C created via `tmx new -s NAME -d` — the same
+      entry point an operator invokes. Trigger OOM in A via `tmx send-keys`
+      + stress-ng; verify B and C remain active with original MainPIDs.
+      Per Constitution §11.4.7 (operator-path coverage rule): this
+      challenge tests the OPERATOR's wrapper invocation, NOT hand-crafted
+      systemd-run scopes. Destructive test.
     test_script: scripts/tests/14_concurrent_oom_independence.sh
     pass_condition: |
-      Only scope A is killed; B and C remain active;
-      default.target=active throughout
+      Only scope A is killed; B and C remain active with unchanged
+      MainPIDs; default.target=active throughout
     evidence: |
       systemctl --user list-units showing B+C active;
-      cgroup.procs in B+C unchanged; dmesg scope-A-only kill
+      cgroup.procs in B+C unchanged after A's OOM;
+      kernel log (dmesg / journalctl -k) shows oom-kill / cgroup OOM
+    severity: blocker
+
+  - id: TMUX-CH-15
+    title: per-session cgroup distinctness (operator-path)
+    description: |
+      Multiple `tmx new -s NAME -d` invocations MUST each produce a
+      distinct cgroup-v2 transient scope `tmx-NAME.scope`, with its
+      own MemoryMax / CPUQuota / TasksMax. Closes the Fixed.md A12
+      bluff where all sessions shared one scope (operator-facing
+      isolation claim was false). Tests the OPERATOR PATH per §11.4.7.
+    test_script: scripts/tests/15_per_session_cgroup_distinct.sh
+    pass_condition: |
+      PASS=6  FAIL=0  (T1 two distinct scopes active; T2 cgroup paths
+      differ with their own pids; T3 memory.max readback ≥2GB floor;
+      T4 cpu.max present; T5 TMX_MEM=3G override = 3 GiB exactly;
+      T6 unit names operator-targetable as tmx-NAME.scope)
+    evidence: |
+      systemctl --user is-active per scope = active for each;
+      /sys/fs/cgroup/.../memory.max readback per scope;
+      /sys/fs/cgroup/.../cpu.max readback per scope;
+      /sys/fs/cgroup/.../cgroup.procs distinct PID sets
     severity: blocker
 
   - id: TMUX-CH-10

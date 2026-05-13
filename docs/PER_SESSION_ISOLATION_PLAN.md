@@ -229,24 +229,35 @@ This plan is "done" when:
 6. Manual operator OOM check (Linux host with destructive opt-in): kill session A's shell with a stress-ng exhausting MemoryMax+10%; session B's tmux pane still responds to `tmx send-keys -t B "echo alive"` + `tmx capture-pane -t B -p` shows `alive`
 7. Constitution.md §11.4.7 + Containers/CONSTITUTION.md equivalent both reference the same forensic anchor
 
-## §6 — Open questions for the operator
+## §6 — Operator decisions (2026-05-13)
 
-(Asking these before implementing — answers shape the work.)
+Answered by operator before implementation:
 
-1. **Default `TMX_MEM` per session**: currently 8 GB total. With per-session
-   isolation, that's PER session. If you typically run 4 sessions concurrently
-   that's 32 GB committed — fine on a 64 GB Mac, tight on smaller. Should the
-   per-session default drop to 4 GB?
+1. **Default `TMX_MEM` per session — host-adaptive (§12.6 budget).**
+   Compute at session-create:
+   ```
+   MEM_MB = max( MemTotal_MB * 0.6 / 4, 2048 )
+   ```
+   Honours Constitution §12.6 (`Σ(active TMX_MEM) ≤ 0.6 × MemTotal`) with
+   an assumed concurrent-session budget of 4. Operator override via
+   `TMX_MEM=12G tmx new -s heavy` always wins. CPU stays `200%` per
+   session (oversubscription is acceptable; kernel time-slices).
 
-2. **Session name → unit name sanitisation**: tmux session names can contain
-   spaces, slashes, etc. systemd unit names are restricted (alnum + `-_.`).
-   Strategy: replace forbidden chars with `_` and uniquify with a short hash
-   if collisions occur. Acceptable, or do you want a different scheme?
+2. **Unit-name sanitisation — replace invalid chars with `_`, error on
+   collision.** `tmx new -s 'my work'` → `tmx-my_work.scope`. If
+   `tmx-my_work.scope` already exists (active), `tmx new` errors
+   explicitly with the path so the operator can diagnose. Predictable
+   naming — operators can target a scope by its session name.
 
-3. **`tmx kill-session -t NAME` cleanup**: should it `systemctl --user stop
-   tmx-NAME.scope` explicitly (belt-and-suspenders), or rely on the scope
-   exiting when its last process exits? The latter is cleaner but slower.
+3. **`tmx kill-session` cleanup — explicit `systemctl --user stop
+   tmx-NAME.scope`** AFTER tmux's own kill-session. Belt-and-suspenders:
+   faster cgroup-number / memory-accounting reclaim; tolerant of
+   logind versions that GC inactive scopes slowly.
 
-4. **macOS host shell access from inside a session**: out of scope here
-   (architectural limit — Linux ELF runs in VM). Confirm we just document
-   this and don't try to bridge macOS commands into the VM?
+4. **macOS host-shell access — document explicitly, no bridging.**
+   `docs/GUIDE.md` §5.6: "tmx sessions are Linux environments running in
+   the podman machine VM. Your files under `/Users/<name>` are accessible
+   via virtiofs; macOS-only Mach-O commands (Homebrew binaries, `scutil`,
+   etc.) are not available inside a session." Operators use system tmux
+   (Homebrew) for macOS-host work; our verified tmux is for the
+   bounded-isolation workflows. Side-by-side is already the design.

@@ -54,6 +54,110 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A13. Per-session isolation: each `tmx new -s X` in its own cgroup + Constitution §11.4.7 — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Discovery context:** user reported "However I guess now we are
+  entering container directly: core@localhost:~$ ... We need container
+  to execute the session so when for any reason we get into oom
+  situation, killing the terminal session does not kill all other
+  running processes!" — referenced `vasic-digital/OOM-Protect`.
+* **Captured forensic evidence (pre-fix):**
+  - `tmx new -s isol1 -d` + `tmx new -s isol2 -d` both produced
+    sessions in ONE shared cgroup
+    `run-p504653-i504654.scope`. OOM-kill in either would have
+    destroyed both. README's "if one session OOMs, others survive"
+    was a Section 1 bluff against the operator's actual workflow.
+  - Test 14 hand-spawned three `systemd-run --user --scope` units
+    by hand to simulate isolation. It PASSed while the operator-
+    facing `tmx new` path placed everything in one cgroup.
+* **Plan + decision capture:** [`docs/PER_SESSION_ISOLATION_PLAN.md`](docs/PER_SESSION_ISOLATION_PLAN.md)
+  §6 records the four operator decisions made before implementation:
+  host-adaptive memory budget (§12.6 / 4), unit-name sanitise +
+  error-on-collision, explicit `systemctl stop` cleanup, no macOS
+  host-shell bridging.
+* **Architectural change:** wrapper rewritten so each
+  `tmx new -s NAME`:
+  1. Sanitises NAME → unit-safe token (invalid chars → `_`).
+  2. Refuses on collision: errors if `tmx-NAME.scope` is already active.
+  3. Computes host-adaptive `MemoryMax = max(MemTotal × 60% / 4, 2 GB)`
+     (operator override via `TMX_MEM` wins).
+  4. Creates a per-session scope via
+     `systemd-run --user --scope --unit=tmx-NAME.scope -p MemoryMax=...
+     -p CPUQuota=200% -p TasksMax=4096 -p Delegate=yes
+     tmux -L tmx-NAME new-session -d -s NAME`.
+  5. Spawns a SEPARATE tmux server (socket `tmx-NAME`) for THIS
+     session. No shared server, no shared cgroup.
+  6. Applies `_apply_oom_score` and `_apply_host_color` via `-L tmx-NAME`.
+  7. If interactive (`-d` not passed), exec-attaches in foreground.
+  - `tmx ls` aggregates across all `tmx-*` sockets in `/tmp/tmux-<uid>/`.
+  - `tmx kill-session -t NAME` kills the session AND
+    `systemctl --user stop tmx-NAME.scope`.
+  - `tmx kill-server` enumerates + stops all our scopes.
+* **Constitution amendment — §11.4.7 (operator-path coverage):**
+  added inline. New mandate: every gate test for a feature MUST
+  exercise the same entry point an operator invokes. Tests that
+  hand-craft equivalents are supplementary. Layer-4 mutations MUST
+  target `scripts/tmx-vm` (body), NOT `scripts/tmx` (Darwin bridge).
+  Propagated to `Containers/CONSTITUTION.md` at same anchor depth.
+* **Tests rewritten / added (operator path):**
+  - **Test 14 rewritten:** uses `tmx new -s A/-s B/-s C -d` operator
+    path; triggers OOM via `tmx send-keys` + stress-ng; verifies B
+    and C scopes still active with original MainPIDs. PASS=8/0/0.
+  - **Test 15 NEW:** per-session cgroup distinctness. 6 assertions
+    with positive evidence from `/sys/fs/cgroup/.../memory.max`,
+    `cpu.max`, `cgroup.procs` per session. PASS=6/0/0.
+  - **Test 11 rewritten:** drops `-S /tmp/foo` (legacy). Uses `tmx new
+    -s NAME -d` operator path; reads `tmux -L tmx-NAME show -g
+    status-style` for verification. PASS=6/0/0.
+  - **Test 08 rewritten:** uses `tmx new -s NAME -d` and reads
+    `/proc/<server-pid>/oom_score_adj` via `-L tmx-NAME`. PASS.
+  - **e2e T7 NEW:** through the macOS bridge, verifies two sessions
+    produce two distinct `tmx-NAME.scope` units in the VM's user
+    systemd. PASS.
+* **Meta-test mutations added/retargeted:**
+  - **M5 retargeted:** mutates `MemoryMax` → `MemMax` globally
+    (with `/g`), caught by test 15 T1/T3.
+  - **M7 retargeted:** strips `_apply_host_color` call, caught by
+    test 11 T4.
+  - **M9 NEW:** strips per-session `--unit=tmx-NAME.scope` so
+    sessions share a generic scope, caught by test 15 T1.
+  - **M10 NEW:** hardcodes `MemoryMax=infinity` disabling the cap,
+    caught by test 15 T3/T5.
+  All 10 mutations (M1–M10) now caught (20 PASS = 10 caught + 10
+  reverted) in meta-test.
+* **Challenges yaml:** CH-14 description updated to reflect operator-
+  path coverage; CH-15 added (per-session distinctness).
+* **Documentation:** README architecture diagram redrawn for per-
+  session scope tree; `docs/GUIDE.md` §5.6 new section documenting
+  naming, caps, cleanup, and verification; `docs/PER_SESSION_ISOLATION_PLAN.md`
+  records the plan + operator decisions for future audit;
+  `CLAUDE.md` + `AGENTS.md` reference §11.4.7 + per-session arch.
+* **Captured post-fix evidence (all four gates GREEN simultaneously):**
+  - `bash scripts/test_vm.sh` → GREEN (non-destructive PASS=12 SKIP=3)
+  - `TMX_TEST_DESTRUCTIVE=1 bash scripts/test_vm.sh` → GREEN PASS=15 FAIL=0 SKIP=0
+  - `META=1 bash scripts/test_vm.sh` → GREEN, 10/10 mutations caught
+  - `bash scripts/test_e2e.sh` → GREEN PASS=9 FAIL=0 SKIP=0
+* **Regression-protection summary:** triple-layer per the §11.4.7
+  doctrine — Layer 2 (test 15 + test 14 + e2e T7 + test 11 + test 08)
+  exercise the operator path with positive evidence; Layer 4 (M9,
+  M10, M5, M7 targeting `scripts/tmx-vm`) catches any code change
+  that breaks the operator-facing isolation. Constitution §11.4.7
+  forbids regressions to the test-hand-crafts-equivalents pattern
+  that let A12 ship.
+* **Tracked task:** user-reported during this session; closed by
+  comprehensive in-session implementation.
+
+### A12. Plan-doc for per-session containerization landed — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** `abb0af8` (`Add docs/PER_SESSION_ISOLATION_PLAN.md`).
+* **Discovery context:** user "Do in depth research and plan the
+  changes" — landed the plan document before implementation per the
+  operator's explicit instruction.
+* **Outcome:** plan adopted; implementation followed in A13.
+
 ### A11. Regression protection so A10 cannot re-occur (test gap closed) — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.

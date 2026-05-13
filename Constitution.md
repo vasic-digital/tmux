@@ -158,6 +158,52 @@ narrative.
 
 Non-compliance is a release blocker regardless of context.
 
+### §11.4.7 — Operator-path test coverage rule (User mandate, 2026-05-13)
+
+**Forensic anchor:** Fixed.md A12 + A13. Tests 11 and 14 reported GREEN
+while their operator-facing equivalents (`tmx new -s X`) were broken:
+- Test 11 always passed `-S "$SOCKET"` → only the explicit-socket path
+  was exercised; `tmx new` without `-S` left the operator with tmux's
+  default `bg=green` because `_apply_host_color` early-returned on
+  empty `$sock`. The captured-evidence claim was partial.
+- Test 14 hand-spawned three `systemd-run --user --scope` units to
+  simulate isolation. The actual operator workflow (`tmx new -s A
+  -d; tmx new -s B -d; tmx new -s C -d`) placed all three sessions
+  in one shared cgroup. Test 14 PASSed; operator-facing isolation
+  did not exist. README's "if one session OOMs, others survive"
+  was a §1 bluff.
+
+**The mandate.** Every gate test for a feature MUST exercise the SAME
+entry point an end-user would invoke in production. Tests that bypass
+the operator's wrapper, helper, or install path — and instead reproduce
+its effects with hand-crafted equivalents — DO NOT satisfy §11.4.2's
+captured-evidence requirement. When the operator's path and the test's
+path diverge:
+
+1. The test header MUST EXPLICITLY name what divergence exists
+   (e.g., "test invokes systemd-run directly; operator path is `tmx new`")
+2. A SEPARATE end-to-end test MUST close that divergence with captured
+   evidence on the operator-facing entry point.
+
+**Operative test:** for every test under `scripts/tests/`, ask "would
+an operator hit this code path in their normal workflow?" If no, that
+test is supplementary; the operator-path test must exist alongside it.
+
+**No grep-on-script-content alone.** Test 09 T2.x's `grep` on the
+wrapper for the literal string "MemoryMax" is allowed AS A STATIC
+CHECK in addition to a runtime readback — never as the only assertion.
+
+**Layer-4 mutations MUST target the operator-path code, not the
+synthetic-test code.** Meta-test M4 + M5 used to target `scripts/tmx`
+(the Darwin SSH bridge), not `scripts/tmx-vm` (the actual Linux wrapper
+that runs in production). Both files now must be considered when
+designing mutations; the M9 / M10 / M7 (per-session) mutations target
+`scripts/tmx-vm` directly so test 15 / 11 / 14 catch them on the
+operator-facing path.
+
+Non-compliance is a release blocker. Propagated to Containers/
+governance at same anchor depth (§11.4.7 in `Containers/CONSTITUTION.md`).
+
 ---
 
 ## §9 Absolute data safety — zero risk

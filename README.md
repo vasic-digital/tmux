@@ -27,47 +27,56 @@ bash scripts/setup.sh                 # build + VM-verify + install bridge
 
 After `setup.sh` reports GREEN: open a new shell, or source the rc for your shell (`source ~/.bashrc` or `source ~/.zshrc`). Then `tmx new|attach|ls|kill` invokes the verified vasic-digital build; the system `tmux` command stays untouched and reachable side-by-side.
 
-## Architecture
+## Architecture (per-session isolation)
 
 ```
-                    ┌────────────────────────────────┐
-                    │       OPERATOR SHELL           │
-                    │   $ tmx new mywork             │
-                    └──────────────┬─────────────────┘
-                                   │
-        ┌──────────────────────────┴──────────────────────────┐
-        │                                                     │
-   Linux host                                          macOS host
-   scripts/tmx                                         scripts/tmx
-   = Linux wrapper                                     = SSH bridge
-        │                                                     │
-        │ exec systemd-run --user --scope                     │ ssh -t -p <vm-port>
-        │     -p MemoryMax=8G -p CPUQuota=200%                │     core@127.0.0.1
-        │     -p TasksMax=4096 -p Delegate=yes                │     <repo>/scripts/tmx-vm <args>
-        │     tmux/build/bin/tmux <args>                      │
-        │                                                     ▼
-        │                                            ┌──────────────────────┐
-        │                                            │  podman machine VM   │
-        │                                            │  Fedora CoreOS 42    │
-        │                                            │  systemd 257         │
-        │                                            │                      │
-        │                                            │  scripts/tmx-vm      │
-        │                                            │  = Linux wrapper     │
-        │                                            │  (same logic as ←)   │
-        ▼                                            ▼
-    ┌──────────────────────────────────────────────────────────┐
-    │  Verified hardened tmux 3.6a (Linux ELF, jemalloc-linked) │
-    │  Running in cgroup-v2 transient scope:                    │
-    │  ├ MemoryMax            (default 8 GB, override $TMX_MEM) │
-    │  ├ CPUQuota             (default 200 %, override $TMX_CPU)│
-    │  ├ TasksMax = 4096                                        │
-    │  ├ Delegate = yes                                         │
-    │  └ /usr/local/bin/tmx-oom-set sets oom_score_adj=-500     │
-    │  Status-bar bg = DJB2(hostname) → 27-colour palette       │
-    └──────────────────────────────────────────────────────────┘
+                    ┌────────────────────────────────────┐
+                    │        OPERATOR SHELL              │
+                    │   $ tmx new -s mywork              │
+                    │   $ tmx new -s other  ← own scope! │
+                    └──────────────────┬─────────────────┘
+                                       │
+            ┌──────────────────────────┴──────────────────────────┐
+            │                                                     │
+       Linux host                                          macOS host
+       scripts/tmx                                         scripts/tmx (Darwin)
+       = Linux wrapper                                     = SSH bridge
+            │                                                     │ ssh -t -p <vm-port>
+            │ for each `tmx new -s NAME`:                         │      core@127.0.0.1
+            │   systemd-run --user --scope                        │      tmx-vm <args>
+            │     --unit=tmx-NAME.scope                           │      TMX_HOSTNAME=<mac>
+            │     -p MemoryMax=<host-adaptive>                    │
+            │     -p CPUQuota=200% -p TasksMax=4096               ▼
+            │     -p Delegate=yes                          ┌──────────────────────┐
+            │   tmux -L tmx-NAME new -s NAME -d            │  podman machine VM   │
+            │                                              │  Fedora CoreOS 42    │
+            ▼                                              │  systemd 257         │
+                                                           │  scripts/tmx-vm      │
+                                                           │  (same Linux wrapper)│
+                                                           └──────────┬───────────┘
+                                                                      │
+        ┌─────────────────────────────────────────────────────────────┴─────────┐
+        │                                                                       │
+        ▼                                                                       ▼
+┌─────────────────────────────┐     ┌─────────────────────────────┐     ┌─────────────────────────────┐
+│  scope tmx-mywork.scope     │     │  scope tmx-other.scope      │     │  scope tmx-N.scope          │
+│  ├ MemoryMax  (host-adapt)  │     │  ├ MemoryMax  (host-adapt)  │     │  ├ MemoryMax  (host-adapt)  │
+│  ├ CPUQuota = 200%          │     │  ├ CPUQuota = 200%          │ ... │  ├ CPUQuota = 200%          │
+│  ├ TasksMax = 4096          │     │  ├ TasksMax = 4096          │     │  ├ TasksMax = 4096          │
+│  ├ Delegate = yes           │     │  ├ Delegate = yes           │     │  ├ Delegate = yes           │
+│  └ tmux 3.6a -L tmx-mywork  │     │  └ tmux 3.6a -L tmx-other   │     │  └ tmux 3.6a -L tmx-N       │
+│    (own server, own socket) │     │    (own server, own socket) │     │    (own server, own socket) │
+│  status-bar = DJB2(host)    │     │  status-bar = DJB2(host)    │     │  status-bar = DJB2(host)    │
+│  oom_score_adj = -500       │     │  oom_score_adj = -500       │     │  oom_score_adj = -500       │
+└─────────────────────────────┘     └─────────────────────────────┘     └─────────────────────────────┘
+   OOM here kills ONLY THIS              ←  isolated from each other →            ← stays alive →
+   scope. Other scopes survive
+   with original MainPIDs.
 ```
 
-On the macOS path, the bridge does `podman machine inspect` at every call to discover the SSH endpoint (port can change across machine restarts) and dispatches via raw `ssh -t` for TTY allocation. The verified Linux ELF binary executes in the VM where cgroup-v2 + systemd + jemalloc + procfs all work as designed; the operator's macOS terminal sees the SSH-forwarded TTY.
+**Per-session isolation** (default architecture since 2026-05-13): each `tmx new -s NAME` invocation creates its own tmux server (socket `tmx-NAME`) inside its own cgroup-v2 transient scope (`tmx-NAME.scope`). OOM in one session's processes is contained to that scope — every other session AND the user.slice survive with original MainPIDs (Constitution §1 invariant). Memory caps default to a host-adaptive budget (`max(MemTotal × 60% / 4, 2 GB)` per Constitution §12.6); override per-session with `TMX_MEM=8G tmx new -s heavy`.
+
+On the **macOS path**, the bridge does `podman machine inspect` at every call to discover the SSH endpoint (port can change across machine restarts), forwards the macOS host's identity via `TMX_HOSTNAME=$(scutil --get LocalHostName)`, and dispatches via raw `ssh -t` for TTY allocation. The verified Linux ELF binary executes in the VM where cgroup-v2 + systemd + jemalloc + procfs all work as designed; the operator's macOS terminal sees the SSH-forwarded TTY.
 
 ## What you get
 

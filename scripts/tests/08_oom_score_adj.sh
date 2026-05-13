@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
-# Test 08 — wrapper script applies oom_score_adj=-500 to tmux server.
+# Test 08 — wrapper applies oom_score_adj=-500 to the spawned tmux server
+# via the OPERATOR PATH (`tmx new -s NAME`).
 #
 # Three pass paths:
 #   (a) running as root → wrapper writes directly → PASS
 #   (b) /usr/local/bin/tmx-oom-set installed with cap_sys_resource → PASS
 #   (c) neither → SKIP with note about how to install the helper
+#
+# Constitution §11.4.7 (operator-path coverage): this test does NOT pass
+# `-S /tmp/socket` directly; it invokes `tmx new -s NAME -d` like an
+# operator does, then reads `/proc/<server-pid>/oom_score_adj` from the
+# resulting per-session server.
+
 set -uo pipefail
 TMUX_BIN="${TMUX_BIN:?}"
 WRAPPER="${WRAPPER:?WRAPPER not set — must be the absolute path to tmx wrapper script}"
-SOCKET="/tmp/tmx_test_$$"
+SESSION="tmx_t08_$$"
+SOCK_LABEL="tmx-${SESSION}"
 echo "── Test 08: wrapper sets oom_score_adj=-500 ──"
 
 if [ ! -x "$WRAPPER" ]; then
@@ -28,15 +36,19 @@ if [ "$(id -u)" != "0" ] && [ "$HAVE_HELPER" -eq 0 ]; then
     exit 0
 fi
 
-# Path (a) or (b) — wrapper should successfully apply -500
-"$WRAPPER" -S "$SOCKET" new-session -d -s oomtest "sleep 30" 2>/dev/null &
-WPID=$!
-sleep 1.5
-PID=$("$TMUX_BIN" -S "$SOCKET" display-message -p '#{pid}' 2>/dev/null || true)
+# Cleanup any prior state
+"$WRAPPER" kill-session -t "$SESSION" 2>/dev/null || true
+sleep 1
+
+# Operator path: create the session through the wrapper.
+"$WRAPPER" new -s "$SESSION" -d 2>/dev/null
+sleep 2
+
+# Read the server's PID via the same -L the wrapper derived.
+PID=$("$TMUX_BIN" -L "$SOCK_LABEL" display-message -p '#{pid}' 2>/dev/null || true)
 if [ -z "$PID" ]; then
-    echo "FAIL: tmux server PID not found"
-    "$TMUX_BIN" -S "$SOCKET" kill-server 2>/dev/null || true
-    kill $WPID 2>/dev/null || true
+    echo "FAIL: tmux server PID not found on socket -L $SOCK_LABEL"
+    "$WRAPPER" kill-session -t "$SESSION" 2>/dev/null || true
     exit 1
 fi
 ACTUAL=$(cat "/proc/$PID/oom_score_adj" 2>/dev/null)
@@ -46,8 +58,8 @@ else
     echo "  PID $PID oom_score_adj: $ACTUAL  (via root direct write)"
 fi
 
-"$TMUX_BIN" -S "$SOCKET" kill-server 2>/dev/null || true
-kill $WPID 2>/dev/null || true
+# Cleanup
+"$WRAPPER" kill-session -t "$SESSION" 2>/dev/null || true
 
 if [ "$ACTUAL" = "-500" ]; then
     echo "PASS"

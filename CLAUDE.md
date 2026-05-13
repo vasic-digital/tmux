@@ -69,6 +69,8 @@ Never `git push` directly — use `commit_all.sh`.
 - **Destructive tests** (T5/T7/T8): tests 12/13/14 require `TMX_TEST_DESTRUCTIVE=1` env — run only on dedicated test hosts.
 - **Topology dispatch** (§11.4.3): `scripts/tmx` classifies host as `tmx-supported`/`tmx-degraded`/`tmx-unsupported` via `_probe_topology()`.
 - **Changes touching scripts MUST** add/update a paired mutation in `meta_test_false_positive_proof.sh`.
+- **§11.4.7 — Operator-path test coverage rule** (User mandate, 2026-05-13): every gate test MUST exercise the SAME entry point an end-user invokes (`tmx new -s X`, not hand-spawned `systemd-run --user --scope`). Tests that hand-craft equivalents are supplementary; the operator-path test must exist alongside. Layer-4 mutations MUST target `scripts/tmx-vm` (the body Linux wrapper), NOT `scripts/tmx` (the Darwin SSH bridge). Forensic anchor: Fixed.md A12 (status-bar green default) + A13 (sessions sharing one cgroup) both shipped while their non-operator-path tests reported GREEN. Propagated to `Containers/CONSTITUTION.md`.
+- **Per-session isolation** (default-arch since 2026-05-13): each `tmx new -s NAME` spawns its OWN tmux server on socket `tmx-NAME` inside its OWN cgroup-v2 transient scope `tmx-NAME.scope`. MemoryMax is host-adaptive (`max(MemTotal × 60% / 4, 2 GB)`) unless `TMX_MEM` overrides; CPUQuota=200%; TasksMax=4096; Delegate=yes. OOM in any one session affects ONLY that scope — others survive. `tmx kill-session -t NAME` explicitly stops the scope.
 
 ## Files to never edit directly
 

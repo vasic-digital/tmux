@@ -193,30 +193,32 @@ if [ -n "$M4_TARGET" ]; then
     run_mutation \
         "M5: tmx wrapper corrupt MemoryMax" \
         "$M4_TARGET" \
-        "sed -i 's|MemoryMax=|MemMax=|' \"\$target_abs\"" \
-        "sed -i 's|MemMax=|MemoryMax=|' \"\$target_abs\"" \
-        "scripts/tests/09_crash_isolation_scope.sh" \
-        "FAIL.*T2"
+        "sed -i 's|MemoryMax|MemMax|g' \"\$target_abs\"" \
+        "false" \
+        "scripts/tests/15_per_session_cgroup_distinct.sh" \
+        "FAIL.*T(1|3)"
 else
     _skip "M5: no wrapper present"
 fi
 
-# ── M7: tmx-vm wrapper — re-introduce empty-SOCK early return in ────
-#        _apply_host_color (the Fixed.md A10 bug). Mutation rewrites the
-#        new code `[ -n "$sock" ] && target=(-S "$sock")` back to the
-#        broken `[ -n "$sock" ] || return 0` so the wrapper silently bails
-#        for the default-socket path. Test 11 T6 must FAIL.
-#        Delimiter `#` chosen over `|` because the replacement contains
-#        `||` which would collide with `|` as the sed s-command delimiter.
+# ── M7: tmx-vm wrapper — remove the per-session -L SOCK_LABEL flag. ─
+#        After the Fixed.md A13 per-session architecture refactor, the
+#        old SOCK-empty bug class is structurally impossible (every
+#        session derives its own SOCK_LABEL; there is no "default
+#        socket bails" path anymore). M7 retargeted: strip the -L
+#        wiring entirely → ALL sessions land on the same default
+#        socket → test 11 T6 default-socket assertion FAILs because
+#        the colour isn't applied via -L SOCK_LABEL (it's applied via
+#        -S, but wrapper no longer reaches that path).
 WRAPPER_PATH_VM="$REPO_ROOT/scripts/tmx-vm"
 if [ -f "$WRAPPER_PATH_VM" ]; then
     run_mutation \
-        "M7: re-introduce SOCK-empty early return" \
+        "M7: strip _apply_host_color invocation from dispatch" \
         "scripts/tmx-vm" \
-        "sed -i 's#\\[ -n \"\$sock\" \\] && target=(-S \"\$sock\")#[ -n \"\$sock\" ] || return 0#g' \"\$target_abs\"" \
+        "sed -i 's|_apply_host_color \"\$SOCK_LABEL\"||g' \"\$target_abs\"" \
         "false" \
         "scripts/tests/11_hostname_color_integration.sh" \
-        "FAIL.*T6"
+        "FAIL.*T4"
 else
     _skip "M7: scripts/tmx-vm not found — VM wrapper not yet generated (run setup.sh)"
 fi
@@ -236,6 +238,45 @@ if [ -f "$WRAPPER_PATH_VM" ]; then
         "FAIL.*T"
 else
     _skip "M8: scripts/tmx-vm not found — VM wrapper not yet generated (run setup.sh)"
+fi
+
+# ── M9: tmx-vm wrapper — strip per-session --unit=tmx-NAME.scope ────
+#        Per-session isolation depends on EACH `tmx new -s NAME`
+#        creating a distinct scope named `tmx-NAME.scope`. If the
+#        wrapper is mutated to drop the --unit flag (or replace the
+#        per-session naming with a generic anonymous scope), all
+#        sessions land in one shared cgroup again → the Bug 2 §1
+#        bluff returns. Test 15 T1 checks `systemctl --user is-active
+#        tmx-NAME.scope` and must FAIL when the unit no longer exists.
+if [ -f "$REPO_ROOT/scripts/tmx-vm" ]; then
+    run_mutation \
+        "M9: strip per-session --unit=tmx-NAME.scope" \
+        "scripts/tmx-vm" \
+        "sed -i 's|--unit=\"\$SCOPE_UNIT\"|--unit=tmx-anon.scope|' \"\$target_abs\"" \
+        "false" \
+        "scripts/tests/15_per_session_cgroup_distinct.sh" \
+        "FAIL.*T1"
+else
+    _skip "M9: scripts/tmx-vm not found — VM wrapper not yet generated (run setup.sh)"
+fi
+
+# ── M10: tmx-vm wrapper — hardcode MemoryMax=infinity (cap disabled) ─
+#        If the operator-configured memory cap is silently replaced
+#        with `infinity`, the §12.6 budget invariant is violated —
+#        a single session can consume all host RAM, defeating the
+#        protection. Test 15 T3 (memory.max readback) and T5 (TMX_MEM
+#        override) both expect specific numeric values; either FAILs
+#        when MemoryMax becomes 'infinity' (no readback constraint).
+if [ -f "$REPO_ROOT/scripts/tmx-vm" ]; then
+    run_mutation \
+        "M10: hardcode MemoryMax=infinity (disable cap)" \
+        "scripts/tmx-vm" \
+        "sed -i 's|MemoryMax=\$TMX_MEM_EFFECTIVE|MemoryMax=infinity|' \"\$target_abs\"" \
+        "false" \
+        "scripts/tests/15_per_session_cgroup_distinct.sh" \
+        "FAIL.*T[35]"
+else
+    _skip "M10: scripts/tmx-vm not found — VM wrapper not yet generated (run setup.sh)"
 fi
 
 # ── M6: hostname_color.sh — break determinism via $$ injection ──────

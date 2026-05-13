@@ -113,7 +113,7 @@ else
     HOST_HN=$(hostname)
 fi
 EXPECTED_COLOR=$(bash scripts/hostname_color.sh "$HOST_HN" 2>/dev/null || echo "")
-ACTUAL_STYLE=$(bash scripts/tmx show -g status-style 2>&1 | grep -v "libtinfo" | tail -1 | tr -d '\r')
+ACTUAL_STYLE=$(bash scripts/tmx -L "tmx-${SESSION}" show -g status-style 2>&1 | grep -v "libtinfo" | tail -1 | tr -d '\r')
 ACTUAL_BG=$(echo "$ACTUAL_STYLE" | grep -oE 'bg=[^,[:space:]]+' | head -1 | sed 's/^bg=//')
 if [ -z "$ACTUAL_BG" ]; then
     _fail "T4.5: could not read status-style bg (raw: '$ACTUAL_STYLE')"
@@ -135,15 +135,46 @@ else
     _fail "T5: session '$SESSION' disappeared after send-keys"
 fi
 
-# ─── T6: kill-session cleanup ───────────────────────────────────────
+# ─── T7: per-session scope isolation (Constitution §11.4.7) ─────────
+# Create a second session via the bridge and verify it lands in its
+# OWN cgroup scope — not the same one as T3's session. This is the
+# operator-path proof that per-session isolation works through the
+# full stack: macOS shell → bridge → SSH → VM wrapper → systemd-run.
 echo ""
-echo "--- T6: tmx kill-session -t $SESSION ---"
+echo "--- T7: per-session scope isolation (two sessions, two scopes) ---"
+SESSION_B="${SESSION}_b"
+bash scripts/tmx new -s "$SESSION_B" -d 2>&1 | grep -v "libtinfo" || true
+sleep 1
+
+# Query the VM directly via podman machine ssh — the scopes live in the
+# VM's user systemd instance and aren't visible to macOS systemctl.
+if [ "$(uname -s)" = "Darwin" ]; then
+    ACTIVE_SCOPES=$(podman machine ssh "systemctl --user list-units --type=scope --no-legend --all 2>/dev/null | awk '{print \$1}' | grep -E '^tmx-(${SESSION}|${SESSION_B})\\.scope\$'" 2>/dev/null | tr -d '\r' | sort -u)
+else
+    ACTIVE_SCOPES=$(systemctl --user list-units --type=scope --no-legend --all 2>/dev/null | awk '{print $1}' | grep -E "^tmx-(${SESSION}|${SESSION_B})\.scope\$" | sort -u)
+fi
+
+SCOPE_COUNT=$(printf '%s\n' "$ACTIVE_SCOPES" | grep -c '^tmx-' || echo 0)
+if [ "$SCOPE_COUNT" -eq 2 ]; then
+    _pass "T7: two distinct scopes active for two sessions (positive evidence: systemctl list-units shows $(printf '%s ' $ACTIVE_SCOPES))"
+elif [ "$SCOPE_COUNT" -eq 1 ]; then
+    _fail "T7: only 1 distinct scope active for 2 sessions — sessions share a cgroup (§11.4.7 violation)"
+else
+    _skip "T7: could not enumerate scopes (count=$SCOPE_COUNT)"
+fi
+
+# Cleanup B
+bash scripts/tmx kill-session -t "$SESSION_B" 2>&1 | grep -v "libtinfo" || true
+
+# ─── T8: kill-session cleanup ───────────────────────────────────────
+echo ""
+echo "--- T8: tmx kill-session -t $SESSION ---"
 bash scripts/tmx kill-session -t "$SESSION" 2>&1 | grep -v "libtinfo" || true
 sleep 1
 if bash scripts/tmx ls 2>&1 | grep -v "libtinfo" | grep -q "^$SESSION:"; then
-    _fail "T6: session '$SESSION' still listed after kill-session"
+    _fail "T8: session '$SESSION' still listed after kill-session"
 else
-    _pass "T6: session '$SESSION' removed (positive evidence: tmx ls no longer shows it)"
+    _pass "T8: session '$SESSION' removed (positive evidence: tmx ls no longer shows it)"
 fi
 
 # ─── summary ────────────────────────────────────────────────────────
