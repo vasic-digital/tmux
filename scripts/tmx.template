@@ -35,6 +35,14 @@ if [ -n "$JEMALLOC_PATH" ] && [ -f "$JEMALLOC_PATH" ]; then
     export LD_PRELOAD="${LD_PRELOAD:+$LD_PRELOAD:}$JEMALLOC_PATH"
 fi
 
+# Filter benign libtinfo version-mismatch warnings from stderr. The binary
+# was built on Ubuntu 22.04 (libtinfo.so.6 from that build env) but runs
+# in our Fedora CoreOS VM (libtinfo.so.6 from Fedora). The runtime loader
+# prints "no version information available" — operations succeed; only the
+# warning is cosmetic. We filter the exact warning text so real stderr
+# (tmux errors, our wrapper's own messages) still reaches the operator.
+exec 2> >(grep --line-buffered -v 'libtinfo\.so\.[0-9]\+: no version information available' >&2)
+
 # ── helpers ──────────────────────────────────────────────────────────
 
 # Sanitise a session name into a systemd-unit-safe token.
@@ -196,7 +204,16 @@ case "$SUBCMD" in
         # Build the tmux invocation. Force `-L SOCK_LABEL` so this session's
         # server is on its own socket. Inject `-d` so the server starts
         # detached and we can apply colour/OOM before optional attach.
+        # Also load OUR tmux.conf via `-f` so the status bar, colour
+        # palette, history-limit, etc. are applied regardless of what
+        # exists at $HOME/.tmux.conf inside the runtime environment
+        # (the VM's `core` user has no tmux.conf; loading via -f makes
+        # the config OS-portable).
+        TMUX_CONF="$TMX_DIR/tmux.conf.template"
         NEW_ARGS=("-L" "$SOCK_LABEL")
+        if [ -f "$TMUX_CONF" ]; then
+            NEW_ARGS+=("-f" "$TMUX_CONF")
+        fi
         SAW_NEW=0
         for a in "$@"; do
             case "$a" in
@@ -248,6 +265,16 @@ case "$SUBCMD" in
         # Step 2: apply colour + OOM score on the now-running server.
         _apply_oom_score "$SOCK_LABEL"
         _apply_host_color "$SOCK_LABEL"
+
+        # Step 2b: propagate TMX_HOSTNAME into the tmux server's
+        # environment so the status-right format `#{TMX_HOSTNAME}` shows
+        # the operator's host (e.g. "Mistborn") rather than the VM's
+        # `localhost.localdomain`. The conditional check `[ -n ... ]`
+        # means Linux-native invocations (where TMX_HOSTNAME is unset)
+        # fall back to tmux's `#h` short-hostname in tmux.conf.template.
+        if [ -n "${TMX_HOSTNAME:-}" ]; then
+            "$TMUX_BIN" -L "$SOCK_LABEL" set-environment -g TMX_HOSTNAME "$TMX_HOSTNAME" 2>/dev/null || true
+        fi
 
         # Step 3: if the user wanted interactive, attach in foreground.
         if [ "$INTERACTIVE" -eq 1 ]; then

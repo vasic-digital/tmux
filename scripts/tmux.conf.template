@@ -39,9 +39,15 @@ set -g  pane-base-index     1
 setw -g pane-base-index     1
 
 # ── status line — minimal ───────────────────────────────────────────────────
+# status-right: show TMX_HOSTNAME (forwarded by the wrapper, e.g. "Mistborn"
+# on macOS) when set; fall back to tmux's `#h` (short hostname). Without
+# this conditional, tmux's default status-right would show the VM's
+# pane-title which resolves to "localhost.localdomain" — not what the
+# operator's macOS terminal would naturally display.
 set -g  status-left         "[#S] "
-set -g  status-right        "%H:%M %d-%b"
+set -g  status-right        "#{?TMX_HOSTNAME,#{TMX_HOSTNAME},#h} %H:%M %d-%b"
 set -g  status-left-length  20
+set -g  status-right-length 40
 
 # ── prefix — keep default C-b (don't break operator muscle memory) ──────────
 # (uncomment if you prefer C-a)
