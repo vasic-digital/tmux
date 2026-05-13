@@ -246,6 +246,15 @@ Released under Apache 2.0 (see `LICENSE`).
 
 ---
 
-## [Unreleased]
+## [v1.0.1] — Unreleased
 
-(no work in flight between v1.0.0 and the next tag)
+Post-release development cycle following the v1.0.0 cut.
+
+- VERSION bumped to `1.0.1` / `versionCode=2` to satisfy the operator's
+  strictly-increasing-version-code mandate immediately after a release.
+- `released=` intentionally blank until the next tag is cut (gate value
+  for "not-yet-released"; CI / package builders MUST refuse to publish
+  unless `released=` is populated with the cut date).
+- No functional code changes in this entry — this is the post-release
+  bump itself. Subsequent fixes, refactors, and new features will append
+  bullets above this paragraph.
