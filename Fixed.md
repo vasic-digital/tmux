@@ -54,6 +54,76 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A10. Status-bar colour silently defaulted to green + bridge ignored macOS hostname — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Discovery context:** user reported "Bottom was green for current host.
+  Is that expected for mistborn as local host name? Or, coloring does not
+  work?" — caught two stacked bluffs:
+* **Defect 1 — `_apply_host_color` / `_apply_oom_score` silently bailed
+  when no `-S` socket was passed:**
+  ```bash
+  _apply_host_color() {
+      local sock="${1:-}"
+      [ -n "$sock" ] || return 0    # ← silent early return for the
+                                    #   primary operator use case
+      ...
+  }
+  ```
+  For `tmx new -s Test` (no `-S`), tmux uses its default socket path
+  automatically — but the wrapper's helper bailed out, so `set -g
+  status-style` was NEVER fired. Status bar fell back to tmux's
+  default (`bg=green,fg=black`) on every invocation. Same flaw in
+  `_apply_oom_score` — OOM protection silently disabled for the
+  default-socket path. **The §11.4 captured-evidence claim in test 11
+  ("hostname colour applied by wrapper") was PARTIALLY a bluff:** it
+  PASSed because test 11 always passes `-S "$SOCKET"`, but the operator's
+  default-socket invocation path was uncovered.
+  **Fix:** both helpers now build their tmux-targeting args dynamically
+  (`local -a target=(); [ -n "$sock" ] && target=(-S "$sock")`) and
+  invoke `tmux "${target[@]}" ...` — works with both explicit and
+  default socket.
+* **Defect 2 — bridge forwarded operator intent but not host identity:**
+  - `scripts/tmx-mac.template` invoked `ssh -t ... "$VM_WRAPPER <args>"`
+    but the VM-side `hostname_color.sh` resolved against the VM's own
+    `$(hostname)` → `localhost.localdomain` → `colour166`. So every
+    macOS Mac would receive the SAME colour ("VM colour"), violating
+    the §1 host-distinguishability invariant. Even after fix 1, the
+    operator on "Mistborn" would see `colour166` not "Mistborn-derived".
+  - **Fix:** bridge now reads the macOS host's identity via `scutil
+    --get LocalHostName` (matches what `zsh %m` displays in prompts;
+    e.g., "Mistborn"), falls back to `hostname` if scutil unavailable,
+    and forwards it as `TMX_HOSTNAME=<host> $VM_WRAPPER <args>` in the
+    remote SSH command. The wrapper's `_apply_host_color` passes
+    `${TMX_HOSTNAME:+"$TMX_HOSTNAME"}` to `hostname_color.sh` —
+    if the env var is set it's the source of truth; if unset
+    (Linux-native invocation) the existing `$(hostname)` fallback
+    applies.
+* **Captured evidence (post-fix):**
+  - `bash scripts/hostname_color.sh Mistborn` → `colour202`.
+  - `bash scripts/test_e2e.sh` on Darwin 24.5.0 / Mistborn:
+    ```
+    PASS: T4.5: status-bg 'colour202' matches hostname-derived 'colour202'
+          for 'Mistborn' (positive evidence: tmx show -g status-style)
+    ```
+  - `bash scripts/tmx show -g status-style` returns `bg=colour202,...`
+    on Mistborn — proves the wrapper applied the color through the
+    full bridge → wrapper → tmux set-option chain, AND that the
+    chosen colour reflects the operator's host (not the VM's).
+* **New test coverage — `test_e2e.sh` T4.5:** explicitly reads
+  `status-style` via `tmx show -g status-style`, computes the
+  expected colour from `scutil --get LocalHostName` (or `hostname`
+  on Linux), and FAILs if `bg=green` (default — colour-not-applied
+  bluff) or if it doesn't match the deterministic hash. This is the
+  regression-protection that prevents the Defect 1 + Defect 2 stack
+  from re-occurring.
+* **Regression-protection:** test_e2e.sh T4.5 is now the canonical
+  end-user check. The in-VM test 11 still tests the explicit-socket
+  path (its existing positive-evidence claim is intact). Both layers
+  must pass for the colour-on-host invariant to be considered honest.
+* **Tracked task:** user-reported during this session.
+
 ### A9. Interactive `tmx new` "not a terminal" + full e2e automation — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.

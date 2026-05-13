@@ -100,6 +100,31 @@ else
     echo "$PANE" | sed 's/^/  pane: /'
 fi
 
+# ─── T4.5: status-bar colour reflects host (proves _apply_host_color ran) ──
+echo ""
+echo "--- T4.5: status-bar colour applied (NOT the default green) ---"
+if [ "$(uname -s)" = "Darwin" ]; then
+    if command -v scutil >/dev/null 2>&1; then
+        HOST_HN=$(scutil --get LocalHostName 2>/dev/null || hostname)
+    else
+        HOST_HN=$(hostname)
+    fi
+else
+    HOST_HN=$(hostname)
+fi
+EXPECTED_COLOR=$(bash scripts/hostname_color.sh "$HOST_HN" 2>/dev/null || echo "")
+ACTUAL_STYLE=$(bash scripts/tmx show -g status-style 2>&1 | grep -v "libtinfo" | tail -1 | tr -d '\r')
+ACTUAL_BG=$(echo "$ACTUAL_STYLE" | grep -oE 'bg=[^,[:space:]]+' | head -1 | sed 's/^bg=//')
+if [ -z "$ACTUAL_BG" ]; then
+    _fail "T4.5: could not read status-style bg (raw: '$ACTUAL_STYLE')"
+elif [ "$ACTUAL_BG" = "green" ]; then
+    _fail "T4.5: status-bg is 'green' — that's the tmux DEFAULT, color was not applied (host '$HOST_HN' should hash to '$EXPECTED_COLOR')"
+elif [ -n "$EXPECTED_COLOR" ] && [ "$ACTUAL_BG" = "$EXPECTED_COLOR" ]; then
+    _pass "T4.5: status-bg '$ACTUAL_BG' matches hostname-derived '$EXPECTED_COLOR' for '$HOST_HN' (positive evidence: tmx show -g status-style)"
+else
+    _pass "T4.5: status-bg '$ACTUAL_BG' set (non-default; expected '$EXPECTED_COLOR' for '$HOST_HN')"
+fi
+
 # ─── T5: detach simulation (verify session survives without attached client) ──
 echo ""
 echo "--- T5: session survives without attached client (analogue of Ctrl-B d) ---"

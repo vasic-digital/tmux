@@ -52,9 +52,21 @@ if ! ssh -i "$SSH_IDENTITY" -p "$SSH_PORT" \
     exit 3
 fi
 
+# Forward the host's hostname so the status-bar colour reflects MAC's
+# identity (e.g., "Mistborn"), not the VM's generic `localhost.localdomain`.
+# Per the user-mandated invariant: same Mac → same colour across every
+# tmx session that runs from it.
+HOST_HOSTNAME=$(hostname 2>/dev/null || echo "")
+# Prefer the LocalHostName (Bonjour-style "Mistborn") over the FQDN when
+# available; matches what shells like zsh's %m show in prompts.
+if command -v scutil >/dev/null 2>&1; then
+    LOCAL_HN=$(scutil --get LocalHostName 2>/dev/null || true)
+    [ -n "$LOCAL_HN" ] && HOST_HOSTNAME="$LOCAL_HN"
+fi
+
 # Build the remote command. `printf %q` quotes each arg safely for the
 # remote shell — works in bash 3.2+ (macOS default).
-REMOTE_CMD="$VM_WRAPPER"
+REMOTE_CMD="TMX_HOSTNAME=$(printf %q "$HOST_HOSTNAME") $VM_WRAPPER"
 for arg in "$@"; do
     REMOTE_CMD="$REMOTE_CMD $(printf %q "$arg")"
 done

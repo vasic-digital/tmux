@@ -24,10 +24,15 @@ fi
 # (works only as root). Silent no-op if neither is available.
 _apply_oom_score() {
     local sock="${1:-}"
-    [ -n "$sock" ] || return 0
+    # If no -S socket was passed, tmux uses its default socket. The previous
+    # version bailed out here, which silently disabled OOM protection AND
+    # status colour for the operator's primary use case (`tmx new` without
+    # an explicit socket). Fix: build the tmux-targeting args dynamically.
+    local -a target=()
+    [ -n "$sock" ] && target=(-S "$sock")
     sleep 0.3
     local server_pid
-    server_pid=$("$TMUX_BIN" -S "$sock" display-message -p '#{pid}' 2>/dev/null || true)
+    server_pid=$("$TMUX_BIN" "${target[@]}" display-message -p '#{pid}' 2>/dev/null || true)
     [ -n "$server_pid" ] || return 0
     if [ -x "$OOM_HELPER" ]; then
         # Helper has cap_sys_resource+ep — works for non-root operator
@@ -44,11 +49,21 @@ _apply_oom_score() {
 # Deterministic: same hostname always produces the same colour.
 _apply_host_color() {
     local sock="${1:-}"
-    [ -n "$sock" ] || return 0
+    # Mirror _apply_oom_score: omit -S when no explicit socket was passed
+    # so tmux talks to its default socket. The previous early-return left
+    # the status bar at tmux's default (bg=green) — operator saw green for
+    # all hosts, defeating the §11.4 'positive evidence of host distinguish-
+    # ability' that test 11 claims to provide.
+    local -a target=()
+    [ -n "$sock" ] && target=(-S "$sock")
     sleep 0.3
     local color
-    color=$("$TMX_DIR/hostname_color.sh" 2>/dev/null) || color="green"
-    "$TMUX_BIN" -S "$sock" set -g status-style "bg=$color" 2>/dev/null || true
+    # If TMX_HOSTNAME is set (forwarded by the macOS bridge), use it so
+    # the colour reflects the operator's host (e.g., "Mistborn") rather
+    # than the VM's generic "localhost.localdomain". On Linux-native the
+    # var is unset → hostname_color.sh falls back to $(hostname).
+    color=$("$TMX_DIR/hostname_color.sh" ${TMX_HOSTNAME:+"$TMX_HOSTNAME"} 2>/dev/null) || color="green"
+    "$TMUX_BIN" "${target[@]}" set -g status-style "bg=$color" 2>/dev/null || true
 }
 
 # Probe host topology (systemd version, cgroup hierarchy) and classify.
