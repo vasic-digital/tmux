@@ -54,6 +54,56 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A4. Build pipeline bluffs caught while reproducing on macOS — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Discovery context:** user asked "tmux is available in Homebrew on macOS,
+  why we cannot continue and do building?". Pushed me to actually attempt
+  the containerized build on Darwin via podman. The attempt surfaced three
+  real defects (two §1 bluffs + one §11.4.6 forensic gap):
+* **Defect 1 — `docker/Dockerfile` UID/GID collision on macOS hosts:**
+  - `groupadd -g 20 builder` fails with "GID '20' already exists" because
+    macOS host GID=20 (staff) collides with Ubuntu's pre-existing
+    `dialout` group at the same GID.
+  - Build aborted at step 7/10 with exit status 4. **The README's
+    "Quick install (one command)" wasn't reproducible on macOS at all.**
+  - **Fix:** added `-o` (non-unique) flag to both `groupadd` and
+    `useradd`. Build now completes cleanly on Darwin hosts.
+* **Defect 2 — README "Build-time -ljemalloc" was false until now:**
+  - `docker/build_inside_container.sh` set
+    `LDFLAGS="-Wl,-z,relro,-z,now -ljemalloc"`. But modern GNU ld defaults
+    to `--as-needed`, which DROPS `-ljemalloc` from the link because tmux
+    does not reference jemalloc symbols directly.
+  - **Captured evidence:** post-build inside the container — `ldd
+    /tmux-src/build/bin/tmux` showed NO `libjemalloc.so` in DT_NEEDED,
+    AND the inner script's own verification step printed `⚠ jemalloc
+    NOT linked at build time — will rely on LD_PRELOAD only`. The script
+    flagged it but only as a warning; the README marketed it as a feature
+    that wasn't actually delivered.
+  - **Fix:** changed LDFLAGS to
+    `-Wl,-z,relro,-z,now -Wl,--no-as-needed -ljemalloc -Wl,--as-needed`.
+    This forces jemalloc into DT_NEEDED even though no symbol references
+    pull it in.
+  - **Post-fix evidence:** `ldd` now shows
+    `libjemalloc.so.2 => /lib/aarch64-linux-gnu/libjemalloc.so.2`, AND
+    the inner script reports `✓ jemalloc linked`.
+* **Defect 3 — `make -j2` silently no-op'd after LDFLAGS change:**
+  - First attempt at the jemalloc fix changed LDFLAGS but `make` reported
+    "Nothing to be done for 'all'." because object files + binary already
+    existed from a prior build. The LDFLAGS change was silently dropped.
+  - **Fix:** added `make clean` ahead of `make -j2` in
+    `docker/build_inside_container.sh` so LDFLAGS changes always take
+    effect. This is the §11.4.6 fix — "we MUST always know exactly
+    precisely what is happening" applies to the build itself.
+* **Regression-protection:** the inner-script's own "jemalloc linked?"
+  ldd-check is now an honest gate — if a future change drops jemalloc
+  again, the inner script reports `⚠` and the operator sees it in build
+  output. No paired mutation needed since the defect is structural (build
+  configuration), not algorithmic.
+* **Tracked task:** none originally — caught during /init audit cycle by
+  attempting the actual build on the audit host.
+
 ### A3. GUIDE.md "severity hierarchy" bluff (pre-existing) — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.

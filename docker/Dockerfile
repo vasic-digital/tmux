@@ -31,8 +31,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create a non-root builder user matching the host UID/GID (so output files
 # are owned by the host operator, not root). Mirrors §12.9 Dockerfile pattern.
-RUN groupadd -g $BUILD_GID builder \
-    && useradd -m -u $BUILD_UID -g builder -s /bin/bash builder
+#
+# `-o` (allow non-unique) on both groupadd and useradd: on macOS hosts the
+# operator's primary GID is 20 (staff) — which collides with Ubuntu's
+# dialout group at the same GID. Without `-o`, groupadd fails and the build
+# aborts. The duplicate-GID is harmless for our volume-mount permission
+# matching purpose. Same logic for UID (macOS users often start at 501,
+# which may or may not collide depending on the base image).
+RUN groupadd -g $BUILD_GID -o builder \
+    && useradd -m -u $BUILD_UID -o -g builder -s /bin/bash builder
 
 USER builder
 WORKDIR /tmux-src
