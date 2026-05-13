@@ -1,0 +1,12 @@
+version=1.0.0
+versionCode=1
+released=2026-05-13
+
+# This file is the single source of truth for the project's version.
+# `version=` is the semver string (display + tag); `versionCode=` is the
+# monotonically-increasing integer (used by CI / package managers / build
+# attestation). Both MUST be bumped together when a release tag is cut.
+#
+# Per the operator's distribute mandate: every distribute action MUST
+# carry a strictly-increasing versionCode (no re-distribution of already-
+# published codes) and MUST include a matching CHANGELOG entry.
