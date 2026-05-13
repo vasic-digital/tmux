@@ -67,12 +67,24 @@ run_mutation() {
 
     # ── Step 1: backup + apply mutation ──────────────────────────
     cp "$target_abs" "$backup" || { _skip "$desc: cannot backup $target"; return; }
+    # Capture original mode so we can restore exec bit after sed -i
+    # (sed -i creates a new file with default mode 0600, dropping exec
+    # permission — would cause downstream test pre-checks to FAIL as
+    # "not executable" even though the script content is correct).
+    local orig_mode
+    orig_mode=$(stat -c '%a' "$target_abs" 2>/dev/null || stat -f '%Lp' "$target_abs" 2>/dev/null || echo "755")
 
     if ! eval "$mutate_cmd" 2>/dev/null; then
         cp "$backup" "$target_abs" 2>/dev/null || true
+        chmod "$orig_mode" "$target_abs" 2>/dev/null || true
         rm -f "$backup" 2>/dev/null || true
         _skip "$desc: mutation command failed to apply"
         return
+    fi
+    chmod "$orig_mode" "$target_abs" 2>/dev/null || true
+    if [ "${TMX_META_DEBUG:-0}" = "1" ]; then
+        echo "  [debug] mutate_cmd: $mutate_cmd"
+        echo "  [debug] target after mutate: mode=$(stat -c '%a' "$target_abs" 2>/dev/null) head: $(grep -E 'MemoryMax|MemMax' "$target_abs" | head -1)"
     fi
 
     # ── Step 2: run test — expect FAIL ───────────────────────────
@@ -94,6 +106,7 @@ run_mutation() {
     eval "$revert_cmd" 2>/dev/null || {
         cp "$backup" "$target_abs" 2>/dev/null || true
     }
+    chmod "$orig_mode" "$target_abs" 2>/dev/null || true
     rm -f "$backup" 2>/dev/null || true
 
     # ── Step 4: run test — expect PASS ───────────────────────────
@@ -162,15 +175,21 @@ else
     _skip "M4: scripts/tmx not found — wrapper not yet generated"
 fi
 
-# ── M5: tmx wrapper — corrupt MemoryMax value ───────────────────────
-# Mutate: replace the MemoryMax option line with a non-matching line
-# Using REMOVED suffix breaks grep for exact invariant words.
+# ── M5: tmx wrapper — corrupt MemoryMax option name ─────────────────
+# Mutate: rename "MemoryMax=" → "MemMax=" in the wrapper. Pattern is
+# kept simple so it matches the literal text in the generated wrapper
+# regardless of how `${TMX_MEM:-8G}` is rendered (the previous version
+# of M5 baked the variable expansion into the pattern, which `eval`
+# expanded before sed saw it, causing the pattern to never match —
+# silent no-op + escaped mutation = §11.4.1 FAIL-bluff in the gate itself).
+# Test 09 T2.2 greps for "MemoryMax" in the wrapper; renaming to MemMax
+# breaks the grep → T2.2 FAILs → mutation caught.
 if [ -f "$WRAPPER_PATH" ]; then
     run_mutation \
         "M5: tmx wrapper corrupt MemoryMax" \
         "scripts/tmx" \
-        "sed -i 's|-p \"MemoryMax=\${TMX_MEM:-8G}\"|-p \"MemMax=\${TMX_MEM:-8G}\"|' \"\$target_abs\"" \
-        "sed -i 's|-p \"MemMax=\${TMX_MEM:-8G}\"|-p \"MemoryMax=\${TMX_MEM:-8G}\"|' \"\$target_abs\"" \
+        "sed -i 's|MemoryMax=|MemMax=|' \"\$target_abs\"" \
+        "sed -i 's|MemMax=|MemoryMax=|' \"\$target_abs\"" \
         "scripts/tests/09_crash_isolation_scope.sh" \
         "FAIL.*T2"
 else

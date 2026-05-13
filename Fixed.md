@@ -54,6 +54,100 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A5. Full destructive test + meta-test cycle caught 6 FAIL-bluffs — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Discovery context:** user "continue all work now" — pushed me from
+  the PASS=10 SKIP=4 state into actually running the destructive tests
+  (TMX_TEST_DESTRUCTIVE=1) + meta-test in the podman machine VM
+  (Fedora CoreOS 42, systemd 257, with `tmx-oom-set` setcap helper
+  installed and `stress-ng` available). The first run exposed multiple
+  §11.4.1 FAIL-bluffs (test FAILs caused by script bugs, not product
+  defects). Final state: **PASS=14 FAIL=0 SKIP=0** on the destructive
+  suite, **12/12 mutations caught** in the meta-test.
+* **Defect 1 — Test 12 / 14 `_skip; <continue>` (§11.4.1 FAIL-bluff):**
+  - Both tests had `if ! command -v stress-ng; then _skip ...; fi` —
+    they PRINTED a SKIP message but did not EXIT. The test continued
+    to run, hit the missing `stress-ng`, and FAILed on `T5.1`/`T8.1`
+    ("no OOM-kill in dmesg"). Confusing operator output AND
+    misclassified as FAIL instead of SKIP.
+  - **Fix:** replace the inert `_skip` helper call with explicit
+    `echo "SKIP: ..."; exit 0`. Now missing `stress-ng` results in a
+    clean SKIP that bumps the SKIP counter (not FAIL).
+* **Defect 2 — Test 12 / 14 unprivileged `dmesg` permission:**
+  - Fedora defaults to `kernel.dmesg_restrict=1` so non-root `dmesg`
+    fails with "Operation not permitted". Tests treated empty output
+    as "no OOM-kill happened" → false FAIL on T5.1/T8.1 even when
+    the OOM-kill DID occur.
+  - **Fix:** added `_kring_count()` / `_kring_tail()` helpers that
+    fall back to `journalctl -k --no-pager -q -o cat` when `dmesg` is
+    unavailable. Also broadened the OOM-kill regex from `oom-kill`
+    alone to `oom-kill|out of memory|memory cgroup out of memory` to
+    catch all kernel phrasings.
+* **Defect 3 — Test 13 design-fits-only-large-RAM-hosts:**
+  - Test 13 spawned 10000 `sleep` processes inside a scope with
+    `MemoryMax=256M`. Each `sleep` process is ~700KB RSS, so
+    4096 × 700KB ≈ 3 GB — far over the 256M cap. Kernel OOM-killed
+    the scope bash before pids.current could be read → T7.2 SKIP
+    even though the test's premise (TasksMax enforcement) was sound.
+  - Test 13 also raced the cgroup readback: `sleep 4` followed by
+    `systemctl show ControlGroup` — but the scope was already gone.
+  - **Fix:** restructured to two-phase scope (`sleep 2`, then
+    fork-storm), polling loop for cgroup registration (up to 5 s),
+    reduced test's TASKS_MAX from 4096 → 256 with MemoryMax=512M so
+    the fork-storm fits in available memory. The production wrapper
+    still uses TasksMax=4096; test 09 T2.2 grep-verifies that. The
+    enforcement-test gate is identical at any value.
+* **Defect 4 — Meta-test `sed -i` strips exec bit:**
+  - `sed -i` on Linux replaces the file (write temp, rename). The new
+    file gets default mode 0600, dropping the exec bit. Downstream
+    tests' `[ ! -x "$ALGO" ]` pre-checks then SKIP — false negatives.
+  - **Fix:** capture `orig_mode` via `stat -c '%a'` (Linux) /
+    `stat -f '%Lp'` (BSD) before the mutation, restore via `chmod
+    "$orig_mode"` after both mutation and revert.
+* **Defect 5 — Meta-test M5 sed pattern eval-expanded:**
+  - M5's mutate pattern was `'-p "MemoryMax=\${TMX_MEM:-8G}"|-p "MemMax=\${TMX_MEM:-8G}"'`.
+    The `\${TMX_MEM:-8G}` was preserved through bash double-quote, but
+    `eval` then expanded it to `8G`. Sed then searched for the literal
+    `-p "MemoryMax=8G"` which does NOT exist in the wrapper (the
+    wrapper has `${TMX_MEM:-8G}` literally). The mutation silently
+    no-op'd → mutation escaped detection → **meta-test bluff in the
+    meta-test itself**.
+  - **Fix:** simplified to literal `'MemoryMax=|MemMax='` which
+    matches regardless of variable rendering. Verified post-fix:
+    mutation applies, test 09 T2.2 FAILs, mutation caught.
+* **Defect 6 — Meta-test had no debug visibility for these regressions:**
+  - When mutations silently no-op or otherwise misbehave, the only
+    signal is "MUTATION ESCAPED" — no clue why.
+  - **Fix:** added opt-in `TMX_META_DEBUG=1` env var that prints the
+    mutate_cmd as eval'd plus the post-mutation file state (mode +
+    matched grep). Off by default to keep normal output clean.
+* **Captured evidence (post-fix):**
+  - `TMX_TEST_DESTRUCTIVE=1 bash scripts/verify.sh` in the VM:
+    `SUMMARY: PASS=14 FAIL=0 SKIP=0` + `GREEN: tmux binary verified`.
+  - `bash scripts/tests/meta_test_false_positive_proof.sh`:
+    `MUTATIONS CAUGHT (PASS): 12` + `GREEN: all tested mutations caught (layer 4 coverage active)`.
+  - Test 09 T3.1 specifically reads
+    `/sys/fs/cgroup/user.slice/user-501.slice/user@501.service/app.slice/.../memory.max`
+    = 268435456 bytes (matches set 256M).
+  - Test 11 T5 specifically reads `status-style bg` via `tmux show -g
+    status-style` — first session emits `colour166`, second session
+    on same host also emits `colour166`. **The user's "same-host =
+    same-color" invariant is now PROVEN with captured runtime evidence.**
+  - Test 13 T7.1 reads `pids.max=256` from cgroup interface; T7.3
+    confirms `pids.current=256 <= TasksMax=256` (limit enforced).
+    Bash emits `fork: retry: Resource temporarily unavailable` — the
+    kernel REFUSING further forks (positive evidence of pids
+    enforcement).
+* **Regression-protection:** Meta-test's M1-M6 now all caught — layer-4
+  coverage is honest. The destructive tests' `_skip + continue` pattern
+  was unique to tests 12/14; analogous future tests should `exit 0`
+  after SKIP. The exec-bit-stripping issue affects any sed -i mutation,
+  fixed centrally in run_mutation.
+* **Tracked task:** none originally — caught during "continue all work"
+  cycle.
+
 ### A4. Build pipeline bluffs caught while reproducing on macOS — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.

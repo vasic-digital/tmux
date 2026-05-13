@@ -29,12 +29,36 @@ _fail() { echo "FAIL: $*"; FAIL=$((FAIL + 1)); }
 _skip() { echo "SKIP: $*"; SKIP=$((SKIP + 1)); }
 
 if ! command -v stress-ng >/dev/null 2>&1; then
-    _skip "stress-ng not installed — cannot allocate memory" "install with: sudo apt-get install stress-ng"
+    echo "SKIP: stress-ng not installed — cannot allocate memory"
+    echo "      install via: dnf install stress-ng / apt install stress-ng / brew install stress-ng"
+    exit 0
 fi
+
+# Pick a kernel-log reader that actually works. Fedora defaults to
+# kernel.dmesg_restrict=1, so unprivileged `dmesg` fails with
+# 'Operation not permitted'. journalctl -k works for any user in the
+# 'systemd-journal' group and on systemd-journald-only hosts.
+_kring_count() {
+    if dmesg >/dev/null 2>&1; then
+        dmesg | wc -l
+    elif journalctl -k --no-pager -q -o cat >/dev/null 2>&1; then
+        journalctl -k --no-pager -q -o cat | wc -l
+    else
+        echo "0"
+    fi
+}
+_kring_tail() {
+    local n="$1"
+    if dmesg >/dev/null 2>&1; then
+        dmesg | tail -"$n"
+    elif journalctl -k --no-pager -q -o cat >/dev/null 2>&1; then
+        journalctl -k --no-pager -q -o cat | tail -"$n"
+    fi
+}
 
 TEST_NAME="tmx-test-$$-t5"
 MEM_BYTES=$((128 * 1024 * 1024))
-DMESG_BEFORE=$(dmesg | wc -l)
+DMESG_BEFORE=$(_kring_count)
 
 USER_SVC_BEFORE=$(systemctl --user is-active default.target 2>/dev/null || echo "unknown")
 _pass "T5.0: user.slice active before test (default.target=$USER_SVC_BEFORE)"
@@ -47,8 +71,8 @@ systemd-run --user --scope --collect --quiet \
 SCOPE_PID=$!
 sleep 2
 
-DMESG_AFTER=$(dmesg | wc -l)
-OOM_LINES=$(dmesg | tail -$((DMESG_AFTER - DMESG_BEFORE)) | grep -i 'oom-kill' || true)
+DMESG_AFTER=$(_kring_count)
+OOM_LINES=$(_kring_tail $((DMESG_AFTER - DMESG_BEFORE)) | grep -iE 'oom-kill|out of memory|memory cgroup out of memory' || true)
 if [ -n "$OOM_LINES" ]; then
     _pass "T5.1: kernel OOM-kill detected in dmesg (positive evidence)"
 else
