@@ -27,7 +27,7 @@ if [ -z "$PID" ]; then
     echo "FAIL: tmux server PID not found"
     exit 1
 fi
-RSS_PEAK=$(awk '/^VmRSS:/ {print $2}' "/proc/$PID/status")
+RSS_PEAK=$(ps -o rss= -p "$PID" 2>/dev/null | tr -d " ")
 echo "  RSS after history fill: $RSS_PEAK kB"
 
 "$TMUX_BIN" -S "$SOCKET" send-keys -t memtest "clear; clear" C-m 2>/dev/null
@@ -35,7 +35,7 @@ sleep 0.5
 "$TMUX_BIN" -S "$SOCKET" clear-history -t memtest 2>/dev/null
 sleep 1
 sleep 1
-RSS_AFTER=$(awk '/^VmRSS:/ {print $2}' "/proc/$PID/status")
+RSS_AFTER=$(ps -o rss= -p "$PID" 2>/dev/null | tr -d " ")
 echo "  RSS after clear-history: $RSS_AFTER kB"
 "$TMUX_BIN" -S "$SOCKET" kill-server 2>/dev/null || true
 

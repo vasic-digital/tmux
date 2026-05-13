@@ -21,7 +21,7 @@ if [ -z "$PID" ]; then
     echo "FAIL: tmux server PID not found"
     exit 1
 fi
-RSS_BEFORE=$(awk '/^VmRSS:/ {print $2}' "/proc/$PID/status")
+RSS_BEFORE=$(ps -o rss= -p "$PID" 2>/dev/null | tr -d " ")
 echo "  RSS with 1 pane: $RSS_BEFORE kB"
 
 # Spawn 9 more panes
@@ -30,7 +30,7 @@ for i in $(seq 2 10); do
     "$TMUX_BIN" -S "$SOCKET" select-layout -t pantest tiled 2>/dev/null
 done
 sleep 1
-RSS_AFTER=$(awk '/^VmRSS:/ {print $2}' "/proc/$PID/status")
+RSS_AFTER=$(ps -o rss= -p "$PID" 2>/dev/null | tr -d " ")
 GROWTH=$((RSS_AFTER - RSS_BEFORE))
 echo "  RSS with 10 panes: $RSS_AFTER kB"
 echo "  growth: $GROWTH kB"

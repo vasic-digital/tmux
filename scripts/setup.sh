@@ -72,89 +72,113 @@ if [ "$MODE" = "uninstall" ]; then
     exit 0
 fi
 
-# ── installation pipeline ───────────────────────────────────────────────────
+# ── installation pipeline (NATIVE dual-OS per docs/NATIVE_DUAL_OS_PLAN.md) ──
 
-# Step 1 — host capability check (relaxed: containerized build owns most deps)
-echo "[setup] step 1 — host capability check"
-ENGINE=""
-if command -v podman >/dev/null 2>&1; then
-    ENGINE="podman"
-elif command -v docker >/dev/null 2>&1; then
-    ENGINE="docker"
-fi
-if [ -z "$ENGINE" ]; then
-    echo "  ✗ neither podman nor docker installed. Cannot run containerized build."
-    echo "    Install one of them via your package manager."
-    exit 3
-fi
-echo "  ✓ container engine: $ENGINE"
+HOST_OS="$(uname -s)"
 
-JEMALLOC=""
-for _C in ldconfig /sbin/ldconfig /usr/sbin/ldconfig; do
-    command -v "$_C" >/dev/null 2>&1 || continue
-    JEMALLOC=$("$_C" -p 2>/dev/null | awk '/libjemalloc\.so\.[0-9]/ {print $NF; exit}' || true)
-    [ -n "$JEMALLOC" ] && break
-done
-if [ -z "$JEMALLOC" ]; then
-    echo "  ⚠ host libjemalloc.so not visible — wrapper LD_PRELOAD will be inert"
-    echo "    Tests 03 + 05 will SKIP (jemalloc-dependent)."
-    echo "    Recommend: sudo bash scripts/install_deps.sh"
-else
-    echo "  ✓ host libjemalloc: $JEMALLOC"
-fi
+# Step 1 — host capability check
+echo "[setup] step 1 — host capability check ($HOST_OS)"
+case "$HOST_OS" in
+    Darwin)
+        if ! command -v brew >/dev/null 2>&1; then
+            echo "  ✗ Homebrew not installed. Install via:"
+            echo "    /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+            exit 3
+        fi
+        echo "  ✓ Homebrew @ $(brew --prefix)"
+        JEMALLOC_DYLIB="$(brew --prefix jemalloc 2>/dev/null)/lib/libjemalloc.dylib"
+        if [ -f "$JEMALLOC_DYLIB" ]; then
+            JEMALLOC="$JEMALLOC_DYLIB"
+            echo "  ✓ jemalloc @ $JEMALLOC"
+        else
+            JEMALLOC=""
+            echo "  ⓘ jemalloc not yet installed — build_native.sh will install it"
+        fi
+        ;;
+    Linux)
+        ENGINE=""
+        if command -v podman >/dev/null 2>&1; then
+            ENGINE="podman"
+        elif command -v docker >/dev/null 2>&1; then
+            ENGINE="docker"
+        fi
+        if [ -z "$ENGINE" ] && [ ! -x "$REPO_ROOT/tmux/build/bin/tmux" ]; then
+            echo "  ✗ neither podman nor docker installed AND no native build present."
+            echo "    Either install a container engine, or install libevent-dev + libjemalloc-dev + build-essential and use build_native.sh."
+            exit 3
+        fi
+        [ -n "$ENGINE" ] && echo "  ✓ container engine: $ENGINE"
+        JEMALLOC=""
+        for _C in ldconfig /sbin/ldconfig /usr/sbin/ldconfig; do
+            command -v "$_C" >/dev/null 2>&1 || continue
+            JEMALLOC=$("$_C" -p 2>/dev/null | awk '/libjemalloc\.so\.[0-9]/ {print $NF; exit}' || true)
+            [ -n "$JEMALLOC" ] && break
+        done
+        if [ -z "$JEMALLOC" ]; then
+            echo "  ⚠ host libjemalloc.so not visible — wrapper LD_PRELOAD will be inert"
+        else
+            echo "  ✓ host libjemalloc: $JEMALLOC"
+        fi
+        ;;
+    *)
+        echo "  ✗ unsupported OS '$HOST_OS'. Supported: Darwin, Linux."
+        exit 3
+        ;;
+esac
 
-# Step 2 — containerized build
+# Step 2 — build the tmux binary natively for this OS
 echo ""
-echo "[setup] step 2 — containerized build"
-if [ "$MODE" = "rebuild" ] || [ ! -x tmux/build/bin/tmux ]; then
-    bash scripts/build_containerized.sh
-else
-    echo "  binary already present at tmux/build/bin/tmux — use --rebuild to force"
-fi
+echo "[setup] step 2 — native build"
+case "$HOST_OS" in
+    Darwin)
+        TMUX_BIN_ABS="$REPO_ROOT/tmux/build-darwin/bin/tmux"
+        if [ "$MODE" = "rebuild" ] || [ ! -x "$TMUX_BIN_ABS" ]; then
+            bash scripts/build_native.sh
+        else
+            echo "  binary already present at $TMUX_BIN_ABS — use --rebuild to force"
+        fi
+        # Refresh jemalloc path now that brew install ran inside build_native.sh.
+        JEMALLOC_DYLIB="$(brew --prefix jemalloc 2>/dev/null)/lib/libjemalloc.dylib"
+        if [ -f "$JEMALLOC_DYLIB" ]; then
+            JEMALLOC="$JEMALLOC_DYLIB"
+        fi
+        ;;
+    Linux)
+        TMUX_BIN_ABS="$REPO_ROOT/tmux/build/bin/tmux"
+        if [ "$MODE" = "rebuild" ] || [ ! -x "$TMUX_BIN_ABS" ]; then
+            if [ -n "${ENGINE:-}" ]; then
+                bash scripts/build_containerized.sh
+            else
+                bash scripts/build_native.sh
+            fi
+        else
+            echo "  binary already present at $TMUX_BIN_ABS — use --rebuild to force"
+        fi
+        ;;
+esac
 
 if [ "$MODE" = "build-only" ]; then
     echo "[setup] --build-only: stopping after step 2"
     exit 0
 fi
 
-HOST_OS="$(uname -s)"
-
-# Step 3 — generate wrapper(s)
+# Step 3 — generate the tmx wrapper from tmx.template
 echo ""
 echo "[setup] step 3 — generating tmx wrapper"
-if [ "$HOST_OS" = "Darwin" ]; then
-    # macOS host: the Linux ELF binary cannot execute natively. Generate
-    # TWO files:
-    #   scripts/tmx-vm  — the Linux wrapper with VM-native paths, lives at
-    #                     the same path inside the VM via virtiofs; invoked
-    #                     by the bridge below.
-    #   scripts/tmx     — the macOS bridge that SSHes into the VM and runs
-    #                     scripts/tmx-vm with the operator's args. Goes on
-    #                     PATH side-by-side with the system tmux.
-    VM_REPO="/Users/$(id -un)/Projects/tmux"
-    VM_JEMALLOC="/lib64/libjemalloc.so.2"
-    sed \
-        -e "s|__TMUX_BIN__|$VM_REPO/tmux/build/bin/tmux|g" \
-        -e "s|__JEMALLOC_PATH__|$VM_JEMALLOC|g" \
-        scripts/tmx.template > scripts/tmx-vm
-    chmod +x scripts/tmx-vm
-    echo "  ✓ wrote scripts/tmx-vm (Linux wrapper for VM-side execution)"
+RLIMIT_WRAPPER_ABS="$REPO_ROOT/scripts/tmx-rlimit-wrapper.sh"
+sed \
+    -e "s|__TMUX_BIN__|$TMUX_BIN_ABS|g" \
+    -e "s|__JEMALLOC_PATH__|$JEMALLOC|g" \
+    -e "s|__RLIMIT_WRAPPER__|$RLIMIT_WRAPPER_ABS|g" \
+    scripts/tmx.template > scripts/tmx
+chmod +x scripts/tmx
+echo "  ✓ wrote scripts/tmx ($HOST_OS native wrapper, host-process isolation: $(if [ "$HOST_OS" = "Darwin" ]; then echo "POSIX rlimit"; else echo "cgroup-v2 transient scope"; fi))"
 
-    sed \
-        -e "s|__VM_REPO__|$VM_REPO|g" \
-        -e "s|__DATE__|$(date '+%Y-%m-%d')|g" \
-        scripts/tmx-mac.template > scripts/tmx
-    chmod +x scripts/tmx
-    echo "  ✓ wrote scripts/tmx (macOS bridge → podman machine ssh -t)"
-else
-    TMUX_BIN_ABS="$REPO_ROOT/tmux/build/bin/tmux"
-    sed \
-        -e "s|__TMUX_BIN__|$TMUX_BIN_ABS|g" \
-        -e "s|__JEMALLOC_PATH__|$JEMALLOC|g" \
-        scripts/tmx.template > scripts/tmx
-    chmod +x scripts/tmx
-    echo "  ✓ wrote scripts/tmx (Linux wrapper)"
-fi
+# Clean up any legacy files from the previous VM-based architecture so the
+# operator doesn't get confused by their presence (no longer used in
+# native dual-OS install path).
+rm -f scripts/tmx-vm
+rm -f scripts/tmx-mac.template.bak 2>/dev/null || true
 
 # Step 3b — build oom_set helper binary (no sudo). Operator can later install
 # with `sudo bash scripts/build_oom_set.sh --install` to get full OOM
@@ -174,26 +198,16 @@ fi
 # Step 4 — verification gate (THE GUARD)
 echo ""
 echo "[setup] step 4 — verification gate"
-if [ "$HOST_OS" = "Darwin" ]; then
-    # On Darwin we cannot run the Linux ELF natively. §11.4 still applies:
-    # we verify the binary IN ITS TARGET ENVIRONMENT (the podman machine VM)
-    # rather than skipping verification altogether. test_vm.sh regenerates
-    # scripts/tmx-vm with VM paths, then runs scripts/verify.sh inside the
-    # VM via podman machine ssh.
-    echo "  Darwin host: running verify inside podman machine VM (§11.4 target-env verification)"
-    if ! bash scripts/test_vm.sh; then
-        echo ""
-        echo "[setup] ✗ VM verification RED. Aborting before PATH-export."
-        echo "  Per §11.4 anti-bluff covenant, we DO NOT expose unverified binaries."
-        exit 4
-    fi
-else
-    if ! bash scripts/verify.sh; then
-        echo ""
-        echo "[setup] ✗ verification RED. Aborting before PATH-export."
-        echo "  Per §11.4 anti-bluff covenant, we DO NOT expose unverified binaries."
-        exit 4
-    fi
+# Native dual-OS: the binary is built FOR THIS HOST and verified ON THIS
+# HOST. No more VM bridge in the default install flow. verify.sh respects
+# $TMUX_BIN env override.
+export TMUX_BIN="$TMUX_BIN_ABS"
+export WRAPPER="$REPO_ROOT/scripts/tmx"
+if ! bash scripts/verify.sh; then
+    echo ""
+    echo "[setup] ✗ verification RED. Aborting before PATH-export."
+    echo "  Per §11.4 anti-bluff covenant, we DO NOT expose unverified binaries."
+    exit 4
 fi
 echo ""
 echo "[setup] ✓ verification GREEN — safe to proceed with installation"
@@ -247,9 +261,19 @@ echo "  resolves to this project's wrapper; 'tmux' resolves to whatever"
 echo "  was on your PATH before."
 if [ "$HOST_OS" = "Darwin" ]; then
     echo ""
-    echo "  macOS note: 'tmx' is a bridge that SSHes into the podman"
-    echo "  machine VM (where the verified Linux binary lives). Interactive"
-    echo "  tmux works through the SSH TTY. To detach from a session and"
-    echo "  keep it running in the VM, use the standard tmux 'Ctrl-B d'."
+    echo "  macOS isolation: each session runs in the macOS host process"
+    echo "  tree with kernel-enforced POSIX rlimits applied per session:"
+    echo "    • RLIMIT_CPU  (CPU-time cap, ${TMX_CPU_HARD_SEC:-86400} s default)"
+    echo "    • RLIMIT_NPROC (per-user process count cap)"
+    echo "  ⓘ HONEST GAP: RLIMIT_AS (virtual memory) is NOT enforced by"
+    echo "    the XNU kernel for unprivileged processes (returns EINVAL)."
+    echo "    Memory containment on macOS requires launchd jobs with"
+    echo "    HardResourceLimits plist (root). See docs/GUIDE.md §5.6."
+    echo "  Full host access: Homebrew, /usr/bin, all system tools reachable."
+elif [ "$HOST_OS" = "Linux" ]; then
+    echo ""
+    echo "  Linux isolation: each session in its own cgroup-v2 transient"
+    echo "  scope (tmx-NAME.scope) with MemoryMax / CPUQuota / TasksMax /"
+    echo "  Delegate=yes. OOM in one session contained to that scope only."
 fi
 echo "════════════════════════════════════════════════════════════════"

@@ -135,33 +135,44 @@ else
     _fail "T5: session '$SESSION' disappeared after send-keys"
 fi
 
-# ─── T7: per-session scope isolation (Constitution §11.4.7) ─────────
-# Create a second session via the bridge and verify it lands in its
-# OWN cgroup scope — not the same one as T3's session. This is the
-# operator-path proof that per-session isolation works through the
-# full stack: macOS shell → bridge → SSH → VM wrapper → systemd-run.
+# ─── T7: per-session isolation (operator-path, OS-aware) ────────────
+# Create a second session via the native wrapper and verify it lands in
+# its OWN isolation primitive — distinct cgroup scope on Linux, distinct
+# tmux server (with its own rlimit wrapper) on Darwin. Same end-user
+# guarantee: A's resource pressure doesn't affect B.
 echo ""
-echo "--- T7: per-session scope isolation (two sessions, two scopes) ---"
+echo "--- T7: per-session isolation (two sessions, distinct primitives) ---"
 SESSION_B="${SESSION}_b"
 bash scripts/tmx new -s "$SESSION_B" -d 2>&1 | grep -v "libtinfo" || true
 sleep 1
 
-# Query the VM directly via podman machine ssh — the scopes live in the
-# VM's user systemd instance and aren't visible to macOS systemctl.
-if [ "$(uname -s)" = "Darwin" ]; then
-    ACTIVE_SCOPES=$(podman machine ssh "systemctl --user list-units --type=scope --no-legend --all 2>/dev/null | awk '{print \$1}' | grep -E '^tmx-(${SESSION}|${SESSION_B})\\.scope\$'" 2>/dev/null | tr -d '\r' | sort -u)
-else
-    ACTIVE_SCOPES=$(systemctl --user list-units --type=scope --no-legend --all 2>/dev/null | awk '{print $1}' | grep -E "^tmx-(${SESSION}|${SESSION_B})\.scope\$" | sort -u)
-fi
-
-SCOPE_COUNT=$(printf '%s\n' "$ACTIVE_SCOPES" | grep -c '^tmx-' || echo 0)
-if [ "$SCOPE_COUNT" -eq 2 ]; then
-    _pass "T7: two distinct scopes active for two sessions (positive evidence: systemctl list-units shows $(printf '%s ' $ACTIVE_SCOPES))"
-elif [ "$SCOPE_COUNT" -eq 1 ]; then
-    _fail "T7: only 1 distinct scope active for 2 sessions — sessions share a cgroup (§11.4.7 violation)"
-else
-    _skip "T7: could not enumerate scopes (count=$SCOPE_COUNT)"
-fi
+HOST_OS_E2E="$(uname -s)"
+case "$HOST_OS_E2E" in
+    Darwin)
+        # Darwin: verify distinct tmux server PIDs (per-session servers).
+        BIN="$(pwd)/tmux/build-darwin/bin/tmux"
+        A_PID=$("$BIN" -L "tmx-${SESSION}" display-message -p '#{pid}' 2>/dev/null || echo "")
+        B_PID=$("$BIN" -L "tmx-${SESSION_B}" display-message -p '#{pid}' 2>/dev/null || echo "")
+        if [ -n "$A_PID" ] && [ -n "$B_PID" ] && [ "$A_PID" != "$B_PID" ]; then
+            _pass "T7: distinct tmux server PIDs A=$A_PID B=$B_PID (positive evidence: per-session server isolation on Darwin)"
+        else
+            _fail "T7: sessions share a server. A=$A_PID B=$B_PID"
+        fi
+        ;;
+    Linux)
+        # Linux: verify distinct cgroup-v2 scope units.
+        ACTIVE_SCOPES=$(systemctl --user list-units --type=scope --no-legend --all 2>/dev/null | awk '{print $1}' | grep -E "^tmx-(${SESSION}|${SESSION_B})\.scope$" | sort -u)
+        SCOPE_COUNT=$(printf '%s\n' "$ACTIVE_SCOPES" | grep -c '^tmx-' || echo 0)
+        if [ "$SCOPE_COUNT" -eq 2 ]; then
+            _pass "T7: two distinct scopes active for two sessions (positive evidence: systemctl list-units shows $(printf '%s ' $ACTIVE_SCOPES))"
+        else
+            _fail "T7: expected 2 scopes, found $SCOPE_COUNT — sessions share a cgroup (§11.4.7 violation)"
+        fi
+        ;;
+    *)
+        _skip "T7: unsupported OS $HOST_OS_E2E"
+        ;;
+esac
 
 # Cleanup B
 bash scripts/tmx kill-session -t "$SESSION_B" 2>&1 | grep -v "libtinfo" || true

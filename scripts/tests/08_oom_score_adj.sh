@@ -19,6 +19,15 @@ SESSION="tmx_t08_$$"
 SOCK_LABEL="tmx-${SESSION}"
 echo "── Test 08: wrapper sets oom_score_adj=-500 ──"
 
+# Linux-only: oom_score_adj is a /proc interface that doesn't exist on
+# Darwin or any non-Linux kernel. Skip cleanly per §11.4.3 topology
+# dispatch when on a non-Linux host.
+if [ "$(uname -s)" != "Linux" ]; then
+    echo "SKIP: oom_score_adj is a Linux-specific /proc interface; not applicable on $(uname -s)"
+    echo "       On macOS, sessions are bounded by POSIX rlimit (RLIMIT_AS) instead — see test 15."
+    exit 0
+fi
+
 if [ ! -x "$WRAPPER" ]; then
     echo "SKIP: wrapper $WRAPPER not yet generated (run setup.sh first)"
     exit 0

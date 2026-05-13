@@ -26,15 +26,32 @@ if [ ! -x "$TMUX_BIN" ]; then
     exit 1
 fi
 
-# Pre-check: ldd must succeed (no broken symbol references)
-if ! ldd "$TMUX_BIN" >/dev/null 2>&1 || ldd "$TMUX_BIN" 2>&1 | grep -q 'not found'; then
-    echo ""
-    echo "RED: $TMUX_BIN has unresolved dynamic dependencies:"
-    ldd "$TMUX_BIN" | grep -E 'not found|error'
-    exit 1
-fi
+# Pre-check: dynamic deps must resolve. Use ldd on Linux, otool on Darwin.
+HOST_OS_VERIFY="$(uname -s)"
+case "$HOST_OS_VERIFY" in
+    Darwin)
+        # otool -L lists Mach-O LC_LOAD_DYLIB entries. Failure modes:
+        # missing dylib produces "image not found"; codesign issues
+        # produce "killed" — actually exec the binary briefly to confirm.
+        if ! "$TMUX_BIN" -V >/dev/null 2>&1; then
+            echo ""
+            echo "RED: $TMUX_BIN failed to execute (dylib resolution or codesign):"
+            "$TMUX_BIN" -V 2>&1 | head -5
+            otool -L "$TMUX_BIN" | sed 's/^/  /'
+            exit 1
+        fi
+        ;;
+    Linux)
+        if ! ldd "$TMUX_BIN" >/dev/null 2>&1 || ldd "$TMUX_BIN" 2>&1 | grep -q 'not found'; then
+            echo ""
+            echo "RED: $TMUX_BIN has unresolved dynamic dependencies:"
+            ldd "$TMUX_BIN" | grep -E 'not found|error'
+            exit 1
+        fi
+        ;;
+esac
 echo ""
-echo "  ✓ binary exists, dynamic deps resolved"
+echo "  ✓ binary exists, dynamic deps resolved ($HOST_OS_VERIFY)"
 
 # Run the full test suite
 echo ""

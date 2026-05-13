@@ -44,9 +44,10 @@ _cleanup() {
 }
 trap _cleanup EXIT
 
-echo "── Test 15: per-session cgroup distinctness ──"
+HOST_OS="$(uname -s)"
+echo "── Test 15: per-session isolation ($HOST_OS) ──"
 
-# Pre-check: wrapper + binary present, systemd available.
+# Pre-check: wrapper + binary present.
 if [ ! -x "$WRAPPER" ]; then
     _skip "wrapper $WRAPPER not generated — run setup.sh"
     echo "Tests: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0
@@ -55,6 +56,91 @@ if [ ! -x "$TMUX_BIN" ]; then
     _skip "tmux binary $TMUX_BIN not built"
     echo "Tests: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0
 fi
+
+# OS dispatch: Linux uses cgroup-v2 transient scopes (systemd); Darwin
+# uses POSIX rlimits (no systemd, no cgroups). The operator-mandated
+# isolation invariant is the same on both — sessions are independent —
+# but the kernel primitives differ. Both branches verify with positive
+# runtime evidence per §11.4.2.
+if [ "$HOST_OS" = "Darwin" ]; then
+    # ── DARWIN BRANCH: rlimit-based per-session isolation ──────────
+    echo ""
+    echo "--- Darwin: per-session rlimit verification ---"
+
+    # Create two sessions via the operator path.
+    "$WRAPPER" new -s "$A_NAME" -d 2>/dev/null
+    "$WRAPPER" new -s "$B_NAME" -d 2>/dev/null
+    sleep 2
+
+    # T1: both sessions visible in `tmx ls` aggregated listing.
+    LS_OUT=$("$WRAPPER" ls 2>&1)
+    if echo "$LS_OUT" | grep -q "^$A_NAME:" && echo "$LS_OUT" | grep -q "^$B_NAME:"; then
+        _pass "T1: both sessions A and B visible in tmx ls (positive evidence: aggregated listing across distinct sockets)"
+    else
+        _fail "T1: tmx ls did not show both sessions: $LS_OUT"
+    fi
+
+    # T2: each session has its OWN tmux server on its OWN socket.
+    A_PID=$("$TMUX_BIN" -L "tmx-${A_NAME}" display-message -p '#{pid}' 2>/dev/null)
+    B_PID=$("$TMUX_BIN" -L "tmx-${B_NAME}" display-message -p '#{pid}' 2>/dev/null)
+    if [ -n "$A_PID" ] && [ -n "$B_PID" ] && [ "$A_PID" != "$B_PID" ]; then
+        _pass "T2: distinct tmux server PIDs A=$A_PID B=$B_PID (positive evidence: independent server processes per session)"
+    else
+        _fail "T2: tmux server PIDs A=$A_PID B=$B_PID — expected distinct non-empty values"
+    fi
+
+    # T3: send-keys to each session, capture ulimit readback; the kernel-
+    # enforced rlimits (CPU + NPROC) should show their configured values.
+    "$WRAPPER" send-keys -t "$A_NAME" "echo TMXLIMITS:cpu=\$(ulimit -t):nproc=\$(ulimit -u)" Enter 2>/dev/null
+    "$WRAPPER" send-keys -t "$B_NAME" "echo TMXLIMITS:cpu=\$(ulimit -t):nproc=\$(ulimit -u)" Enter 2>/dev/null
+    sleep 2
+
+    A_PANE=$("$WRAPPER" capture-pane -t "$A_NAME" -p 2>/dev/null | grep TMXLIMITS | tail -1)
+    B_PANE=$("$WRAPPER" capture-pane -t "$B_NAME" -p 2>/dev/null | grep TMXLIMITS | tail -1)
+    if echo "$A_PANE" | grep -qE 'cpu=[0-9]+:nproc=[0-9]+'; then
+        _pass "T3: session A rlimits applied: $A_PANE (positive evidence: ulimit -t and -u via send-keys + capture-pane)"
+    else
+        _fail "T3: could not read rlimits from session A: '$A_PANE'"
+    fi
+    if echo "$B_PANE" | grep -qE 'cpu=[0-9]+:nproc=[0-9]+'; then
+        _pass "T4: session B rlimits applied: $B_PANE"
+    else
+        _fail "T4: could not read rlimits from session B: '$B_PANE'"
+    fi
+
+    # T5: TMX_CPU_HARD_SEC override is honoured.
+    TMX_CPU_HARD_SEC=3600 "$WRAPPER" new -s "$C_NAME" -d 2>/dev/null
+    sleep 2
+    "$WRAPPER" send-keys -t "$C_NAME" "echo TMXLIMITS:cpu=\$(ulimit -t)" Enter 2>/dev/null
+    sleep 2
+    C_PANE=$("$WRAPPER" capture-pane -t "$C_NAME" -p 2>/dev/null | grep TMXLIMITS | tail -1)
+    if echo "$C_PANE" | grep -q 'cpu=3600'; then
+        _pass "T5: TMX_CPU_HARD_SEC=3600 override applied: $C_PANE (positive evidence: ulimit -t readback = 3600)"
+    else
+        _fail "T5: TMX_CPU_HARD_SEC=3600 override not applied. Got: '$C_PANE'"
+    fi
+
+    # T6: each session's shell is the HOST shell (operator's identity)
+    # not some sandboxed identity — this is the access requirement.
+    # Use simpler whitespace-delimited marker to avoid capture-pane
+    # line-wrapping or shell-quoting ambiguity.
+    "$WRAPPER" send-keys -t "$A_NAME" 'echo HOSTID $(id -un) HOSTNAME $(hostname -s)' Enter 2>/dev/null
+    sleep 2
+    ID_PANE=$("$WRAPPER" capture-pane -t "$A_NAME" -p 2>/dev/null | grep '^HOSTID ' | tail -1)
+    EXPECTED_USER="$(id -un)"
+    if echo "$ID_PANE" | grep -q "HOSTID $EXPECTED_USER "; then
+        _pass "T6: session shell is operator's host shell ($EXPECTED_USER) — full host environment access (positive evidence: id -un inside session = $EXPECTED_USER)"
+    else
+        _fail "T6: session shell not the operator's user ($EXPECTED_USER). Got: '$ID_PANE'"
+    fi
+
+    echo ""
+    echo "  Tests: PASS=$PASS  FAIL=$FAIL  SKIP=$SKIP"
+    if [ "$FAIL" -gt 0 ]; then exit 1; fi
+    exit 0
+fi
+
+# ── LINUX BRANCH: cgroup-v2 transient scope verification ──────────────
 if ! command -v systemctl >/dev/null 2>&1; then
     _skip "no systemctl — per-session scope isolation requires systemd"
     echo "Tests: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0
