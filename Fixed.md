@@ -54,6 +54,60 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A6. Install-mechanism bluffs that broke side-by-side coexistence — `RESOLVED`
+
+* **Closure cycle:** 2026-05-13.
+* **Closure commit:** (this commit).
+* **Discovery context:** user asked "what will be the bash alias for our
+  tmux System? — the system installed tmux and our tmux System MUST WORK
+  side by side." Audit of `scripts/bashrc_snippet.template` + setup.sh
+  closing message surfaced three real defects that all conspired to
+  break the side-by-side contract:
+* **Defect 1 — phantom directory path in bashrc snippet:**
+  - Snippet set `ATMOSPHERE_TMUX_DIR="__PROJECT__/scripts/tmux"`.
+  - There is no `scripts/tmux/` subdirectory. The wrapper is at
+    `scripts/tmx` (a file inside `scripts/`).
+  - Result: PATH gets prepended with a non-existent directory; `tmx`
+    is NOT actually reachable after setup. The README's "After
+    setup.sh reports GREEN... `tmx` invokes the verified build"
+    claim was a §1 bluff — the post-install state didn't expose
+    `tmx` to the operator's PATH.
+  - **Fix:** rename variable `VDIGITAL_TMUX_DIR` and set it to
+    `__PROJECT__/scripts` (the real location of the wrapper).
+* **Defect 2 — `alias tmux='tmx'` shadowed the system tmux:**
+  - Snippet line 8 was `alias tmux='tmx'`. This means after sourcing
+    ~/.bashrc, the operator's `tmux` command invokes our cgroup-bounded
+    wrapper instead of the system tmux binary they may have installed
+    via Homebrew / apt / dnf / pacman.
+  - Directly violates README §1 ("system tmux untouched") and the user-
+    explicit requirement that "system tmux and our tmux System MUST
+    WORK side by side."
+  - **Fix:** removed the alias line entirely. The PATH-prepend of
+    `scripts/` is sufficient to expose `tmx` as a NEW command without
+    shadowing the existing `tmux` command. Added inline comment
+    documenting why no alias should be added.
+* **Defect 3 — setup.sh closing message contradicted the contract:**
+  - `Then 'tmux' will use the verified ATMOSphere build.` — both
+    factually wrong (it's our wrapper as `tmx`, not `tmux`) AND
+    branding-stale (ATMOSphere, not vasic-digital).
+  - **Fix:** new closing message explicitly documents that `tmx` is
+    the new command, `tmux` stays unchanged, and both coexist.
+* **Captured evidence (post-fix):**
+  - `scripts/bashrc_snippet.template`: PATH points to existing
+    `scripts/` directory (where `tmx` actually lives); no alias.
+  - `scripts/setup.sh`: closing message says "Use `tmx new|attach|ls|kill`
+    to invoke the verified build. The system 'tmux' command stays
+    unchanged and reachable — both coexist side-by-side."
+  - `scripts/setup.sh --uninstall` still matches our bashrc-snippet
+    markers (`─── vasic-digital optimized tmux` / `─── end vasic-digital
+    optimized tmux`) — no regression.
+* **Regression-protection:** none yet — these were doc/config bluffs
+  not directly exercised by the 14-test suite. Future option: add a
+  test that sources the generated snippet and asserts `which tmx`
+  returns a path AND `type tmux` does NOT show an alias.
+* **Tracked task:** none originally — caught when user asked about the
+  install/alias mechanism explicitly.
+
 ### A5. Full destructive test + meta-test cycle caught 6 FAIL-bluffs — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.
