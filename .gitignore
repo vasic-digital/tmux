@@ -17,5 +17,6 @@ scripts/oom_set
 /tmp/__*.log
 /tmp/.*tmux*
 
-# Generated wrapper (installed via setup.sh; never committed)
+# Generated wrappers (installed via setup.sh / test_vm.sh; never committed)
 scripts/tmx
+scripts/tmx-vm
