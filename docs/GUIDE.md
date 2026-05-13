@@ -126,100 +126,91 @@ Plus a §11.4.4 layer-4 paired-mutation harness (`meta_test_false_positive_proof
 
 ---
 
-## §5.5 macOS bridge (Darwin hosts)
+## §5.6 Native dual-OS per-session isolation (architecture since 2026-05-13)
 
-The verified binary is Linux ELF (`tmux 3.6a`, ARM aarch64 or x86_64) and cannot execute natively on Darwin. To preserve the §11.4 anti-bluff contract (no unverified install) AND give macOS users a working `tmx` command, the setup pipeline diverges on Darwin:
+Each `tmx new -s NAME` invocation produces its own tmux server running as a **host-native process** with OS-specific resource isolation. The session's shell IS the operator's host shell — same `$USER`, same `$HOME`, same `$PATH`, full filesystem access. The wrapper applies the strongest containment each OS natively supports.
 
-| Step | Linux host | macOS host (Darwin) |
+### Mechanism per OS
+
+| | Linux | macOS (Darwin) |
 |---|---|---|
-| 1. Host capability | check podman/docker + libjemalloc via ldconfig | check podman + that `podman machine` is running |
-| 2. Build | container build (writes `tmux/build/bin/tmux` Linux ELF) | identical — works on Darwin via podman machine |
-| 3. Wrapper generation | `scripts/tmx` = Linux wrapper (with host paths) | `scripts/tmx-vm` = Linux wrapper (with VM paths) **and** `scripts/tmx` = SSH bridge |
-| 4. Verification gate | `bash scripts/verify.sh` on host | `bash scripts/test_vm.sh` (regenerates `tmx-vm`, runs `verify.sh` **inside the VM** via `podman machine ssh`) — §11.4 verified in target env |
-| 5. Install | append snippet to `~/.bashrc` (+ `~/.zshrc` if present) | identical |
+| Binary format | ELF 64 (built via `build_containerized.sh` or `build_native.sh`) | Mach-O 64 (built via `build_native.sh` against Homebrew deps) |
+| Output dir | `tmux/build/bin/tmux` | `tmux/build-darwin/bin/tmux` |
+| Isolation primitive | cgroup-v2 transient scope via `systemd-run --user --scope --unit=tmx-NAME.scope` | POSIX rlimit wrapper (`scripts/tmx-rlimit-wrapper.sh`) applied as session `default-command` |
+| Memory cap | `MemoryMax` (kernel-enforced per cgroup) | **NOT ENFORCED** — see "Honest gap" below |
+| CPU cap | `CPUQuota=200%` (per cgroup) | `RLIMIT_CPU` (kernel-enforced per process, SIGXCPU on hard exhaust) |
+| Task cap | `TasksMax=4096` (per cgroup) | `RLIMIT_NPROC` (kernel-enforced per user) |
+| jemalloc preload | `LD_PRELOAD` | `DYLD_INSERT_LIBRARIES` + `DYLD_FORCE_FLAT_NAMESPACE=1` |
+| OOM containment | OOM in scope ⇒ kernel kills only that scope; `user.slice` survives | CPU/NPROC enforced; **memory: process may grow until host swaps** |
+| OOM helper | `tmx-oom-set` (setcap, sets `oom_score_adj=-500`) | N/A (no `oom_score_adj` interface on Darwin) |
 
-### Bridge mechanics
+### Honest gap (macOS memory cap)
 
-`scripts/tmx-mac.template` generates `scripts/tmx` on Darwin. On invocation it:
+Per Constitution §1 / §11.4 anti-bluff: **the Darwin XNU kernel does NOT enforce `RLIMIT_AS` / `RLIMIT_DATA` / `RLIMIT_RSS` for unprivileged processes.** Verified:
 
-1. Verifies `podman machine list` shows "Currently running".
-2. Calls `podman machine inspect` to discover the SSH endpoint (port can change across machine restarts — bridge is re-discovery-safe).
-3. Verifies `scripts/tmx-vm` exists inside the VM (set up by `setup.sh` and refreshed by `test_vm.sh`).
-4. Quotes arguments via `printf %q` and runs `ssh -t -i <identity> -p <port> core@127.0.0.1 "<vm-repo>/scripts/tmx-vm <args>"`.
+```
+$ ulimit -v 102400               # try to cap virtual memory at 100 MB
+bash: ulimit: virtual memory: cannot modify limit: Invalid argument
 
-The `-t` flag allocates a TTY so interactive tmux runs through the SSH terminal. To detach from a session and keep it running in the VM after disconnect, use the standard tmux `Ctrl-B d`. The session persists in the VM's tmux server until explicit `tmx kill-session` or `tmx kill-server` (or VM shutdown).
-
-### Architecture (Mermaid)
-
-```mermaid
-flowchart LR
-    OP[Operator shell] -->|tmx new mywork| TMX[scripts/tmx]
-    subgraph Darwin[macOS host]
-        TMX -->|bridge: ssh -t| SSHD[podman machine VM<br/>port 51347]
-    end
-    subgraph LinuxNative[Linux host - direct]
-        TMX2[scripts/tmx<br/>Linux wrapper] -->|exec systemd-run --user --scope| WRAP
-    end
-    subgraph VM[podman machine VM<br/>Fedora CoreOS 42 + systemd 257]
-        SSHD --> VMTMX[scripts/tmx-vm<br/>Linux wrapper]
-        VMTMX -->|exec systemd-run --user --scope<br/>MemoryMax CPUQuota TasksMax Delegate| WRAP[transient scope]
-        WRAP --> TMUX[tmux 3.6a<br/>jemalloc-linked<br/>oom_score_adj=-500]
-        TMUX -->|set -g status-style<br/>bg=DJB2 hostname| STATUS[colour palette<br/>27 distinct entries]
-    end
+$ python3 -c "x = 'a' * 200_000_000; print(len(x))"
+alloc OK: 200000000              # process allocates 200 MB freely
 ```
 
----
+The `tmx-rlimit-wrapper` on Darwin therefore applies ONLY the limits the kernel actually enforces (`RLIMIT_CPU`, `RLIMIT_NPROC`). The setup.sh closing message documents this explicitly. For full memory containment on macOS, you'd need launchd jobs with `HardResourceLimits` (root) or — for the same workload on a Linux host — cgroup scopes which DO enforce memory.
 
-## §5.6 Per-session isolation (default since 2026-05-13)
+### Naming + sanitisation (both OSes)
 
-Each `tmx new -s NAME` invocation produces its own tmux server inside its own cgroup-v2 transient scope. OOM in one session's processes is contained to that session's scope — every other session, the user.slice, and the host shell survive.
+- **Socket**: `tmx-<sanitised-NAME>` (under `/tmp/tmux-<uid>/`). Tmux routing via `-L tmx-NAME`.
+- **Scope unit (Linux only)**: `tmx-<sanitised-NAME>.scope`. Operator-targetable: `systemctl --user status tmx-mywork.scope`.
+- **Sanitisation**: characters outside `[A-Za-z0-9._-]` → `_`. Collision (scope already active OR server already running on socket) errors out explicitly.
 
-### Naming and unit derivation
+### Caps (per session, both OSes)
 
-- **Socket**: `tmx-<sanitised-NAME>` (under `/tmp/tmux-<uid>/`). Tmux uses this via `-L tmx-NAME`. The wrapper handles all routing automatically.
-- **Scope unit**: `tmx-<sanitised-NAME>.scope` (in user systemd). Operator-targetable by name: `systemctl --user status tmx-mywork.scope`.
-- **Sanitisation**: characters outside `[A-Za-z0-9._-]` are replaced with `_`. If the resulting scope already exists, `tmx new` errors explicitly with the path so the operator can release it.
-
-### Caps (per session, not per server)
-
-| Cap | Default | Override | Source |
-|---|---|---|---|
-| `MemoryMax` | host-adaptive: `max(MemTotal × 60% / 4, 2 GB)` | `TMX_MEM=8G tmx new -s heavy` | Constitution §12.6 budget shared across 4 concurrent sessions; 2 GB floor |
-| `CPUQuota` | `200%` (2 cores) | `TMX_CPU=400 tmx new -s build` | Operator decision 2026-05-13; oversubscription is acceptable (kernel time-slices) |
-| `TasksMax` | `4096` | (no env override; edit `scripts/tmx.template` if needed) | Same as production wrapper |
-| `Delegate` | `yes` | (always on) | Allows the tmux server to manage subordinate cgroups for its sessions |
-| `oom_score_adj` | `-500` on the tmux server PID | (helper-managed) | Survives general OOM cascades |
+| Cap | Default | Override | Linux | Darwin |
+|---|---|---|---|---|
+| Memory | host-adaptive: `max(MemTotal × 60% / 4, 2 GB)` | `TMX_MEM=8G tmx new -s heavy` | ✓ cgroup `MemoryMax` enforced | ✗ NOT enforced (XNU gap) |
+| CPU | `200%` (2 cores) on Linux; `86400 s` (24 h) on Darwin | `TMX_CPU=400` (Linux); `TMX_CPU_HARD_SEC=3600` (Darwin) | ✓ `CPUQuota` | ✓ `RLIMIT_CPU` |
+| Tasks | `4096` | (env: no; edit template) | ✓ `TasksMax` per scope | ✓ `RLIMIT_NPROC` per user |
 
 ### Cleanup
 
-`tmx kill-session -t NAME` does TWO things (operator decision 2026-05-13, belt-and-suspenders):
-1. `tmux -L tmx-NAME kill-session -t NAME` — tmux's own cleanup
-2. `systemctl --user stop tmx-NAME.scope` — explicit scope stop for faster cgroup reclaim
+`tmx kill-session -t NAME`:
+1. `tmux -L tmx-NAME kill-session -t NAME`
+2. **Linux only**: `systemctl --user stop tmx-NAME.scope` (explicit scope teardown for cgroup reclaim)
 
-`tmx kill-server` enumerates every `/tmp/tmux-<uid>/tmx-*` socket, kills each server, and stops each `tmx-*.scope` unit.
+`tmx kill-server` enumerates every `/tmp/tmux-<uid>/tmx-*` socket, kills each server, and (Linux) stops every `tmx-*.scope` unit.
 
-### Verifying isolation per session
+### Verifying isolation (positive evidence, both OSes)
 
+**Linux:**
 ```
-$ tmx new -s a -d
-$ tmx new -s b -d
+$ tmx new -s a -d; tmx new -s b -d
 $ systemctl --user list-units --type=scope --no-legend | grep tmx-
-tmx-a.scope loaded active running ...
-tmx-b.scope loaded active running ...
-
-$ cat /sys/fs/cgroup/user.slice/user-501.slice/user@501.service/app.slice/tmx-a.scope/memory.max
-2147483648
-$ cat /sys/fs/cgroup/user.slice/user-501.slice/user@501.service/app.slice/tmx-a.scope/cgroup.procs
-<PIDs for session a — distinct from session b's>
+  tmx-a.scope loaded active running ...
+  tmx-b.scope loaded active running ...
+$ cat /sys/fs/cgroup/.../tmx-a.scope/memory.max
+  2147483648                                ← per-session memory cap
+$ cat /sys/fs/cgroup/.../tmx-a.scope/cgroup.procs
+  <session A PIDs>                          ← distinct from B's
 ```
 
-The Test 15 + Test 16 + e2e T7 in `scripts/tests/` automate these checks with positive runtime evidence per Constitution §11.4.2.
+**Darwin:**
+```
+$ tmx new -s a -d; tmx new -s b -d
+$ tmx ls
+  a: 1 windows (created …)
+  b: 1 windows (created …)
+$ # Inside session a (via tmx attach):
+$ ulimit -t  ; ulimit -u
+  86400                                     ← RLIMIT_CPU enforced
+  2666                                      ← RLIMIT_NPROC enforced
+$ id ; hostname ; which brew
+  uid=501(milosvasic) gid=20(staff) …       ← operator's host user
+  Mistborn.local                            ← operator's macOS host
+  /opt/homebrew/bin/brew                    ← Homebrew reachable
+```
 
-### Limitations on Darwin
-
-- **Single TTY per ssh session.** A fresh terminal must SSH again to attach to existing sessions. Inside one terminal, `tmx attach -t mywork` works as expected.
-- **Latency.** TTY traffic is forwarded over the local-loopback SSH tunnel. On Apple Silicon this is negligible (~microseconds).
-- **VM lifetime.** Sessions persist in the VM's tmux server. `podman machine stop` kills all sessions. To survive macOS reboots, the VM needs to be started before `tmx` invocations (auto-start with `podman machine set --rootful=false --autostart` if desired).
+Test 15 + e2e T7 in `scripts/tests/` automate these checks with OS-dispatched assertions per Constitution §11.4.2.
 
 ---
 

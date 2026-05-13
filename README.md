@@ -27,56 +27,52 @@ bash scripts/setup.sh                 # build + VM-verify + install bridge
 
 After `setup.sh` reports GREEN: open a new shell, or source the rc for your shell (`source ~/.bashrc` or `source ~/.zshrc`). Then `tmx new|attach|ls|kill` invokes the verified vasic-digital build; the system `tmux` command stays untouched and reachable side-by-side.
 
-## Architecture (per-session isolation)
+## Architecture (native dual-OS per-session isolation)
 
 ```
                     ┌────────────────────────────────────┐
                     │        OPERATOR SHELL              │
                     │   $ tmx new -s mywork              │
-                    │   $ tmx new -s other  ← own scope! │
+                    │   $ tmx new -s build  ← own scope! │
                     └──────────────────┬─────────────────┘
                                        │
+                                       │  scripts/tmx (host-native, OS-aware dispatch)
+                                       ▼
             ┌──────────────────────────┴──────────────────────────┐
             │                                                     │
-       Linux host                                          macOS host
-       scripts/tmx                                         scripts/tmx (Darwin)
-       = Linux wrapper                                     = SSH bridge
-            │                                                     │ ssh -t -p <vm-port>
-            │ for each `tmx new -s NAME`:                         │      core@127.0.0.1
-            │   systemd-run --user --scope                        │      tmx-vm <args>
-            │     --unit=tmx-NAME.scope                           │      TMX_HOSTNAME=<mac>
-            │     -p MemoryMax=<host-adaptive>                    │
-            │     -p CPUQuota=200% -p TasksMax=4096               ▼
-            │     -p Delegate=yes                          ┌──────────────────────┐
-            │   tmux -L tmx-NAME new -s NAME -d            │  podman machine VM   │
-            │                                              │  Fedora CoreOS 42    │
-            ▼                                              │  systemd 257         │
-                                                           │  scripts/tmx-vm      │
-                                                           │  (same Linux wrapper)│
-                                                           └──────────┬───────────┘
-                                                                      │
-        ┌─────────────────────────────────────────────────────────────┴─────────┐
-        │                                                                       │
-        ▼                                                                       ▼
-┌─────────────────────────────┐     ┌─────────────────────────────┐     ┌─────────────────────────────┐
-│  scope tmx-mywork.scope     │     │  scope tmx-other.scope      │     │  scope tmx-N.scope          │
-│  ├ MemoryMax  (host-adapt)  │     │  ├ MemoryMax  (host-adapt)  │     │  ├ MemoryMax  (host-adapt)  │
-│  ├ CPUQuota = 200%          │     │  ├ CPUQuota = 200%          │ ... │  ├ CPUQuota = 200%          │
-│  ├ TasksMax = 4096          │     │  ├ TasksMax = 4096          │     │  ├ TasksMax = 4096          │
-│  ├ Delegate = yes           │     │  ├ Delegate = yes           │     │  ├ Delegate = yes           │
-│  └ tmux 3.6a -L tmx-mywork  │     │  └ tmux 3.6a -L tmx-other   │     │  └ tmux 3.6a -L tmx-N       │
-│    (own server, own socket) │     │    (own server, own socket) │     │    (own server, own socket) │
-│  status-bar = DJB2(host)    │     │  status-bar = DJB2(host)    │     │  status-bar = DJB2(host)    │
-│  oom_score_adj = -500       │     │  oom_score_adj = -500       │     │  oom_score_adj = -500       │
-└─────────────────────────────┘     └─────────────────────────────┘     └─────────────────────────────┘
-   OOM here kills ONLY THIS              ←  isolated from each other →            ← stays alive →
-   scope. Other scopes survive
-   with original MainPIDs.
+       Linux host                                          macOS host (Darwin)
+            │                                                     │
+            │ for each `tmx new -s NAME`:                         │ for each `tmx new -s NAME`:
+            │   systemd-run --user --scope                        │   tmux -L tmx-NAME new-session -d -s NAME \
+            │     --unit=tmx-NAME.scope                           │     "tmx-rlimit-wrapper.sh \
+            │     -p MemoryMax=<host-adaptive>                    │       <mem-kb> <cpu-sec> <nproc> \
+            │     -p CPUQuota=200% -p TasksMax=4096               │       $SHELL -l"
+            │     -p Delegate=yes                                 │   set -g default-command "rlimit-wrapper …"
+            │   tmux -L tmx-NAME new -s NAME -d                   │
+            │                                                     │
+            ▼                                                     ▼
+   ┌─────────────────────────────────┐         ┌──────────────────────────────────────────┐
+   │  cgroup-v2 transient scope      │         │  POSIX rlimit wrapper                    │
+   │  tmx-NAME.scope                 │         │  scripts/tmx-rlimit-wrapper.sh           │
+   │  ├ MemoryMax = host-adaptive    │         │  ├ ulimit -t  ← RLIMIT_CPU   (enforced)  │
+   │  ├ CPUQuota  = 200%             │         │  ├ ulimit -u  ← RLIMIT_NPROC (enforced)  │
+   │  ├ TasksMax  = 4096             │         │  └ ulimit -v  ← RLIMIT_AS NOT enforced   │
+   │  ├ Delegate  = yes              │         │                  by XNU (documented gap) │
+   │  └ tmux 3.6a (Linux ELF)        │         │  tmux 3.6a (Mach-O)                      │
+   │  status-bar = DJB2(host)        │         │  status-bar = DJB2(host)                 │
+   │  oom_score_adj = -500           │         │  (oom_score_adj N/A on Darwin)           │
+   └─────────────────────────────────┘         └──────────────────────────────────────────┘
+       Shell sees the operator's              Shell sees the operator's macOS host:
+       Linux host: full FS, full PATH,        full FS, full PATH (Homebrew, system tools,
+       all system binaries reachable.         all Mach-O binaries), `id` = operator's user.
 ```
 
-**Per-session isolation** (default architecture since 2026-05-13): each `tmx new -s NAME` invocation creates its own tmux server (socket `tmx-NAME`) inside its own cgroup-v2 transient scope (`tmx-NAME.scope`). OOM in one session's processes is contained to that scope — every other session AND the user.slice survive with original MainPIDs (Constitution §1 invariant). Memory caps default to a host-adaptive budget (`max(MemTotal × 60% / 4, 2 GB)` per Constitution §12.6); override per-session with `TMX_MEM=8G tmx new -s heavy`.
+**Native dual-OS per-session isolation** (architecture since 2026-05-13). Each `tmx new -s NAME` invocation creates its own tmux server (socket `tmx-NAME`) with OS-native isolation:
 
-On the **macOS path**, the bridge does `podman machine inspect` at every call to discover the SSH endpoint (port can change across machine restarts), forwards the macOS host's identity via `TMX_HOSTNAME=$(scutil --get LocalHostName)`, and dispatches via raw `ssh -t` for TTY allocation. The verified Linux ELF binary executes in the VM where cgroup-v2 + systemd + jemalloc + procfs all work as designed; the operator's macOS terminal sees the SSH-forwarded TTY.
+- **Linux** — cgroup-v2 transient scope `tmx-NAME.scope` via `systemd-run --user --scope`. Kernel enforces MemoryMax, CPUQuota, TasksMax per-group. OOM in one session is contained to that scope — every other session AND `user.slice` survive (Constitution §1 invariant).
+- **macOS (Darwin)** — POSIX rlimit wrapper sets `RLIMIT_CPU` (CPU time) and `RLIMIT_NPROC` (per-user process count) before exec'ing the operator's `$SHELL`. The Darwin XNU kernel enforces these per-process. Children inherit. **`RLIMIT_AS` (virtual memory) is NOT enforced** by XNU for unprivileged processes — this is a documented gap; full memory containment on macOS requires launchd jobs with `HardResourceLimits` plist (root). See `docs/GUIDE.md` §5.6 for the strength comparison.
+
+Both OS paths deliver the **same operator UX**: plain-vanilla tmux behaviour, the operator's shell with full host PATH (Homebrew on macOS, /usr/local/bin on Linux, all system tools), per-session resource ceilings applied transparently. No VM. No bridge. No `core@localhost`. No bluff.
 
 ## What you get
 

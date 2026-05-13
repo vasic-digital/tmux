@@ -1,6 +1,6 @@
 # AGENTS.md — vasic-digital tmux
 
-Verified hardened tmux 3.6a build with jemalloc, OOM protection, and per-session cgroup isolation via the `tmx` wrapper. Built around a hard verification gate that refuses to expose the binary unless functional tests pass. Runs natively on Linux; on macOS, `scripts/tmx` is a bridge that SSHes into the podman machine VM and invokes `scripts/tmx-vm` there (same wrapper logic, SSH-TTY layer added).
+Verified hardened tmux 3.6a build with jemalloc, OOM protection, and per-session isolation via the `tmx` wrapper. Built around a hard verification gate that refuses to expose the binary unless functional tests pass. **Native dual-OS** (since 2026-05-13): each `tmx new -s NAME` spawns its own tmux server on the host with OS-native isolation — cgroup-v2 scope on Linux, POSIX rlimit wrapper on macOS. Session shell is the operator's host shell with full PATH access. No VM. macOS memory-cap gap documented (XNU doesn't enforce RLIMIT_AS) — see `docs/GUIDE.md` §5.6.
 
 Canonical authority: [`Constitution.md`](Constitution.md) (§anchors below). Live handoff state: [`CONTINUATION.md`](CONTINUATION.md). Open work: [`Issues.md`](Issues.md). Containerization design: [`docs/CONTAINERIZATION_PLAN.md`](docs/CONTAINERIZATION_PLAN.md).
 

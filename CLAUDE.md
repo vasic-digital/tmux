@@ -1,6 +1,6 @@
 # CLAUDE.md — vasic-digital tmux
 
-Verified hardened tmux 3.6a build with jemalloc, OOM protection, and per-session cgroup isolation via the `tmx` wrapper. Built around a hard verification gate that refuses to expose the binary unless functional tests pass. Runs natively on Linux; on macOS, `scripts/tmx` is a bridge that SSHes into the podman machine VM and invokes `scripts/tmx-vm` there. Both target the same Linux wrapper logic (cgroup-v2 transient scope, jemalloc preload, hostname colour); the bridge only adds an SSH-TTY layer on Darwin.
+Verified hardened tmux 3.6a build with jemalloc, OOM protection, and per-session isolation via the `tmx` wrapper. Built around a hard verification gate that refuses to expose the binary unless functional tests pass. **Native dual-OS** (since 2026-05-13): runs as a host process on Linux AND macOS — no VM in the daily-use path. Each `tmx new -s NAME` creates its own tmux server with OS-native isolation: cgroup-v2 transient scope (`systemd-run --user --scope`) on Linux; POSIX rlimit wrapper (`RLIMIT_CPU` + `RLIMIT_NPROC`) on macOS. The session shell is the operator's host shell with full PATH (Homebrew, system tools, all binaries). Honest gap documented per §1: `RLIMIT_AS` (memory) is NOT enforced by XNU for unprivileged processes — see `docs/GUIDE.md` §5.6.
 
 Canonical authority: [`Constitution.md`](Constitution.md) (§anchors below). Live handoff state: [`CONTINUATION.md`](CONTINUATION.md). Open work: [`Issues.md`](Issues.md). Containerization design: [`docs/CONTAINERIZATION_PLAN.md`](docs/CONTAINERIZATION_PLAN.md).
 
