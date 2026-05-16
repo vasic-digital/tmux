@@ -15,8 +15,9 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Verification | `scripts/verify.sh` runs 14-test suite (01-14); GREEN on this host (PASS=10 FAIL=0 SKIP=4: OOM helper + 3 destructive). Binary built (`tmux 3.6a`). tmx wrapper implements systemd-run --user --scope wrapping. Topology dispatch via functional probe. |
-| Governance docs | `Constitution.md` (§1 + §11.4.1-§11.4.6 + §9 + §12.6 + §5/§12.10), `CLAUDE.md`, `AGENTS.md`, `Issues.md`, `Fixed.md`, this document |
+| Version | **1.0.2** (versionCode 3) — A15 cosmetic `.exe`-strip cycle, 2026-05-16 |
+| Verification (this cycle) | `bash scripts/setup.sh --verify-only` → PASS=11 FAIL=0 SKIP=5 (SKIPs all Linux-only/destructive — same profile as v1.0.0). Test 16 (`window-name strips .exe`) landed with operator-path coverage + regression guard. M11 paired mutation MUTATION CAUGHT + FEATURE RESTORED both directions PASS. |
+| Governance docs | `Constitution.md` (§1 + §11.4.1-§11.4.7 + §9 + §12.6 + §5/§12.10), `CLAUDE.md`, `AGENTS.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
 
@@ -210,7 +211,20 @@ The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque co
 
 ## §4 — Recent commits
 
-- (this commit, 2026-05-13) — Audit cycle: tmux submodule reverted from `3f651d9f` to `cc117b5` (3.6a tag) after silent pin-drift caught; README.md test-count + PASS/SKIP staleness fixed (8→14 tests, PASS=6→10, SKIP=2→4); CLAUDE.md + AGENTS.md gained project summary, cross-links, fresh-conversation workflow, `NN_*.sh` glob fix, named four layers, "Files to never edit directly"; Issues.md restored A/B/C/D/E section headers; CONTINUATION.md §3.8 + timestamp refresh per §12.10. See §3.8.
+- (this commit, 2026-05-16) — **A15 cosmetic .exe-strip cycle (v1.0.2 /
+  versionCode 3).** Bottom-left status bar showed `claude.exe` because
+  Claude Code v2.x ships its macOS native binary literally as
+  `.../@anthropic-ai/claude-code/bin/claude.exe` (verified Mach-O 64-bit
+  ARM64). Patched `scripts/tmux.conf.template` to set
+  `automatic-rename-format "#{s/\\.exe$//:pane_current_command}"` —
+  literal-dot-anchored, escape-verified-empirically. Added test 16
+  (operator-path per §11.4.7, includes regression guard binary
+  `t16_bashexe` to catch the unescaped-dot bug class), challenge
+  TMUX-CH-16, M11 paired mutation. Live operator-path validation
+  recorded: `pane_current_command='claude.exe'` → `#W='claude'`. Full
+  gate: PASS=11 FAIL=0 SKIP=5 (same SKIP profile as v1.0.0). See
+  Fixed.md A15.
+- (commit before that, 2026-05-13) — Audit cycle: tmux submodule reverted from `3f651d9f` to `cc117b5` (3.6a tag) after silent pin-drift caught; README.md test-count + PASS/SKIP staleness fixed (8→14 tests, PASS=6→10, SKIP=2→4); CLAUDE.md + AGENTS.md gained project summary, cross-links, fresh-conversation workflow, `NN_*.sh` glob fix, named four layers, "Files to never edit directly"; Issues.md restored A/B/C/D/E section headers; CONTINUATION.md §3.8 + timestamp refresh per §12.10. See §3.8.
 - `f4132aa` — Auto-commit: opaque submodule bumps (Containers `e377dea`→`af51968` legitimate upstream governance; tmux `cc117b5`→`3f651d9f` reverted in this commit). §12.10 / §11.4.6 violation documented in §3.8.
 - (previous commit) — §11.4.4 layer-4 paired-mutation harness (META-MUT-001):
   meta_test_false_positive_proof.sh with 5 mutations (10/0/0 all caught);

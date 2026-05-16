@@ -6,6 +6,61 @@ anti-bluff covenant (Constitution §1, §11.4.x).
 
 ---
 
+## [v1.0.2] — 2026-05-16
+
+**Cosmetic: window-name strips `.exe` suffix from `pane_current_command`.**
+
+### Fixed
+
+- **A15 — Bottom-left status-bar showed `claude.exe` instead of `claude`**
+  (operator-reported, 2026-05-16). Claude Code v2.x ships its macOS
+  native binary literally as
+  `lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe`
+  (a real Mach-O 64-bit ARM64 executable). The kernel `comm` field
+  carries the on-disk basename, so tmux's `#{pane_current_command}`
+  returned `claude.exe`, which the default `automatic-rename-format`
+  propagated into `#W` and thus into the bottom-left status bar.
+  `scripts/tmux.conf.template` now sets a literal-dot-anchored
+  `.exe` strip in `automatic-rename-format`. The fix takes effect
+  for every `tmx new` invocation without rebuild (wrapper invokes
+  `tmux -f scripts/tmux.conf.template` directly). See `Fixed.md` A15
+  for the full forensic record.
+
+### Hardened (4-layer regression protection per §11.4.4)
+
+- **Layer 1 (static gate):** `scripts/tests/16_window_name_strips_exe.sh`
+  T1 — greps the conf-template for the literal-dot-anchored form.
+- **Layer 2 (runtime, operator-path per §11.4.7):** same test, T2/T3 —
+  spawns `tmx new -s NAME`, compiles an in-test `.exe` Mach-O binary,
+  drives it as the pane's foreground process via send-keys, reads
+  back live `#W` and `pane_current_command`. PASS=6 FAIL=0 SKIP=0.
+  Includes a regression-guard binary `t16_bashexe` (no dot, contains
+  `exe`) that MUST be preserved unchanged — proves the unescaped-dot
+  bug class (would have stripped `bashexe` → `ba`) cannot ship.
+- **Layer 3 (Challenge):** `TMUX-CH-16` in `scripts/challenges/tmux.yaml`.
+- **Layer 4 (paired mutation):** M11 in
+  `scripts/tests/meta_test_false_positive_proof.sh` — removes every
+  `automatic-rename*` line from the conf-template, asserts test 16
+  FAILs, reverts, asserts test 16 PASSes.
+
+### Verified live (positive runtime evidence, this release cycle)
+
+```
+# operator-path validation with real claude binary
+tmx new -s tmx_live_5198 -d  +  send-keys "exec .../claude"
+→ pane_current_command='claude.exe'   #W='claude'
+  ✓ defect surface reached (kernel comm reports 'claude.exe')
+  ✓ #W stripped to 'claude' (fix doing the work)
+
+# full verify gate
+bash scripts/setup.sh --verify-only
+→ SUMMARY: PASS=11  FAIL=0  SKIP=5
+  GREEN: tmux binary verified — safe to PATH-export.
+  (5 SKIPs = pre-existing Linux-only/destructive: 08, 09, 12, 13, 14.)
+```
+
+---
+
 ## [v1.0.0] — 2026-05-13
 
 **Native dual-OS tmux with per-session OS-native resource isolation,

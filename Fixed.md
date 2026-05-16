@@ -54,6 +54,96 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A15. Bottom-left status-bar showed `claude.exe` instead of `claude` (cosmetic, operator-reported) — `RESOLVED`
+
+* **Closure cycle:** 2026-05-16.
+* **Closure commit:** (this commit).
+* **Discovery context:** operator opened a fresh `tmx new -s …` session
+  on macOS, ran `claude`, and noticed the colored bottom-left segment
+  read `[session] 1:claude.exe` instead of `1:claude`. Flagged as
+  "this MUST be some mistake — investigate and fix properly."
+* **Root cause (forensic, NOT a guess):** Claude Code v2.x ships its
+  macOS native binary literally as
+  `/opt/homebrew/Cellar/node/25.9.0_2/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe`
+  — a real Mach-O 64-bit ARM64 executable (207 MB; verified by
+  `file claude.exe → "Mach-O 64-bit executable arm64"`). The npm bin
+  symlink (`/opt/homebrew/opt/node@25/bin/claude`) resolves through to
+  that file. The kernel `comm` field carries the actual on-disk
+  basename, so tmux's `#{pane_current_command}` returns the literal
+  string `claude.exe`. The default tmux `automatic-rename-format`
+  propagates `pane_current_command` into the window name (`#W`),
+  which `window-status-format` then renders in the bottom-left status
+  bar. Result: the `.exe` extension bled into the operator's view.
+  This is a packaging quirk of the upstream tool — we do not control
+  Claude Code's bundler — but the cosmetic display is OUR config.
+* **Source-side fix (Constitution §11.4.1):** patched
+  `scripts/tmux.conf.template` to set an `automatic-rename-format`
+  that strips a literal-dot-anchored `.exe` tail from
+  `pane_current_command`:
+
+  ```
+  set -g  automatic-rename            on
+  set -g  automatic-rename-format     "#{s/\\.exe$//:pane_current_command}"
+  ```
+
+  Critical escape detail (verified empirically in this session): the
+  conf-file string parser strips one backslash level, so `\\.` becomes
+  `\.` for the regex engine — a literal-dot anchor. Without the
+  escape, the unescaped `.` would also strip names like `bashexe` →
+  `ba` (regex `.exe$` matches `shexe`). Test 16 T3.1 is a dedicated
+  regression guard for exactly that bug class. The wrapper invokes
+  `tmux -f scripts/tmux.conf.template` directly, so the fix takes
+  effect for every `tmx new` invocation without rebuild.
+
+* **Captured runtime evidence (live, this session):**
+
+  ```
+  # operator-path live validation (NAME=tmx_live_5198, SOCK=tmx-tmx_live_5198)
+  bash scripts/tmx new -s tmx_live_5198 -d
+  send-keys "exec /opt/homebrew/opt/node@25/bin/claude"
+  for 10 ticks at 0.7s:
+    pane_current_command='claude.exe'   #W='claude'
+  → ✓ defect surface reached (pane_current_command literally 'claude.exe')
+  → ✓ #W stripped to 'claude' (the fix is doing the work, not absence-of-evidence)
+  ```
+
+* **Captured evidence (4-layer per §11.4.4):**
+
+  | Layer | Artifact | Outcome |
+  |---|---|---|
+  | 1 — static gate | T1 in `scripts/tests/16_window_name_strips_exe.sh` greps `tmux.conf.template` for the literal-dot-anchored `\\.exe$` substitution | PASS |
+  | 2 — runtime test | T2.0/T2.1/T2.2/T3.0/T3.1 in `scripts/tests/16_window_name_strips_exe.sh` — operator-path `tmx new -s ...`, in-test compiles a real `.exe` Mach-O binary, sends `exec` into the pane, reads live `#W` + `pane_current_command` | PASS=6 FAIL=0 SKIP=0 |
+  | 3 — HelixQA Challenge | `TMUX-CH-16` in `scripts/challenges/tmux.yaml` | landed |
+  | 4 — paired mutation | `M11` in `scripts/tests/meta_test_false_positive_proof.sh` — strips every `automatic-rename*` line from the conf-template, asserts test 16 FAILs (mutation caught), reverts, asserts test 16 PASSes (feature restored) | MUTATION CAUGHT + FEATURE RESTORED, both directions PASS |
+
+* **Full verify gate:** `bash scripts/setup.sh --verify-only` →
+  `SUMMARY: PASS=11  FAIL=0  SKIP=5  GREEN`. The 5 SKIPs are the
+  pre-existing Linux-only/destructive tests (08, 09, 12, 13, 14);
+  identical SKIP profile to A14's cycle.
+
+* **§11.4.7 — operator-path coverage rule:** test 16 invokes
+  `tmx new -s NAME` (the literal entry point an end user uses), then
+  reads back `#W` from the resulting server. No hand-crafted
+  `tmux new-session` equivalents. This satisfies the rule the user
+  mandated 2026-05-13.
+
+* **§11.4.6 — no-guessing rule:** every claim above ("kernel comm
+  carries on-disk basename", "tmux substitution uses POSIX regex
+  where `.` matches any char unless escaped", "the strip applies via
+  `automatic-rename-format`") was verified empirically in this
+  session before being written here. Edge case `bashexe` was tested
+  and confirmed preserved (no false-positive strip).
+
+* **Regression-protection:** M11 in
+  `scripts/tests/meta_test_false_positive_proof.sh`. The paired
+  mutation removes the `automatic-rename*` block and asserts test 16
+  FAILs — guarantees future regressions of this exact defect class
+  cannot ship undetected.
+
+* **Tracked task:** operator request 2026-05-16 (verbatim: "we see in
+  the bottom left corner … claude … exe. Why EXE? This MUST be some
+  mistake. Investigate and fix this properly.").
+
 ### A14. Verification + validation cycle 2026-05-13 (operator-requested) — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.

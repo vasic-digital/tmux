@@ -296,6 +296,27 @@ run_mutation \
     "scripts/tests/10_hostname_color_algorithm.sh" \
     "FAIL.*T1"
 
+# ── M11: tmux.conf.template — remove `.exe` strip from rename-format ──
+#        The clean-up that hides Claude Code v2.x's `claude.exe` window
+#        name lives in scripts/tmux.conf.template as
+#          set -g automatic-rename-format "#{s/\\.exe$//:pane_current_command}"
+#        Mutation: drop every `automatic-rename*` line. Tmux then falls
+#        back to its built-in rename format (which propagates `.exe`
+#        verbatim). Test 16 T1 (structural conf-template check) and T2.2
+#        (live #W readback) both FAIL — proving the gate catches the
+#        regression.
+#
+#        Implementation: grep-out + atomic rename (portable across BSD and
+#        GNU userlands; avoids `sed -i` flavor divergence and quote-hell
+#        from a multi-backslash regex).
+run_mutation \
+    "M11: tmux.conf.template strip \`.exe\` substitution from rename-format" \
+    "scripts/tmux.conf.template" \
+    "grep -v automatic-rename \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/16_window_name_strips_exe.sh" \
+    "FAIL"
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY
 # ═══════════════════════════════════════════════════════════════════════

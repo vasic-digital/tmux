@@ -197,3 +197,33 @@ challenges:
       subsequent sessions
     evidence: 'show -g status-style' output matched to hostname_color.sh result
     severity: high
+
+  - id: TMUX-CH-16
+    title: window-name strips `.exe` suffix (operator-path)
+    description: |
+      Some bundled CLIs ship Mach-O binaries literally named `*.exe`
+      (notably Claude Code v2.x at
+      `lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe`). The
+      kernel `comm` field carries the basename, so tmux's
+      `#{pane_current_command}` reports `claude.exe`, which the default
+      `automatic-rename-format` propagates into the window name shown
+      in the bottom-left status bar — operators saw `[session] N:claude.exe`.
+      The fix patches `scripts/tmux.conf.template` to strip a literal
+      `.exe` tail from the rename format. Tested via the OPERATOR PATH
+      (`tmx new -s NAME` + an in-test `.exe` binary), per §11.4.7. A
+      regression guard binary `t16_bashexe` (no dot, but containing
+      `exe`) MUST survive unmodified — preventing the unescaped-dot
+      bug class from shipping silently.
+    test_script: scripts/tests/16_window_name_strips_exe.sh
+    pass_condition: |
+      PASS=6  FAIL=0  (T1 conf-template carries literal-dot-anchored
+      `\\.exe$`; T2.0 operator-path session A created; T2.1
+      pane_current_command observed as `t16_target.exe`; T2.2 #W
+      has .exe stripped; T3.0 session B created; T3.1 regression
+      guard `t16_bashexe` preserved as-is)
+    evidence: |
+      live `tmux -L tmx-NAME display-message -p '#W'` reads from
+      both sessions; positive proof pane_current_command had the
+      `.exe` form (defect surface reachable); strip applied to
+      the `.exe` case only.
+    severity: high

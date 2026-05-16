@@ -49,6 +49,22 @@ set -g  status-right        "#{?TMX_HOSTNAME,#{TMX_HOSTNAME},#h} %H:%M %d-%b"
 set -g  status-left-length  20
 set -g  status-right-length 40
 
+# ── window-name cleanup: strip ".exe" suffix from auto-rename ──────────────
+# Some bundled CLIs (notably Claude Code v2.x on macOS — the packaged binary
+# is literally `bin/claude.exe` Mach-O regardless of host OS) report
+# pane_current_command with a `.exe` extension that bleeds into the
+# status-bar window name (the colored bottom-left segment shows
+# `[session] N:claude.exe`). The kernel `comm` field carries the on-disk
+# filename, so this is a packaging quirk of the upstream tool, NOT of tmx.
+# We strip it cosmetically at the tmux format layer.
+#
+# Escape note: the conf-file string parser strips one backslash level, so
+# `\\.` becomes `\.` for the regex engine — a literal-dot anchor. Without
+# the escape, the unescaped `.` would also strip names like `bashexe`
+# (regex `.exe$` matches `shexe`).
+set -g  automatic-rename            on
+set -g  automatic-rename-format     "#{s/\\.exe$//:pane_current_command}"
+
 # ── prefix — keep default C-b (don't break operator muscle memory) ──────────
 # (uncomment if you prefer C-a)
 # unbind C-b
