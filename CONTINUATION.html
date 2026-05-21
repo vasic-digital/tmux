@@ -29,7 +29,7 @@ vertical-align: middle;
 </header>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-05-21T07:30Z</p>
+<p><strong>Last updated:</strong> 2026-05-21T15:30Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -66,29 +66,29 @@ current state. Update this document as you work.</p>
 </tr>
 <tr>
 <td>Version</td>
-<td><strong>1.0.5</strong> (versionCode 6) — §11.4.81
-cross-platform-parity universal + Darwin branches for tests 09/13/14 +
-NEW test 24 (RLIMIT_CPU+SIGXCPU) + §11.4.79 own-org submodule inclusion
-fix + constitution pointer bump, 2026-05-21</td>
+<td><strong>1.0.6</strong> (versionCode 7) — §11.4.80 cadence wiring
+landed + Containers/QWEN.md covenant gap closed + full rebuild + install
++ quintuple verification GREEN, 2026-05-21</td>
 </tr>
 <tr>
 <td>Verification (this cycle)</td>
-<td><code>bash scripts/setup.sh --verify-only</code> → GREEN; suite
-PASS=22 FAIL=0 SKIP=2 (tests 09/13/14 now PASS on Darwin via §11.4.81
-branches; 2 remaining SKIPs are Linux-only tests 08 oom_score_adj + 12
-memory_pressure_under_cap). Meta-test 32 caught / 0 escaped / 6 skipped
-(M7-M10 retired as dead VM-path code; M20+M21+M22 NEW for Darwin rlimit
-+ §11.4.79 codegraph exclude). e2e PASS=9/0/0. codegraph_validate.sh
-4/0/SKIP=1 (V4 honest-gap re submodule traversal). All captured
-2026-05-21 on Darwin arm64.</td>
+<td>Full rebuild via <code>bash scripts/setup.sh</code> → GREEN.
+<code>setup.sh --verify-only</code> → PASS=22 FAIL=0 SKIP=2. Meta-test
+32 caught / 0 escaped / 6 skipped. e2e PASS=9/0/0. codegraph_validate
+4/0/SKIP=1. codegraph_cadence_check GREEN (0.2d ago, 6 nodes, within 7d
+floor). tmx operator-path live confirmation (<code>which tmx</code> +
+<code>tmx -V</code>). launchd job
+<code>digital.vasic.tmux.codegraph-cadence</code> loaded. git pre-push
+hook installed. All captured 2026-05-21 on Darwin arm64.</td>
 </tr>
 <tr>
 <td>Governance docs</td>
 <td><code>constitution/</code> submodule (HelixConstitution, pinned
-<code>6e164f3</code> — bumped from <code>7f738df</code> after the
-§11.4.81 anchor pushed this cycle) — universal base; project
-<code>Constitution.md</code> (Project Articles §101–§109, extends the
-submodule), <code>CLAUDE.md</code>, <code>AGENTS.md</code>,
+<code>6e164f3</code> carrying §11.4.81); <code>Containers/</code>
+submodule (pinned <code>fbef9d6</code> — bumped this cycle from
+<code>4ca5491</code> after Containers/QWEN.md covenant gap closure);
+project <code>Constitution.md</code> (Project Articles §101–§109,
+extends the submodule), <code>CLAUDE.md</code>, <code>AGENTS.md</code>,
 <code>QWEN.md</code>, <code>Issues.md</code>, <code>Fixed.md</code>,
 this document</td>
 </tr>
@@ -658,6 +658,51 @@ seeded items are closed.</li>
 <li>Cleaned up <code>CONTINUATION.md</code> §3.6: removed stale
 &quot;remaining open&quot; note.</li>
 </ul>
+<h3 id="312--v106-workable-items-closure--11480-cadence--containersqwenmd--release-tag-2026-05-21">§3.12
+— v1.0.6 workable-items closure + §11.4.80 cadence + Containers/QWEN.md
++ release tag (2026-05-21)</h3>
+<p><strong>Status:</strong> COMPLETE (2026-05-21T15:30Z).</p>
+<p>Operator directive (verbatim): &quot;Finish all workable items you have
+presented here, rebuild and install again, retest fully and if fully
+working as expected release new version!&quot;</p>
+<p>Closed (this cycle):</p>
+<ul>
+<li><strong>§11.4.80 automatic-trigger wiring</strong> (was the one
+deferred item from v1.0.5 audit). New
+<code>scripts/codegraph_cadence_check.sh</code> +
+<code>scripts/ codegraph_install_cadence.sh</code>. Darwin launchd plist
+installed + loaded (verified via <code>launchctl list</code>).
+Cross-platform git pre-push hook installed (warns on STALE;
+<code>CADENCE_MODE=block</code> available). Anti-bluff: cadence check
+reads STAMP CONTENT (regenerated_at + node_count), not just existence.
+§11.4.81 cross-platform-parity dispatch in the installer: Linux gets
+systemd user timer; Darwin gets launchd plist.</li>
+<li><strong>Containers/QWEN.md covenant gap</strong> (was the
+second-to-last out-of-scope item from v1.0.5 —
+<code>Containers/QWEN.md create</code>). Containers commit
+<code>fbef9d6</code> pushed to github + gitlab. Parent pointer bumped
+<code>4ca5491</code> → <code>fbef9d6</code> in this cycle&#39;s commit.</li>
+<li><strong>Full rebuild + install</strong> via
+<code>bash scripts/setup.sh</code> (not just --verify-only).
+~/.tmux.conf installed; .bashrc + .zshrc snippets appended; tmx wrapper
+installed.</li>
+<li><strong>Quintuple-fresh verification</strong> captured this session:
+setup.sh --verify-only → PASS=22/0/SKIP=2; meta-test → 32 caught / 0
+escaped / 6 skipped; e2e → 9/0/0; codegraph_validate → 4/0/SKIP=1;
+codegraph_cadence_check → GREEN.</li>
+</ul>
+<p>Still out of scope (logged honestly per §11.4.6):</p>
+<ul>
+<li>Cadence-script paired §1.1 mutation (backdate-stamp → cadence FAILs)
+— deferred to v1.0.7. The script&#39;s content-based read is already
+anti-bluff; the mutation would tighten regression protection.</li>
+<li>CodeGraph upstream <code>--include-submodules</code> — separate
+cycle per §11.4.74.</li>
+<li>Linux-host CI runner — would exercise the Linux systemd user timer
+install path + the Linux branches of tests 09/13/14.</li>
+</ul>
+<p>Release <code>v1.0.6</code> tagged + pushed per §11.4.40 (complete
+fresh retest preceded the tag; no spot-check shortcut).</p>
 <h3 id="311--11481-cross-platform-parity--darwin-branches--constitution-11481-2026-05-21">§3.11
 — §11.4.81 cross-platform-parity + Darwin branches + constitution
 §11.4.81 (2026-05-21)</h3>

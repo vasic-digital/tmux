@@ -177,6 +177,86 @@ layer (c) met by challenge entries CH-01 through CH-14</td>
 <hr />
 <h2 id="a-tooling--harness-gaps--resolved">A. Tooling / harness gaps —
 RESOLVED</h2>
+<h3 id="a28-11480-automatic-trigger-wiring-landed-deferred--resolved--resolved">A28.
+§11.4.80 automatic-trigger wiring landed (DEFERRED → RESOLVED) —
+<code>RESOLVED</code></h3>
+<p><strong>Closure cycle:</strong> v1.0.6 / versionCode 7 (2026-05-21).
+<strong>Trigger:</strong> v1.0.5 audit logged §11.4.80 cron/hook wiring
+as the one deferred item; this cycle closes it.</p>
+<p><strong>Change:</strong></p>
+<ul>
+<li><code>scripts/codegraph_cadence_check.sh</code> (NEW): §11.4.80
+cadence-floor enforcement. Parses
+<code>.gitignore-meta/.regenerated/codegraph-db.ok</code>, extracts
+<code>regenerated_at</code> + <code>node_count</code>, reports GREEN /
+STALE / ENV with §11.4.6 honest reasons. Anti-bluff: reads stamp CONTENT
+(not just existence) — a stamp with <code>node_count=0</code> is STALE
+even if mtime is recent.</li>
+<li><code>scripts/codegraph_install_cadence.sh</code> (NEW): §11.4.81
+cross- platform-parity dispatch. Darwin: writes launchd plist at
+<code>~/Library/LaunchAgents/digital.vasic.tmux.codegraph-cadence.plist</code>
+(StartInterval=604800 sec = 7 days). Linux: writes systemd user timer +
+service unit at <code>~/.config/systemd/user/</code>. Cross-platform:
+git pre-push hook at <code>.git/hooks/pre-push</code> invokes
+<code>codegraph_cadence_check.sh</code>; <code>CADENCE_MODE=warn</code>
+(default) prints warning + allows push; <code>CADENCE_MODE=block</code>
+refuses push when STALE. Idempotent install + clean
+<code>--uninstall</code> path.</li>
+</ul>
+<p><strong>Captured evidence (this session):</strong></p>
+<ul>
+<li><code>launchctl list 2&gt;&amp;1 | grep codegraph-cadence</code> →
+<code>0    digital.vasic.tmux.codegraph-cadence</code> (positive
+evidence: job loaded on this Darwin host).</li>
+<li><code>.git/hooks/pre-push</code> exists, executable, references the
+cadence check script.</li>
+<li><code>bash scripts/codegraph_cadence_check.sh</code> → GREEN (0.2d
+ago, 6 nodes, within 7d floor) — positive runtime evidence.</li>
+</ul>
+<p><strong>Honest §11.4.6 follow-up logged (in CHANGELOG
+out-of-scope):</strong> the cadence script&#39;s paired §1.1 mutation
+(backdate-stamp → cadence-check FAILs) is deferred to v1.0.7. The
+script&#39;s content- based check is already anti-bluff at the read layer;
+the mutation would tighten the regression-protection loop.</p>
+<p><strong>Regression-protection:</strong>
+<code>codegraph_cadence_check.sh</code> runs in the pre-push hook AND in
+the §11.4.80 weekly cadence trigger; both fire on the actual stamp
+content.</p>
+<h3 id="a27-containersqwenmd-verbatim-covenant--11481-reference--resolved">A27.
+Containers/QWEN.md verbatim covenant + §11.4.81 reference —
+<code>RESOLVED</code></h3>
+<p><strong>Closure cycle:</strong> v1.0.6 / versionCode 7 (2026-05-21).
+<strong>Containers commit pushed:</strong> <code>fbef9d6</code> (github
++ gitlab). <strong>Parent pointer bump:</strong> <code>4ca5491</code> →
+<code>fbef9d6</code> in this project commit.</p>
+<p><strong>Trigger:</strong> v1.0.5 audit identified
+<code>Containers/QWEN.md</code> as the one remaining gap at the
+consumer-layer covenant fleet (the other 5 governance files in
+Containers — CLAUDE.md, AGENTS.md, CONSTITUTION.md, Constitution.md,
+README — already carried the verbatim covenant).</p>
+<p><strong>Change (Containers/QWEN.md):</strong></p>
+<ul>
+<li>Inserted
+<code>## MANDATORY ANTI-BLUFF END-USER-QUALITY COVENANT</code> block
+with the verbatim 2026-04-28 user-mandate quote.</li>
+<li>Inserted <code>## §11.4.81 — Cross-platform-parity mandate</code>
+block as an ID-reference forward to the constitution submodule&#39;s
+§11.4.81 anchor (landed in v1.0.5 cycle, pushed to HelixConstitution as
+<code>6e164f3</code>).</li>
+</ul>
+<p><strong>Captured evidence:</strong></p>
+<ul>
+<li><code>git log --oneline -1</code> inside Containers/:
+<code>fbef9d6 QWEN.md — add verbatim anti-bluff covenant + §11.4.81 cross-platform-parity reference</code>.</li>
+<li>Push transcript: <code>4ca5491..fbef9d6  main -&gt; main</code> on
+both github + gitlab remotes.</li>
+<li>Containers&#39; own §11.4.71 fetch + integrate: clean (no divergent
+commits before push).</li>
+</ul>
+<p><strong>Regression-protection:</strong> the parent project&#39;s audit
+re-runs <code>grep &quot;We had been in position…&quot;</code> across the
+consumer-layer governance-file fleet on every cycle. Containers/QWEN.md
+now PASSes that audit.</p>
 <h3 id="a26-11479-compliance--own-org-submodules-removed-from-codegraph-exclude-list--resolved">A26.
 §11.4.79 compliance — own-org submodules removed from CodeGraph exclude
 list — <code>RESOLVED</code></h3>

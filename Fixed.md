@@ -54,6 +54,82 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A28. §11.4.80 automatic-trigger wiring landed (DEFERRED → RESOLVED) — `RESOLVED`
+
+**Closure cycle:** v1.0.6 / versionCode 7 (2026-05-21).
+**Trigger:** v1.0.5 audit logged §11.4.80 cron/hook wiring as the one
+deferred item; this cycle closes it.
+
+**Change:**
+
+- `scripts/codegraph_cadence_check.sh` (NEW): §11.4.80 cadence-floor
+  enforcement. Parses `.gitignore-meta/.regenerated/codegraph-db.ok`,
+  extracts `regenerated_at` + `node_count`, reports GREEN / STALE /
+  ENV with §11.4.6 honest reasons. Anti-bluff: reads stamp CONTENT
+  (not just existence) — a stamp with `node_count=0` is STALE even
+  if mtime is recent.
+- `scripts/codegraph_install_cadence.sh` (NEW): §11.4.81 cross-
+  platform-parity dispatch. Darwin: writes launchd plist at
+  `~/Library/LaunchAgents/digital.vasic.tmux.codegraph-cadence.plist`
+  (StartInterval=604800 sec = 7 days). Linux: writes systemd user
+  timer + service unit at `~/.config/systemd/user/`. Cross-platform:
+  git pre-push hook at `.git/hooks/pre-push` invokes
+  `codegraph_cadence_check.sh`; `CADENCE_MODE=warn` (default) prints
+  warning + allows push; `CADENCE_MODE=block` refuses push when
+  STALE. Idempotent install + clean `--uninstall` path.
+
+**Captured evidence (this session):**
+- `launchctl list 2>&1 | grep codegraph-cadence` →
+  `0	digital.vasic.tmux.codegraph-cadence` (positive evidence: job
+  loaded on this Darwin host).
+- `.git/hooks/pre-push` exists, executable, references the cadence
+  check script.
+- `bash scripts/codegraph_cadence_check.sh` → GREEN (0.2d ago,
+  6 nodes, within 7d floor) — positive runtime evidence.
+
+**Honest §11.4.6 follow-up logged (in CHANGELOG out-of-scope):** the
+cadence script's paired §1.1 mutation (backdate-stamp →
+cadence-check FAILs) is deferred to v1.0.7. The script's content-
+based check is already anti-bluff at the read layer; the mutation
+would tighten the regression-protection loop.
+
+**Regression-protection:** `codegraph_cadence_check.sh` runs in the
+pre-push hook AND in the §11.4.80 weekly cadence trigger; both fire
+on the actual stamp content.
+
+### A27. Containers/QWEN.md verbatim covenant + §11.4.81 reference — `RESOLVED`
+
+**Closure cycle:** v1.0.6 / versionCode 7 (2026-05-21).
+**Containers commit pushed:** `fbef9d6` (github + gitlab).
+**Parent pointer bump:** `4ca5491` → `fbef9d6` in this project commit.
+
+**Trigger:** v1.0.5 audit identified `Containers/QWEN.md` as the one
+remaining gap at the consumer-layer covenant fleet (the other 5
+governance files in Containers — CLAUDE.md, AGENTS.md, CONSTITUTION.md,
+Constitution.md, README — already carried the verbatim covenant).
+
+**Change (Containers/QWEN.md):**
+- Inserted `## MANDATORY ANTI-BLUFF END-USER-QUALITY COVENANT` block
+  with the verbatim 2026-04-28 user-mandate quote.
+- Inserted `## §11.4.81 — Cross-platform-parity mandate` block as
+  an ID-reference forward to the constitution submodule's §11.4.81
+  anchor (landed in v1.0.5 cycle, pushed to HelixConstitution as
+  `6e164f3`).
+
+**Captured evidence:**
+- `git log --oneline -1` inside Containers/: `fbef9d6 QWEN.md — add
+  verbatim anti-bluff covenant + §11.4.81 cross-platform-parity
+  reference`.
+- Push transcript: `4ca5491..fbef9d6  main -> main` on both
+  github + gitlab remotes.
+- Containers' own §11.4.71 fetch + integrate: clean (no divergent
+  commits before push).
+
+**Regression-protection:** the parent project's audit re-runs
+`grep "We had been in position…"` across the consumer-layer
+governance-file fleet on every cycle. Containers/QWEN.md now
+PASSes that audit.
+
 ### A26. §11.4.79 compliance — own-org submodules removed from CodeGraph exclude list — `RESOLVED`
 
 **Closure cycle:** v1.0.5 / versionCode 6 (2026-05-21).

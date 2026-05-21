@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-21T07:30Z
+**Last updated:** 2026-05-21T15:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,9 +15,9 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.5** (versionCode 6) — §11.4.81 cross-platform-parity universal + Darwin branches for tests 09/13/14 + NEW test 24 (RLIMIT_CPU+SIGXCPU) + §11.4.79 own-org submodule inclusion fix + constitution pointer bump, 2026-05-21 |
-| Verification (this cycle) | `bash scripts/setup.sh --verify-only` → GREEN; suite PASS=22 FAIL=0 SKIP=2 (tests 09/13/14 now PASS on Darwin via §11.4.81 branches; 2 remaining SKIPs are Linux-only tests 08 oom_score_adj + 12 memory_pressure_under_cap). Meta-test 32 caught / 0 escaped / 6 skipped (M7-M10 retired as dead VM-path code; M20+M21+M22 NEW for Darwin rlimit + §11.4.79 codegraph exclude). e2e PASS=9/0/0. codegraph_validate.sh 4/0/SKIP=1 (V4 honest-gap re submodule traversal). All captured 2026-05-21 on Darwin arm64. |
-| Governance docs | `constitution/` submodule (HelixConstitution, pinned `6e164f3` — bumped from `7f738df` after the §11.4.81 anchor pushed this cycle) — universal base; project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
+| Version | **1.0.6** (versionCode 7) — §11.4.80 cadence wiring landed + Containers/QWEN.md covenant gap closed + full rebuild + install + quintuple verification GREEN, 2026-05-21 |
+| Verification (this cycle) | Full rebuild via `bash scripts/setup.sh` → GREEN. `setup.sh --verify-only` → PASS=22 FAIL=0 SKIP=2. Meta-test 32 caught / 0 escaped / 6 skipped. e2e PASS=9/0/0. codegraph_validate 4/0/SKIP=1. codegraph_cadence_check GREEN (0.2d ago, 6 nodes, within 7d floor). tmx operator-path live confirmation (`which tmx` + `tmx -V`). launchd job `digital.vasic.tmux.codegraph-cadence` loaded. git pre-push hook installed. All captured 2026-05-21 on Darwin arm64. |
+| Governance docs | `constitution/` submodule (HelixConstitution, pinned `6e164f3` carrying §11.4.81); `Containers/` submodule (pinned `fbef9d6` — bumped this cycle from `4ca5491` after Containers/QWEN.md covenant gap closure); project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
 
@@ -208,6 +208,49 @@ The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque co
 - Updated `Issues.md`: A1 removed (→ Fixed.md A1). Issues.md now has
   **zero open items** — all originally seeded items are closed.
 - Cleaned up `CONTINUATION.md` §3.6: removed stale "remaining open" note.
+
+### §3.12 — v1.0.6 workable-items closure + §11.4.80 cadence + Containers/QWEN.md + release tag (2026-05-21)
+
+**Status:** COMPLETE (2026-05-21T15:30Z).
+
+Operator directive (verbatim): "Finish all workable items you have
+presented here, rebuild and install again, retest fully and if fully
+working as expected release new version!"
+
+Closed (this cycle):
+- **§11.4.80 automatic-trigger wiring** (was the one deferred item from
+  v1.0.5 audit). New `scripts/codegraph_cadence_check.sh` + `scripts/
+  codegraph_install_cadence.sh`. Darwin launchd plist installed +
+  loaded (verified via `launchctl list`). Cross-platform git pre-push
+  hook installed (warns on STALE; `CADENCE_MODE=block` available).
+  Anti-bluff: cadence check reads STAMP CONTENT (regenerated_at +
+  node_count), not just existence. §11.4.81 cross-platform-parity
+  dispatch in the installer: Linux gets systemd user timer; Darwin
+  gets launchd plist.
+- **Containers/QWEN.md covenant gap** (was the second-to-last
+  out-of-scope item from v1.0.5 — `Containers/QWEN.md create`).
+  Containers commit `fbef9d6` pushed to github + gitlab. Parent
+  pointer bumped `4ca5491` → `fbef9d6` in this cycle's commit.
+- **Full rebuild + install** via `bash scripts/setup.sh` (not just
+  --verify-only). ~/.tmux.conf installed; .bashrc + .zshrc snippets
+  appended; tmx wrapper installed.
+- **Quintuple-fresh verification** captured this session:
+  setup.sh --verify-only → PASS=22/0/SKIP=2;
+  meta-test → 32 caught / 0 escaped / 6 skipped;
+  e2e → 9/0/0;
+  codegraph_validate → 4/0/SKIP=1;
+  codegraph_cadence_check → GREEN.
+
+Still out of scope (logged honestly per §11.4.6):
+- Cadence-script paired §1.1 mutation (backdate-stamp → cadence FAILs)
+  — deferred to v1.0.7. The script's content-based read is already
+  anti-bluff; the mutation would tighten regression protection.
+- CodeGraph upstream `--include-submodules` — separate cycle per §11.4.74.
+- Linux-host CI runner — would exercise the Linux systemd user timer
+  install path + the Linux branches of tests 09/13/14.
+
+Release `v1.0.6` tagged + pushed per §11.4.40 (complete fresh retest
+preceded the tag; no spot-check shortcut).
 
 ### §3.11 — §11.4.81 cross-platform-parity + Darwin branches + constitution §11.4.81 (2026-05-21)
 

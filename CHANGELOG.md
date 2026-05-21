@@ -6,6 +6,108 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.6] — 2026-05-21
+
+**Workable-items closure cycle: §11.4.80 cadence wired (launchd + systemd
+user timer + git pre-push hook), Containers/QWEN.md covenant gap closed
++ pushed to Containers remotes (`fbef9d6`). Full rebuild + install +
+quintuple verification GREEN. Release tag per §11.4.40.**
+
+### Added (project)
+
+- **`scripts/codegraph_cadence_check.sh`** — §11.4.80 cadence-floor
+  enforcement (default 7-day floor; configurable via
+  `CODEGRAPH_CADENCE_DAYS`). Parses `.gitignore-meta/.regenerated/
+  codegraph-db.ok` stamp, extracts `regenerated_at` + `node_count`,
+  reports GREEN / STALE / ENV with §11.4.6 honest reasons. Anti-bluff:
+  reads stamp CONTENT (not just existence); stamp with `node_count=0`
+  is STALE even if recent.
+
+- **`scripts/codegraph_install_cadence.sh`** — §11.4.81 cross-platform
+  cadence-trigger installer. Darwin path: writes a launchd plist at
+  `~/Library/LaunchAgents/digital.vasic.tmux.codegraph-cadence.plist`
+  with `StartInterval=604800` (7 days). Linux path: writes a systemd
+  user timer + service unit at `~/.config/systemd/user/`. Cross-
+  platform: writes git pre-push hook at `.git/hooks/pre-push` calling
+  `codegraph_cadence_check.sh`; `CADENCE_MODE=warn` (default) prints
+  warning + allows push; `CADENCE_MODE=block` refuses push when
+  STALE. Idempotent install + clean `--uninstall` path.
+
+### Fixed (project + Containers submodule)
+
+- **Containers/QWEN.md covenant gap** (`fbef9d6` pushed to Containers
+  github + gitlab). Inserted the verbatim 2026-04-28 user-mandate
+  quote + §11.4.81 cross-platform-parity reference into the
+  consumer-layer QWEN.md (the other Containers governance files —
+  CLAUDE.md, AGENTS.md, CONSTITUTION.md, Constitution.md — already
+  carried the covenant; QWEN.md was the only gap). Containers
+  submodule pointer bumped `4ca5491` → `fbef9d6` in this project
+  commit.
+
+### Verification (this cycle, captured 2026-05-21 on Darwin arm64)
+
+- `bash scripts/setup.sh` (full rebuild + install) → GREEN.
+  ~/.tmux.conf installed; snippet appended to ~/.bashrc + ~/.zshrc;
+  tmx wrapper installed; PATH propagation verified.
+- `bash scripts/setup.sh --verify-only` → SUMMARY `PASS=22 FAIL=0
+  SKIP=2` GREEN.
+- `bash scripts/tests/meta_test_false_positive_proof.sh` →
+  `32 caught / 0 escaped / 6 skipped` GREEN.
+- `bash scripts/test_e2e.sh` → `PASS=9 FAIL=0 SKIP=0` GREEN.
+- `bash scripts/codegraph_validate.sh` → `PASS=4 FAIL=0 SKIP=1`
+  (V4 honest gap re submodule traversal — same as v1.0.5).
+- `bash scripts/codegraph_cadence_check.sh` → GREEN (0.2d ago,
+  6 nodes, within 7d cadence floor).
+- `zsh -ic 'which tmx; tmx -V'` → `/Users/milosvasic/Projects/tmux/
+  scripts/tmx` + `tmux 3.6a` (operator-path live confirmation).
+- launchd job loaded: `launchctl list | grep codegraph-cadence`
+  shows `digital.vasic.tmux.codegraph-cadence`.
+- git pre-push hook installed + executable: `.git/hooks/pre-push`.
+
+### Hardened (4-layer regression protection per §103)
+
+- **Layer 1 static:** cadence check parses real stamp content (not
+  just file existence); reads codegraph CLI version + node count.
+- **Layer 2 runtime:** `codegraph_cadence_check.sh` runs against the
+  freshly-regenerated stamp every cycle (reported GREEN in this
+  release's verification batch).
+- **Layer 3 challenge:** existing TMUX-CH-20/21/22 cover the
+  CodeGraph install + index + MCP wiring; the cadence layer is a
+  refinement of the CH-20 install path.
+- **Layer 4 mutations:** (deferred — cadence-script paired mutation
+  is a §11.4.6 honest-tracked TODO for v1.0.7; the cadence script
+  itself uses captured-evidence reads per §11.4.5).
+
+### §11.4.40 release-tag discipline
+
+This release is created AFTER the complete fresh retest triple this
+session (verify + meta + e2e + codegraph_validate + cadence + tmx
+operator-path) — not a spot-check. All five GREEN. Tag `v1.0.6`
+created post-commit, pushed to github + gitlab.
+
+### §11.4.71 pre-push integrity
+
+- Parent: at upstream tip; no divergent commits.
+- `constitution/` submodule: at upstream tip (`6e164f3`); pulled in
+  v1.0.5; no new commits this cycle.
+- `Containers/` submodule: bumped `4ca5491` → `fbef9d6` in THIS
+  project commit; the `fbef9d6` Containers commit was pushed to
+  github + gitlab in this same session before the pointer bump.
+
+### Out-of-scope (honest tracking per §11.4.6)
+
+- Cadence-script paired §1.1 mutation — deferred to v1.0.7. The
+  cadence script's correctness is currently verified by its own
+  output reading captured stamp content; a mutation that backdates
+  the stamp and asserts the cadence-check FAILs would tighten the
+  loop but isn't yet wired.
+- CodeGraph upstream `--include-submodules` — out of scope per
+  §11.4.74.
+- Linux-host CI runner — would exercise the Linux branches of
+  tests 09/13/14 + the systemd user timer install path.
+
+---
+
 ## [v1.0.5] — 2026-05-21
 
 **§11.4.81 cross-platform-parity discipline landed universally + project

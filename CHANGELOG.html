@@ -98,6 +98,123 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project&#39;s anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v106--2026-05-21">[v1.0.6] — 2026-05-21</h2>
+<p>**Workable-items closure cycle: §11.4.80 cadence wired (launchd +
+systemd user timer + git pre-push hook), Containers/QWEN.md covenant gap
+closed</p>
+<ul>
+<li>pushed to Containers remotes (<code>fbef9d6</code>). Full rebuild +
+install + quintuple verification GREEN. Release tag per §11.4.40.**</li>
+</ul>
+<h3 id="added-project">Added (project)</h3>
+<ul>
+<li><p><strong><code>scripts/codegraph_cadence_check.sh</code></strong>
+— §11.4.80 cadence-floor enforcement (default 7-day floor; configurable
+via <code>CODEGRAPH_CADENCE_DAYS</code>). Parses
+<code>.gitignore-meta/.regenerated/ codegraph-db.ok</code> stamp,
+extracts <code>regenerated_at</code> + <code>node_count</code>, reports
+GREEN / STALE / ENV with §11.4.6 honest reasons. Anti-bluff: reads stamp
+CONTENT (not just existence); stamp with <code>node_count=0</code> is
+STALE even if recent.</p></li>
+<li><p><strong><code>scripts/codegraph_install_cadence.sh</code></strong>
+— §11.4.81 cross-platform cadence-trigger installer. Darwin path: writes
+a launchd plist at
+<code>~/Library/LaunchAgents/digital.vasic.tmux.codegraph-cadence.plist</code>
+with <code>StartInterval=604800</code> (7 days). Linux path: writes a
+systemd user timer + service unit at
+<code>~/.config/systemd/user/</code>. Cross- platform: writes git
+pre-push hook at <code>.git/hooks/pre-push</code> calling
+<code>codegraph_cadence_check.sh</code>; <code>CADENCE_MODE=warn</code>
+(default) prints warning + allows push; <code>CADENCE_MODE=block</code>
+refuses push when STALE. Idempotent install + clean
+<code>--uninstall</code> path.</p></li>
+</ul>
+<h3 id="fixed-project--containers-submodule">Fixed (project + Containers
+submodule)</h3>
+<ul>
+<li><strong>Containers/QWEN.md covenant gap</strong>
+(<code>fbef9d6</code> pushed to Containers github + gitlab). Inserted
+the verbatim 2026-04-28 user-mandate quote + §11.4.81
+cross-platform-parity reference into the consumer-layer QWEN.md (the
+other Containers governance files — CLAUDE.md, AGENTS.md,
+CONSTITUTION.md, Constitution.md — already carried the covenant; QWEN.md
+was the only gap). Containers submodule pointer bumped
+<code>4ca5491</code> → <code>fbef9d6</code> in this project commit.</li>
+</ul>
+<h3 id="verification-this-cycle-captured-2026-05-21-on-darwin-arm64">Verification
+(this cycle, captured 2026-05-21 on Darwin arm64)</h3>
+<ul>
+<li><code>bash scripts/setup.sh</code> (full rebuild + install) → GREEN.
+~/.tmux.conf installed; snippet appended to ~/.bashrc + ~/.zshrc; tmx
+wrapper installed; PATH propagation verified.</li>
+<li><code>bash scripts/setup.sh --verify-only</code> → SUMMARY
+<code>PASS=22 FAIL=0 SKIP=2</code> GREEN.</li>
+<li><code>bash scripts/tests/meta_test_false_positive_proof.sh</code> →
+<code>32 caught / 0 escaped / 6 skipped</code> GREEN.</li>
+<li><code>bash scripts/test_e2e.sh</code> →
+<code>PASS=9 FAIL=0 SKIP=0</code> GREEN.</li>
+<li><code>bash scripts/codegraph_validate.sh</code> →
+<code>PASS=4 FAIL=0 SKIP=1</code> (V4 honest gap re submodule traversal
+— same as v1.0.5).</li>
+<li><code>bash scripts/codegraph_cadence_check.sh</code> → GREEN (0.2d
+ago, 6 nodes, within 7d cadence floor).</li>
+<li><code>zsh -ic &#39;which tmx; tmx -V&#39;</code> →
+<code>/Users/milosvasic/Projects/tmux/ scripts/tmx</code> +
+<code>tmux 3.6a</code> (operator-path live confirmation).</li>
+<li>launchd job loaded:
+<code>launchctl list | grep codegraph-cadence</code> shows
+<code>digital.vasic.tmux.codegraph-cadence</code>.</li>
+<li>git pre-push hook installed + executable:
+<code>.git/hooks/pre-push</code>.</li>
+</ul>
+<h3 id="hardened-4-layer-regression-protection-per-103">Hardened
+(4-layer regression protection per §103)</h3>
+<ul>
+<li><strong>Layer 1 static:</strong> cadence check parses real stamp
+content (not just file existence); reads codegraph CLI version + node
+count.</li>
+<li><strong>Layer 2 runtime:</strong>
+<code>codegraph_cadence_check.sh</code> runs against the
+freshly-regenerated stamp every cycle (reported GREEN in this release&#39;s
+verification batch).</li>
+<li><strong>Layer 3 challenge:</strong> existing TMUX-CH-20/21/22 cover
+the CodeGraph install + index + MCP wiring; the cadence layer is a
+refinement of the CH-20 install path.</li>
+<li><strong>Layer 4 mutations:</strong> (deferred — cadence-script
+paired mutation is a §11.4.6 honest-tracked TODO for v1.0.7; the cadence
+script itself uses captured-evidence reads per §11.4.5).</li>
+</ul>
+<h3 id="11440-release-tag-discipline">§11.4.40 release-tag
+discipline</h3>
+<p>This release is created AFTER the complete fresh retest triple this
+session (verify + meta + e2e + codegraph_validate + cadence + tmx
+operator-path) — not a spot-check. All five GREEN. Tag
+<code>v1.0.6</code> created post-commit, pushed to github + gitlab.</p>
+<h3 id="11471-pre-push-integrity">§11.4.71 pre-push integrity</h3>
+<ul>
+<li>Parent: at upstream tip; no divergent commits.</li>
+<li><code>constitution/</code> submodule: at upstream tip
+(<code>6e164f3</code>); pulled in v1.0.5; no new commits this
+cycle.</li>
+<li><code>Containers/</code> submodule: bumped <code>4ca5491</code> →
+<code>fbef9d6</code> in THIS project commit; the <code>fbef9d6</code>
+Containers commit was pushed to github + gitlab in this same session
+before the pointer bump.</li>
+</ul>
+<h3 id="out-of-scope-honest-tracking-per-1146">Out-of-scope (honest
+tracking per §11.4.6)</h3>
+<ul>
+<li>Cadence-script paired §1.1 mutation — deferred to v1.0.7. The
+cadence script&#39;s correctness is currently verified by its own output
+reading captured stamp content; a mutation that backdates the stamp and
+asserts the cadence-check FAILs would tighten the loop but isn&#39;t yet
+wired.</li>
+<li>CodeGraph upstream <code>--include-submodules</code> — out of scope
+per §11.4.74.</li>
+<li>Linux-host CI runner — would exercise the Linux branches of tests
+09/13/14 + the systemd user timer install path.</li>
+</ul>
+<hr />
 <h2 id="v105--2026-05-21">[v1.0.5] — 2026-05-21</h2>
 <p><strong>§11.4.81 cross-platform-parity discipline landed universally
 + project test 09/13/14 gain Darwin branches + NEW test 24 (Darwin
@@ -125,7 +242,7 @@ verbatim 2026-04-28 anti-bluff user-mandate quote (audit identified it
 was missing there — every consumer file at every layer now carries the
 literal).</p></li>
 </ul>
-<h3 id="added-project">Added (project)</h3>
+<h3 id="added-project-1">Added (project)</h3>
 <ul>
 <li><p><strong>NEW
 <code>scripts/tests/24_cpu_cap_enforcement.sh</code></strong> — Darwin
@@ -173,7 +290,7 @@ with ORIGINAL PIDs + tmx ls still lists them. PASS=5/0/0.</li>
 (<code>19ce1b1</code>→<code>6e164f3</code>) in same commit as cascade
 work per §11.4.26 step 7.</p></li>
 </ul>
-<h3 id="hardened-4-layer-regression-protection-per-103">Hardened
+<h3 id="hardened-4-layer-regression-protection-per-103-1">Hardened
 (4-layer regression protection per §103)</h3>
 <ul>
 <li><p><strong>Layer 2:</strong> tests 09 D-<em>, 13 D-</em>, 14 D-<em>,
@@ -207,7 +324,7 @@ detected). Caught + restored both directions.</li>
 (M4/M5 Linux-only-topology + M7-M10 retired with explicit SKIP-with-
 rationale).</p></li>
 </ul>
-<h3 id="verification-this-cycle-captured-2026-05-21-on-darwin-arm64">Verification
+<h3 id="verification-this-cycle-captured-2026-05-21-on-darwin-arm64-1">Verification
 (this cycle, captured 2026-05-21 on Darwin arm64)</h3>
 <ul>
 <li><code>bash scripts/setup.sh --verify-only</code> → GREEN; suite
@@ -315,7 +432,7 @@ which rejected it as ambiguous (could be kill-pane / -server / -session
 <code>scripts/tmx.template</code> detects bare <code>kill</code> and
 rewrites <code>&quot;$@&quot;</code> to use <code>kill-session</code>.</p></li>
 </ul>
-<h3 id="hardened-4-layer-regression-protection-per-103-1">Hardened
+<h3 id="hardened-4-layer-regression-protection-per-103-2">Hardened
 (4-layer regression protection per §103)</h3>
 <ul>
 <li><strong>Layer 1 (static gate):</strong>
@@ -367,7 +484,7 @@ rule (the user mandate 2026-05-21 explicitly invoked this):</p>
 </ul>
 <p>Every reference across the codebase + governance files updated
 atomically.</p>
-<h3 id="verification-this-cycle-captured-2026-05-21-on-darwin-arm64-1">Verification
+<h3 id="verification-this-cycle-captured-2026-05-21-on-darwin-arm64-2">Verification
 (this cycle, captured 2026-05-21 on Darwin arm64)</h3>
 <ul>
 <li><code>bash scripts/setup.sh --verify-only</code> → GREEN; suite
@@ -475,7 +592,7 @@ never touched). Also: M1/M2/M3/M6 were made portable
 macOS instead of silently skipping — meta-test went from 10 to
 <strong>18 mutations caught, 0 escaped</strong>.</li>
 </ul>
-<h3 id="verification-this-cycle-captured-2026-05-21-on-darwin-arm64-2">Verification
+<h3 id="verification-this-cycle-captured-2026-05-21-on-darwin-arm64-3">Verification
 (this cycle, captured 2026-05-21 on Darwin arm64)</h3>
 <ul>
 <li><code>bash scripts/setup.sh --rebuild</code> → GREEN; suite
