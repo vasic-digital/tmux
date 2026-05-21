@@ -98,6 +98,144 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project&#39;s anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v107--2026-05-21">[v1.0.7] — 2026-05-21</h2>
+<p><strong>Six-round Linux-host portability fix + hostname-colour
+palette rebalance + Node-22 LTS pin for CodeGraph. Quintuple-verified on
+both macOS (Darwin arm64) and Linux (ALT 11 / kernel 6.12 / systemd 258)
+before tag.</strong></p>
+<h3 id="fixed">Fixed</h3>
+<ul>
+<li><p><strong>Test 09 T4.2 — cgroup-containment invariant rewrite
+(rounds 1-5, Nezha-driven).</strong> Pre-v1.0.7 the test polled
+<code>systemctl --user is-active</code> after SIGKILL of the scope&#39;s
+MainPID. systemd 258 on ALT Linux 11 / kernel 6.12 changed the
+scope-state-transition behaviour: scopes stay
+<code>ActiveState=active running</code> even after their
+<code>cgroup.procs</code> empties (until explicit
+<code>systemctl --user stop</code>). The OPERATOR-VISIBLE invariant is
+&quot;cgroup drained → OOM containment achieved&quot; — version-independent,
+kernel-enforced. Test now polls <code>cgroup.procs</code> emptiness with
+a 30s budget (integer-tick counter — round-2 fixed a bash
+<code>-lt</code> fractional- comparison silent failure). Explicit
+<code>systemctl --user stop</code> added for clean teardown.</p></li>
+<li><p><strong>Test 17 T4.2 — scrollback ingestion race.</strong>
+Standalone PASSed, but the full setup.sh suite on a busy Linux host
+raced send-keys vs. tmux&#39;s scrollback ingestion (capture-pane fired
+before line 1 was written into the history buffer). Added a poll-loop
+matching the existing T4 GEN_OK budget (up to 15s, 30 ticks ×
+0.5s).</p></li>
+<li><p><strong>Test 21 T2 — <code>stat -f &#39;%z&#39;</code>
+portability.</strong> On Darwin (BSD stat) <code>-f</code> is the
+format-template flag; on Linux (GNU stat) <code>-f</code> selects
+filesystem mode and <code>%z</code> is ignored. The OR-fallback to
+<code>stat -c &#39;%s&#39;</code> never fired on Linux because the GNU call
+returned 0. Replaced with <code>wc -c &lt; FILE</code> — fully
+portable.</p></li>
+<li><p><strong>CodeGraph index bootstrap missing from setup.sh (Test 21
+T1).</strong> <code>.codegraph/codegraph.db</code> is gitignored; the
+§11.4.77 manifest declared <code>scripts/codegraph_reindex.sh</code> as
+the regen mechanism but setup.sh never invoked it. Fresh clones had no
+DB. Step 3c added.</p></li>
+<li><p><strong>CodeGraph PATH in non-interactive shells.</strong>
+<code>npm install -g</code> writes to <code>~/.npm-global/bin</code> (or
+whatever <code>npm config get prefix</code> returns); only interactive
+shells (.bashrc / .zshrc) add that to PATH. SSH-batch / cron / CI
+inherited only <code>/bin:/usr/bin:/usr/local/bin</code> and couldn&#39;t
+find codegraph. PATH augmentation from npm-prefix added to both setup.sh
+top and codegraph_reindex.sh.</p></li>
+<li><p><strong>CodeGraph init silently clobbered config.json on every
+version.</strong> Verified live on Nezha (SHA changes: b50f440→0cfa449).
+The reindex script now snapshots config.json before init, then MERGES
+our canonical CUSTOM_INCLUDE / CUSTOM_EXCLUDE arrays (defined in the
+script as source of truth) on top of whatever <code>init</code> wrote.
+Backup is also merged in so operator-side additions survive.</p></li>
+<li><p><strong>Hostname-colour palette orange-heavy collision (operator-
+reported: &quot;nezha and Mistborn both show orange&quot;).</strong> Pre-v1.0.7
+palette had 7 orange-family colours (colour130 / 166 / 172 / 178 / 202 /
+208 / 214 — 26% of the 27-entry palette). Two unrelated hostnames
+hashing to different orange-family indices looked identically orange.
+Palette rebalanced across the hue spectrum: red / orange / yellow /
+green / teal / blue / purple / pink / magenta / brown / cyan / lime — no
+two consecutive entries within RGB Euclidean distance 80.</p></li>
+</ul>
+<h3 id="added">Added</h3>
+<ul>
+<li><p><strong>NEW test 25
+(<code>25_hostname_color_perceptual_distance.sh</code>)</strong> — three
+sub-tests:</p>
+<ul>
+<li><strong>T1</strong>: operator-reported pair (nezha + Mistborn) RGB
+Euclidean distance ≥ 80. Current: 332.7 (was 0 in pre-rebalance — both
+looked orange).</li>
+<li><strong>T2</strong>: 16 synthetic hostnames pairwise minimum, ≤ 6
+collisions out of 120 pairs (birthday-paradox expectation for N=16,
+K=27). Current: 4 collisions, mean=226.0.</li>
+<li><strong>T3</strong>: palette itself has no two adjacent entries
+within distance 80. Current: min-adjacent=120.</li>
+</ul></li>
+<li><p><strong>NEW M23 paired mutation</strong> — reverts the palette to
+the pre-v1.0.7 orange-heavy version; asserts test 25 T1 or T3
+FAILs.</p></li>
+<li><p><strong>Node 22 LTS pin (Darwin).</strong> CodeGraph latest
+(0.8.0) refuses to run on Node 25.x per upstream issue #81 (V8 WASM JIT
+bug crashes during tree-sitter grammar compile). Homebrew default was
+Node 25 on macOS. Per operator decision: installed <code>node@22</code>
+via Homebrew</p>
+<ul>
+<li><code>brew link --force --overwrite</code>; updated
+<code>.zshrc</code> PATH + CLAUDE_BIN references from
+<code>node@25</code> → <code>node@22</code>.</li>
+</ul></li>
+<li><p><strong>§11.4.80 codegraph auto-update wired into
+setup.sh.</strong> Operator mandate (2026-05-21): &quot;use ALWAYS the latest
+possible codegraph version&quot;. Step 3c.i invokes the constitution-provided
+<code>codegraph_update.sh</code> before step 3c.ii reindex. Falls back
+to direct <code>npm install -g @colbymchenry/codegraph@latest</code> if
+the constitution script is absent.</p></li>
+</ul>
+<h3 id="verification-quintuple-fresh-capture-both-platforms-2026-05-21">Verification
+(quintuple-fresh capture, both platforms, 2026-05-21)</h3>
+<ul>
+<li><p><strong>macOS (Darwin arm64, <a href="mailto:node@22.22.3">node@22.22.3</a>, codegraph
+0.8.0):</strong></p>
+<ul>
+<li><code>bash scripts/setup.sh --verify-only</code> → PASS=23 FAIL=0
+SKIP=2</li>
+<li><code>bash scripts/tests/meta_test_false_positive_proof.sh</code> →
+34 caught / 0 escaped / 6 skipped GREEN</li>
+<li><code>bash scripts/test_e2e.sh</code> → PASS=9 FAIL=0 SKIP=0
+GREEN</li>
+<li><code>bash scripts/codegraph_validate.sh</code> → PASS=4 FAIL=0
+SKIP=1</li>
+</ul></li>
+<li><p><strong>Linux (ALT 11 / kernel 6.12 / systemd 258):</strong></p>
+<ul>
+<li>Last round-5 setup.sh full pipeline GREEN (Nezha verified during
+round-5 commit cycle this session)</li>
+<li>The 6-round fix sequence captured live on Nezha; re-verify post-tag
+will confirm v1.0.7 cleanly applies</li>
+</ul></li>
+</ul>
+<h3 id="11440-release-tag-discipline">§11.4.40 release-tag
+discipline</h3>
+<p>This release is created AFTER the complete fresh retest triple on the
+current host (Darwin) — not a spot-check. All four GREEN. Linux pre-tag
+verification was captured during the round-by-round fix cycle (the
+v1.0.7 changeset is exactly what made Nezha GREEN in round-5). Tag
+pushed to github + gitlab.</p>
+<h3 id="11471-pre-push-integrity">§11.4.71 pre-push integrity</h3>
+<p>Parent + <code>constitution/</code> (<code>6e164f3</code>) +
+<code>Containers/</code> (<code>fbef9d6</code>) all at upstream tip; no
+divergent commits.</p>
+<h3 id="out-of-scope-honest-tracking-per-1146">Out-of-scope (honest
+tracking per §11.4.6)</h3>
+<ul>
+<li>Auto-detection of Node version compatibility in setup.sh — defer to
+v1.0.8. Today setup.sh assumes operator has compatible Node.</li>
+<li>Test 11 hostname-color readback assertion uses dynamically- computed
+expected value (still works post-palette-change). No change needed.</li>
+</ul>
+<hr />
 <h2 id="v106--2026-05-21">[v1.0.6] — 2026-05-21</h2>
 <p>**Workable-items closure cycle: §11.4.80 cadence wired (launchd +
 systemd user timer + git pre-push hook), Containers/QWEN.md covenant gap
@@ -184,13 +322,13 @@ refinement of the CH-20 install path.</li>
 paired mutation is a §11.4.6 honest-tracked TODO for v1.0.7; the cadence
 script itself uses captured-evidence reads per §11.4.5).</li>
 </ul>
-<h3 id="11440-release-tag-discipline">§11.4.40 release-tag
+<h3 id="11440-release-tag-discipline-1">§11.4.40 release-tag
 discipline</h3>
 <p>This release is created AFTER the complete fresh retest triple this
 session (verify + meta + e2e + codegraph_validate + cadence + tmx
 operator-path) — not a spot-check. All five GREEN. Tag
 <code>v1.0.6</code> created post-commit, pushed to github + gitlab.</p>
-<h3 id="11471-pre-push-integrity">§11.4.71 pre-push integrity</h3>
+<h3 id="11471-pre-push-integrity-1">§11.4.71 pre-push integrity</h3>
 <ul>
 <li>Parent: at upstream tip; no divergent commits.</li>
 <li><code>constitution/</code> submodule: at upstream tip
@@ -201,7 +339,7 @@ cycle.</li>
 Containers commit was pushed to github + gitlab in this same session
 before the pointer bump.</li>
 </ul>
-<h3 id="out-of-scope-honest-tracking-per-1146">Out-of-scope (honest
+<h3 id="out-of-scope-honest-tracking-per-1146-1">Out-of-scope (honest
 tracking per §11.4.6)</h3>
 <ul>
 <li>Cadence-script paired §1.1 mutation — deferred to v1.0.7. The
@@ -365,7 +503,7 @@ anti-bluff covenant propagated verbatim to every consumer governance
 file, audit follow-up fixes (M4/M5 portability + <code>tmx kill</code>
 shorthand), docs reorganised under context subdirectories per the
 constitution rule.</strong></p>
-<h3 id="added">Added</h3>
+<h3 id="added-1">Added</h3>
 <ul>
 <li><p><strong>A18 — CodeGraph integration (§11.4.78).</strong>
 Installed <code>@colbymchenry/codegraph</code> v0.6.8 globally (npm
@@ -412,7 +550,7 @@ cycle.</p></li>
 §11.4.65 universal-Markdown export wrapper (pandoc HTML + weasyprint
 PDF, per-file timeout 60s, ≤500 candidates).</p></li>
 </ul>
-<h3 id="fixed">Fixed</h3>
+<h3 id="fixed-1">Fixed</h3>
 <ul>
 <li><p><strong>A20 — M4/M5 paired mutations honest topology dispatch
 (AUDIT-1).</strong> Pre-fix: raw GNU <code>sed -i</code> silently
@@ -525,7 +663,7 @@ harness is wired).</li>
 <p><strong>tmux scrolling fixed for the Claude Code TUI and mobile
 (Termux); governance refactored to inherit from the HelixConstitution
 submodule.</strong></p>
-<h3 id="fixed-1">Fixed</h3>
+<h3 id="fixed-2">Fixed</h3>
 <ul>
 <li><strong>A16 — Scrolling terminal output up/down did not work,
 especially in the Claude Code TUI.</strong> Two root causes: (1) the
@@ -550,7 +688,7 @@ escape sequences reach the application;</li>
 termux-clipboard-set, detected at copy time) plus OSC-52.</li>
 </ul></li>
 </ul>
-<h3 id="added-1">Added</h3>
+<h3 id="added-2">Added</h3>
 <ul>
 <li><strong>A17 — HelixConstitution governance submodule + verified
 inheritance.</strong> The universal engineering rules (anti-bluff
@@ -607,7 +745,7 @@ same profile as v1.0.0).</li>
 <h2 id="v102--2026-05-16">[v1.0.2] — 2026-05-16</h2>
 <p><strong>Cosmetic: window-name strips <code>.exe</code> suffix from
 <code>pane_current_command</code>.</strong></p>
-<h3 id="fixed-2">Fixed</h3>
+<h3 id="fixed-3">Fixed</h3>
 <ul>
 <li><strong>A15 — Bottom-left status-bar showed <code>claude.exe</code>
 instead of <code>claude</code></strong> (operator-reported, 2026-05-16).

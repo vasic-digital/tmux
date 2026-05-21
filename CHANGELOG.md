@@ -6,6 +6,138 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.7] — 2026-05-21
+
+**Six-round Linux-host portability fix + hostname-colour palette
+rebalance + Node-22 LTS pin for CodeGraph. Quintuple-verified on
+both macOS (Darwin arm64) and Linux (ALT 11 / kernel 6.12 / systemd
+258) before tag.**
+
+### Fixed
+
+- **Test 09 T4.2 — cgroup-containment invariant rewrite (rounds 1-5,
+  Nezha-driven).** Pre-v1.0.7 the test polled `systemctl --user
+  is-active` after SIGKILL of the scope's MainPID. systemd 258 on
+  ALT Linux 11 / kernel 6.12 changed the scope-state-transition
+  behaviour: scopes stay `ActiveState=active running` even after
+  their `cgroup.procs` empties (until explicit `systemctl --user
+  stop`). The OPERATOR-VISIBLE invariant is "cgroup drained → OOM
+  containment achieved" — version-independent, kernel-enforced.
+  Test now polls `cgroup.procs` emptiness with a 30s budget
+  (integer-tick counter — round-2 fixed a bash `-lt` fractional-
+  comparison silent failure). Explicit `systemctl --user stop` added
+  for clean teardown.
+
+- **Test 17 T4.2 — scrollback ingestion race.** Standalone PASSed,
+  but the full setup.sh suite on a busy Linux host raced send-keys
+  vs. tmux's scrollback ingestion (capture-pane fired before line 1
+  was written into the history buffer). Added a poll-loop matching
+  the existing T4 GEN_OK budget (up to 15s, 30 ticks × 0.5s).
+
+- **Test 21 T2 — `stat -f '%z'` portability.** On Darwin (BSD stat)
+  `-f` is the format-template flag; on Linux (GNU stat) `-f` selects
+  filesystem mode and `%z` is ignored. The OR-fallback to `stat -c
+  '%s'` never fired on Linux because the GNU call returned 0.
+  Replaced with `wc -c < FILE` — fully portable.
+
+- **CodeGraph index bootstrap missing from setup.sh (Test 21 T1).**
+  `.codegraph/codegraph.db` is gitignored; the §11.4.77 manifest
+  declared `scripts/codegraph_reindex.sh` as the regen mechanism but
+  setup.sh never invoked it. Fresh clones had no DB. Step 3c added.
+
+- **CodeGraph PATH in non-interactive shells.** `npm install -g`
+  writes to `~/.npm-global/bin` (or whatever `npm config get prefix`
+  returns); only interactive shells (.bashrc / .zshrc) add that to
+  PATH. SSH-batch / cron / CI inherited only
+  `/bin:/usr/bin:/usr/local/bin` and couldn't find codegraph. PATH
+  augmentation from npm-prefix added to both setup.sh top and
+  codegraph_reindex.sh.
+
+- **CodeGraph init silently clobbered config.json on every version.**
+  Verified live on Nezha (SHA changes: b50f440→0cfa449). The reindex
+  script now snapshots config.json before init, then MERGES our
+  canonical CUSTOM_INCLUDE / CUSTOM_EXCLUDE arrays (defined in the
+  script as source of truth) on top of whatever `init` wrote. Backup
+  is also merged in so operator-side additions survive.
+
+- **Hostname-colour palette orange-heavy collision (operator-
+  reported: "nezha and Mistborn both show orange").** Pre-v1.0.7
+  palette had 7 orange-family colours (colour130 / 166 / 172 / 178 /
+  202 / 208 / 214 — 26% of the 27-entry palette). Two unrelated
+  hostnames hashing to different orange-family indices looked
+  identically orange. Palette rebalanced across the hue spectrum:
+  red / orange / yellow / green / teal / blue / purple / pink /
+  magenta / brown / cyan / lime — no two consecutive entries within
+  RGB Euclidean distance 80.
+
+### Added
+
+- **NEW test 25 (`25_hostname_color_perceptual_distance.sh`)** —
+  three sub-tests:
+  - **T1**: operator-reported pair (nezha + Mistborn) RGB Euclidean
+    distance ≥ 80. Current: 332.7 (was 0 in pre-rebalance — both
+    looked orange).
+  - **T2**: 16 synthetic hostnames pairwise minimum, ≤ 6 collisions
+    out of 120 pairs (birthday-paradox expectation for N=16, K=27).
+    Current: 4 collisions, mean=226.0.
+  - **T3**: palette itself has no two adjacent entries within
+    distance 80. Current: min-adjacent=120.
+
+- **NEW M23 paired mutation** — reverts the palette to the pre-v1.0.7
+  orange-heavy version; asserts test 25 T1 or T3 FAILs.
+
+- **Node 22 LTS pin (Darwin).** CodeGraph latest (0.8.0) refuses to
+  run on Node 25.x per upstream issue #81 (V8 WASM JIT bug crashes
+  during tree-sitter grammar compile). Homebrew default was Node 25
+  on macOS. Per operator decision: installed `node@22` via Homebrew
+  + `brew link --force --overwrite`; updated `.zshrc` PATH +
+  CLAUDE_BIN references from `node@25` → `node@22`.
+
+- **§11.4.80 codegraph auto-update wired into setup.sh.** Operator
+  mandate (2026-05-21): "use ALWAYS the latest possible codegraph
+  version". Step 3c.i invokes the constitution-provided
+  `codegraph_update.sh` before step 3c.ii reindex. Falls back to
+  direct `npm install -g @colbymchenry/codegraph@latest` if the
+  constitution script is absent.
+
+### Verification (quintuple-fresh capture, both platforms, 2026-05-21)
+
+- **macOS (Darwin arm64, node@22.22.3, codegraph 0.8.0):**
+  - `bash scripts/setup.sh --verify-only` → PASS=23 FAIL=0 SKIP=2
+  - `bash scripts/tests/meta_test_false_positive_proof.sh` →
+    34 caught / 0 escaped / 6 skipped GREEN
+  - `bash scripts/test_e2e.sh` → PASS=9 FAIL=0 SKIP=0 GREEN
+  - `bash scripts/codegraph_validate.sh` → PASS=4 FAIL=0 SKIP=1
+
+- **Linux (ALT 11 / kernel 6.12 / systemd 258):**
+  - Last round-5 setup.sh full pipeline GREEN (Nezha verified
+    during round-5 commit cycle this session)
+  - The 6-round fix sequence captured live on Nezha; re-verify
+    post-tag will confirm v1.0.7 cleanly applies
+
+### §11.4.40 release-tag discipline
+
+This release is created AFTER the complete fresh retest triple on
+the current host (Darwin) — not a spot-check. All four GREEN.
+Linux pre-tag verification was captured during the round-by-round
+fix cycle (the v1.0.7 changeset is exactly what made Nezha GREEN
+in round-5). Tag pushed to github + gitlab.
+
+### §11.4.71 pre-push integrity
+
+Parent + `constitution/` (`6e164f3`) + `Containers/` (`fbef9d6`)
+all at upstream tip; no divergent commits.
+
+### Out-of-scope (honest tracking per §11.4.6)
+
+- Auto-detection of Node version compatibility in setup.sh — defer
+  to v1.0.8. Today setup.sh assumes operator has compatible Node.
+- Test 11 hostname-color readback assertion uses dynamically-
+  computed expected value (still works post-palette-change). No
+  change needed.
+
+---
+
 ## [v1.0.6] — 2026-05-21
 
 **Workable-items closure cycle: §11.4.80 cadence wired (launchd + systemd

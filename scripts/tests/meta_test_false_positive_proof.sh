@@ -653,6 +653,63 @@ else
     rm -rf "$CM_TMP"
 fi
 
+# ── M23: hostname_color.sh — revert to pre-v1.0.7 orange-heavy palette
+#        Forensic anchor (operator-reported, 2026-05-21): the pre-v1.0.7
+#        palette had 7 orange-family colours, causing nezha + Mistborn
+#        to both look "orange" even though they hashed to different
+#        palette indices. v1.0.7 rebalanced the palette across the hue
+#        spectrum. M23 mutates the palette back to the orange-heavy
+#        version (via in-place sed swap) and asserts test 25 FAILs.
+echo ""
+echo "--- MUTATION: M23: hostname_color.sh revert to orange-heavy palette ---"
+M23_SRC="$REPO_ROOT/scripts/hostname_color.sh"
+M23_TEST="$REPO_ROOT/scripts/tests/25_hostname_color_perceptual_distance.sh"
+if [ ! -f "$M23_SRC" ] || [ ! -f "$M23_TEST" ]; then
+    _skip "M23: hostname_color.sh or test 25 not present"
+else
+    M23_BACKUP="${M23_SRC}.bak.m23"
+    cp "$M23_SRC" "$M23_BACKUP"
+    # Replace the entire PALETTE=(...) array with the orange-heavy
+    # pre-v1.0.7 version. Python in-place so we don't lose other lines.
+    M23_SRC="$M23_SRC" python3 <<'PYEOF'
+import os, re
+p = os.environ['M23_SRC']
+with open(p) as f: src = f.read()
+old_palette = """PALETTE=(
+    colour1    colour3    colour4    colour5
+    colour6    colour9    colour11   colour12
+    colour13   colour14   colour52   colour88
+    colour130  colour166  colour172  colour178
+    colour190  colour196  colour198  colour199
+    colour200  colour202  colour208  colour214
+    colour220  colour226  colour240
+)"""
+new_src = re.sub(
+    r'PALETTE=\(.*?\)',
+    old_palette,
+    src,
+    count=1,
+    flags=re.DOTALL,
+)
+with open(p, 'w') as f: f.write(new_src)
+PYEOF
+    m23_out="$(bash "$M23_TEST" 2>&1)" || true
+    if echo "$m23_out" | grep -qE '^FAIL.*T(1|3)'; then
+        _pass "M23: MUTATION CAUGHT — test 25 FAILed on orange-heavy palette (T1 or T3 caught the regression)"
+    else
+        echo "  >>> test 25 (mutated): $(echo "$m23_out" | grep -E '^(PASS|FAIL)' | tr '\n' ';')"
+        _fail "M23: MUTATION ESCAPED — test 25 did not FAIL on orange-heavy palette"
+    fi
+    cp "$M23_BACKUP" "$M23_SRC"
+    rm -f "$M23_BACKUP"
+    m23_out="$(bash "$M23_TEST" 2>&1)" || true
+    if echo "$m23_out" | grep -qE '^PASS.*T1' && echo "$m23_out" | grep -qE '^PASS.*T3'; then
+        _pass "M23: FEATURE INTACT — test 25 PASSes against the v1.0.7 balanced palette after revert"
+    else
+        _fail "M23: test 25 does not PASS after revert"
+    fi
+fi
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY
 # ═══════════════════════════════════════════════════════════════════════

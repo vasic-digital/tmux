@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-21T15:30Z
+**Last updated:** 2026-05-21T18:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,7 +15,7 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.6** (versionCode 7) — §11.4.80 cadence wiring landed + Containers/QWEN.md covenant gap closed + full rebuild + install + quintuple verification GREEN, 2026-05-21 |
+| Version | **1.0.7** (versionCode 8) — Linux portability (6 rounds) + hostname-colour palette rebalance + Node-22 LTS pin + §11.4.77 codegraph bootstrap + §11.4.80 auto-update + quintuple GREEN macOS, 2026-05-21 |
 | Verification (this cycle) | Full rebuild via `bash scripts/setup.sh` → GREEN. `setup.sh --verify-only` → PASS=22 FAIL=0 SKIP=2. Meta-test 32 caught / 0 escaped / 6 skipped. e2e PASS=9/0/0. codegraph_validate 4/0/SKIP=1. codegraph_cadence_check GREEN (0.2d ago, 6 nodes, within 7d floor). tmx operator-path live confirmation (`which tmx` + `tmx -V`). launchd job `digital.vasic.tmux.codegraph-cadence` loaded. git pre-push hook installed. All captured 2026-05-21 on Darwin arm64. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `6e164f3` carrying §11.4.81); `Containers/` submodule (pinned `fbef9d6` — bumped this cycle from `4ca5491` after Containers/QWEN.md covenant gap closure); project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
@@ -208,6 +208,58 @@ The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque co
 - Updated `Issues.md`: A1 removed (→ Fixed.md A1). Issues.md now has
   **zero open items** — all originally seeded items are closed.
 - Cleaned up `CONTINUATION.md` §3.6: removed stale "remaining open" note.
+
+### §3.13 — v1.0.7 cross-host portability + hostname-colour rebalance + Node-22 pin + release (2026-05-21)
+
+**Status:** COMPLETE (2026-05-21T18:30Z).
+
+Operator-driven cycle: tried to install on Nezha (Linux), 3 tests
+FAILed → 6 fix rounds → Nezha GREEN → operator reported orange-color
+collision (Nezha + Mistborn) → palette rebalanced + test 25 + M23
+mutation → release v1.0.7.
+
+Six fix rounds (all Nezha-driven; live forensic capture):
+1. Initial 3-fix attempt (test 09 timing, test 17 ingestion race,
+   test 21 codegraph bootstrap). Test 17 fixed; tests 09 + 21 had
+   secondary defects.
+2. Bash `-lt` fractional bug in round-1 poll-loop (silent fail);
+   npm-prefix PATH augmentation for non-interactive shells.
+3. CodeGraph init clobbers config.json on every version; auto-update
+   wiring per §11.4.80 mandate ("ALWAYS latest").
+4. cgroup.procs sweep (kill all PIDs not just first) + `stat -f
+   '%z'` portability bug (Darwin vs Linux).
+5. Test 09 T4.2 rewritten to verify the REAL containment invariant
+   (cgroup.procs drained), not systemd's unit-state transition
+   (which is sticky on systemd 258 / ALT 11 — verified live).
+6. macOS Node 22 LTS pin: codegraph 0.8.0 refuses Node 25 per
+   upstream issue #81. Operator authorised `brew install node@22 &&
+   brew link --force --overwrite`. Updated .zshrc references.
+
+Then the hostname-colour palette rebalance:
+- Operator: "nezha and Mistborn both show orange". Palette had 7
+  orange-family colours out of 27.
+- Rebalanced to 27 entries spanning the hue spectrum; no two
+  adjacent within RGB Euclidean distance 80.
+- NEW test 25: T1 nezha+Mistborn distance ≥ 80 (post-fix: 332.7);
+  T2 16-synthetic-hostname pairwise within pigeonhole tolerance;
+  T3 palette adjacency check.
+- NEW M23 mutation: revert palette → test 25 FAILs.
+
+Verification (Darwin quintuple-fresh, 2026-05-21):
+- setup.sh --verify-only → PASS=23 FAIL=0 SKIP=2
+- meta-test → 34 caught / 0 escaped / 6 skipped
+- e2e → PASS=9 FAIL=0 SKIP=0
+- codegraph_validate → PASS=4 FAIL=0 SKIP=1
+- codegraph_cadence_check → GREEN
+
+Nezha verification: round-5 setup.sh full pipeline GREEN (after fix
+rounds 1-5 landed). v1.0.7 includes all 6 rounds + palette + test 25.
+
+Out-of-scope this cycle (logged honestly per §11.4.6):
+- Auto-detection of Node version compatibility in setup.sh —
+  deferred to v1.0.8.
+- Pre-tag Nezha re-verify of v1.0.7 final → will run after tag push
+  as deferred post-release smoke.
 
 ### §3.12 — v1.0.6 workable-items closure + §11.4.80 cadence + Containers/QWEN.md + release tag (2026-05-21)
 

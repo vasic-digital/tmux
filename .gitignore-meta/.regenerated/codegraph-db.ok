@@ -1,5 +1,5 @@
-regenerated_at: 2026-05-21T06:33:51Z
+regenerated_at: 2026-05-21T14:31:37Z
 host: Darwin 24.5.0 arm64
-node_count: 6
-db_size: 155648 bytes
-codegraph_version: 0.6.8
+node_count: 5
+db_size: 12849152 bytes
+codegraph_version: 0.8.0

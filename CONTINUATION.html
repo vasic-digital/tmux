@@ -29,7 +29,7 @@ vertical-align: middle;
 </header>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-05-21T15:30Z</p>
+<p><strong>Last updated:</strong> 2026-05-21T18:30Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -66,9 +66,10 @@ current state. Update this document as you work.</p>
 </tr>
 <tr>
 <td>Version</td>
-<td><strong>1.0.6</strong> (versionCode 7) — §11.4.80 cadence wiring
-landed + Containers/QWEN.md covenant gap closed + full rebuild + install
-+ quintuple verification GREEN, 2026-05-21</td>
+<td><strong>1.0.7</strong> (versionCode 8) — Linux portability (6
+rounds) + hostname-colour palette rebalance + Node-22 LTS pin + §11.4.77
+codegraph bootstrap + §11.4.80 auto-update + quintuple GREEN macOS,
+2026-05-21</td>
 </tr>
 <tr>
 <td>Verification (this cycle)</td>
@@ -657,6 +658,62 @@ Issues.md now has <strong>zero open items</strong> — all originally
 seeded items are closed.</li>
 <li>Cleaned up <code>CONTINUATION.md</code> §3.6: removed stale
 &quot;remaining open&quot; note.</li>
+</ul>
+<h3 id="313--v107-cross-host-portability--hostname-colour-rebalance--node-22-pin--release-2026-05-21">§3.13
+— v1.0.7 cross-host portability + hostname-colour rebalance + Node-22
+pin + release (2026-05-21)</h3>
+<p><strong>Status:</strong> COMPLETE (2026-05-21T18:30Z).</p>
+<p>Operator-driven cycle: tried to install on Nezha (Linux), 3 tests
+FAILed → 6 fix rounds → Nezha GREEN → operator reported orange-color
+collision (Nezha + Mistborn) → palette rebalanced + test 25 + M23
+mutation → release v1.0.7.</p>
+<p>Six fix rounds (all Nezha-driven; live forensic capture):</p>
+<ol type="1">
+<li>Initial 3-fix attempt (test 09 timing, test 17 ingestion race, test
+21 codegraph bootstrap). Test 17 fixed; tests 09 + 21 had secondary
+defects.</li>
+<li>Bash <code>-lt</code> fractional bug in round-1 poll-loop (silent
+fail); npm-prefix PATH augmentation for non-interactive shells.</li>
+<li>CodeGraph init clobbers config.json on every version; auto-update
+wiring per §11.4.80 mandate (&quot;ALWAYS latest&quot;).</li>
+<li>cgroup.procs sweep (kill all PIDs not just first) +
+<code>stat -f &#39;%z&#39;</code> portability bug (Darwin vs Linux).</li>
+<li>Test 09 T4.2 rewritten to verify the REAL containment invariant
+(cgroup.procs drained), not systemd&#39;s unit-state transition (which is
+sticky on systemd 258 / ALT 11 — verified live).</li>
+<li>macOS Node 22 LTS pin: codegraph 0.8.0 refuses Node 25 per upstream
+issue #81. Operator authorised
+<code>brew install node@22 &amp;&amp; brew link --force --overwrite</code>.
+Updated .zshrc references.</li>
+</ol>
+<p>Then the hostname-colour palette rebalance:</p>
+<ul>
+<li>Operator: &quot;nezha and Mistborn both show orange&quot;. Palette had 7
+orange-family colours out of 27.</li>
+<li>Rebalanced to 27 entries spanning the hue spectrum; no two adjacent
+within RGB Euclidean distance 80.</li>
+<li>NEW test 25: T1 nezha+Mistborn distance ≥ 80 (post-fix: 332.7); T2
+16-synthetic-hostname pairwise within pigeonhole tolerance; T3 palette
+adjacency check.</li>
+<li>NEW M23 mutation: revert palette → test 25 FAILs.</li>
+</ul>
+<p>Verification (Darwin quintuple-fresh, 2026-05-21):</p>
+<ul>
+<li>setup.sh --verify-only → PASS=23 FAIL=0 SKIP=2</li>
+<li>meta-test → 34 caught / 0 escaped / 6 skipped</li>
+<li>e2e → PASS=9 FAIL=0 SKIP=0</li>
+<li>codegraph_validate → PASS=4 FAIL=0 SKIP=1</li>
+<li>codegraph_cadence_check → GREEN</li>
+</ul>
+<p>Nezha verification: round-5 setup.sh full pipeline GREEN (after fix
+rounds 1-5 landed). v1.0.7 includes all 6 rounds + palette + test
+25.</p>
+<p>Out-of-scope this cycle (logged honestly per §11.4.6):</p>
+<ul>
+<li>Auto-detection of Node version compatibility in setup.sh — deferred
+to v1.0.8.</li>
+<li>Pre-tag Nezha re-verify of v1.0.7 final → will run after tag push as
+deferred post-release smoke.</li>
 </ul>
 <h3 id="312--v106-workable-items-closure--11480-cadence--containersqwenmd--release-tag-2026-05-21">§3.12
 — v1.0.6 workable-items closure + §11.4.80 cadence + Containers/QWEN.md

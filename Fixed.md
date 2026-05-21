@@ -54,6 +54,127 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A33. Hostname-colour palette orange-heavy collision — `RESOLVED`
+
+**Closure cycle:** v1.0.7 / versionCode 8 (2026-05-21).
+**Operator-reported:** "both hosts nezha and mistborn have orange
+background at the bottom view of tmux when we determine dynamically
+color generated from the host name? They shall not have the same
+color, correct?"
+
+**Root cause:** the pre-v1.0.7 27-entry palette had 7 orange-family
+colours (colour130 / 166 / 172 / 178 / 202 / 208 / 214 — 26% of the
+palette). Nezha hashed to colour130 (dark orange), Mistborn to
+colour202 (bright red-orange). Different INDICES — visually IDENTICAL
+to the operator's eye. Test 10 T3's "≥ 12/16 unique INDICES" check
+measured index distinctness, not VISUAL distance.
+
+**Change:**
+- `scripts/hostname_color.sh` — palette rebalanced across hue
+  spectrum: red / orange / yellow / green / teal / blue / purple /
+  pink / magenta / brown / cyan / lime / etc. Each two consecutive
+  entries land in DIFFERENT hue regions; no two adjacent entries
+  within RGB Euclidean distance 80.
+- Post-fix: nezha → colour88 (dark red, RGB 135,0,0); Mistborn →
+  colour44 (turquoise, RGB 0,215,215). RGB Euclidean distance 332.7.
+
+**Captured evidence (4-layer per §103):**
+- Layer 2: `scripts/tests/25_hostname_color_perceptual_distance.sh`
+  NEW — PASS=3/0/0. T1 (operator-reported pair distance ≥ 80,
+  current 332.7), T2 (16-synthetic-hostname pairwise, ≤ 6
+  pigeonhole-tolerance collisions out of 120 pairs, current 4),
+  T3 (palette adjacency, no consecutive entries within 80, current
+  min=120).
+- Layer 3: existing TMUX-CH-10 (hostname colour algorithm) covers
+  palette-spread invariants; T25 extends with perceptual-distance.
+- Layer 4: `M23` paired mutation — reverts palette to pre-v1.0.7
+  orange-heavy version, asserts test 25 T1 or T3 FAILs. MUTATION
+  CAUGHT + FEATURE INTACT both directions PASS.
+
+**Regression-protection:** test 25 + M23. The exact operator-
+reported pair (nezha + Mistborn) is named in T1 — a future palette
+change that re-creates the same perceptual collision FAILs the
+gate explicitly.
+
+### A32. CodeGraph init silently clobbered config.json (cross-version) — `RESOLVED`
+
+**Closure cycle:** v1.0.7 / versionCode 8 (2026-05-21).
+**Observed live on Nezha:** `codegraph init` overwrote our
+customised `.codegraph/config.json` with default schema; SHA changed
+b50f440 → 0cfa449. Affects both codegraph 0.6.8 (Darwin earlier
+session) and 0.8.0 (Nezha current).
+
+**Change:** `scripts/codegraph_reindex.sh` now:
+- Snapshots `.codegraph/config.json` before invoking init.
+- After init, MERGES our canonical CUSTOM_INCLUDE +
+  CUSTOM_EXCLUDE_{SECRETS,THIRDPARTY,LOCAL} arrays (defined IN the
+  script — source of truth, robust to tracked-config drift) on top
+  of whatever init wrote.
+- Also unions in the pre-init backup (so operator-side additions
+  survive).
+- Runs `codegraph index` after init (CodeGraph 0.8.0 newly requires
+  init's DB schema before `index` will run).
+
+**Captured evidence:** Nezha post-fix `codegraph_reindex.sh` →
+"customisations merged (35 include / 117 exclude entries)" → "full
+index: codegraph index" → "regenerated .codegraph/codegraph.db (5
+nodes)".
+
+### A31. CodeGraph CLI PATH in non-interactive shells — `RESOLVED`
+
+**Closure cycle:** v1.0.7 / versionCode 8 (2026-05-21).
+**Observed live on Nezha:** PATH=/bin:/usr/bin:/usr/local/bin under
+SSH-batch invocation; `~/.npm-global/bin/codegraph` invisible.
+Interactive shells got it via `.bashrc` / `.zshrc`.
+
+**Change:** PATH augmentation from `npm config get prefix`:
+- `scripts/setup.sh` top-of-script probe (every step inherits).
+- `scripts/codegraph_reindex.sh` self-sufficient inline probe for
+  direct invocation (cron / launchd).
+
+### A30. Linux/macOS portability: `stat -f '%z'`, `sleep` integer compare, send-keys race — `RESOLVED`
+
+**Closure cycle:** v1.0.7 / versionCode 8 (2026-05-21).
+
+Three portability bugs identified live on Nezha and fixed:
+
+1. **Test 21 T2 — `stat -f '%z'`**: Darwin (BSD) → file size; Linux
+   (GNU) → filesystem-mode, `%z` ignored. The OR-fallback never
+   fired because GNU `stat -f` exited 0 with garbage stdout.
+   Replaced with `wc -c < FILE` (portable).
+
+2. **Test 09 T4.2 — bash `-lt` fractional comparison silent fail**:
+   round-1 fix used fractional accumulator `T4_ELAPSED=$(awk … e +
+   0.5)` then `[ "$T4_ELAPSED" -lt "$T4_TIMEOUT_S" ]`. bash `-lt`
+   is integer-only — first iteration emitted "integer expression
+   expected" to stderr, comparison returned exit 2, loop exited
+   IMMEDIATELY without polling. Replaced with integer tick counter.
+
+3. **Test 17 T4.2 — ingestion race**: standalone PASSed but full
+   setup.sh suite raced send-keys vs. tmux scrollback ingestion.
+   Added a 15s poll budget matching the existing T4 GEN_OK loop.
+
+### A29. setup.sh § 11.4.77 + § 11.4.80 wiring (codegraph bootstrap + auto-update) — `RESOLVED`
+
+**Closure cycle:** v1.0.7 / versionCode 8 (2026-05-21).
+
+§11.4.77 mandates regen mechanisms for gitignored artefacts; we had
+the manifest at `.gitignore-meta/codegraph-db.yaml` + the script
+`scripts/codegraph_reindex.sh`, but `setup.sh` never invoked the
+script. Fresh clones had no DB; test 21 FAILed; this was the EXACT
+PASS-bluff §11.4.77 was written to prevent.
+
+§11.4.80 mandates "always latest codegraph" (operator 2026-05-21).
+
+**Change:** setup.sh step 3c — two cooperating sub-steps:
+- **3c.i** invoke `constitution/scripts/codegraph_update.sh` (per
+  §11.4.80, inherited by reference); fallback to direct `npm
+  install -g @colbymchenry/codegraph@latest` if absent.
+- **3c.ii** invoke `scripts/codegraph_reindex.sh` (per §11.4.77).
+
+PATH is re-probed between sub-steps in case npm update repositioned
+the codegraph symlink.
+
 ### A28. §11.4.80 automatic-trigger wiring landed (DEFERRED → RESOLVED) — `RESOLVED`
 
 **Closure cycle:** v1.0.6 / versionCode 7 (2026-05-21).
