@@ -284,12 +284,27 @@ if [ -n "$victim_pid" ] && [ "$victim_pid" != "0" ]; then
         _pass "T4.1: scope ${TEST_NAME_T4}.scope MainPID=$victim_pid alive"
         # SIGKILL it
         kill -KILL "$victim_pid" 2>/dev/null
-        sleep 2
-        # Verify scope died
+        # Poll for scope-inactive transition (Nezha fix 2026-05-21):
+        # systemd 258 on ALT Linux 11 (kernel 6.12) takes longer than 2s
+        # to mark the scope inactive after its MainPID dies — cgroup
+        # cleanup ordering changed in systemd 258+. The old fixed `sleep
+        # 2` produced spurious T4.2 FAILs on the same scope that DID
+        # eventually transition. §11.4.6: this is observed live, not
+        # guessed — Nezha reproducer captured 2026-05-21.
+        T4_TIMEOUT_S=10
+        T4_ELAPSED=0
+        while [ "$T4_ELAPSED" -lt "$T4_TIMEOUT_S" ]; do
+            if ! systemctl --user is-active --quiet "${TEST_NAME_T4}.scope" 2>/dev/null; then
+                break
+            fi
+            sleep 0.5
+            T4_ELAPSED=$(awk -v e="$T4_ELAPSED" 'BEGIN{print e + 0.5}')
+        done
+        # Final verdict (after either early-exit or full timeout).
         if systemctl --user is-active --quiet "${TEST_NAME_T4}.scope" 2>/dev/null; then
-            _fail "T4.2: scope ${TEST_NAME_T4}.scope still active after SIGKILL of MainPID"
+            _fail "T4.2: scope ${TEST_NAME_T4}.scope still active ${T4_TIMEOUT_S}s after SIGKILL of MainPID (systemd cgroup-cleanup not progressing)"
         else
-            _pass "T4.2: scope ${TEST_NAME_T4}.scope correctly inactive after SIGKILL of MainPID (positive evidence: systemctl --user is-active = inactive)"
+            _pass "T4.2: scope ${TEST_NAME_T4}.scope inactive after SIGKILL (positive evidence: systemctl --user is-active = inactive after ${T4_ELAPSED}s poll)"
         fi
         # Verify user@<uid>.service still alive (the critical invariant)
         USER_SVC_AFTER=$(systemctl --user is-active default.target 2>/dev/null || echo "unknown")

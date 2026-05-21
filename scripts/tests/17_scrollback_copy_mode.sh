@@ -195,11 +195,28 @@ fi
 # T4.2 — scrollback BUFFER retained line 1 of 3000. With the OLD default
 # (history-limit 2000) line 1 would be evicted; PASS here is positive
 # proof the 50000 bump is functional.
-FULL="$("$TMUX_BIN" -L "$S_SOCK" capture-pane -p -S - -t "$S_NAME" 2>/dev/null || true)"
-if printf '%s' "$FULL" | grep -q 'SCROLLMARK_FIRST'; then
-    _pass "T4.2: scrollback buffer retains line 1 of 3000 (history-limit bump is functional)"
+#
+# Nezha fix (2026-05-21): when this test ran inside the full setup.sh
+# suite on a busy host, the capture-pane sometimes returned BEFORE all
+# 3000 lines had been written into the scrollback (T4 GEN_OK polled the
+# VISIBLE pane for LAST, but tmux's scrollback ingestion can lag the
+# visible-frame paint by a few hundred ms on a loaded Linux box).
+# Standalone re-runs PASSed because the load profile differed. The fix:
+# poll the FULL capture-pane (-S -) for SCROLLMARK_FIRST too, with the
+# same up-to-15s budget. Same evidence shape, robust to load.
+FULL=""
+T42_OK=0
+for _i in $(seq 1 30); do
+    FULL="$("$TMUX_BIN" -L "$S_SOCK" capture-pane -p -S - -t "$S_NAME" 2>/dev/null || true)"
+    if printf '%s' "$FULL" | grep -q 'SCROLLMARK_FIRST'; then
+        T42_OK=1; break
+    fi
+    sleep 0.5
+done
+if [ "$T42_OK" -eq 1 ]; then
+    _pass "T4.2: scrollback buffer retains line 1 of 3000 (history-limit bump is functional; poll-ingest captured)"
 else
-    _fail "T4.2: SCROLLMARK_FIRST not in scrollback — buffer too small (history-limit not effective)"
+    _fail "T4.2: SCROLLMARK_FIRST not in scrollback after 15s poll — buffer too small (history-limit not effective)"
 fi
 
 # T4.3 + T4.4 — copy-mode navigation reaches the old content.

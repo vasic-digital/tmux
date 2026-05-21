@@ -195,6 +195,27 @@ if [ "$HOST_OS" = "Linux" ] && [ -f scripts/oom_set.c ] && [ -x scripts/build_oo
     fi
 fi
 
+# Step 3c — CodeGraph index bootstrap (per §11.4.77 + §11.4.78). The
+# `.codegraph/codegraph.db` artefact is gitignored; per §11.4.77 we have
+# a regeneration mechanism declared at `.gitignore-meta/codegraph-db.yaml`
+# pointing at `scripts/codegraph_reindex.sh`. Pre-Nezha-fix (2026-05-21)
+# setup.sh did NOT actually invoke that script, so fresh clones had no
+# DB and test 21 FAILed — the §11.4 PASS-bluff pattern §11.4.77 was
+# written to prevent. Now invoked here unconditionally; codegraph_reindex
+# is idempotent (init + index on first call, sync on subsequent ones).
+echo ""
+echo "[setup] step 3c — CodeGraph index bootstrap (§11.4.77 regen mechanism)"
+if command -v codegraph >/dev/null 2>&1; then
+    if [ -x scripts/codegraph_reindex.sh ]; then
+        bash scripts/codegraph_reindex.sh 2>&1 | grep -E "regenerated|node|RED" | sed 's/^/  /'
+    else
+        echo "  ⓘ scripts/codegraph_reindex.sh not executable — skip §11.4.77 bootstrap"
+    fi
+else
+    echo "  ⓘ codegraph CLI not on PATH — install per §11.4.78 (npm install -g @colbymchenry/codegraph)"
+    echo "       Test 21 will FAIL until installed; setup.sh continues so the operator can install + retry."
+fi
+
 # Step 4 — verification gate (THE GUARD)
 echo ""
 echo "[setup] step 4 — verification gate"
