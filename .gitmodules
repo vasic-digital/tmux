@@ -4,3 +4,6 @@
 [submodule "Containers"]
 	path = Containers
 	url = git@github.com:vasic-digital/Containers.git
+[submodule "constitution"]
+	path = constitution
+	url = git@github.com:HelixDevelopment/HelixConstitution.git

@@ -227,3 +227,69 @@ challenges:
       `.exe` form (defect surface reachable); strip applied to
       the `.exe` case only.
     severity: high
+
+  - id: TMUX-CH-17
+    title: scrollback + copy-mode scrolling works (operator-path)
+    description: |
+      Operators reported that scrolling terminal output up/down — in
+      particular inside the Claude Code TUI — did not work. Two root
+      causes: the history-limit default (2000) was too small, and tmux's
+      default WheelUpPane binding forwards the wheel to mouse-reporting
+      apps (Claude Code, vim, less) instead of scrolling tmux's own
+      scrollback. The fix (Fixed.md A16) bumps history-limit to 50000,
+      sets mode-keys vi, overrides WheelUp/WheelDown so the wheel ALWAYS
+      drives copy-mode scrollback, and adds the Claude Code passthrough
+      settings (allow-passthrough on, extended-keys on,
+      terminal-features extkeys). Verified via the OPERATOR PATH
+      (`tmx new -s NAME`) per Constitution §102: a 3000-line stream is
+      generated (deliberately > the old 2000 default, < the new 50000),
+      the first line is proven to have scrolled off the visible screen,
+      then the operator is proven able to scroll back to it via
+      copy-mode and copy it.
+    test_script: scripts/tests/17_scrollback_copy_mode.sh
+    pass_condition: |
+      FAIL=0. T1 conf-template carries all six scroll settings; T2 reads
+      back history-limit=50000 / mode-keys=vi / mouse=on /
+      allow-passthrough=on / extended-keys=on from the LIVE server;
+      T3 confirms the live WheelUpPane binding drives copy-mode scroll-up
+      (override active, not tmux default); T4 generates 3000 lines,
+      proves SCROLLMARK_FIRST left the visible screen (defect surface
+      real), proves the scrollback buffer retained it (history-limit
+      bump functional — would be evicted at the old 2000 default), and
+      proves copy-mode reached + copied it.
+    evidence: |
+      live `tmux -L tmx-NAME show-options` readbacks; `list-keys -T root
+      WheelUpPane` output; `capture-pane -p` (visible) vs `capture-pane
+      -p -S -` (full history); `#{scroll_position}` after a copy-mode
+      search; `show-buffer` carrying SCROLLMARK_FIRST.
+    severity: high
+
+  - id: TMUX-CH-18
+    title: HelixConstitution inheritance is wired and verified
+    description: |
+      The project's universal governance (anti-bluff covenant, data
+      safety, memory budget, continuation-document invariant) is
+      inherited from the HelixConstitution submodule at `constitution/`.
+      This Challenge proves the inheritance is REAL, not merely claimed:
+      the submodule is present + initialized, `.gitmodules` records it
+      with an SSH URL, the §11.4 End-user Quality Guarantee anchor
+      physically exists in `constitution/Constitution.md`, the verbatim
+      anti-bluff user mandate is present, and every project governance
+      doc (Constitution.md / CLAUDE.md / AGENTS.md / QWEN.md) carries
+      its inheritance pointer. The `constitution/` submodule is
+      decoupled and independent — this gate READS it but never modifies
+      it; the paired mutation (CM-CONSTITUTION-INHERITANCE) operates on
+      a temporary copy.
+    test_script: scripts/tests/18_constitution_inheritance.sh
+    pass_condition: |
+      FAIL=0. T1 submodule populated; T2 .gitmodules carries the
+      constitution entry with an SSH URL; T2b submodule initialized;
+      T3 §11.4 anchor present in constitution/Constitution.md; T4
+      verbatim anti-bluff mandate present; T5–T9 project Constitution /
+      CLAUDE / AGENTS / QWEN all carry inheritance pointers plus the
+      §101 project anti-bluff binding.
+    evidence: |
+      file-content greps of constitution/Constitution.md (the exact
+      §11.4 sentinel line) + .gitmodules + `git submodule status` +
+      each project governance doc.
+    severity: blocker

@@ -53,6 +53,46 @@ esac
 echo ""
 echo "  ✓ binary exists, dynamic deps resolved ($HOST_OS_VERIFY)"
 
+# ── Layer-1 static source gate (Constitution §103) ──────────────────────
+# Catch tmux.conf.template regressions at SOURCE, before the runtime
+# suite. A binary can build and link cleanly while the config template
+# silently loses a setting — this gate refuses to proceed in that case.
+# Paired runtime evidence for each line below lives in test 17 (scroll
+# settings) and test 16 (.exe strip); grep here is the source-layer
+# half of §102's "static check in addition to runtime readback".
+echo ""
+echo "  Layer-1 static gate — scripts/tmux.conf.template..."
+CONF_TPL="$REPO_ROOT/scripts/tmux.conf.template"
+if [ ! -f "$CONF_TPL" ]; then
+    echo "RED: $CONF_TPL is missing."
+    exit 1
+fi
+L1_FAIL=0
+_l1() {
+    if grep -Eq "$2" "$CONF_TPL"; then
+        echo "    ✓ $1"
+    else
+        echo "    ✗ MISSING: $1  (pattern: $2)"
+        L1_FAIL=1
+    fi
+}
+_l1 "history-limit 50000"          '^set +-g +history-limit +50000'
+_l1 "mode-keys vi"                 '^setw? +-g +mode-keys +vi'
+_l1 "WheelUpPane copy-mode bind"   '^bind +-n +WheelUpPane'
+_l1 "WheelDownPane bind"           '^bind +-n +WheelDownPane'
+_l1 "allow-passthrough on"         '^set +-g +allow-passthrough +on'
+_l1 "extended-keys on"             '^set +-s +extended-keys +on'
+_l1 "automatic-rename .exe strip"  'automatic-rename-format'
+if [ "$L1_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: tmux.conf.template failed the Layer-1 static gate."
+    echo "     A required scrollback / copy-mode / passthrough setting is"
+    echo "     missing from the config template — the operator would not"
+    echo "     get working scrolling. setup.sh will REFUSE to install."
+    exit 1
+fi
+echo "  ✓ Layer-1 static gate GREEN"
+
 # Run the full test suite
 echo ""
 echo "  running test suite..."

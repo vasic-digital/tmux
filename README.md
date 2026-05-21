@@ -2,7 +2,7 @@
 
 A reproducible, hardened build of [`tmux`](https://github.com/tmux/tmux) with built-in jemalloc support, OOM-protection helper, and a comprehensive verification gate. **Runs natively on any Linux host** (Ubuntu, ALT, Fedora, Arch, openSUSE, Alpine) where podman or docker is available. **macOS hosts** (Apple Silicon + Intel) are supported via a transparent bridge into the podman machine VM — the operator gets a working `tmx` command on the macOS shell with no manual SSH-juggling.
 
-**The 14 verification tests are why this matters**: a typical "build tmux from source" guide assumes the build worked. This project ships a hard wall — `bash scripts/setup.sh` will refuse to PATH-export the binary unless functional tests pass with positive runtime evidence (cgroup interface readbacks, `/proc` files, real session output), backed by a §11.4.4 layer-4 paired-mutation harness that proves the gates aren't themselves bluffs. SKIPs document precondition gates (CAP_SYS_RESOURCE, libjemalloc presence, destructive-test opt-in) explicitly. No PASS-bluffs.
+**The 18 verification tests are why this matters**: a typical "build tmux from source" guide assumes the build worked. This project ships a hard wall — `bash scripts/setup.sh` will refuse to PATH-export the binary unless functional tests pass with positive runtime evidence (cgroup interface readbacks, `/proc` files, real session output), backed by a §11.4.4 layer-4 paired-mutation harness that proves the gates aren't themselves bluffs. SKIPs document precondition gates (CAP_SYS_RESOURCE, libjemalloc presence, destructive-test opt-in) explicitly. No PASS-bluffs.
 
 ## Quick install (one command)
 
@@ -89,18 +89,18 @@ Both OS paths deliver the **same operator UX**: plain-vanilla tmux behaviour, th
 ## Verification gate
 
 ```
-SUMMARY: PASS=10  FAIL=0  SKIP=4
+SUMMARY: PASS=13  FAIL=0  SKIP=5
 GREEN: tmux binary verified — safe to PATH-export.
 ```
 
-The 14 tests cover: smoke (binary version), session lifecycle, jemalloc loaded via LD_PRELOAD, history-limit honored, clear-history releases memory (the "apparent leak"), 10 concurrent panes, 30-s sustained session no-leak, OOM-score wrapper applies -500, crash isolation scope (cgroup-v2 transient), hostname-derived status-bar colour (algorithm + wrapper integration), memory pressure under cap, TasksMax stress, concurrent OOM independence.
+The 18 tests cover: smoke (binary version), session lifecycle, jemalloc loaded, history-limit honored, clear-history releases memory (the "apparent leak"), 10 concurrent panes, 30-s sustained session no-leak, OOM-score wrapper applies -500, crash isolation scope (cgroup-v2 transient), hostname-derived status-bar colour (algorithm + wrapper integration), memory pressure under cap, TasksMax stress, concurrent OOM independence, per-session cgroup distinctness, window-name `.exe` strip, **scrollback + copy-mode scrolling** (operator-path: 3000 lines generated, proven scrolled off-screen, proven reachable via copy-mode), and **HelixConstitution inheritance** (the `constitution/` submodule + every governance doc's inheritance pointer).
 
 Four honest SKIPs document precondition gates:
 - `03_jemalloc_loaded` SKIPs if host doesn't have libjemalloc — `sudo bash scripts/install_deps.sh` provides it
 - `08_oom_score_adj` SKIPs unless running as root OR the setcap helper is installed — `sudo bash scripts/build_oom_set.sh --install` enables it
 - Tests 12 / 13 / 14 (memory-pressure / TasksMax / concurrent-OOM) require `TMX_TEST_DESTRUCTIVE=1` — run only on dedicated test hosts
 
-A §11.4.4 layer-4 paired-mutation harness lives at `scripts/tests/meta_test_false_positive_proof.sh`: 5 registered mutations against tests 09 / 10 must all be caught (10 PASS / 0 FAIL / 0 SKIP) before the gate is considered self-validating.
+A layer-4 paired-mutation harness (Constitution §103) lives at `scripts/tests/meta_test_false_positive_proof.sh`: registered mutations M1–M14 plus `CM-CONSTITUTION-INHERITANCE` each break a feature, assert the matching test then FAILs, revert, and assert it PASSes again. On macOS the harness reports **18 caught / 0 escaped / 6 skipped** (the 6 SKIPs are Linux-only isolation mutations); the remainder run on Linux via `META=1 bash scripts/test_vm.sh`. The gate is not considered self-validating until every runnable mutation is caught.
 
 ## Roadmap
 

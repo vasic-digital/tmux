@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-13T00:00Z
+**Last updated:** 2026-05-21T00:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,9 +15,9 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.2** (versionCode 3) — A15 cosmetic `.exe`-strip cycle, 2026-05-16 |
-| Verification (this cycle) | `bash scripts/setup.sh --verify-only` → PASS=11 FAIL=0 SKIP=5 (SKIPs all Linux-only/destructive — same profile as v1.0.0). Test 16 (`window-name strips .exe`) landed with operator-path coverage + regression guard. M11 paired mutation MUTATION CAUGHT + FEATURE RESTORED both directions PASS. |
-| Governance docs | `Constitution.md` (§1 + §11.4.1-§11.4.7 + §9 + §12.6 + §5/§12.10), `CLAUDE.md`, `AGENTS.md`, `Issues.md`, `Fixed.md`, this document |
+| Version | **1.0.3** (versionCode 4) — A16 scrolling fix + A17 HelixConstitution inheritance, 2026-05-21 |
+| Verification (this cycle) | `bash scripts/setup.sh --rebuild` → GREEN; suite PASS=13 FAIL=0 SKIP=5 (Linux-only/destructive SKIPs — same profile as v1.0.0). NEW tests: 17 scrollback/copy-mode (PASS=13/0/0, operator-path), 18 HelixConstitution inheritance (PASS=10/0/0). Meta-test 18 caught / 0 escaped / 6 skipped. e2e PASS=9/0/0. All captured 2026-05-21 on Darwin arm64. |
+| Governance docs | `constitution/` submodule (HelixConstitution, pinned `7f738df`) — universal base; project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
 
@@ -209,8 +209,55 @@ The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque co
   **zero open items** — all originally seeded items are closed.
 - Cleaned up `CONTINUATION.md` §3.6: removed stale "remaining open" note.
 
+### §3.9 — Scrolling fix + HelixConstitution inheritance (2026-05-21)
+
+**Status:** COMPLETE (2026-05-21).
+
+Triggering event: operator research note — tmux scrolling (up/down of
+terminal output, especially inside the Claude Code TUI) did not work;
+requirement to scroll vertically from ANY computer or mobile phone
+(Termux/Android). Plus the mandate to incorporate the HelixConstitution
+submodule as the root of the Constitution / CLAUDE.md / AGENTS.md,
+inherited further.
+
+- **A16 scrolling fix** (`Fixed.md` A16): `scripts/tmux.conf.template`
+  — history-limit 2000→50000, `mode-keys vi`, `WheelUp`/`WheelDown`
+  overridden to always drive copy-mode scrollback (works on desktop
+  mouse + trackpad + Termux touch-scroll), `allow-passthrough` +
+  `extended-keys` + `terminal-features extkeys` for the Claude Code TUI,
+  OS-adaptive `@clip` clipboard. NEW test 17 (operator-path, PASS=13/0/0),
+  verify.sh Layer-1 static gate, `TMUX-CH-17`, M12 + M13 paired mutations.
+- **A17 HelixConstitution** (`Fixed.md` A17): added the `constitution/`
+  submodule (pinned `7f738df`). Full refactor of `Constitution.md` to the
+  extends-template form (Project Articles §101–§109); `CLAUDE.md` /
+  `AGENTS.md` inheritance pointers; new `QWEN.md`. NEW test 18
+  (PASS=10/0/0), `TMUX-CH-18`, M14 + `CM-CONSTITUTION-INHERITANCE` paired
+  mutations. The constitution mutation runs on a TEMP COPY — the real,
+  decoupled `constitution/` submodule is never modified (operator
+  directive).
+- **Containers submodule**: adopted remote `4ca5491`, which already
+  carries HelixConstitution recursive inheritance (`find_constitution.sh`,
+  `QWEN.md`, all four governance docs). Parent gitlink bumped
+  `b077f2c` → `4ca5491`.
+- **Meta-test portability**: M1/M2/M3/M6 converted from GNU `sed -i` to a
+  portable `inplace_sed` helper — they now run on macOS instead of
+  silently skipping. Meta-test: 18 caught / 0 escaped / 6 skipped (was
+  10/0/10).
+- Full gate this cycle (Darwin arm64, 2026-05-21): `setup.sh --rebuild`
+  GREEN, suite PASS=13/0/SKIP=5, meta-test 18/0/6, e2e 9/0/0.
+
 ## §4 — Recent commits
 
+- (this commit, 2026-05-21) — **A16 scrolling fix + A17 HelixConstitution
+  inheritance (v1.0.3 / versionCode 4).** `tmux.conf.template`:
+  history-limit 50000, vi copy-mode, WheelUp/Down → copy-mode scrollback
+  override, Claude Code passthrough, OS-adaptive clipboard.
+  HelixConstitution submodule added at `constitution/`; `Constitution.md`
+  refactored to the extends-template form (§101–§109); CLAUDE/AGENTS
+  inheritance pointers + new `QWEN.md`. Tests 17 + 18, challenges
+  CH-17/18, mutations M12–M14 + CM-CONSTITUTION-INHERITANCE; meta-test
+  M1/M2/M3/M6 made portable. Containers gitlink → `4ca5491`. Gate:
+  PASS=13/0/5, meta 18/0/6, e2e 9/0/0. See `Fixed.md` A16 + A17, §3.9.
 - (this commit, 2026-05-16) — **A15 cosmetic .exe-strip cycle (v1.0.2 /
   versionCode 3).** Bottom-left status bar showed `claude.exe` because
   Claude Code v2.x ships its macOS native binary literally as

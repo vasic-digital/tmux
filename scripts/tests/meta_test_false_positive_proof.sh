@@ -32,6 +32,23 @@ _pass() { echo "PASS: $*"; MUT_PASS=$((MUT_PASS + 1)); }
 _fail() { echo "FAIL: $*"; MUT_FAIL=$((MUT_FAIL + 1)); }
 _skip() { echo "SKIP: $*"; MUT_SKIP=$((MUT_SKIP + 1)); }
 
+# ── inplace_sed — portable in-place sed ───────────────────────────────
+# GNU `sed -i` and BSD `sed -i ''` (macOS) diverge; a bare `sed -i 's|…|'`
+# fails on macOS, which silently degraded M1/M2/M3/M6 to SKIP there.
+# Mutations call this instead of `sed -i`. $1 = sed script, $2 = file.
+# Defined here so the eval'd mutation strings can reach it.
+inplace_sed() {
+    local _tmp
+    _tmp="$(mktemp)" || return 1
+    if sed "$1" "$2" > "$_tmp"; then
+        cat "$_tmp" > "$2"
+        rm -f "$_tmp"
+        return 0
+    fi
+    rm -f "$_tmp"
+    return 1
+}
+
 # ── run_mutation: apply, test-fail, revert, test-pass ─────────────────
 # Usage: run_mutation <desc> <target_rel> <mutate_cmd> <revert_cmd> <test_rel> [expect_fail_regex]
 run_mutation() {
@@ -131,8 +148,8 @@ run_mutation() {
 run_mutation \
     "M1: hostname_color output format" \
     "scripts/hostname_color.sh" \
-    "sed -i 's|echo \"\${PALETTE\[\$idx\]}\"|echo \"bogus-invalid\"|' \"\$target_abs\"" \
-    "sed -i 's|echo \"bogus-invalid\"|echo \"\${PALETTE\[\$idx\]}\"|' \"\$target_abs\"" \
+    "inplace_sed 's|echo \"\${PALETTE\[\$idx\]}\"|echo \"bogus-invalid\"|' \"\$target_abs\"" \
+    "false" \
     "scripts/tests/10_hostname_color_algorithm.sh" \
     "FAIL.*T2"
 
@@ -142,19 +159,22 @@ run_mutation \
 run_mutation \
     "M2: hostname_color hash forced to zero" \
     "scripts/hostname_color.sh" \
-    "sed -i 's|^done$|done; h=0|' \"\$target_abs\"" \
-    "sed -i '/^done; h=0$/s//done/' \"\$target_abs\"" \
+    "inplace_sed 's|^done$|done; h=0|' \"\$target_abs\"" \
+    "false" \
     "scripts/tests/10_hostname_color_algorithm.sh" \
     "FAIL.*T3"
 
-# ── M3: hostname_color.sh — single-entry palette ────────────────────
-# Mutate: replace multi-line palette with single entry
-# Test 10 T4 should FAIL (colour not in truncated palette)
-# Revert via false → falls through to backup restore in run_mutation
+# ── M3: hostname_color.sh — collapse palette index to one entry ─────
+# Mutate: change `h % ${#PALETTE[@]}` → `h % 1` so every hostname maps
+# to PALETTE[0] — effectively a single-entry palette. Test 10 T3
+# (colour spread across 16 hostnames) should FAIL: all 16 collapse to
+# one colour. Portable `s|||` substitution — no BSD-incompatible `c\`
+# range command (the old form silently SKIPped on macOS).
+# Revert via false → falls through to backup restore in run_mutation.
 run_mutation \
-    "M3: hostname_color single-entry palette" \
+    "M3: hostname_color palette index collapsed to one entry" \
     "scripts/hostname_color.sh" \
-    "sed -i '/^PALETTE=(/,/^)/c\PALETTE=(colour240)' \"\$target_abs\"" \
+    "inplace_sed 's|h % \${#PALETTE\[@\]}|h % 1|' \"\$target_abs\"" \
     "false" \
     "scripts/tests/10_hostname_color_algorithm.sh" \
     "FAIL.*T3"
@@ -291,7 +311,7 @@ fi
 run_mutation \
     "M6: hostname_color non-deterministic via \$\$ injection" \
     "scripts/hostname_color.sh" \
-    "sed -i 's|^done\$|done; h=\$\$|' \"\$target_abs\"" \
+    "inplace_sed 's|^done\$|done; h=\$\$|' \"\$target_abs\"" \
     "false" \
     "scripts/tests/10_hostname_color_algorithm.sh" \
     "FAIL.*T1"
@@ -316,6 +336,104 @@ run_mutation \
     "false" \
     "scripts/tests/16_window_name_strips_exe.sh" \
     "FAIL"
+
+# ── M12: tmux.conf.template — remove the WheelUpPane copy-mode override ──
+#        The scrolling fix (Fixed.md A16) overrides WheelUpPane so the
+#        mouse wheel / touch-scroll ALWAYS drives tmux copy-mode
+#        scrollback — even inside mouse-reporting TUIs like Claude Code.
+#        Without that binding the wheel reverts to tmux's default
+#        (forward-to-app) behaviour and the operator cannot scroll back
+#        through output. Mutation: delete the single-line WheelUpPane
+#        binding. Test 17 T1 (structural conf check) and T3 (live
+#        `list-keys -T root WheelUpPane` readback — the default has no
+#        `scroll-up`) both FAIL.
+#
+#        Implementation: grep-out + atomic rename (portable across BSD
+#        and GNU userlands; avoids `sed -i` flavour divergence).
+run_mutation \
+    "M12: tmux.conf.template remove WheelUpPane copy-mode override" \
+    "scripts/tmux.conf.template" \
+    "grep -v 'WheelUpPane' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/17_scrollback_copy_mode.sh" \
+    "FAIL"
+
+# ── M13: tmux.conf.template — revert history-limit to the old default ──
+#        The fix bumps history-limit 2000 → 50000 so terminal output
+#        survives in the scrollback buffer. Mutation: put it back to
+#        2000. Test 17 T2.1 (live `show-options -g history-limit`
+#        readback) FAILs immediately; T4.2 also FAILs because line 1 of
+#        the 3000-line stream is then evicted from the buffer — positive
+#        proof that the bump is FUNCTIONALLY load-bearing, not cosmetic.
+#
+#        Implementation: `sed` to a temp file + atomic rename (portable;
+#        no `sed -i` flavour divergence between BSD and GNU).
+run_mutation \
+    "M13: tmux.conf.template revert history-limit to old 2000 default" \
+    "scripts/tmux.conf.template" \
+    "sed 's|history-limit       50000|history-limit       2000|' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/17_scrollback_copy_mode.sh" \
+    "FAIL"
+
+# ── M14: project Constitution.md — strip the inheritance pointer ───────
+#        The full-refactor governance model (Fixed.md A17) requires the
+#        project Constitution.md to declare it extends
+#        constitution/Constitution.md. Mutation: delete every line that
+#        references constitution/Constitution.md → test 18 T5 (project-
+#        side inheritance wiring) FAILs.
+#
+#        Implementation: grep-out + atomic rename (portable BSD/GNU).
+run_mutation \
+    "M14: project Constitution.md strip inheritance pointer" \
+    "Constitution.md" \
+    "grep -v 'constitution/Constitution.md' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/18_constitution_inheritance.sh" \
+    "FAIL.*T5"
+
+# ── CM-CONSTITUTION-INHERITANCE — prove test 18 catches a WEAKENED
+#    constitution, without ever touching the real, decoupled,
+#    independent constitution/ submodule. The submodule files test 18
+#    reads are copied to a temp dir; the §11.4 anchor is deleted in the
+#    COPY; test 18 is run pointed at the copy via CONSTITUTION_DIR. The
+#    real submodule is never written. This mirrors the intent of
+#    constitution/meta_test_inheritance.sh while honoring the operator
+#    directive that constitution/ stays untouched.
+echo ""
+echo "--- MUTATION: CM-CONSTITUTION-INHERITANCE (temp-copy; constitution/ untouched) ---"
+CM_SRC="$REPO_ROOT/constitution"
+CM_TEST="$REPO_ROOT/scripts/tests/18_constitution_inheritance.sh"
+CM_SENTINEL='### §11.4 End-user quality guarantee — forensic anchor (User mandate, 2026-04-28)'
+if [ ! -f "$CM_SRC/Constitution.md" ] || [ ! -f "$CM_TEST" ]; then
+    _skip "CM-CONSTITUTION-INHERITANCE: constitution submodule or test 18 not present"
+else
+    CM_TMP="$(mktemp -d 2>/dev/null || mktemp -d -t cmconst)"
+    cp "$CM_SRC/CLAUDE.md" "$CM_SRC/AGENTS.md" "$CM_TMP/" 2>/dev/null || true
+    [ -f "$CM_SRC/QWEN.md" ] && cp "$CM_SRC/QWEN.md" "$CM_TMP/" 2>/dev/null || true
+    # Mutate the COPY: remove the §11.4 anchor line.
+    grep -vF "$CM_SENTINEL" "$CM_SRC/Constitution.md" > "$CM_TMP/Constitution.md"
+    if grep -qF "$CM_SENTINEL" "$CM_TMP/Constitution.md"; then
+        _fail "CM-CONSTITUTION-INHERITANCE: mutation did not remove the anchor from the temp copy"
+    else
+        cm_out="$(CONSTITUTION_DIR="$CM_TMP" bash "$CM_TEST" 2>&1)" || true
+        if echo "$cm_out" | grep -qE '^FAIL.*T3'; then
+            _pass "CM-CONSTITUTION-INHERITANCE MUTATION CAUGHT — test 18 T3 FAILed on the anchor-stripped copy"
+        else
+            echo "  >>> test 18 (mutated): $(echo "$cm_out" | grep -E '^(PASS|FAIL)' | tr '\n' ';')"
+            _fail "CM-CONSTITUTION-INHERITANCE MUTATION ESCAPED — test 18 did not FAIL on a weakened constitution"
+        fi
+        # Restore-direction proof: the REAL submodule run must PASS.
+        cm_out="$(bash "$CM_TEST" 2>&1)" || true
+        if echo "$cm_out" | grep -qE '^PASS' && ! echo "$cm_out" | grep -qE '^FAIL'; then
+            _pass "CM-CONSTITUTION-INHERITANCE FEATURE INTACT — test 18 PASSes against the real constitution/"
+        else
+            echo "  >>> test 18 (real): $(echo "$cm_out" | grep -E '^FAIL' | tr '\n' ';')"
+            _fail "CM-CONSTITUTION-INHERITANCE — test 18 does not PASS against the real constitution/"
+        fi
+    fi
+    rm -rf "$CM_TMP"
+fi
 
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY

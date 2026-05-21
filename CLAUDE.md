@@ -1,41 +1,75 @@
-# CLAUDE.md — vasic-digital tmux
+# vasic-digital tmux — CLAUDE.md
 
-Verified hardened tmux 3.6a build with jemalloc, OOM protection, and per-session isolation via the `tmx` wrapper. Built around a hard verification gate that refuses to expose the binary unless functional tests pass. **Native dual-OS** (since 2026-05-13): runs as a host process on Linux AND macOS — no VM in the daily-use path. Each `tmx new -s NAME` creates its own tmux server with OS-native isolation: cgroup-v2 transient scope (`systemd-run --user --scope`) on Linux; POSIX rlimit wrapper (`RLIMIT_CPU` + `RLIMIT_NPROC`) on macOS. The session shell is the operator's host shell with full PATH (Homebrew, system tools, all binaries). Honest gap documented per §1: `RLIMIT_AS` (memory) is NOT enforced by XNU for unprivileged processes — see `docs/GUIDE.md` §5.6.
+## INHERITED FROM constitution/CLAUDE.md
 
-Canonical authority: [`Constitution.md`](Constitution.md) (§anchors below). Live handoff state: [`CONTINUATION.md`](CONTINUATION.md). Open work: [`Issues.md`](Issues.md). Containerization design: [`docs/CONTAINERIZATION_PLAN.md`](docs/CONTAINERIZATION_PLAN.md).
+All rules in `constitution/CLAUDE.md` and the
+`constitution/Constitution.md` it references apply **unconditionally** to
+this project. Project-specific rules below **extend** them — they do NOT
+weaken or override any universal clause. When this file disagrees with
+the constitution submodule, **the constitution wins**.
 
-**Fresh-conversation workflow**: read `CONTINUATION.md` first (§0/§3/§8 are mandatory), then `Issues.md` for OPEN/PARTIAL/BLOCKED/RUNNING items.
+@constitution/CLAUDE.md
 
-## Core mandate — anti-bluff covenant (§1)
+> **Read first on a fresh conversation:** `CONTINUATION.md` (§0/§3/§8 are
+> mandatory), then `Issues.md` for OPEN/PARTIAL/BLOCKED/RUNNING items.
+> Canonical project authority: [`Constitution.md`](Constitution.md)
+> (Project Articles §101–§109) which extends `constitution/Constitution.md`.
 
-**Forensic anchor — verbatim user mandate:**
+---
 
-> "We had been in position that all tests do execute with success and all Challenges as well, but in reality the most of the features does not work and can't be used! This MUST NOT be the case and execution of tests and Challenges MUST guarantee the quality, the completion and full usability by end users of the product!"
+## Project overview
 
-**The bar for shipping is "users can use the feature," not "tests pass."**
+Verified hardened tmux 3.6a build with jemalloc, OOM protection, and
+per-session isolation via the `tmx` wrapper. Built around a hard
+verification gate that refuses to expose the binary unless functional
+tests pass. **Native dual-OS** (since 2026-05-13): runs as a host
+process on Linux AND macOS — no VM in the daily-use path. Each
+`tmx new -s NAME` creates its own tmux server with OS-native isolation:
+cgroup-v2 transient scope (`systemd-run --user --scope`) on Linux; POSIX
+rlimit wrapper (`RLIMIT_CPU` + `RLIMIT_NPROC`) on macOS. The session
+shell is the operator's host shell with full `$PATH`. Honest gap:
+`RLIMIT_AS` (memory) is NOT enforced by XNU for unprivileged processes
+— see `docs/GUIDE.md` §5.6.
 
-- Every PASS must carry **positive runtime evidence** (cgroup file content, not just existence).
-- **FAIL-bluffs** (test exits FAIL due to script bug, not product defect) are equally forbidden — fix at source layer, never in call sites.
-- **No-guessing (§11.4.6)**: never use `likely`/`probably`/`maybe`/`seems`/`appears` in cause descriptions. Either prove with forensic evidence or mark `UNCONFIRMED:` / `PENDING_FORENSICS:`.
-- **Operator-path coverage (§11.4.7)**: every gate test MUST exercise the SAME entry point an end-user invokes. Tests that hand-craft equivalents are supplementary. Propagated to `Containers/CONSTITUTION.md`.
+## Critical base rules restated (for sessions that don't expand @imports)
+
+- **No bluffing.** Every PASS — test OR HelixQA Challenge — carries
+  positive runtime evidence (cgroup/`/proc` file *content*, `capture-pane`
+  output, kernel log lines), never just an exit code. Universal §11.4 /
+  Project §101.
+- **FAIL-bluffs equally forbidden.** A test that exits FAIL for a
+  script bug (not a product defect) is fixed at the source layer, never
+  at call sites. Universal §11.4.1.
+- **No-guessing.** Never use `likely`/`probably`/`maybe`/`seems`/`appears`
+  in cause descriptions — prove with forensic evidence or mark
+  `UNCONFIRMED:` / `PENDING_FORENSICS:`. Universal §11.4.6.
+- **Operator-path coverage.** Every gate test exercises the SAME entry
+  point an end-user invokes (`tmx new -s X`, not hand-spawned
+  equivalents). Project §102.
+- **Four-layer coverage.** Every defect lands all four layers before the
+  cycle closes. Project §103.
+- **CONTINUATION.md** updated in the SAME commit as any non-trivial
+  state change. Universal §12.10.
+- **commit_all.sh only.** Never `git push` directly on the main repo.
 
 ## Commands (exact)
 
 | Step | Command |
 |---|---|
-| Install build deps (one-time, needs root) | `sudo bash scripts/install_deps.sh` |
+| Install build deps (one-time; Linux needs root, macOS uses brew) | `bash scripts/install_deps.sh` |
 | Full pipeline | `bash scripts/setup.sh` |
 | Build only | `bash scripts/setup.sh --build-only` |
 | Verify only | `bash scripts/setup.sh --verify-only` |
 | Verification gate | `bash scripts/verify.sh` |
 | Run all tests | `bash scripts/tests/run_all.sh` |
-| Single test | `bash scripts/tests/NN_*.sh` (zero-padded, 01..14) |
+| Single test | `bash scripts/tests/NN_*.sh` (zero-padded, 01..17) |
+| Constitution inheritance gate | `bash scripts/tests/test_constitution_inheritance.sh` |
 | Meta-test (paired mutation) | `bash scripts/tests/meta_test_false_positive_proof.sh` |
 | Containerized test run (bounded subset) | `bash scripts/test_containerized.sh` |
-| VM test run (full suite incl. user-systemd) | `bash scripts/test_vm.sh` (use `TMX_TEST_DESTRUCTIVE=1` for tests 12/13/14; `META=1` for meta-test) |
-| End-to-end automation (bridge + wrapper + session) | `bash scripts/test_e2e.sh` (creates session, send-keys, capture-pane, kill — proves the operator-facing stack) |
-| Commit + push (both github+gitlab) | `bash commit_all.sh "message"` |
-| Per-session cgroup wrapper | `tmx {new\|attach\|ls\|kill}` |
+| VM test run (full suite) | `bash scripts/test_vm.sh` (`TMX_TEST_DESTRUCTIVE=1` for tests 12/13/14; `META=1` for meta-test) |
+| End-to-end automation | `bash scripts/test_e2e.sh` |
+| Commit + push (github+gitlab) | `bash commit_all.sh "message"` |
+| Per-session wrapper | `tmx {new\|attach\|ls\|kill}` |
 
 Never `git push` directly — use `commit_all.sh`.
 
@@ -43,42 +77,74 @@ Never `git push` directly — use `commit_all.sh`.
 
 | Path | Role |
 |---|---|
+| `constitution/` | HelixConstitution submodule — universal governance (pinned `7f738df`) — **do not modify** |
 | `tmux/` | upstream submodule (tag `3.6a`) — **do not modify** |
 | `Containers/` | vasic-digital cgroup helpers submodule |
-| `tmux/build/` | container build output (`.gitignore`'d) |
-| `scripts/` | build, verify, install, 14 tests, challenges, wrapper template |
-| `scripts/tmx` | generated dispatcher (`.gitignore`'d) — Linux wrapper from `tmx.template`, or macOS bridge from `tmx-mac.template` |
-| `scripts/tmx-vm` | Linux wrapper for VM-side execution (Darwin install only, regenerated by `setup.sh` + `test_vm.sh`) |
-| `scripts/tmx-mac.template` | macOS bridge dispatcher template — SSHes into podman machine VM and runs `tmx-vm` |
-| `scripts/test_vm.sh` | full-suite orchestrator: regenerates `tmx-vm`, runs `verify.sh` inside the VM |
-| `scripts/test_containerized.sh` | bounded subset orchestrator: runs the suite inside `tmx-build:latest` |
-| `scripts/hostname_color.sh` | deterministic hostname→colour algorithm |
-| `scripts/tests/meta_test_false_positive_proof.sh` | §11.4.4 layer-4 paired-mutation harness |
-| `scripts/challenges/tmux.yaml` | challenge spec entries (CH-01 through CH-14) |
-| `docker/` | container build definitions |
-| `docs/` | containerization plan + guides + color customization docs |
+| `tmux/build*/` | build output (`.gitignore`'d) |
+| `scripts/` | build, verify, install, 17 tests + inheritance gate, challenges, wrapper + conf templates |
+| `scripts/tmx` | generated dispatcher (`.gitignore`'d) — from `tmx.template` (Linux) or `tmx-mac.template` (macOS bridge) |
+| `scripts/tmux.conf.template` | the tmux config template (scrollback, copy-mode, Claude-Code TUI passthrough, clipboard) |
+| `scripts/tests/meta_test_false_positive_proof.sh` | §103 layer-4 paired-mutation harness |
+| `scripts/challenges/tmux.yaml` | HelixQA Challenge specs |
 | `commit_all.sh` | only allowed push mechanism |
-| `Constitution.md` | canonical authority |
+| `Constitution.md` | project authority — Project Articles §101–§109 (extends `constitution/`) |
 | `Issues.md` | OPEN / PARTIAL / BLOCKED / RUNNING only |
 | `Fixed.md` | RESOLVED items with closure SHA + evidence |
 | `CONTINUATION.md` | live handoff state (must stay fresh) |
 
-## Critical rules
+## Project-specific MANDATORY constraints
 
-- **Test-interrupt-on-discovery** (§11.4.4): any defect found during a test cycle **stops the cycle**. Fix at root cause + land the 4 layers + rebuild + repeat. The four layers: (1) pre-build gate, (2) runtime test, (3) HelixQA Challenge entry in `scripts/challenges/tmux.yaml`, (4) paired mutation in `meta_test_false_positive_proof.sh`. Layer 2 and Layer 4 are already landed; new defects must extend both.
-- **CONTINUATION.md invariant** (§12.10): update in **same commit** as any non-trivial state change.
-- **Issues→Fixed migration**: resolved items move to `Fixed.md` in same commit. Never delete outright.
-- **Host topology dispatch** (§11.4.3): tests MUST detect topology (systemd version, cgroup v1/v2) and SKIP-with-reason — never silently degrade.
-- **Data safety** (§9): destructive git ops (force-push, history rewrite) need backup-first protocol. Force-push never automatic.
-- **Memory budget** (§12.6): `Σ(active TMX_MEM) ≤ 0.6 × MemTotal`. Default `TMX_MEM=8G`.
-- **Destructive tests** (T5/T7/T8): tests 12/13/14 require `TMX_TEST_DESTRUCTIVE=1` env — run only on dedicated test hosts.
-- **Topology dispatch** (§11.4.3): `scripts/tmx` classifies host as `tmx-supported`/`tmx-degraded`/`tmx-unsupported` via `_probe_topology()`.
-- **Changes touching scripts MUST** add/update a paired mutation in `meta_test_false_positive_proof.sh`.
-- **§11.4.7 — Operator-path test coverage rule** (User mandate, 2026-05-13): every gate test MUST exercise the SAME entry point an end-user invokes (`tmx new -s X`, not hand-spawned `systemd-run --user --scope`). Tests that hand-craft equivalents are supplementary; the operator-path test must exist alongside. Layer-4 mutations MUST target `scripts/tmx-vm` (the body Linux wrapper), NOT `scripts/tmx` (the Darwin SSH bridge). Forensic anchor: Fixed.md A12 (status-bar green default) + A13 (sessions sharing one cgroup) both shipped while their non-operator-path tests reported GREEN. Propagated to `Containers/CONSTITUTION.md`.
-- **Per-session isolation** (default-arch since 2026-05-13): each `tmx new -s NAME` spawns its OWN tmux server on socket `tmx-NAME` inside its OWN cgroup-v2 transient scope `tmx-NAME.scope`. MemoryMax is host-adaptive (`max(MemTotal × 60% / 4, 2 GB)`) unless `TMX_MEM` overrides; CPUQuota=200%; TasksMax=4096; Delegate=yes. OOM in any one session affects ONLY that scope — others survive. `tmx kill-session -t NAME` explicitly stops the scope.
+### Build / packaging
+
+- `scripts/setup.sh` detects host OS and invokes the right build
+  pipeline (Linux ELF / macOS Mach-O) — Project §108.
+- `scripts/tmux.conf.template` is the source for the generated tmux
+  config; `setup.sh` substitutes OS-specific placeholders (clipboard
+  command). Never hand-edit the generated `~/.tmux.conf` / wrapper.
+
+### Test / verification
+
+- **Test-interrupt-on-discovery** (§103): any defect found during a
+  test cycle STOPS the cycle. Fix at root cause + land all four layers
+  (pre-build gate / runtime test / HelixQA Challenge / paired mutation)
+  + rebuild + repeat from the beginning.
+- **Operator-path coverage** (§102): gate tests use `tmx new -s X`.
+- **Topology dispatch** (§104): tests detect topology and SKIP-with-
+  reason — never silently degrade.
+- **Destructive tests** (tests 12/13/14): require `TMX_TEST_DESTRUCTIVE=1`
+  — run only on dedicated test hosts.
+- **Constitution inheritance** is itself gated:
+  `scripts/tests/test_constitution_inheritance.sh` + the
+  `CM-CONSTITUTION-INHERITANCE` paired mutation.
+
+### Deployment / release
+
+- `bash commit_all.sh "<msg>"` is the ONLY push mechanism — pushes to
+  `github` + `gitlab`.
+- `VERSION` is the single source of truth (`version=` semver +
+  `versionCode=` monotonic). Both bump together with a `CHANGELOG.md`
+  entry on every release.
+
+### Project-specific Applied Fixes Reference
+
+| # | Fix | Key files |
+|---|---|---|
+| A13 | Per-session cgroup isolation (OOM contained per scope) | `scripts/tmx.template` |
+| A15 | Status bar showed `claude.exe` — strip `.exe` from window name | `scripts/tmux.conf.template` |
+| A16 | tmux scrolling fix for Claude Code TUI + mobile/Termux | `scripts/tmux.conf.template`, `scripts/tests/17_*.sh` |
+| A17 | HelixConstitution submodule + verified governance inheritance | `constitution/`, `scripts/tests/test_constitution_inheritance.sh` |
+
+Full forensic detail: `Fixed.md`.
 
 ## Files to never edit directly
 
 - `scripts/tmx` — generated by `setup.sh` from `scripts/tmx.template`
-- `tmux/build/` — container build output (in `.gitignore`)
+- `tmux/build*/` — build output (in `.gitignore`)
 - `tmux/` — upstream submodule pinned to tag `3.6a`
+- `constitution/` — HelixConstitution submodule (governance authority)
+
+---
+
+## Project overrides of universal rules
+
+None. This project introduces no override of any universal clause.

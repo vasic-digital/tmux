@@ -2,7 +2,79 @@
 
 All releases use [Semantic Versioning](https://semver.org/). Every release
 carries a positive-runtime-evidence verification record per the project's
-anti-bluff covenant (Constitution §1, §11.4.x).
+anti-bluff covenant (Constitution §101 / universal §11.4).
+
+---
+
+## [v1.0.3] — 2026-05-21
+
+**tmux scrolling fixed for the Claude Code TUI and mobile (Termux);
+governance refactored to inherit from the HelixConstitution submodule.**
+
+### Fixed
+
+- **A16 — Scrolling terminal output up/down did not work, especially in
+  the Claude Code TUI.** Two root causes: (1) the `history-limit`
+  default (2000) was too small, and (2) tmux's default `WheelUpPane`
+  binding forwards the wheel to applications that request mouse
+  reporting (Claude Code, vim, less) — so the wheel never reached
+  tmux's own scrollback buffer. `scripts/tmux.conf.template` now:
+  - bumps `history-limit` to **50000**;
+  - sets `mode-keys vi` for vi-style copy-mode navigation;
+  - overrides `WheelUpPane` / `WheelDownPane` so the wheel and
+    touch-scroll **always** drive tmux copy-mode scrollback — working
+    identically on a desktop mouse, a trackpad, and a phone
+    (Termux/Android touch-scroll → wheel events);
+  - adds the official Claude Code passthrough settings
+    (`allow-passthrough on`, `extended-keys on`,
+    `terminal-features 'xterm*:extkeys'`) so Shift+Enter and escape
+    sequences reach the application;
+  - adds OS-adaptive clipboard routing (pbcopy / wl-copy / xclip /
+    termux-clipboard-set, detected at copy time) plus OSC-52.
+
+### Added
+
+- **A17 — HelixConstitution governance submodule + verified inheritance.**
+  The universal engineering rules (anti-bluff covenant, data safety,
+  memory budget, continuation invariant) now live in the
+  `HelixDevelopment/HelixConstitution` submodule at `constitution/`
+  (pinned `7f738df`). The project's `Constitution.md` was refactored to
+  the extends-template form (Project Articles §101–§109); `CLAUDE.md` /
+  `AGENTS.md` gained INHERITED-FROM pointer blocks; a new `QWEN.md` was
+  added for the Qwen Code CLI agent. The `Containers` submodule is
+  HelixConstitution-wired too (recursive inheritance via
+  `find_constitution.sh`).
+
+### Hardened (4-layer regression protection per Constitution §103)
+
+- **Layer 1 (static gate):** `scripts/verify.sh` gained a pre-suite
+  static gate that greps `tmux.conf.template` for every scroll setting;
+  RED if any is missing.
+- **Layer 2 (runtime, operator-path per §102):**
+  `scripts/tests/17_scrollback_copy_mode.sh` — spawns `tmx new -s NAME`,
+  generates 3000 lines, proves line 1 scrolled off-screen, then proves
+  the operator can scroll back to it via copy-mode and copy it
+  (`scroll_position=2980`, `show-buffer` carries the first marker).
+  PASS=13/0/0. `scripts/tests/18_constitution_inheritance.sh` verifies
+  the submodule + the §11.4 anchor + every project doc's pointer.
+  PASS=10/0/0.
+- **Layer 3 (Challenges):** `TMUX-CH-17` and `TMUX-CH-18` in
+  `scripts/challenges/tmux.yaml`.
+- **Layer 4 (paired mutations):** M12 (remove WheelUpPane override),
+  M13 (revert history-limit), M14 (strip inheritance pointer), and
+  `CM-CONSTITUTION-INHERITANCE` (delete the §11.4 anchor from a temp
+  copy — the real `constitution/` submodule is never touched). Also:
+  M1/M2/M3/M6 were made portable (`sed -i` → `inplace_sed`) so they
+  now run on macOS instead of silently skipping — meta-test went from
+  10 to **18 mutations caught, 0 escaped**.
+
+### Verification (this cycle, captured 2026-05-21 on Darwin arm64)
+
+- `bash scripts/setup.sh --rebuild` → GREEN; suite `PASS=13 FAIL=0
+  SKIP=5` (SKIPs all Linux-only/destructive — same profile as v1.0.0).
+- `bash scripts/tests/meta_test_false_positive_proof.sh` →
+  `18 caught / 0 escaped / 6 skipped` GREEN.
+- `bash scripts/test_e2e.sh` → `PASS=9 FAIL=0 SKIP=0` GREEN.
 
 ---
 

@@ -54,6 +54,99 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A17. HelixConstitution governance submodule + verified inheritance — `RESOLVED`
+
+**Closure cycle:** v1.0.3 / versionCode 4 (2026-05-21).
+**Requested:** operator mandate, 2026-05-21 — "we now use and incorporate
+fully the HelixConstitution Submodule responsible for root definitions of
+the Constitution, CLAUDE.MD and AGENTS.MD which are inherited further".
+Follow-up clarification: the `constitution/` submodule is decoupled,
+reusable, and independent — never modified.
+
+**Change:**
+- Added `HelixDevelopment/HelixConstitution` as a submodule at
+  `constitution/` (pinned `7f738df`, `main` HEAD — no tags exist
+  upstream). Path is forced lowercase `constitution/` by the submodule's
+  own `find_constitution.sh` resolver.
+- Refactored the project `Constitution.md` to the extends-template form:
+  universal clauses (anti-bluff §11.4, data safety §9, memory budget,
+  continuation invariant) inherited from `constitution/Constitution.md`;
+  project-specific rules kept as Project Articles §101–§109.
+- `CLAUDE.md` + `AGENTS.md` gained INHERITED-FROM pointer blocks +
+  `@constitution/...` imports; new `QWEN.md` for the Qwen Code CLI agent.
+- `Containers` submodule wired too — adopted its remote `4ca5491` which
+  already carries HelixConstitution recursive inheritance
+  (`find_constitution.sh`, `QWEN.md`, all four governance docs). Parent
+  gitlink bumped `b077f2c` → `4ca5491`.
+
+**Captured evidence (4-layer per §103):**
+- Layer 2: `scripts/tests/18_constitution_inheritance.sh` — PASS=10/0/0.
+  Verifies the submodule is populated + initialized, `.gitmodules` SSH
+  URL, the exact §11.4 End-user Quality Guarantee anchor present in
+  `constitution/Constitution.md`, the verbatim anti-bluff mandate
+  present, and every project doc (Constitution/CLAUDE/AGENTS/QWEN)
+  carries its inheritance pointer + the §101 binding.
+- Layer 3: `TMUX-CH-18` in `scripts/challenges/tmux.yaml`.
+- Layer 4: M14 (strip the project-side inheritance pointer) +
+  `CM-CONSTITUTION-INHERITANCE` (delete the §11.4 anchor from a TEMP
+  COPY — the real, decoupled `constitution/` submodule is never
+  written) in `meta_test_false_positive_proof.sh` — both MUTATION
+  CAUGHT + FEATURE RESTORED/INTACT.
+
+**Anti-bluff note:** the `constitution/` submodule was never modified.
+The inheritance meta-test operates on a temporary copy so the decoupled
+submodule stays pristine.
+
+**Regression-protection:** test 18; M14 + CM-CONSTITUTION-INHERITANCE.
+**Tracked task:** operator mandate 2026-05-21 (this cycle).
+
+### A16. Scrolling terminal output did not work, especially in the Claude Code TUI — `RESOLVED`
+
+**Closure cycle:** v1.0.3 / versionCode 4 (2026-05-21).
+**Reported:** operator research note, 2026-05-21 — scrolling terminal
+output up/down, especially inside the Claude Code TUI, did not work.
+Requirement: scroll vertically from any computer OR mobile phone
+(Termux on Android).
+
+**Root cause (forensic, no guessing per §11.4.6):**
+1. `history-limit` default was 2000 — too small to retain meaningful
+   terminal output history.
+2. tmux's default `WheelUpPane` binding checks `#{mouse_any_flag}` and
+   FORWARDS the wheel to applications that request mouse reporting.
+   The Claude Code TUI requests mouse reporting, so the wheel event was
+   delivered to Claude Code and never reached tmux's own scrollback
+   buffer — the buffer tmux faithfully kept was unreachable by the wheel.
+
+**Source-side fix:** `scripts/tmux.conf.template` —
+`history-limit 50000`; `mode-keys vi`; `WheelUpPane`/`WheelDownPane`
+overridden to unconditionally drive tmux copy-mode scrollback (kept on
+one line so the paired mutation deletes it cleanly); `allow-passthrough
+on` + `extended-keys on` + `terminal-features 'xterm*:extkeys'`;
+OS-adaptive `@clip` clipboard routing (pbcopy / wl-copy / xclip /
+termux-clipboard-set, detected at copy time). The `tmx` wrapper loads
+this template via `tmux -f`, so the fix is live for every `tmx new`
+with no rebuild.
+
+**Captured evidence (4-layer per §103):**
+- Layer 1: `scripts/verify.sh` static gate — greps the template for all
+  scroll settings; RED if any missing. Verified GREEN this cycle.
+- Layer 2: `scripts/tests/17_scrollback_copy_mode.sh` — operator-path
+  (`tmx new -s NAME`). PASS=13/0/0. Live readbacks: `history-limit=50000`,
+  `mode-keys=vi`, `mouse=on`, `allow-passthrough=on`, `extended-keys=on`;
+  `list-keys -T root WheelUpPane` carries the copy-mode override; 3000
+  lines generated, `SCROLLMARK_FIRST` proven off the visible screen, the
+  scrollback buffer proven to retain it, copy-mode `scroll_position=2980`,
+  and `show-buffer` carried the first line after a copy-mode
+  search+select+copy.
+- Layer 3: `TMUX-CH-17` in `scripts/challenges/tmux.yaml`.
+- Layer 4: M12 (remove WheelUpPane override) + M13 (revert history-limit
+  to 2000) in `meta_test_false_positive_proof.sh` — both MUTATION CAUGHT
+  + FEATURE RESTORED.
+
+**Regression-protection:** verify.sh Layer-1 static gate; test 17;
+M12 + M13.
+**Tracked task:** operator request 2026-05-21 (this cycle).
+
 ### A15. Bottom-left status-bar showed `claude.exe` instead of `claude` (cosmetic, operator-reported) — `RESOLVED`
 
 * **Closure cycle:** 2026-05-16.
