@@ -710,6 +710,60 @@ PYEOF
     fi
 fi
 
+# ── M24: scripts/tmx — narrow _apply_host_color back to status-style only
+#        Operator mandate (2026-05-21) requires all default-green tmux
+#        UI surfaces to carry the hostname colour. v1.0.7 only set
+#        status-style. v1.0.8 added pane-active-border-style + clock-
+#        mode-colour + window-status-current-style. M24 strips the
+#        three new `set -g ...` lines from the generated wrapper and
+#        asserts test 26 FAILs (T2 OR T3 OR T4 will catch it).
+echo ""
+echo "--- MUTATION: M24: scripts/tmx narrow _apply_host_color to status-style only ---"
+M24_WRAP="$REPO_ROOT/scripts/tmx"
+M24_TEST="$REPO_ROOT/scripts/tests/26_ui_color_uniformity.sh"
+if [ ! -f "$M24_WRAP" ] || [ ! -f "$M24_TEST" ]; then
+    _skip "M24: scripts/tmx wrapper or test 26 not present"
+else
+    M24_BACKUP="${M24_WRAP}.bak.m24"
+    cp "$M24_WRAP" "$M24_BACKUP"
+    # Delete the three new set-lines added in v1.0.8. We anchor each
+    # delete on the unique option name + the literal `set -g` prefix.
+    M24_WRAP_PATH="$M24_WRAP" python3 - <<'PYEOF'
+import os, re
+p = os.environ['M24_WRAP_PATH']
+with open(p) as f: src = f.read()
+# Three lines to remove (the three v1.0.8 additions; status-style stays).
+patterns = [
+    r'^\s*"\$TMUX_BIN"\s+-L\s+"\$sock_label"\s+set\s+-g\s+pane-active-border-style\s+.*$\n',
+    r'^\s*"\$TMUX_BIN"\s+-L\s+"\$sock_label"\s+set\s+-g\s+clock-mode-colour\s+.*$\n',
+    r'^\s*"\$TMUX_BIN"\s+-L\s+"\$sock_label"\s+set\s+-g\s+window-status-current-style\s+.*$\n',
+]
+removed = 0
+for pat in patterns:
+    new_src, n = re.subn(pat, '', src, count=1, flags=re.MULTILINE)
+    if n == 1:
+        src = new_src; removed += 1
+with open(p, 'w') as f: f.write(src)
+print(f"M24: stripped {removed}/3 v1.0.8 set-lines")
+PYEOF
+    m24_out="$(bash "$M24_TEST" 2>&1)" || true
+    if echo "$m24_out" | grep -qE '^FAIL.*T[234]'; then
+        _pass "M24: MUTATION CAUGHT — test 26 T2/T3/T4 FAILed on the narrowed _apply_host_color (one or more default-green surfaces stayed green)"
+    else
+        echo "  >>> test 26 (mutated): $(echo "$m24_out" | grep -E '^(PASS|FAIL)' | tr '\n' ';')"
+        _fail "M24: MUTATION ESCAPED — test 26 did not FAIL with the three set-lines removed"
+    fi
+    cp "$M24_BACKUP" "$M24_WRAP"
+    chmod +x "$M24_WRAP"
+    rm -f "$M24_BACKUP"
+    m24_out="$(bash "$M24_TEST" 2>&1)" || true
+    if echo "$m24_out" | grep -qE '^PASS.*T5'; then
+        _pass "M24: FEATURE INTACT — test 26 PASSes (all four UI surfaces uniform) after revert"
+    else
+        _fail "M24: test 26 does not PASS after revert"
+    fi
+fi
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY
 # ═══════════════════════════════════════════════════════════════════════

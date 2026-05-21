@@ -29,7 +29,7 @@ vertical-align: middle;
 </header>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-05-21T18:30Z</p>
+<p><strong>Last updated:</strong> 2026-05-21T21:00Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -66,10 +66,10 @@ current state. Update this document as you work.</p>
 </tr>
 <tr>
 <td>Version</td>
-<td><strong>1.0.7</strong> (versionCode 8) — Linux portability (6
-rounds) + hostname-colour palette rebalance + Node-22 LTS pin + §11.4.77
-codegraph bootstrap + §11.4.80 auto-update + quintuple GREEN macOS,
-2026-05-21</td>
+<td><strong>1.0.8</strong> (versionCode 9) — hostname colour now applies
+to ALL default-green tmux UI surfaces (active border + clock +
+window-status-current), not just status-bar; NEW test 26 + M24;
+quintuple GREEN macOS, 2026-05-21</td>
 </tr>
 <tr>
 <td>Verification (this cycle)</td>
@@ -659,6 +659,54 @@ seeded items are closed.</li>
 <li>Cleaned up <code>CONTINUATION.md</code> §3.6: removed stale
 &quot;remaining open&quot; note.</li>
 </ul>
+<h3 id="314--v108-uniform-tmux-ui-recolouring-active-border--clock--window-status-current-2026-05-21">§3.14
+— v1.0.8 uniform tmux UI recolouring (active border + clock +
+window-status-current) (2026-05-21)</h3>
+<p><strong>Status:</strong> COMPLETE (2026-05-21T21:00Z).</p>
+<p>Operator-driven follow-up to v1.0.7: &quot;flying animated top
+decoration&quot;</p>
+<ul>
+<li>clarification &quot;Do coloring of all UI tmux parts with proper color we
+use instead of default green. Anything colored with that green colors
+has to become the color we have assigned to the bottom view we are
+coloring.&quot;</li>
+</ul>
+<p>Pre-v1.0.8 <code>_apply_host_color()</code> set only
+<code>status-style bg=$color</code>. Other default-green tmux surfaces
+(active pane border, clock face, selected-window highlight) stayed
+green. v1.0.8 extends the wrapper to apply the hostname-derived colour
+atomically to all four:</p>
+<ul>
+<li><code>status-style              bg=$color</code></li>
+<li><code>pane-active-border-style  fg=$color</code></li>
+<li><code>clock-mode-colour         $color</code></li>
+<li><code>window-status-current-style bg=$color,fg=black</code></li>
+</ul>
+<p><code>mode-style</code> + <code>message-style</code> deliberately
+untouched (default yellow, not green; yellow provides best contrast
+against any palette bg).</p>
+<p>NEW test 26 (<code>26_ui_color_uniformity.sh</code>) — operator-path
+session spawn + live <code>show -gv</code> readback per surface —
+PASS=5/0/0 on Darwin. NEW M24 paired mutation — regex-strips the three
+v1.0.8 set-lines from the generated wrapper, asserts test 26 T2/T3/T4
+FAILs. MUTATION CAUGHT + FEATURE INTACT both directions.</p>
+<p>Captured operator-path readback (Mistborn, this session):</p>
+<ul>
+<li>status-style: <code>bg=colour44</code></li>
+<li>pane-active-border-style: <code>fg=colour44</code></li>
+<li>clock-mode-colour: <code>colour44</code></li>
+<li>window-status-current-style: <code>bg=colour44,fg=black</code> → All
+four surfaces uniformly turquoise (colour44 = RGB 0,215,215).</li>
+</ul>
+<p>Verification (Darwin quintuple-fresh, 2026-05-21):</p>
+<ul>
+<li>setup.sh --verify-only → PASS=24 FAIL=0 SKIP=2</li>
+<li>meta-test → 36 caught / 0 escaped / 6 skipped</li>
+<li>e2e → PASS=9 FAIL=0 SKIP=0</li>
+<li>codegraph_validate → PASS=4 FAIL=0 SKIP=1</li>
+</ul>
+<p>Released v1.0.8; setup.sh re-run as final install per operator &quot;Make
+sure we setup the new version once all done.&quot; directive.</p>
 <h3 id="313--v107-cross-host-portability--hostname-colour-rebalance--node-22-pin--release-2026-05-21">§3.13
 — v1.0.7 cross-host portability + hostname-colour rebalance + Node-22
 pin + release (2026-05-21)</h3>

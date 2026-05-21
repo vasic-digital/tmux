@@ -98,12 +98,106 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project&#39;s anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v108--2026-05-21">[v1.0.8] — 2026-05-21</h2>
+<p><strong>Hostname-derived colour now applies to ALL default-green tmux
+UI surfaces (active pane border + clock + selected-window highlight),
+not just the bottom status bar. NEW test 26 + M24 paired mutation.
+Darwin quintuple-fresh GREEN.</strong></p>
+<h3 id="fixed">Fixed</h3>
+<ul>
+<li><p><strong>Operator-reported (2026-05-21):</strong> &quot;flying animated
+top decoration&quot;</p>
+<ul>
+<li>clarification: <em>&quot;Do coloring of all UI tmux parts with proper
+color we use instead of default green. Anything colored with that green
+colors has to become the color we have assigned to the bottom view we
+are coloring.&quot;</em></li>
+</ul>
+<p>Pre-v1.0.8 <code>_apply_host_color</code> in
+<code>scripts/tmx.template</code> set ONLY
+<code>status-style bg=$color</code>. Tmux&#39;s other default-green surfaces
+stayed green:</p>
+<ul>
+<li><code>pane-active-border-style</code> (default
+<code>fg=green</code>)</li>
+<li><code>clock-mode-colour</code> (default <code>green</code> — visible
+when operator hits <code>prefix+t</code> for the clock face)</li>
+<li><code>window-status-current-style</code> (inherits
+<code>status-style.bg</code> by default — but did not get an explicit
+override)</li>
+</ul>
+<p>v1.0.8 fix: <code>_apply_host_color</code> now applies the
+hostname-derived colour to all four surfaces atomically per session.
+<code>mode-style</code> (copy-mode banner, default yellow) and
+<code>message-style</code> (command- line, default yellow) are NOT
+recoloured — they default to yellow not green, and yellow provides the
+most accessible contrast against any palette-derived
+background.</p></li>
+</ul>
+<h3 id="added">Added</h3>
+<ul>
+<li><p><strong>NEW test 26
+(<code>26_ui_color_uniformity.sh</code>)</strong> — spawns an
+operator-path session via <code>tmx new -s NAME -d</code> and
+live-readbacks all four tmux options via
+<code>tmux -L SOCK show -gv</code>. Five tests:</p>
+<ul>
+<li><strong>T1</strong>: <code>status-style</code> carries
+<code>bg=$EXPECTED_COLOR</code></li>
+<li><strong>T2</strong>: <code>pane-active-border-style</code> carries
+<code>fg=$EXPECTED_COLOR</code></li>
+<li><strong>T3</strong>: <code>clock-mode-colour</code> equals
+<code>$EXPECTED_COLOR</code></li>
+<li><strong>T4</strong>: <code>window-status-current-style</code>
+carries <code>bg=$EXPECTED_COLOR</code></li>
+<li><strong>T5</strong>: uniformity summary (PASS iff T1-T4 all PASS)
+Captured runtime evidence per surface; no metadata-only checks.</li>
+</ul></li>
+<li><p><strong>NEW M24 paired mutation</strong> — regex-strips the three
+v1.0.8 <code>set -g ...</code> lines from the generated
+<code>scripts/tmx</code> wrapper (keeping the original status-style
+line); asserts test 26 T2/T3/T4 FAILs (one or more default-green
+surfaces stays green). Restores</p>
+<ul>
+<li>asserts T5 PASSes.</li>
+</ul></li>
+</ul>
+<h3 id="verification-this-cycle-captured-2026-05-21-on-darwin-arm64-node22223">Verification
+(this cycle, captured 2026-05-21 on Darwin arm64, <a href="mailto:node@22.22.3">node@22.22.3</a>)</h3>
+<ul>
+<li><code>bash scripts/setup.sh --verify-only</code> → SUMMARY PASS=24
+FAIL=0 SKIP=2 GREEN. (was 23 in v1.0.7 — test 26 NEW is the +1)</li>
+<li><code>bash scripts/tests/meta_test_false_positive_proof.sh</code> →
+<strong>36 caught / 0 escaped / 6 skipped</strong> GREEN.</li>
+<li><code>bash scripts/test_e2e.sh</code> → PASS=9 FAIL=0 SKIP=0
+GREEN.</li>
+<li><code>bash scripts/codegraph_validate.sh</code> → PASS=4 FAIL=0
+SKIP=1 (V4 honest gap re submodule traversal — unchanged from
+v1.0.7).</li>
+<li>Live operator-path readback this session for Mistborn:
+<ul>
+<li>status-style: <code>bg=colour44</code> ✓</li>
+<li>pane-active-border-style: <code>fg=colour44</code> ✓</li>
+<li>clock-mode-colour: <code>colour44</code> ✓</li>
+<li>window-status-current-style: <code>bg=colour44,fg=black</code>
+✓</li>
+</ul></li>
+</ul>
+<h3 id="11440-release-tag-discipline">§11.4.40 release-tag
+discipline</h3>
+<p>This release is created AFTER the complete fresh retest on current
+host (Darwin) — not a spot-check. All four GREEN.</p>
+<h3 id="11471-pre-push-integrity">§11.4.71 pre-push integrity</h3>
+<p>Parent + <code>constitution/</code> (<code>6e164f3</code>) +
+<code>Containers/</code> (<code>fbef9d6</code>) all at upstream tip; no
+divergent commits.</p>
+<hr />
 <h2 id="v107--2026-05-21">[v1.0.7] — 2026-05-21</h2>
 <p><strong>Six-round Linux-host portability fix + hostname-colour
 palette rebalance + Node-22 LTS pin for CodeGraph. Quintuple-verified on
 both macOS (Darwin arm64) and Linux (ALT 11 / kernel 6.12 / systemd 258)
 before tag.</strong></p>
-<h3 id="fixed">Fixed</h3>
+<h3 id="fixed-1">Fixed</h3>
 <ul>
 <li><p><strong>Test 09 T4.2 — cgroup-containment invariant rewrite
 (rounds 1-5, Nezha-driven).</strong> Pre-v1.0.7 the test polled
@@ -158,7 +252,7 @@ Palette rebalanced across the hue spectrum: red / orange / yellow /
 green / teal / blue / purple / pink / magenta / brown / cyan / lime — no
 two consecutive entries within RGB Euclidean distance 80.</p></li>
 </ul>
-<h3 id="added">Added</h3>
+<h3 id="added-1">Added</h3>
 <ul>
 <li><p><strong>NEW test 25
 (<code>25_hostname_color_perceptual_distance.sh</code>)</strong> — three
@@ -216,14 +310,14 @@ round-5 commit cycle this session)</li>
 will confirm v1.0.7 cleanly applies</li>
 </ul></li>
 </ul>
-<h3 id="11440-release-tag-discipline">§11.4.40 release-tag
+<h3 id="11440-release-tag-discipline-1">§11.4.40 release-tag
 discipline</h3>
 <p>This release is created AFTER the complete fresh retest triple on the
 current host (Darwin) — not a spot-check. All four GREEN. Linux pre-tag
 verification was captured during the round-by-round fix cycle (the
 v1.0.7 changeset is exactly what made Nezha GREEN in round-5). Tag
 pushed to github + gitlab.</p>
-<h3 id="11471-pre-push-integrity">§11.4.71 pre-push integrity</h3>
+<h3 id="11471-pre-push-integrity-1">§11.4.71 pre-push integrity</h3>
 <p>Parent + <code>constitution/</code> (<code>6e164f3</code>) +
 <code>Containers/</code> (<code>fbef9d6</code>) all at upstream tip; no
 divergent commits.</p>
@@ -322,13 +416,13 @@ refinement of the CH-20 install path.</li>
 paired mutation is a §11.4.6 honest-tracked TODO for v1.0.7; the cadence
 script itself uses captured-evidence reads per §11.4.5).</li>
 </ul>
-<h3 id="11440-release-tag-discipline-1">§11.4.40 release-tag
+<h3 id="11440-release-tag-discipline-2">§11.4.40 release-tag
 discipline</h3>
 <p>This release is created AFTER the complete fresh retest triple this
 session (verify + meta + e2e + codegraph_validate + cadence + tmx
 operator-path) — not a spot-check. All five GREEN. Tag
 <code>v1.0.6</code> created post-commit, pushed to github + gitlab.</p>
-<h3 id="11471-pre-push-integrity-1">§11.4.71 pre-push integrity</h3>
+<h3 id="11471-pre-push-integrity-2">§11.4.71 pre-push integrity</h3>
 <ul>
 <li>Parent: at upstream tip; no divergent commits.</li>
 <li><code>constitution/</code> submodule: at upstream tip
@@ -503,7 +597,7 @@ anti-bluff covenant propagated verbatim to every consumer governance
 file, audit follow-up fixes (M4/M5 portability + <code>tmx kill</code>
 shorthand), docs reorganised under context subdirectories per the
 constitution rule.</strong></p>
-<h3 id="added-1">Added</h3>
+<h3 id="added-2">Added</h3>
 <ul>
 <li><p><strong>A18 — CodeGraph integration (§11.4.78).</strong>
 Installed <code>@colbymchenry/codegraph</code> v0.6.8 globally (npm
@@ -550,7 +644,7 @@ cycle.</p></li>
 §11.4.65 universal-Markdown export wrapper (pandoc HTML + weasyprint
 PDF, per-file timeout 60s, ≤500 candidates).</p></li>
 </ul>
-<h3 id="fixed-1">Fixed</h3>
+<h3 id="fixed-2">Fixed</h3>
 <ul>
 <li><p><strong>A20 — M4/M5 paired mutations honest topology dispatch
 (AUDIT-1).</strong> Pre-fix: raw GNU <code>sed -i</code> silently
@@ -663,7 +757,7 @@ harness is wired).</li>
 <p><strong>tmux scrolling fixed for the Claude Code TUI and mobile
 (Termux); governance refactored to inherit from the HelixConstitution
 submodule.</strong></p>
-<h3 id="fixed-2">Fixed</h3>
+<h3 id="fixed-3">Fixed</h3>
 <ul>
 <li><strong>A16 — Scrolling terminal output up/down did not work,
 especially in the Claude Code TUI.</strong> Two root causes: (1) the
@@ -688,7 +782,7 @@ escape sequences reach the application;</li>
 termux-clipboard-set, detected at copy time) plus OSC-52.</li>
 </ul></li>
 </ul>
-<h3 id="added-2">Added</h3>
+<h3 id="added-3">Added</h3>
 <ul>
 <li><strong>A17 — HelixConstitution governance submodule + verified
 inheritance.</strong> The universal engineering rules (anti-bluff
@@ -745,7 +839,7 @@ same profile as v1.0.0).</li>
 <h2 id="v102--2026-05-16">[v1.0.2] — 2026-05-16</h2>
 <p><strong>Cosmetic: window-name strips <code>.exe</code> suffix from
 <code>pane_current_command</code>.</strong></p>
-<h3 id="fixed-3">Fixed</h3>
+<h3 id="fixed-4">Fixed</h3>
 <ul>
 <li><strong>A15 — Bottom-left status-bar showed <code>claude.exe</code>
 instead of <code>claude</code></strong> (operator-reported, 2026-05-16).

@@ -177,6 +177,68 @@ layer (c) met by challenge entries CH-01 through CH-14</td>
 <hr />
 <h2 id="a-tooling--harness-gaps--resolved">A. Tooling / harness gaps —
 RESOLVED</h2>
+<h3 id="a34-hostname-colour-now-applies-to-all-default-green-tmux-ui-surfaces-not-just-status-bar--resolved">A34.
+Hostname colour now applies to ALL default-green tmux UI surfaces (not
+just status-bar) — <code>RESOLVED</code></h3>
+<p><strong>Closure cycle:</strong> v1.0.8 / versionCode 9 (2026-05-21).
+<strong>Operator mandate (verbatim, 2026-05-21):</strong> &quot;Do coloring
+of all UI tmux parts with proper color we use instead of default green.
+Anything colored with that green colors has to become the color we have
+assigned to the bottom view we are coloring.&quot;</p>
+<p><strong>Root cause:</strong> v1.0.7 <code>_apply_host_color()</code>
+in <code>scripts/tmx.template</code> set only
+<code>status-style bg=$color</code>. Tmux&#39;s other default-green surfaces
+— <code>pane-active-border-style fg=green</code>,
+<code>clock-mode-colour green</code>,
+<code>window-status-current-style</code> (inheriting status-style.bg) —
+stayed at default green or didn&#39;t get an explicit override. The
+&quot;animated top decoration&quot; the operator saw was likely the active pane
+border showing as default green while the bottom bar was the
+hostname-derived colour.</p>
+<p><strong>Change:</strong> <code>scripts/tmx.template</code>
+<code>_apply_host_color()</code> now applies the hostname-derived colour
+to all four surfaces in one atomic block:</p>
+<ul>
+<li><code>set -g status-style              &quot;bg=$color&quot;</code> (v1.0.7
+baseline)</li>
+<li><code>set -g pane-active-border-style  &quot;fg=$color&quot;</code> (NEW)</li>
+<li><code>set -g clock-mode-colour         &quot;$color&quot;</code> (NEW)</li>
+<li><code>set -g window-status-current-style &quot;bg=$color,fg=black&quot;</code>
+(NEW — explicit override)</li>
+</ul>
+<p><code>mode-style</code> (copy-mode banner) and
+<code>message-style</code> (command line) default to YELLOW, not green,
+so they are deliberately NOT recoloured — yellow provides the most
+accessible contrast against any palette- derived background.</p>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li>Layer 2: <code>scripts/tests/26_ui_color_uniformity.sh</code> NEW —
+PASS=5/0/0. T1 status-style, T2 pane-active-border-style, T3
+clock-mode-colour, T4 window-status-current-style — all live-readback
+via <code>tmux -L SOCK show -gv</code>. T5 uniformity summary.</li>
+<li>Layer 3: existing TMUX-CH-10/11 (hostname colour algorithm + wrapper
+integration) covers the per-surface contract; T26 extends.</li>
+<li>Layer 4: <code>M24</code> paired mutation — regex-strips the three
+v1.0.8 <code>set -g ...</code> lines from <code>scripts/tmx</code>;
+asserts test 26 T2/T3/T4 FAILs (default-green leakage detected);
+restores + asserts T5 PASSes. MUTATION CAUGHT + FEATURE INTACT both
+directions.</li>
+</ul>
+<p><strong>Captured operator-path readback (Mistborn,
+2026-05-21):</strong></p>
+<ul>
+<li>status-style: <code>bg=colour44</code></li>
+<li>pane-active-border-style: <code>fg=colour44</code></li>
+<li>clock-mode-colour: <code>colour44</code></li>
+<li>window-status-current-style: <code>bg=colour44,fg=black</code></li>
+</ul>
+<p>All four surfaces uniformly turquoise (colour44 = RGB 0,215,215),
+matching the bottom status bar.</p>
+<p><strong>Regression-protection:</strong> test 26 + M24. Pre-build
+static gate not added — wrapper is regenerated from tmx.template on
+every setup.sh run, so changes to the template propagate naturally; test
+26 catches any future regression in either the template or the
+regeneration path.</p>
 <h3 id="a33-hostname-colour-palette-orange-heavy-collision--resolved">A33.
 Hostname-colour palette orange-heavy collision —
 <code>RESOLVED</code></h3>

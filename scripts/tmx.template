@@ -151,7 +151,28 @@ _apply_host_color() {
     else
         color=$("$TMX_DIR/hostname_color.sh" 2>/dev/null) || color="green"
     fi
-    "$TMUX_BIN" -L "$sock_label" set -g status-style "bg=$color" 2>/dev/null || true
+    # Apply the hostname-derived colour to every tmux UI element that
+    # defaults to green (or inherits one that does). Operator mandate
+    # (2026-05-21): "Do coloring of all UI tmux parts with proper color
+    # we use instead of default green. Anything colored with that green
+    # colors has to become the color we have assigned to the bottom
+    # view we are coloring."
+    #
+    # tmux's default-green surfaces:
+    #   1. status-style              bg=green (the bottom status bar)
+    #   2. pane-active-border-style  fg=green (active pane's border)
+    #   3. clock-mode-colour         green    (prefix+t clock face)
+    #   4. window-status-current-style — inherits status-style.bg, but
+    #      we set it explicitly so it doesn't drift if anyone overrides
+    #      status-style elsewhere.
+    #
+    # mode-style (copy-mode banner) and message-style default to YELLOW,
+    # not green, so they are NOT recoloured — keeping yellow there is
+    # the most accessible contrast against any palette-derived bg.
+    "$TMUX_BIN" -L "$sock_label" set -g status-style              "bg=$color" 2>/dev/null || true
+    "$TMUX_BIN" -L "$sock_label" set -g pane-active-border-style  "fg=$color" 2>/dev/null || true
+    "$TMUX_BIN" -L "$sock_label" set -g clock-mode-colour         "$color"    2>/dev/null || true
+    "$TMUX_BIN" -L "$sock_label" set -g window-status-current-style "bg=$color,fg=black" 2>/dev/null || true
 }
 
 # Enumerate all of OUR sockets (active tmux servers we spawned).

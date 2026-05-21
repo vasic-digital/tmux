@@ -54,6 +54,62 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A34. Hostname colour now applies to ALL default-green tmux UI surfaces (not just status-bar) — `RESOLVED`
+
+**Closure cycle:** v1.0.8 / versionCode 9 (2026-05-21).
+**Operator mandate (verbatim, 2026-05-21):** "Do coloring of all UI
+tmux parts with proper color we use instead of default green. Anything
+colored with that green colors has to become the color we have
+assigned to the bottom view we are coloring."
+
+**Root cause:** v1.0.7 `_apply_host_color()` in `scripts/tmx.template`
+set only `status-style bg=$color`. Tmux's other default-green
+surfaces — `pane-active-border-style fg=green`, `clock-mode-colour
+green`, `window-status-current-style` (inheriting status-style.bg)
+— stayed at default green or didn't get an explicit override. The
+"animated top decoration" the operator saw was likely the active
+pane border showing as default green while the bottom bar was the
+hostname-derived colour.
+
+**Change:** `scripts/tmx.template` `_apply_host_color()` now applies
+the hostname-derived colour to all four surfaces in one atomic block:
+- `set -g status-style              "bg=$color"`           (v1.0.7 baseline)
+- `set -g pane-active-border-style  "fg=$color"`           (NEW)
+- `set -g clock-mode-colour         "$color"`              (NEW)
+- `set -g window-status-current-style "bg=$color,fg=black"` (NEW — explicit override)
+
+`mode-style` (copy-mode banner) and `message-style` (command line)
+default to YELLOW, not green, so they are deliberately NOT recoloured
+— yellow provides the most accessible contrast against any palette-
+derived background.
+
+**Captured evidence (4-layer per §103):**
+- Layer 2: `scripts/tests/26_ui_color_uniformity.sh` NEW — PASS=5/0/0.
+  T1 status-style, T2 pane-active-border-style, T3 clock-mode-colour,
+  T4 window-status-current-style — all live-readback via
+  `tmux -L SOCK show -gv`. T5 uniformity summary.
+- Layer 3: existing TMUX-CH-10/11 (hostname colour algorithm +
+  wrapper integration) covers the per-surface contract; T26 extends.
+- Layer 4: `M24` paired mutation — regex-strips the three v1.0.8
+  `set -g ...` lines from `scripts/tmx`; asserts test 26 T2/T3/T4
+  FAILs (default-green leakage detected); restores + asserts T5
+  PASSes. MUTATION CAUGHT + FEATURE INTACT both directions.
+
+**Captured operator-path readback (Mistborn, 2026-05-21):**
+- status-style: `bg=colour44`
+- pane-active-border-style: `fg=colour44`
+- clock-mode-colour: `colour44`
+- window-status-current-style: `bg=colour44,fg=black`
+
+All four surfaces uniformly turquoise (colour44 = RGB 0,215,215),
+matching the bottom status bar.
+
+**Regression-protection:** test 26 + M24. Pre-build static gate not
+added — wrapper is regenerated from tmx.template on every setup.sh
+run, so changes to the template propagate naturally; test 26 catches
+any future regression in either the template or the regeneration
+path.
+
 ### A33. Hostname-colour palette orange-heavy collision — `RESOLVED`
 
 **Closure cycle:** v1.0.7 / versionCode 8 (2026-05-21).

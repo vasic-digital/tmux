@@ -6,6 +6,82 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.8] — 2026-05-21
+
+**Hostname-derived colour now applies to ALL default-green tmux UI
+surfaces (active pane border + clock + selected-window highlight),
+not just the bottom status bar. NEW test 26 + M24 paired mutation.
+Darwin quintuple-fresh GREEN.**
+
+### Fixed
+
+- **Operator-reported (2026-05-21):** "flying animated top decoration"
+  + clarification: *"Do coloring of all UI tmux parts with proper
+  color we use instead of default green. Anything colored with that
+  green colors has to become the color we have assigned to the bottom
+  view we are coloring."*
+
+  Pre-v1.0.8 `_apply_host_color` in `scripts/tmx.template` set ONLY
+  `status-style bg=$color`. Tmux's other default-green surfaces stayed
+  green:
+  - `pane-active-border-style` (default `fg=green`)
+  - `clock-mode-colour` (default `green` — visible when operator hits
+    `prefix+t` for the clock face)
+  - `window-status-current-style` (inherits `status-style.bg` by
+    default — but did not get an explicit override)
+
+  v1.0.8 fix: `_apply_host_color` now applies the hostname-derived
+  colour to all four surfaces atomically per session. `mode-style`
+  (copy-mode banner, default yellow) and `message-style` (command-
+  line, default yellow) are NOT recoloured — they default to yellow
+  not green, and yellow provides the most accessible contrast against
+  any palette-derived background.
+
+### Added
+
+- **NEW test 26 (`26_ui_color_uniformity.sh`)** — spawns an
+  operator-path session via `tmx new -s NAME -d` and live-readbacks
+  all four tmux options via `tmux -L SOCK show -gv`. Five tests:
+  - **T1**: `status-style` carries `bg=$EXPECTED_COLOR`
+  - **T2**: `pane-active-border-style` carries `fg=$EXPECTED_COLOR`
+  - **T3**: `clock-mode-colour` equals `$EXPECTED_COLOR`
+  - **T4**: `window-status-current-style` carries `bg=$EXPECTED_COLOR`
+  - **T5**: uniformity summary (PASS iff T1-T4 all PASS)
+  Captured runtime evidence per surface; no metadata-only checks.
+
+- **NEW M24 paired mutation** — regex-strips the three v1.0.8
+  `set -g ...` lines from the generated `scripts/tmx` wrapper
+  (keeping the original status-style line); asserts test 26 T2/T3/T4
+  FAILs (one or more default-green surfaces stays green). Restores
+  + asserts T5 PASSes.
+
+### Verification (this cycle, captured 2026-05-21 on Darwin arm64, node@22.22.3)
+
+- `bash scripts/setup.sh --verify-only` → SUMMARY PASS=24 FAIL=0
+  SKIP=2 GREEN. (was 23 in v1.0.7 — test 26 NEW is the +1)
+- `bash scripts/tests/meta_test_false_positive_proof.sh` →
+  **36 caught / 0 escaped / 6 skipped** GREEN.
+- `bash scripts/test_e2e.sh` → PASS=9 FAIL=0 SKIP=0 GREEN.
+- `bash scripts/codegraph_validate.sh` → PASS=4 FAIL=0 SKIP=1
+  (V4 honest gap re submodule traversal — unchanged from v1.0.7).
+- Live operator-path readback this session for Mistborn:
+  - status-style: `bg=colour44` ✓
+  - pane-active-border-style: `fg=colour44` ✓
+  - clock-mode-colour: `colour44` ✓
+  - window-status-current-style: `bg=colour44,fg=black` ✓
+
+### §11.4.40 release-tag discipline
+
+This release is created AFTER the complete fresh retest on current
+host (Darwin) — not a spot-check. All four GREEN.
+
+### §11.4.71 pre-push integrity
+
+Parent + `constitution/` (`6e164f3`) + `Containers/` (`fbef9d6`)
+all at upstream tip; no divergent commits.
+
+---
+
 ## [v1.0.7] — 2026-05-21
 
 **Six-round Linux-host portability fix + hostname-colour palette

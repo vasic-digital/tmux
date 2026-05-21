@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-21T18:30Z
+**Last updated:** 2026-05-21T21:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,7 +15,7 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.7** (versionCode 8) — Linux portability (6 rounds) + hostname-colour palette rebalance + Node-22 LTS pin + §11.4.77 codegraph bootstrap + §11.4.80 auto-update + quintuple GREEN macOS, 2026-05-21 |
+| Version | **1.0.8** (versionCode 9) — hostname colour now applies to ALL default-green tmux UI surfaces (active border + clock + window-status-current), not just status-bar; NEW test 26 + M24; quintuple GREEN macOS, 2026-05-21 |
 | Verification (this cycle) | Full rebuild via `bash scripts/setup.sh` → GREEN. `setup.sh --verify-only` → PASS=22 FAIL=0 SKIP=2. Meta-test 32 caught / 0 escaped / 6 skipped. e2e PASS=9/0/0. codegraph_validate 4/0/SKIP=1. codegraph_cadence_check GREEN (0.2d ago, 6 nodes, within 7d floor). tmx operator-path live confirmation (`which tmx` + `tmx -V`). launchd job `digital.vasic.tmux.codegraph-cadence` loaded. git pre-push hook installed. All captured 2026-05-21 on Darwin arm64. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `6e164f3` carrying §11.4.81); `Containers/` submodule (pinned `fbef9d6` — bumped this cycle from `4ca5491` after Containers/QWEN.md covenant gap closure); project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
@@ -208,6 +208,50 @@ The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque co
 - Updated `Issues.md`: A1 removed (→ Fixed.md A1). Issues.md now has
   **zero open items** — all originally seeded items are closed.
 - Cleaned up `CONTINUATION.md` §3.6: removed stale "remaining open" note.
+
+### §3.14 — v1.0.8 uniform tmux UI recolouring (active border + clock + window-status-current) (2026-05-21)
+
+**Status:** COMPLETE (2026-05-21T21:00Z).
+
+Operator-driven follow-up to v1.0.7: "flying animated top decoration"
++ clarification "Do coloring of all UI tmux parts with proper color
+we use instead of default green. Anything colored with that green
+colors has to become the color we have assigned to the bottom view
+we are coloring."
+
+Pre-v1.0.8 `_apply_host_color()` set only `status-style bg=$color`.
+Other default-green tmux surfaces (active pane border, clock face,
+selected-window highlight) stayed green. v1.0.8 extends the wrapper
+to apply the hostname-derived colour atomically to all four:
+- `status-style              bg=$color`
+- `pane-active-border-style  fg=$color`
+- `clock-mode-colour         $color`
+- `window-status-current-style bg=$color,fg=black`
+
+`mode-style` + `message-style` deliberately untouched (default yellow,
+not green; yellow provides best contrast against any palette bg).
+
+NEW test 26 (`26_ui_color_uniformity.sh`) — operator-path session
+spawn + live `show -gv` readback per surface — PASS=5/0/0 on Darwin.
+NEW M24 paired mutation — regex-strips the three v1.0.8 set-lines
+from the generated wrapper, asserts test 26 T2/T3/T4 FAILs. MUTATION
+CAUGHT + FEATURE INTACT both directions.
+
+Captured operator-path readback (Mistborn, this session):
+- status-style: `bg=colour44`
+- pane-active-border-style: `fg=colour44`
+- clock-mode-colour: `colour44`
+- window-status-current-style: `bg=colour44,fg=black`
+→ All four surfaces uniformly turquoise (colour44 = RGB 0,215,215).
+
+Verification (Darwin quintuple-fresh, 2026-05-21):
+- setup.sh --verify-only → PASS=24 FAIL=0 SKIP=2
+- meta-test → 36 caught / 0 escaped / 6 skipped
+- e2e → PASS=9 FAIL=0 SKIP=0
+- codegraph_validate → PASS=4 FAIL=0 SKIP=1
+
+Released v1.0.8; setup.sh re-run as final install per operator
+"Make sure we setup the new version once all done." directive.
 
 ### §3.13 — v1.0.7 cross-host portability + hostname-colour rebalance + Node-22 pin + release (2026-05-21)
 
