@@ -208,24 +208,49 @@ if [ "$HOST_OS" = "Linux" ] && [ -f scripts/oom_set.c ] && [ -x scripts/build_oo
     fi
 fi
 
-# Step 3c — CodeGraph index bootstrap (per §11.4.77 + §11.4.78). The
-# `.codegraph/codegraph.db` artefact is gitignored; per §11.4.77 we have
-# a regeneration mechanism declared at `.gitignore-meta/codegraph-db.yaml`
-# pointing at `scripts/codegraph_reindex.sh`. Pre-Nezha-fix (2026-05-21)
-# setup.sh did NOT actually invoke that script, so fresh clones had no
-# DB and test 21 FAILed — the §11.4 PASS-bluff pattern §11.4.77 was
-# written to prevent. Now invoked here unconditionally; codegraph_reindex
-# is idempotent (init + index on first call, sync on subsequent ones).
+# Step 3c — CodeGraph auto-update + index bootstrap (per §11.4.77/.78/.80).
+#
+# Two cooperating steps:
+#   (3c.i)  Auto-update codegraph to npm-latest via the constitution-
+#           provided update script per §11.4.80 (User mandate 2026-05-21:
+#           "use ALWAYS the latest possible codegraph version"). Inherited
+#           by reference — never copy the script into the project.
+#   (3c.ii) Regenerate the .codegraph/codegraph.db artefact per §11.4.77
+#           via scripts/codegraph_reindex.sh (declared in
+#           .gitignore-meta/codegraph-db.yaml). Pre-Nezha-fix (2026-05-21)
+#           setup.sh did NOT invoke that script, so fresh clones had no
+#           DB and test 21 FAILed — the §11.4 PASS-bluff pattern §11.4.77
+#           was written to prevent.
 echo ""
-echo "[setup] step 3c — CodeGraph index bootstrap (§11.4.77 regen mechanism)"
+echo "[setup] step 3c — CodeGraph auto-update + index bootstrap (§11.4.77 + §11.4.80)"
+
+# 3c.i — auto-update to npm-latest.
+CG_UPDATE_SCRIPT="$REPO_ROOT/constitution/scripts/codegraph_update.sh"
+if [ -x "$CG_UPDATE_SCRIPT" ]; then
+    echo "  invoking constitution-provided update script (§11.4.80)..."
+    bash "$CG_UPDATE_SCRIPT" 2>&1 | grep -E "already at|updated to|RED|version" | sed 's/^/    /' || true
+    # PATH may need a re-probe after a global npm install.
+    if ! command -v codegraph >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+        NPM_PREFIX="$(npm config get prefix 2>/dev/null | tr -d '\r\n' || true)"
+        [ -n "$NPM_PREFIX" ] && [ -x "${NPM_PREFIX}/bin/codegraph" ] && export PATH="${NPM_PREFIX}/bin:$PATH"
+    fi
+elif command -v npm >/dev/null 2>&1; then
+    # Fallback if constitution script absent: best-effort direct npm update.
+    echo "  ⓘ constitution/scripts/codegraph_update.sh not present — direct npm update"
+    npm install -g @colbymchenry/codegraph@latest 2>&1 | tail -3 | sed 's/^/    /' || true
+else
+    echo "  ⓘ npm not present — cannot update codegraph"
+fi
+
+# 3c.ii — regenerate index.
 if command -v codegraph >/dev/null 2>&1; then
     if [ -x scripts/codegraph_reindex.sh ]; then
-        bash scripts/codegraph_reindex.sh 2>&1 | grep -E "regenerated|node|RED" | sed 's/^/  /'
+        bash scripts/codegraph_reindex.sh 2>&1 | grep -E "regenerated|node|RED|merged|applied|index|sync" | sed 's/^/  /'
     else
         echo "  ⓘ scripts/codegraph_reindex.sh not executable — skip §11.4.77 bootstrap"
     fi
 else
-    echo "  ⓘ codegraph CLI not on PATH — install per §11.4.78 (npm install -g @colbymchenry/codegraph)"
+    echo "  ⓘ codegraph CLI still not on PATH after update attempt — install per §11.4.78"
     echo "       Test 21 will FAIL until installed; setup.sh continues so the operator can install + retry."
 fi
 
