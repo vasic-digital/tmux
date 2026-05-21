@@ -1,5 +1,6 @@
 # Build artifacts
 tmux/build/
+tmux/build-darwin/
 scripts/oom_set
 *.o
 *.lo

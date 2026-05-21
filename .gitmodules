@@ -1,6 +1,13 @@
 [submodule "tmux"]
 	path = tmux
 	url = https://github.com/tmux/tmux.git
+	# Suppress "untracked content" parent-status noise from our build/
+	# and build-darwin/ artifacts (containerised Linux + native macOS
+	# builds via scripts/setup.sh). We do NOT modify the pinned tmux
+	# submodule (tag 3.6a). Per §11.4.6 this is honest: the build
+	# artifacts are expected outputs of our build pipeline, not
+	# regressions in the submodule's tracked state.
+	ignore = untracked
 [submodule "Containers"]
 	path = Containers
 	url = git@github.com:vasic-digital/Containers.git
