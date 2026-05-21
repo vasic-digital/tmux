@@ -10,6 +10,38 @@ the constitution submodule, **the constitution wins**.
 
 @constitution/CLAUDE.md
 
+## MANDATORY ANTI-BLUFF END-USER-QUALITY COVENANT
+
+**Forensic anchor — verbatim user mandate (2026-04-28, reasserted
+2026-05-21):**
+
+> "We had been in position that all tests do execute with success and
+> all Challenges as well, but in reality the most of the features does
+> not work and can't be used! This MUST NOT be the case and execution
+> of tests and Challenges MUST guarantee the quality, the completion
+> and full usability by end users of the product!"
+
+**Operative rule.** The bar for shipping is **not** "tests pass" but
+**"end users can actually use the feature."** Every PASS — test OR
+HelixQA Challenge — MUST carry positive captured runtime evidence that
+the feature works for the end user. Metadata-only PASS, configuration-
+only PASS, "absence-of-error" PASS, and grep-without-runtime PASS are
+all critical defects regardless of how green the summary line looks.
+Tests and Challenges are bound EQUALLY.
+
+This covenant is restated verbatim in every governance file at the
+consumer layer (`CLAUDE.md`, `AGENTS.md`, `QWEN.md`) so any tool that
+does not expand `@imports` still reads it. The same verbatim block lives
+upstream at `constitution/Constitution.md` §11.4, `constitution/CLAUDE.md`,
+and `constitution/AGENTS.md`. Removing or weakening this block is a
+§11.4-class release blocker.
+
+Canonical authority: `constitution/Constitution.md` §11.4 and its
+sub-anchors §11.4.1 through §11.4.78. Project anchor:
+[`Constitution.md`](Constitution.md) §101.
+
+Non-compliance is a release blocker regardless of context.
+
 > **Read first on a fresh conversation:** `CONTINUATION.md` (§0/§3/§8 are
 > mandatory), then `Issues.md` for OPEN/PARTIAL/BLOCKED/RUNNING items.
 > Canonical project authority: [`Constitution.md`](Constitution.md)
@@ -29,7 +61,7 @@ cgroup-v2 transient scope (`systemd-run --user --scope`) on Linux; POSIX
 rlimit wrapper (`RLIMIT_CPU` + `RLIMIT_NPROC`) on macOS. The session
 shell is the operator's host shell with full `$PATH`. Honest gap:
 `RLIMIT_AS` (memory) is NOT enforced by XNU for unprivileged processes
-— see `docs/GUIDE.md` §5.6.
+— see `docs/guide/README.md` §5.6.
 
 ## Critical base rules restated (for sessions that don't expand @imports)
 

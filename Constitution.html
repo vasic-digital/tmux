@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="vasic-digital-tmux--project-constitution">vasic-digital tmux —
+Project Constitution</h1>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Revision</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Created</td>
+<td>2026-05-07</td>
+</tr>
+<tr>
+<td>Last modified</td>
+<td>2026-05-21</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>active</td>
+</tr>
+<tr>
+<td>Extends</td>
+<td><code>constitution/Constitution.md</code> — Helix Universal
+Constitution, pinned <code>7f738df</code></td>
+</tr>
+<tr>
+<td>Status summary</td>
+<td>R3 (2026-05-21): full refactor to the HelixConstitution
+extends-template form. Universal clauses now inherited from the
+<code>constitution/</code> submodule; this file holds only Project
+Articles §101–§109. No universal clause weakened — inheritance is
+verified by <code>scripts/tests/test_constitution_inheritance.sh</code>
++ its paired mutation.</td>
+</tr>
+</tbody>
+</table>
+<p>This constitution <strong>extends</strong> the Helix Universal
+Constitution at <a href="constitution/Constitution.md"><code>constitution/Constitution.md</code></a>.
+Every clause there — the anti-bluff covenant (§11.4), absolute data
+safety (§9), the 60 % host-memory budget, the continuation-document
+invariant (§12.10), the no-guessing mandate (§11.4.6), commit/push
+discipline, credentials handling — applies to this repository
+<strong>unconditionally</strong>.</p>
+<p>The Project Articles below <strong>extend</strong> those universal
+clauses with tmux-specific rules. They never weaken or override a
+universal clause. <strong>When this file disagrees with the constitution
+submodule, the constitution wins.</strong></p>
+<blockquote>
+<p><strong>Inheritance is verified, not assumed.</strong>
+<code>scripts/tests/test_constitution_inheritance.sh</code> asserts the
+submodule is present at the pinned revision and that the §11.4
+<em>End-user Quality Guarantee</em> anchor physically exists in
+<code>constitution/Constitution.md</code>. Its paired mutation —
+<code>constitution/meta_test_inheritance.sh</code>, wired as the
+<code>CM-CONSTITUTION-INHERITANCE</code> entry in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code> — deletes
+that anchor and proves the gate then FAILs. The gate cannot itself be a
+bluff gate.</p>
+</blockquote>
+<hr />
+<h2 id="project-articles">Project Articles</h2>
+<h3 id="101--anti-bluff-covenant-binding-origin-anchor">§101 —
+Anti-bluff covenant binding (origin anchor)</h3>
+<p>This repository is one of the historical origins of the Helix
+anti-bluff covenant. The verbatim user mandate that the universal §11.4
+codifies is preserved here for forensic continuity — it MUST remain in
+this project&#39;s Constitution regardless of inheritance:</p>
+<blockquote>
+<p>&quot;We had been in position that all tests do execute with success and
+all Challenges as well, but in reality the most of the features does not
+work and can&#39;t be used! This MUST NOT be the case and execution of tests
+and Challenges MUST guarantee the quality, the completion and full
+usability by end users of the product!&quot;</p>
+</blockquote>
+<p><strong>The bar for shipping is &quot;users can use the feature,&quot; not
+&quot;tests pass.&quot;</strong> Every PASS in this codebase — unit test OR
+HelixQA Challenge — MUST carry positive runtime evidence captured
+<em>during execution</em> that the feature works for the end user.
+Metadata-only PASS, configuration- only PASS, &quot;absence-of-error&quot; PASS,
+and grep-only PASS are critical defects regardless of how green the
+summary line is. <strong>FAIL-bluffs</strong> (a test that exits FAIL
+for a script-internal reason, not a product defect) are equally
+forbidden and MUST be fixed at the source layer.</p>
+<p>The full covenant — recorded-evidence requirement, FAIL-bluff
+prohibition, no-guessing mandate, test-interrupt-on-discovery — is
+universal §11.4.1 through §11.4.6. This article binds this project to it
+and adds the project-specific articles below.</p>
+<h3 id="102--operator-path-test-coverage-project-rule-user-mandate-2026-05-13">§102
+— Operator-path test coverage (project rule, User mandate
+2026-05-13)</h3>
+<p><strong>Forensic anchor:</strong> <code>Fixed.md</code> A12 + A13.
+Tests 11 and 14 reported GREEN while their operator-facing equivalents
+(<code>tmx new -s X</code>) were broken — test 11 only exercised the
+explicit-socket path; test 14 hand-spawned
+<code>systemd-run --user --scope</code> units while the real
+<code>tmx new</code> workflow placed all sessions in one shared
+cgroup.</p>
+<p><strong>The mandate.</strong> Every gate test for a feature MUST
+exercise the SAME entry point an end-user would invoke in production.
+Tests that bypass the operator&#39;s wrapper / helper / install path and
+reproduce its effects with hand-crafted equivalents DO NOT satisfy the
+universal §11.4.2 captured-evidence requirement. When the operator&#39;s
+path and the test&#39;s path diverge:</p>
+<ol type="1">
+<li>The test header MUST EXPLICITLY name the divergence (e.g. &quot;test
+invokes <code>tmux</code> directly; operator path is
+<code>tmx new</code>&quot;).</li>
+<li>A SEPARATE end-to-end test MUST close that divergence with captured
+evidence on the operator-facing entry point.</li>
+</ol>
+<p><strong>Operative test:</strong> for every test under
+<code>scripts/tests/</code>, ask &quot;would an operator hit this code path
+in their normal workflow?&quot; If no, that test is supplementary; the
+operator-path test must exist alongside it.</p>
+<p><strong>No grep-on-script-content alone.</strong> A <code>grep</code>
+on a script for a literal string is allowed AS A STATIC CHECK <em>in
+addition to</em> a runtime readback — never as the only assertion.</p>
+<p><strong>Layer-4 mutations MUST target the operator-path
+code.</strong> Mutations target <code>scripts/tmx-vm</code> /
+<code>scripts/tmx.template</code> /
+<code>scripts/tmux.conf.template</code> (the code that runs in
+production), not synthetic-test code.</p>
+<p>Non-compliance is a release blocker.</p>
+<h3 id="103--four-layer-test-coverage-for-tmux-defects-user-mandate-2026-05-06">§103
+— Four-layer test coverage for tmux defects (User mandate
+2026-05-06)</h3>
+<p>Every defect found, fixed, or introduced in this repo MUST land all
+four layers before the cycle closes:</p>
+<ul>
+<li><strong>Layer 1 — pre-build / static-source gate.</strong> A check
+in <code>scripts/verify.sh</code> (or the relevant build script) that
+catches the defect class at source.</li>
+<li><strong>Layer 2 — runtime test.</strong> A numbered test in
+<code>scripts/tests/NN_*.sh</code> producing positive runtime artifacts,
+anti-bluff per §101, operator-path per §102, topology-dispatched per
+§104.</li>
+<li><strong>Layer 3 — HelixQA Challenge.</strong> An entry in
+<code>scripts/challenges/tmux.yaml</code> carrying captured-evidence
+semantics. A test without a paired Challenge is a §101 PASS-bluff.</li>
+<li><strong>Layer 4 — paired mutation.</strong> A mutation in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code> proving the
+Layer-2 test catches its own negation (mutation CAUGHT) and that the
+feature is restored afterwards (RESTORED).</li>
+</ul>
+<p><strong>Test-interrupt-on-discovery.</strong> The moment any defect
+is rediscovered, re-produced, or newly identified during a test cycle,
+the cycle STOPS. Fix at root cause → land all four layers → full rebuild
+→ repeat the full cycle from the beginning.</p>
+<h3 id="104--per-host-topology-test-dispatch-for-tmux-user-mandate-2026-05-05">§104
+— Per-host-topology test dispatch for tmux (User mandate
+2026-05-05)</h3>
+<p>Tests that depend on host topology (systemd version, cgroup v1 vs v2,
+distro-specific controller availability, presence of
+<code>systemd-run --user</code>, Linux vs Darwin) MUST detect topology
+at test entry and dispatch the topology-appropriate variant — recording
+the probe output as positive evidence of the SKIP rationale. A test
+running the wrong variant for the actual topology and PASSing is a §101
+PASS-bluff. Silent degradation to a no-isolation path is forbidden.</p>
+<p><code>scripts/tmx</code> classifies the host as
+<code>tmx-supported</code> / <code>tmx-degraded</code> /
+<code>tmx-unsupported</code> via <code>_probe_topology()</code> — the
+canonical dispatch seam.</p>
+<h3 id="105--per-session-isolation-architecture-default-since-2026-05-13">§105
+— Per-session isolation architecture (default since 2026-05-13)</h3>
+<p>Each <code>tmx new -s NAME</code> spawns its OWN tmux server on
+socket <code>tmx-NAME</code> inside its OWN OS-native isolation
+boundary:</p>
+<ul>
+<li><strong>Linux</strong> — cgroup-v2 transient scope
+<code>tmx-NAME.scope</code> via <code>systemd-run --user --scope</code>.
+<code>MemoryMax</code> host-adaptive
+(<code>max(MemTotal × 60 % / 4, 2 GB)</code> unless <code>TMX_MEM</code>
+overrides), <code>CPUQuota=200%</code>, <code>TasksMax=4096</code>,
+<code>Delegate=yes</code>. OOM in any one scope affects ONLY that scope
+— <code>user.slice</code> survives.</li>
+<li><strong>macOS (Darwin)</strong> — POSIX rlimit wrapper as session
+<code>default-command</code>: <code>RLIMIT_CPU</code> +
+<code>RLIMIT_NPROC</code>, kernel-enforced. <code>RLIMIT_AS</code>
+(memory) is NOT enforced by XNU for unprivileged processes — documented
+honestly per §101, see <code>docs/guide/README.md</code> §5.6.</li>
+</ul>
+<p>The session shell is the operator&#39;s host shell with full
+<code>$PATH</code>. Plain-vanilla tmux UX with OS-native isolation as a
+safeguard.</p>
+<h3 id="106--tmx_mem-memory-budget-enforcement-project-enforcement-of-universal-126">§106
+— TMX_MEM memory-budget enforcement (project enforcement of universal
+§12.6)</h3>
+<p>The universal 60 % host-memory budget is enforced in this project by
+the per-session containerization in <code>scripts/tmx</code>. Invariant:
+<code>Σ(active TMX_MEM) ≤ 0.6 × MemTotal</code>. Operator default
+<code>TMX_MEM=8G</code>. On Linux the cgroup <code>MemoryMax</code> is
+kernel-enforced; on macOS the cap is informational only (XNU gap, §105).
+There is NO operator-facing override of the per-host total.</p>
+<h3 id="107--upstream-tmux-submodule-pinned--immutable">§107 — Upstream
+tmux submodule pinned + immutable</h3>
+<p><code>tmux/</code> references <code>tmux/tmux</code> at tag
+<code>3.6a</code> (commit <code>cc117b5</code>). It is a third-party
+upstream submodule: <strong>never modified</strong>, never advanced off
+the tag without an explicit, documented decision in
+<code>Fixed.md</code> + a governance-doc update in the same commit.
+Silent pin-drift is a §101 / universal §11.4.6 violation (forensic
+precedent: <code>Fixed.md</code> §3.8).</p>
+<h3 id="108--native-dual-os-build-discipline">§108 — Native dual-OS
+build discipline</h3>
+<p>The hardened tmux binary is built natively per OS — Linux ELF and
+macOS Mach-O — from the same <code>tmux/</code> submodule.
+<code>scripts/setup.sh</code>, <code>scripts/install_deps.sh</code>, and
+every project script MUST detect host OS and apply the correct action
+out of the box (no manual per-OS flags). Compile hardening, jemalloc
+linkage, and the verification gate apply to both targets.</p>
+<h3 id="109--anti-bluff-verification-gate-load-bearing">§109 —
+Anti-bluff verification gate (load-bearing)</h3>
+<p><code>scripts/verify.sh</code> is the single decision point for
+whether the binary is operator-safe. GREEN → <code>setup.sh</code>
+proceeds to PATH export; RED → <code>setup.sh</code> REFUSES to install.
+There is no &quot;force install&quot; mode and no flag that bypasses the gate.</p>
+<hr />
+<h2 id="overrides-of-the-universal-constitution">Overrides of the
+Universal Constitution</h2>
+<p>None. This project introduces <strong>no override</strong> of any
+universal clause. Any future override MUST appear here under an explicit
+<code>### Override §X.Y — &lt;reason&gt;</code> heading with
+justification.</p>
+<hr />
+<h2 id="owned-submodule-set">Owned-submodule set</h2>
+<p>Submodules this project owns and is responsible for:</p>
+<pre><code>Containers     git@github.com:vasic-digital/Containers.git   (cgroup orchestration helpers)
+constitution   git@github.com:HelixDevelopment/HelixConstitution.git   (governance; pinned 7f738df)</code></pre>
+<p><code>tmux/</code> is a <strong>third-party upstream</strong>
+submodule (<code>tmux/tmux</code> tag <code>3.6a</code>) — excluded from
+the owned set; immutable per §107.</p>
+<hr />
+<h2 id="project-specific-remotes">Project-specific remotes</h2>
+<table>
+<thead>
+<tr>
+<th>Repo</th>
+<th>Remotes</th>
+<th>Push mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Main — <code>vasic-digital/tmux</code></td>
+<td><code>github</code> + <code>gitlab</code></td>
+<td><code>bash commit_all.sh &quot;&lt;msg&gt;&quot;</code> — ONLY allowed
+mechanism</td>
+</tr>
+<tr>
+<td><code>Containers</code></td>
+<td><code>github</code> + <code>gitlab</code></td>
+<td>the Containers repo&#39;s own commit wrapper</td>
+</tr>
+</tbody>
+</table>
+<p>Never <code>git push</code> directly on the main repo. SSH remotes
+only — no HTTPS for Git. No CI/CD pipeline files. Force-push is never
+automatic and requires explicit per-operation authorization per
+universal §9.</p>
+<hr />
+<p><em>This Project Constitution governs the
+<code>vasic-digital/tmux</code> repository. It is subordinate to and
+extends <code>constitution/Constitution.md</code>.</em></p>
+</body>
+</html>

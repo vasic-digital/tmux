@@ -93,6 +93,38 @@ if [ "$L1_FAIL" -ne 0 ]; then
 fi
 echo "  ✓ Layer-1 static gate GREEN"
 
+# ── Layer-1 static gate — verbatim anti-bluff covenant propagation ──────
+# Per the 2026-05-21 mandate: the verbatim user-mandate (2026-04-28)
+# MUST be literally present in every consumer governance file, so any
+# tool that does not expand @imports still reads the covenant. The
+# pointer-block alone is insufficient. Pre-flight refusal here is the
+# source-layer half; test 19 is the runtime layer.
+echo ""
+echo "  Layer-1 static gate — anti-bluff covenant in governance files..."
+COVENANT_ANCHOR='We had been in position that all tests do execute with success'
+L1B_FAIL=0
+_l1b() {
+    if grep -qF "$COVENANT_ANCHOR" "$REPO_ROOT/$1"; then
+        echo "    ✓ verbatim covenant present in $1"
+    else
+        echo "    ✗ MISSING: verbatim covenant in $1"
+        L1B_FAIL=1
+    fi
+}
+_l1b "Constitution.md"
+_l1b "CLAUDE.md"
+_l1b "AGENTS.md"
+_l1b "QWEN.md"
+if [ "$L1B_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: one or more governance files lack the verbatim anti-bluff"
+    echo "     covenant block. The mandate (user, 2026-05-21) requires"
+    echo "     literal presence in every consumer file, not just the"
+    echo "     @import pointer. setup.sh will REFUSE to install."
+    exit 1
+fi
+echo "  ✓ Layer-1 covenant-propagation gate GREEN"
+
 # Run the full test suite
 echo ""
 echo "  running test suite..."

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="tmux-colors-customizations">Tmux colors customizations</h1>
+<p>How can we change the bottom green panel from green color to some
+other in tmux? Is it possible to be parametrized or we have to modify
+source code?</p>
+<h2 id="answer">Answer</h2>
+<p>To change the color of that green bottom bar (called the
+<strong>status line</strong>), you don’t need to modify any source code.
+It’s completely configurable through tmux’s own options. You can set the
+color directly from the command line, or make it permanent in your
+<code>~/.tmux.conf</code> file.</p>
+<h3 id="wrench-the-quick-way-temporary-change">🔧 The Quick Way
+(temporary change)</h3>
+<ol type="1">
+<li>Press your prefix key (usually <code>Ctrl+b</code>), then type
+<code>:</code> to enter command mode.</li>
+<li>Type the following command and press Enter:
+<pre><code>set -g status-style bg=blue,fg=white</code></pre>
+Replace <code>blue</code> and <code>white</code> with whatever colors
+you prefer. For example, to replicate the classic black background:
+<pre><code>set -g status-style bg=black,fg=white</code></pre></li>
+</ol>
+<h3 id="gear-the-permanent-way-through-your-config-file">⚙️ The
+Permanent Way (through your config file)</h3>
+<p>Add this line to your <code>~/.tmux.conf</code> file:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set status bar background and foreground colors</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-g</span> status-style <span class="st">&#39;bg=black,fg=white&#39;</span></span></code></pre></div>
+<p>After saving the file, reload the configuration with:</p>
+<pre><code>tmux source-file ~/.tmux.conf</code></pre>
+<p>Or, from within tmux, use <code>Prefix</code> + <code>:</code> and
+run:</p>
+<pre><code>source-file ~/.tmux.conf</code></pre>
+<h3 id="art-available-color-options">🎨 Available Color Options</h3>
+<p>You can use:</p>
+<ul>
+<li><strong>Basic color names</strong>: <code>black</code>,
+<code>red</code>, <code>green</code>, <code>yellow</code>,
+<code>blue</code>, <code>magenta</code>, <code>cyan</code>,
+<code>white</code></li>
+<li><strong>Extended 256‑color palette</strong>: <code>colour0</code> to
+<code>colour255</code> (e.g., <code>colour240</code> is a nice dark
+gray)</li>
+<li><strong>Hexadecimal RGB values</strong>: <code>#ff0000</code>
+(requires terminal support for true color)</li>
+<li><strong><code>default</code></strong>: makes the status bar
+transparent (inherits the terminal’s background)</li>
+</ul>
+<p>Example:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-g</span> status-style <span class="st">&#39;bg=colour240,fg=colour255&#39;</span></span></code></pre></div>
+<h3 id="bulb-making-it-dynamic-parameterization">💡 Making It Dynamic
+(Parameterization)</h3>
+<p>Yes, you can dynamically change the status bar color based on
+conditions. Tmux supports <code>%if</code> statements and format
+variables. For instance, this snippet changes the bar to red when
+running on a host named “myhost”, green on “myotherhost”, or blue
+otherwise:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">%if</span> <span class="st">&quot;#{==:#{host},myhost}&quot;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="bu">set</span> <span class="at">-g</span> status-style bg=red</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">%elif</span> <span class="st">&quot;#{==:#{host},myotherhost}&quot;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="bu">set</span> <span class="at">-g</span> status-style bg=green</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ex">%else</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="bu">set</span> <span class="at">-g</span> status-style bg=blue</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="ex">%endif</span></span></code></pre></div>
+<p>You can even use shell commands or environment variables to set the
+color, for example:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">run</span> <span class="st">&quot;tmux set -g status-style bg=</span><span class="va">$MY_TMUX_COLOR</span><span class="st">&quot;</span></span></code></pre></div>
+<h3 id="dark_sunglasses-hiding-the-status-bar-altogether">🕶️ Hiding the
+Status Bar Altogether</h3>
+<p>If you’d rather not see the bar at all, add this to your config:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-g</span> status off</span></code></pre></div>
+<h3 id="open_book-further-reading">📖 Further Reading</h3>
+<ul>
+<li><a href="https://www.nevis.columbia.edu/cgi-bin/man.sh?man=tmux">tmux man
+page (status-style)</a> – official documentation.</li>
+<li><a href="https://unix.stackexchange.com/questions/60968">tmux bottom
+status bar color change (Unix &amp; Linux Stack Exchange)</a> –
+community discussion with multiple methods.</li>
+<li><a href="https://qiita.com/mnishiguchi/items/18ff80c0cb8269ff6dd8">tmux の
+status line の色を変更 (Qiita)</a> – a clear, step‑by‑step guide.</li>
+</ul>
+<p>So, to answer your question directly: <strong>No source modification
+is required.</strong> Everything you need is already built into tmux’s
+configuration system.</p>
+<hr />
+<h2 id="implementation-hostname-derived-status-bar-color">Implementation:
+Hostname-Derived Status-Bar Color</h2>
+<p>The vasic-digital tmux project implements an algorithm that maps each
+host&#39;s hostname to a deterministic colour from a curated 27-colour
+palette, making visually distinguishable tmux sessions across different
+connected machines.</p>
+<h3 id="algorithm">Algorithm</h3>
+<p>File: <code>scripts/hostname_color.sh</code></p>
+<ol type="1">
+<li><strong>DJB2 hash</strong> of the hostname string (31-bit,
+positive)</li>
+<li><strong>Palette index</strong> = hash modulo palette size (27)</li>
+<li><strong>Output</strong> = <code>colourNNN</code> (xterm 256-colour
+name)</li>
+</ol>
+<p>The palette selects visually distinct colours that work well as tmux
+<code>status-bg</code> backgrounds with white foreground text:</p>
+<pre><code>colour1   colour3   colour4   colour5   colour6
+colour9   colour11  colour12  colour13  colour14
+colour52  colour88  colour130 colour166 colour172
+colour178 colour190 colour196 colour198 colour199
+colour200 colour202 colour208 colour214 colour220
+colour226 colour240</code></pre>
+<h3 id="integration">Integration</h3>
+<p>The <code>scripts/tmx</code> wrapper invokes
+<code>hostname_color.sh</code> after the tmux server starts and applies
+the colour via:</p>
+<pre><code>tmux set -g status-style bg=&lt;colour&gt;</code></pre>
+<p>The colour is set both on session creation (<code>new-session</code>,
+<code>start-server</code>) and on re-attach, so it always reflects the
+current host.</p>
+<h3 id="verification">Verification</h3>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Scope</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>10_hostname_color_algorithm.sh</code></td>
+<td>5 invariants: deterministic, valid format, palette membership,
+spread, empty-fallback</td>
+<td>Captured hash/index/colour output</td>
+</tr>
+<tr>
+<td><code>11_hostname_color_integration.sh</code></td>
+<td>Wrapper applies correct colour to tmux server</td>
+<td><code>show -g status-style</code> readback matched to algorithm
+output</td>
+</tr>
+</tbody>
+</table>
+<h3 id="usage">Usage</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Manually query the colour for any hostname</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/hostname_color.sh                      <span class="co">#  colour52 (this host)</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/hostname_color.sh myserver.example.com  <span class="co">#  colour166</span></span></code></pre></div>
+<h3 id="anti-bluff-covenant-constitution-1">Anti-bluff covenant
+(Constitution 1)</h3>
+<ul>
+<li>Every PASS in both tests carries positive runtime evidence:
+<ul>
+<li>The algorithm test prints hash, index, and colour for known
+inputs.</li>
+<li>The integration test reads <code>status-style</code> back from the
+running tmux server and compares it to the algorithm&#39;s expected
+output.</li>
+</ul></li>
+<li>The colour computation is deterministic -- same hostname always
+produces the same colour. No randomness. No state.</li>
+<li>FAIL-bluff protection: all scripts use <code>set -uo pipefail</code>
+and guard every variable reference.</li>
+</ul>
+</body>
+</html>

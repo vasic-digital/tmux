@@ -1,0 +1,10 @@
+{
+  "_comment": "Project-scoped MCP servers (Claude Code). Per §11.4.78: every CLI agent that works on this repo gets CodeGraph wired up. `command` references the bare `codegraph` on PATH — no hardcoded host paths so the config is portable across machines.",
+  "mcpServers": {
+    "codegraph": {
+      "type": "stdio",
+      "command": "codegraph",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}

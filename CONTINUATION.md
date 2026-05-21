@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-21T00:00Z
+**Last updated:** 2026-05-21T05:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,8 +15,8 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.3** (versionCode 4) — A16 scrolling fix + A17 HelixConstitution inheritance, 2026-05-21 |
-| Verification (this cycle) | `bash scripts/setup.sh --rebuild` → GREEN; suite PASS=13 FAIL=0 SKIP=5 (Linux-only/destructive SKIPs — same profile as v1.0.0). NEW tests: 17 scrollback/copy-mode (PASS=13/0/0, operator-path), 18 HelixConstitution inheritance (PASS=10/0/0). Meta-test 18 caught / 0 escaped / 6 skipped. e2e PASS=9/0/0. All captured 2026-05-21 on Darwin arm64. |
+| Version | **1.0.4** (versionCode 5) — CodeGraph (§11.4.78) + verbatim covenant propagation + AUDIT-1/2 fixes + docs reorganisation, 2026-05-21 |
+| Verification (this cycle) | `bash scripts/setup.sh --verify-only` → GREEN; suite PASS=18 FAIL=0 SKIP=5 (Linux-only/destructive SKIPs — same profile as prior releases). NEW tests: 19 covenant propagation (PASS=7/0/0), 20 codegraph installed (PASS=5/0/0), 21 codegraph index present (PASS=4/0/0), 22 codegraph MCP wired (PASS=7/0/0), 23 tmx kill shorthand (PASS=5/0/0). Meta-test 26 caught / 0 escaped / 6 skipped (6 SKIPs §11.4.3 topology-correct — Linux-only mutations). e2e PASS=9/0/0. CodeGraph index 6 nodes (small per honest §11.4.6 gap — shell parser not in CodeGraph 0.6.8). All captured 2026-05-21 on Darwin arm64. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `7f738df`) — universal base; project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
@@ -58,7 +58,7 @@ Paste this prompt:
 
 **Status:** RESEARCH COMPLETE + WRAPPER LANDED + ISOLATION VERIFIED (2026-05-08).
 
-Web research output: `docs/CONTAINERIZATION_PLAN.md` recommends `systemd-run --user --scope` (cgroup-v2 transient scope) over podman-per-session. Wrapper at `scripts/tmx` implements `tmx {new|attach|ls|kill}` with `MemoryMax=$TMX_MEM` (default 8G), `CPUQuota=$TMX_CPU` (default 200%), `TasksMax=4096`, `Delegate=yes`.
+Web research output: `docs/plans/containerization.md` recommends `systemd-run --user --scope` (cgroup-v2 transient scope) over podman-per-session. Wrapper at `scripts/tmx` implements `tmx {new|attach|ls|kill}` with `MemoryMax=$TMX_MEM` (default 8G), `CPUQuota=$TMX_CPU` (default 200%), `TasksMax=4096`, `Delegate=yes`.
 
 Test 09 (`scripts/tests/09_crash_isolation_scope.sh`) — 14 PASS / 0 FAIL / 0 SKIP — verifies T1 (host capability), T2 (wrapper invariants), T3 (cgroup interface evidence), T4 (SIGKILL containment + user.slice survival), T6 (concurrent registration independence). Source-line breakdown:
 
@@ -139,10 +139,10 @@ Triggering event: user invoked `/init` followed by "what is left unfinished, no-
 - **Issues.md format**: restored A / B / C / D / E section headers as empty sections (was: A / B / E only, with C and D missing despite conventions list referencing them). All bodies note "landed in `Fixed.md`" with item IDs for traceability.
 - **CONTINUATION.md timestamp**: 2026-05-08T22:00Z → 2026-05-13T00:00Z; this entry added under §3.8 per §12.10 invariant.
 - **M6 mutation added** (`scripts/tests/meta_test_false_positive_proof.sh`): injects `$$` into the hostname_color hash, making the algorithm non-deterministic per-invocation. Test 10 T1 must FAIL under this mutation. Closes the audit-flagged gap: until M6, the "same-host = same-color" user invariant was protected by side-effect only (no dedicated anti-randomness mutation).
-- **`docs/GUIDE.md` phantom-script bluff fixed**: 3 occurrences each of `verify_tmux.sh` → `verify.sh`, `setup_tmux.sh` → `setup.sh`, `install_tmux_deps.sh` → `install_deps.sh`; "8 tests" → "14 tests" (2×).
+- **`docs/guide/README.md` phantom-script bluff fixed**: 3 occurrences each of `verify_tmux.sh` → `verify.sh`, `setup_tmux.sh` → `setup.sh`, `install_tmux_deps.sh` → `install_deps.sh`; "8 tests" → "14 tests" (2×).
 - **GUIDE.md "severity hierarchy" pre-existing bluff caught** (Fixed.md A3): documented "blockers / critical / advisory" classification does not exist in `run_all.sh` — every test is treated equally (any FAIL = RED). Rewritten to describe the actual gate logic. Caught while extending the table for tests 09-14; would have been silently doubled otherwise.
 - **Verification + validation cycle 2026-05-13** (Fixed.md A14): operator invoked `superpowers:verification-before-completion` + asked for full anti-bluff verification + governance propagation. Every verification command run FRESH this session per Iron Law. Captured evidence: `setup.sh --verify-only` SUMMARY=PASS=10 FAIL=0 SKIP=5 GREEN; `test_e2e.sh` PASS=9/0/0 GREEN; test 15 PASS=6/0/0; live `tmx new -s VerifyDemo` shows operator's host shell (`milosvasic@Mistborn`, `which brew=/opt/homebrew/bin/brew`, `ulimit -t=86400`, `ulimit -u=2666`). Two defects caught and fixed: (D1) wrapper hostname resolution drifted to FQDN after bridge removal — restored scutil-LocalHostName path so colour stays `colour202` for Mistborn; (D2) `install_deps.sh` + `build_oom_set.sh` weren't OS-aware out of the box — now `install_deps.sh` detects Darwin → brew install (no sudo), `build_oom_set.sh` SKIPs on non-Linux. Governance propagation completed: verbatim user-mandate quote now in root CLAUDE.md + AGENTS.md (previously only in Constitution + Containers); §11.4.7 reference added to Containers/CLAUDE.md + Containers/AGENTS.md (previously only Containers/CONSTITUTION.md). Install state: shell snippets in both ~/.bashrc + ~/.zshrc, `zsh -c 'which tmx; tmx -V'` returns native wrapper + `tmux 3.6a`. macOS RLIMIT_AS gap documented honestly per §1 (XNU EINVAL for unprivileged setrlimit on memory).
-- **Per-session isolation + Constitution §11.4.7** (Fixed.md A13): user reported `core@localhost` + lack of OOM containment. Forensic: `tmx new -s isol1 -d` + `tmx new -s isol2 -d` previously shared ONE cgroup (`run-p504653-i504654.scope`) — README's "if one session OOMs, others survive" was a §1 bluff. Architectural rewrite: each `tmx new -s NAME` now spawns its OWN tmux server on socket `tmx-NAME` inside its OWN scope `tmx-NAME.scope` with host-adaptive `MemoryMax` (max(MemTotal × 60% / 4, 2GB)), `CPUQuota=200%`, `TasksMax=4096`, `Delegate=yes`. OOM in any session = contained to that scope; B+C survive with original MainPIDs (verified test 14 PASS=8/0/0 with stress-ng `tmx send-keys`). Test 15 NEW: per-session cgroup distinctness (6 assertions, positive readback from /sys/fs/cgroup). Test 11 + test 14 + test 08 rewritten to OPERATOR PATH (`tmx new -s NAME` instead of hand-crafted `systemd-run --user --scope`). e2e T7 NEW: bridge confirms two distinct scopes via VM systemctl. Meta-test M5 retargeted, M7 retargeted, M9+M10 NEW (10/10 mutations caught). Plan + operator decisions captured in [`docs/PER_SESSION_ISOLATION_PLAN.md`](docs/PER_SESSION_ISOLATION_PLAN.md). **Constitution §11.4.7 NEW** (operator-path test coverage rule): every gate test MUST exercise the same entry point an end-user invokes; tests that hand-craft equivalents are supplementary. Propagated to `Containers/CONSTITUTION.md` at same depth. Forensic anchor: Fixed.md A12 (status-bar green default) + A13 (sessions sharing one cgroup) — both shipped while non-operator-path tests reported GREEN.
+- **Per-session isolation + Constitution §11.4.7** (Fixed.md A13): user reported `core@localhost` + lack of OOM containment. Forensic: `tmx new -s isol1 -d` + `tmx new -s isol2 -d` previously shared ONE cgroup (`run-p504653-i504654.scope`) — README's "if one session OOMs, others survive" was a §1 bluff. Architectural rewrite: each `tmx new -s NAME` now spawns its OWN tmux server on socket `tmx-NAME` inside its OWN scope `tmx-NAME.scope` with host-adaptive `MemoryMax` (max(MemTotal × 60% / 4, 2GB)), `CPUQuota=200%`, `TasksMax=4096`, `Delegate=yes`. OOM in any session = contained to that scope; B+C survive with original MainPIDs (verified test 14 PASS=8/0/0 with stress-ng `tmx send-keys`). Test 15 NEW: per-session cgroup distinctness (6 assertions, positive readback from /sys/fs/cgroup). Test 11 + test 14 + test 08 rewritten to OPERATOR PATH (`tmx new -s NAME` instead of hand-crafted `systemd-run --user --scope`). e2e T7 NEW: bridge confirms two distinct scopes via VM systemctl. Meta-test M5 retargeted, M7 retargeted, M9+M10 NEW (10/10 mutations caught). Plan + operator decisions captured in [`docs/plans/per-session-isolation.md`](docs/plans/per-session-isolation.md). **Constitution §11.4.7 NEW** (operator-path test coverage rule): every gate test MUST exercise the same entry point an end-user invokes; tests that hand-craft equivalents are supplementary. Propagated to `Containers/CONSTITUTION.md` at same depth. Forensic anchor: Fixed.md A12 (status-bar green default) + A13 (sessions sharing one cgroup) — both shipped while non-operator-path tests reported GREEN.
 - **Regression protection for A10 — gate-coverage gap closed** (Fixed.md A11): user demanded "make sure nothing passes again! zero-bluff policy MUST BE followed blindly!" — honest accounting of why the existing gates missed the colour bug:
   - test 11 always passed `-S "$SOCKET"` → tested explicit-socket path only; operator's default-socket use case uncovered.
   - meta-test M4/M5 targeted `scripts/tmx` (the SSH bridge on Darwin) instead of `scripts/tmx-vm` (the actual VM wrapper) — paired-mutation harness was mutating the wrong file.
@@ -162,7 +162,7 @@ Triggering event: user invoked `/init` followed by "what is left unfinished, no-
   - **Bridge mechanics**: `scripts/tmx-mac.template` discovers podman machine's SSH endpoint via `podman machine inspect` at every call (port re-discovery — survives `podman machine stop && start`), verifies `tmx-vm` is executable in the VM, then `ssh -t -i <identity> -p <port> core@127.0.0.1 "<vm-repo>/scripts/tmx-vm <quoted-args>"`.
   - **Verified end-to-end on Darwin 24.5.0 / Apple Silicon**: `zsh -c 'source ~/.zshrc; which tmx; tmx -V'` → `/Users/.../scripts/tmx` + `tmux 3.6a`; system `/opt/homebrew/bin/tmux -V` → `tmux 3.6a` — side-by-side coexistence proven; VM-side verify GREEN PASS=11 FAIL=0 SKIP=3.
   - **`scripts/verify.sh` now respects `$WRAPPER` and `$TMUX_BIN` env vars** so test_vm.sh / bridge tooling can redirect to the right wrapper without source modifications.
-  - **README.md** gained a new "Architecture" section with ASCII diagram showing Linux-native vs Darwin-bridge dispatch; `docs/GUIDE.md` §5.5 documents the bridge mechanics + Mermaid flowchart; CLAUDE/AGENTS one-liners updated.
+  - **README.md** gained a new "Architecture" section with ASCII diagram showing Linux-native vs Darwin-bridge dispatch; `docs/guide/README.md` §5.5 documents the bridge mechanics + Mermaid flowchart; CLAUDE/AGENTS one-liners updated.
 - **Final sweep — env-specific wrapper + §255 violations + sed portability** (Fixed.md A7):
   - **Environment-bound wrapper:** `scripts/tmx` was generated for one env (container `/repo` paths OR VM `/Users/.../` paths) and silently failed in the other. New `scripts/test_vm.sh` orchestrator regenerates the wrapper with VM-native paths before each VM-side run. Both `test_containerized.sh` and `test_vm.sh` now own the wrapper-regeneration step for their respective target.
   - **Constitution §255 violations:** "ATMOSphere" in GUIDE.md title + body, challenge yaml description, oom_set.c license comment, tmux.conf.template attribution; `atm_tmux_test_*` / `atm_test_*` / `atm_tmx_test_color_*` socket/session names across 8 test files; `~/.tmux.conf.pre-atmosphere` backup naming. All renamed: code uses `tmx_*` / `pre-vasic-digital`; docs branded "vasic-digital".
@@ -208,6 +208,87 @@ The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque co
 - Updated `Issues.md`: A1 removed (→ Fixed.md A1). Issues.md now has
   **zero open items** — all originally seeded items are closed.
 - Cleaned up `CONTINUATION.md` §3.6: removed stale "remaining open" note.
+
+### §3.10 — CodeGraph (§11.4.78) + verbatim covenant + AUDIT fixes + docs reorg (2026-05-21)
+
+**Status:** COMPLETE (2026-05-21T05:30Z).
+
+Triggering events (in arrival order):
+
+- Operator (2026-05-21): create full working plan for tackling all
+  these points completely; all existing tests + Challenges MUST work
+  anti-bluff; covenant MUST be part of project + submodule
+  Constitution / CLAUDE / AGENTS; HelixConstitution submodule is the
+  root.
+- Operator (2026-05-21): incorporate / install CodeGraph for Claude
+  Code, OpenCode, Kimi CLI, Crush, Qwen Code; comprehensive anti-bluff
+  tests.
+- Operator (2026-05-21): full documentation + user guides + HTML + PDF
+  exports.
+- Operator (2026-05-21): do NOT modify constitution submodule, only
+  keep it regularly updated.
+- Operator (2026-05-21): documentation under context-named
+  subdirectories per the constitution rule.
+
+Plan + execution captured at `docs/plans/v1.0.4.md`. Eight phases all
+landed in one v1.0.4 commit per §11.4.42 iteration discipline.
+
+- **A18 CodeGraph integration (§11.4.78).** CLI v0.6.8 installed;
+  `.codegraph/config.json` tracked with §11.4.10 secret exclusions +
+  §11.4.28 owned-submodule paths; `.codegraph/codegraph.db`
+  gitignored; §11.4.77 regen manifest + `scripts/codegraph_reindex.sh`.
+  MCP wired for all 5 agents (Claude Code `.mcp.json` NEW; OpenCode +
+  Kimi audited; Crush `.crush.json` NEW; Qwen Code `.qwen/settings.json`
+  NEW). All configs reference bare `codegraph` on PATH. Comprehensive
+  `docs/codegraph/README.md`. Tests 20/21/22, challenges CH-20/21/22,
+  mutations M16/M17.
+
+- **A19 verbatim covenant propagation.** §11.4 2026-04-28 user mandate
+  now LITERALLY present in project `CLAUDE.md` + `AGENTS.md` +
+  `QWEN.md` (was only in `Constitution.md`). Verify.sh Layer-1 gate
+  added; test 19 PASS=7/0/0; CH-19; M15 (mutates a temp copy — real
+  CLAUDE.md is never touched).
+
+- **A20 AUDIT-1 fix.** M4/M5 meta-test mutations were silently
+  SKIPping on Darwin for the wrong reason (BSD `sed -i` quirk). Real
+  root cause: the mutations target Linux-only cgroup/systemd-run
+  wrapper code unreachable on Darwin. Fix: explicit `uname -s`
+  topology guard per §11.4.3 + portable `inplace_sed` for Linux runs.
+
+- **A21 AUDIT-2 fix.** `tmx kill -t NAME` (documented friendly verb)
+  was ambiguous because tmux only knows `kill-pane`/`kill-server`/
+  `kill-session`/`kill-window`. Wrapper now translates the bare `kill`
+  verb to `kill-session`. Test 23 PASS=5/0/0; CH-23; M19.
+
+- **Docs reorganised** under context-named subdirectories per the
+  operator's invocation of the constitution rule: 7 docs moved
+  (GUIDE/SCROLLING/CODEGRAPH/CONTAINERIZATION_PLAN/NATIVE_DUAL_OS_PLAN/
+  PER_SESSION_ISOLATION_PLAN/PLAN_v1.0.4). Every reference in
+  governance + scripts updated atomically.
+
+- **§11.4.65 universal-Markdown export.** New `scripts/export_docs.sh`
+  (pandoc HTML + weasyprint PDF, idempotent, per-file timeout 60s)
+  refreshed siblings for every consumer Markdown.
+
+- **§11.4.71 pre-push.** Parent + `constitution/` + `Containers/` all
+  at upstream tip; no divergent commits.
+
+- **Honest gaps logged (§11.4.6) — out of scope this cycle:**
+  - Upstream `constitution/QWEN.md` covenant insert → separate PR to
+    `HelixDevelopment/HelixConstitution` (operator forbids modifying
+    constitution from inside this project).
+  - `Containers/QWEN.md` create + populate → separate PR to
+    `vasic-digital/Containers` per §11.4.28.
+  - Shell parser for CodeGraph (currently only the C file indexed,
+    6 nodes) → upstream contribution to add tree-sitter shell.
+  - Agent-driven unforgeable-challenge end-to-end test → classified
+    `AUTONOMOUS_DESIGNED` per §11.4.52 carve-out (mechanical seam
+    exists via test 22 T7; agent-driven layer lands when a headless
+    agent harness is wired).
+
+Full gate this cycle (Darwin arm64, 2026-05-21): `setup.sh --verify-only`
+PASS=18/0/SKIP=5, meta-test 26/0/SKIP=6 (all SKIPs §11.4.3
+topology-correct), e2e 9/0/0.
 
 ### §3.9 — Scrolling fix + HelixConstitution inheritance (2026-05-21)
 

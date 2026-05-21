@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="vasic-digital-tmux--qwenmd">vasic-digital tmux — QWEN.md</h1>
+<blockquote>
+<p>Qwen Code CLI agent view of this project&#39;s governance. Base agent
+rules live at <code>constitution/QWEN.md</code> and the
+<code>constitution/Constitution.md</code> it references. <strong>READ
+THOSE FIRST.</strong> This file extends them with project-specific
+rules; it never weakens them. Canonical project authority: <a href="Constitution.md"><code>Constitution.md</code></a> — Project
+Articles §101–§109. For the full agent rule set see <a href="AGENTS.md"><code>AGENTS.md</code></a>, which this file
+mirrors.</p>
+</blockquote>
+<p><strong>Fresh-conversation workflow:</strong> read
+<code>CONTINUATION.md</code> first (§0/§3/§8 mandatory), then
+<code>Issues.md</code> for OPEN/PARTIAL/BLOCKED/RUNNING.</p>
+<h2 id="mandatory-anti-bluff-end-user-quality-covenant">MANDATORY
+ANTI-BLUFF END-USER-QUALITY COVENANT</h2>
+<p><strong>Forensic anchor — verbatim user mandate (2026-04-28,
+reasserted 2026-05-21):</strong></p>
+<blockquote>
+<p>&quot;We had been in position that all tests do execute with success and
+all Challenges as well, but in reality the most of the features does not
+work and can&#39;t be used! This MUST NOT be the case and execution of tests
+and Challenges MUST guarantee the quality, the completion and full
+usability by end users of the product!&quot;</p>
+</blockquote>
+<p><strong>Operative rule.</strong> The bar for shipping is
+<strong>not</strong> &quot;tests pass&quot; but <strong>&quot;end users can actually
+use the feature.&quot;</strong> Every PASS — test OR HelixQA Challenge — MUST
+carry positive captured runtime evidence that the feature works for the
+end user. Metadata-only PASS, configuration- only PASS,
+&quot;absence-of-error&quot; PASS, and grep-without-runtime PASS are all critical
+defects regardless of how green the summary line looks. Tests and
+Challenges are bound EQUALLY.</p>
+<p>This covenant is restated verbatim in every governance file at the
+consumer layer (<code>CLAUDE.md</code>, <code>AGENTS.md</code>,
+<code>QWEN.md</code>) so any tool that does not expand
+<code>@imports</code> still reads it. The same verbatim block lives
+upstream at <code>constitution/Constitution.md</code> §11.4,
+<code>constitution/CLAUDE.md</code>, and
+<code>constitution/AGENTS.md</code>. Removing or weakening this block is
+a §11.4-class release blocker.</p>
+<p>Canonical authority: <code>constitution/Constitution.md</code> §11.4
+and its sub-anchors §11.4.1 through §11.4.78. Project anchor: <a href="Constitution.md"><code>Constitution.md</code></a> §101.</p>
+<p>Non-compliance is a release blocker regardless of context.</p>
+<h2 id="project-overview">Project overview</h2>
+<p>Verified hardened tmux 3.6a build with jemalloc, OOM protection, and
+per-session isolation via the <code>tmx</code> wrapper. Native dual-OS:
+each <code>tmx new -s NAME</code> spawns its own tmux server with
+OS-native isolation — cgroup-v2 scope on Linux, POSIX rlimit wrapper on
+macOS. Session shell is the operator&#39;s host shell with full PATH. No
+VM.</p>
+<h2 id="critical-base-rules-restated-for-agents-that-dont-follow-imports">Critical
+base rules restated (for agents that don&#39;t follow @imports)</h2>
+<ul>
+<li><strong>No bluffing.</strong> Every PASS — test OR HelixQA Challenge
+— carries positive runtime evidence (file <em>content</em>, not
+existence). Universal §11.4 / Project §101.</li>
+<li><strong>FAIL-bluffs forbidden.</strong> Fix script-bug failures at
+the source layer, never at call sites. Universal §11.4.1.</li>
+<li><strong>No-guessing language.</strong> <code>likely</code>,
+<code>probably</code>, <code>maybe</code>, <code>seems</code>,
+<code>appears</code> are forbidden when reporting causes — prove with
+forensic evidence or mark <code>UNCONFIRMED:</code> /
+<code>PENDING_FORENSICS:</code>. Universal §11.4.6.</li>
+<li><strong>Operator-path coverage.</strong> Gate tests use
+<code>tmx new -s X</code>. Project §102.</li>
+<li><strong>Four-layer coverage.</strong> Every defect lands pre-build
+gate + runtime test + HelixQA Challenge + paired mutation. Project
+§103.</li>
+<li><strong>Use the commit wrapper.</strong>
+<code>bash commit_all.sh &quot;&lt;msg&gt;&quot;</code> only — no direct
+<code>git push</code> on the main repo.</li>
+<li><strong>Never force-push</strong> without explicit per-operation
+authorization.</li>
+<li><strong>CONTINUATION.md</strong> kept in sync in every non-trivial
+commit. Universal §12.10.</li>
+<li><strong>60 % RAM cap</strong> enforced per-session via
+<code>TMX_MEM</code>. Project §106.</li>
+</ul>
+<h2 id="commands-exact">Commands (exact)</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Install build deps</td>
+<td><code>bash scripts/install_deps.sh</code></td>
+</tr>
+<tr>
+<td>Full pipeline</td>
+<td><code>bash scripts/setup.sh</code></td>
+</tr>
+<tr>
+<td>Verification gate</td>
+<td><code>bash scripts/verify.sh</code></td>
+</tr>
+<tr>
+<td>Run all tests</td>
+<td><code>bash scripts/tests/run_all.sh</code></td>
+</tr>
+<tr>
+<td>Inheritance gate</td>
+<td><code>bash scripts/tests/test_constitution_inheritance.sh</code></td>
+</tr>
+<tr>
+<td>Meta-test (paired mutation)</td>
+<td><code>bash scripts/tests/meta_test_false_positive_proof.sh</code></td>
+</tr>
+<tr>
+<td>End-to-end automation</td>
+<td><code>bash scripts/test_e2e.sh</code></td>
+</tr>
+<tr>
+<td>Commit + push (github+gitlab)</td>
+<td><code>bash commit_all.sh &quot;message&quot;</code></td>
+</tr>
+<tr>
+<td>Per-session wrapper</td>
+<td><code>tmx {new|attach|ls|kill}</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="project-specific-agent-rules">Project-specific agent rules</h2>
+<h3 id="forbidden-in-this-project">Forbidden in this project</h3>
+<ul>
+<li>Editing <code>tmux/</code>, <code>constitution/</code>, or generated
+files (<code>scripts/tmx</code>, <code>tmux/build*/</code>).</li>
+<li>Direct <code>git push</code> on the main repo — use
+<code>commit_all.sh</code>.</li>
+<li>CI/CD pipeline files; HTTPS Git remotes (SSH only).</li>
+<li>Advancing the <code>tmux/</code> submodule off tag <code>3.6a</code>
+without an explicit documented decision (Project §107).</li>
+</ul>
+<h3 id="project-specific-workflow">Project-specific workflow</h3>
+<ul>
+<li><strong>Test-interrupt-on-discovery</strong> (§103): a defect found
+mid-cycle STOPS the cycle — fix root cause, land four layers, rebuild,
+repeat.</li>
+<li><strong>Topology dispatch</strong> (§104): tests detect host
+topology and SKIP-with-reason; never silently degrade.</li>
+<li><strong>Destructive tests</strong> (12/13/14): require
+<code>TMX_TEST_DESTRUCTIVE=1</code>.</li>
+</ul>
+<h2 id="project-overrides-of-universal-rules">Project overrides of
+universal rules</h2>
+<p>None.</p>
+</body>
+</html>

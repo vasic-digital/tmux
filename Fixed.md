@@ -54,6 +54,202 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A21. AUDIT-2 fix: `tmx kill` shorthand resolves to `kill-session` — `RESOLVED`
+
+**Closure cycle:** v1.0.4 / versionCode 5 (2026-05-21).
+**Reported:** my own §11.4.6 audit (2026-05-21) — README/AGENTS commands
+table lists `tmx {new|attach|ls|kill}` as the friendly operator
+vocabulary, but the bare `tmx kill -t NAME` was passed through to tmux
+and rejected as ambiguous ("could be: kill-pane, kill-server,
+kill-session, kill-window"). A documented operator-path was silently
+broken — a §11.4 UX-layer PASS-bluff at the doc layer.
+
+**Fix:**
+- `scripts/tmx.template` — added a SUBCMD discovery hook that detects
+  the bare `kill` verb and translates it to `kill-session`, then
+  rewrites `"$@"` so downstream dispatch sees the canonical verb.
+- Does NOT intercept `kill-pane` / `kill-server` / `kill-session` /
+  `kill-window` — those still pass through verbatim.
+
+**Captured evidence (4-layer per §103):**
+- Layer 2: `scripts/tests/23_tmx_kill_shorthand.sh` — PASS=5/0/0;
+  operator-path per §102 (spawns `tmx new -s NAME -d`, kills via
+  friendly `tmx kill -t NAME`, captures stderr, asserts no "ambiguous"
+  leak, verifies session gone via both `tmx ls` and direct socket
+  query).
+- Layer 3: `TMUX-CH-23` in `scripts/challenges/tmux.yaml`.
+- Layer 4: `M19` (regex-strips the entire AUDIT-2 translation block
+  from the generated `scripts/tmx`; asserts test 23 T3 FAILs; restores
+  + asserts test 23 PASSes).
+
+**Regression-protection:** test 23; M19.
+
+### A20. AUDIT-1 fix: M4/M5 paired mutations — Darwin topology dispatch — `RESOLVED`
+
+**Closure cycle:** v1.0.4 / versionCode 5 (2026-05-21).
+**Reported:** my own §11.4.6 audit (2026-05-21) — M4/M5 used raw GNU
+`sed -i 's|…|…|'` which silently SKIPped on Darwin BSD sed with the
+WRONG reason ("mutation command failed to apply").
+
+**Root cause (forensic, no guessing per §11.4.6):**
+1. Direct `sed -i` is GNU-only; BSD sed needs `sed -i ''` — mismatch
+   makes the mutation command exit non-zero on Darwin.
+2. The mutations target `systemd-run` / `MemoryMax` strings — which are
+   in the Linux cgroup path of `scripts/tmx`. On Darwin the wrapper
+   uses POSIX rlimit instead (Fixed.md A4-A8 native dual-OS). Mutating
+   those strings on Darwin would either hit unreachable code (no
+   signal) or leave the test happy. So even WITH portable sed, M4/M5
+   on Darwin would escape detection unless test 09 happened to fail
+   for an unrelated reason.
+
+**Fix:**
+- `scripts/tests/meta_test_false_positive_proof.sh` — added an
+  explicit `uname -s` topology guard around M4/M5. On non-Linux hosts
+  both SKIP-with-reason per §11.4.3 ("Linux-only mutation per topology
+  dispatch"). On Linux, both run with the portable `inplace_sed`
+  helper that already protected M1/M2/M3/M6 (added in A17).
+
+**Captured evidence (4-layer per §103):**
+- Layer 4 (meta-test itself is layer 4): on Darwin the SKIP reason is
+  now §11.4.3-correct instead of a silent BSD-sed quirk. On Linux the
+  mutations run and exercise the wrapper code. Meta-test summary on
+  this Darwin host: `20 caught / 0 escaped / 6 skipped` (M4/M5/M7/M8/M9/M10
+  — all six SKIPs §11.4.3 topology-correct).
+
+**Anti-bluff note:** This fix UNCOVERED a long-standing latent bluff —
+M4/M5 had been silently SKIPping on Darwin for the wrong reason, so
+the team thought they had coverage when they didn't. The fix is now
+honest about topology limits (SKIP only on Linux is meaningful).
+
+**Regression-protection:** the topology-guard pattern itself; any
+future Linux-host run will exercise M4/M5 and catch wrapper-side
+regressions to the cgroup path.
+
+### A19. Verbatim anti-bluff covenant propagated to every consumer governance file — `RESOLVED`
+
+**Closure cycle:** v1.0.4 / versionCode 5 (2026-05-21).
+**Requested:** operator mandate, 2026-05-21 — "[the anti-bluff
+covenant] MUST BE part of Constitution of our project, its CLAUDE.MD
+and AGENTS.MD if it is not there already, and to be applied to all
+Submodules's Constitution, CLAUDE.MD and AGENTS.MD as well (if not
+there already)!"
+
+**Pre-fix audit (captured this session per §11.4.2):**
+- `Constitution.md`: 1 hit ✓; `CLAUDE.md`: 0; `AGENTS.md`: 0;
+  `QWEN.md`: 0 — three gaps in the consumer layer.
+- `constitution/Constitution.md`: 1; `constitution/CLAUDE.md`: 1;
+  `constitution/AGENTS.md`: 1; `constitution/QWEN.md`: 0 (upstream gap,
+  separate cycle per §11.4.26 step 4).
+- `Containers/Constitution.md`: 2; `Containers/CLAUDE.md`: 3;
+  `Containers/AGENTS.md`: 3; `Containers/QWEN.md`: missing (separate
+  cycle).
+
+**Fix (consumer-layer scope this cycle):**
+- Inserted the verbatim 2026-04-28 user mandate as a
+  `## MANDATORY ANTI-BLUFF END-USER-QUALITY COVENANT` section into
+  project `CLAUDE.md`, `AGENTS.md`, and `QWEN.md` — directly after the
+  inheritance pointer block (so `@import`-aware tools see both; tools
+  that don't expand `@imports` see the literal block).
+- Verified: every consumer file now contains the literal
+  "We had been in position that all tests do execute with success"
+  anchor.
+
+**Captured evidence (4-layer per §103):**
+- Layer 1 (static gate): `scripts/verify.sh` greps each of the 4
+  consumer governance files for the literal anchor — pre-suite
+  refusal if any is missing.
+- Layer 2 (runtime test): `scripts/tests/19_covenant_propagation.sh`
+  — PASS=7/0/0. T1-T4 verify covenant in each file, T5 verifies §11.4
+  / §101 cross-reference present, T6 verifies upstream
+  `constitution/Constitution.md` still has the anchor (composition
+  check), T7 verifies §11.4.65 HTML+PDF siblings in sync (soft).
+- Layer 3 (challenge): `TMUX-CH-19` in `scripts/challenges/tmux.yaml`.
+- Layer 4 (paired mutation): `M15` strips the literal anchor from a
+  TEMP COPY of CLAUDE.md (the real file is never touched), asserts
+  test 19 T2 FAILs, restores, asserts test 19 PASSes.
+
+**Out-of-scope this cycle (logged honestly per §11.4.6):**
+- Upstream `constitution/QWEN.md` covenant insert — needs separate PR
+  to `HelixDevelopment/HelixConstitution` (the user mandate
+  2026-05-21 explicitly forbids modifying constitution from inside
+  this project).
+- `Containers/QWEN.md` create — needs separate PR to `vasic-digital/
+  Containers` per §11.4.28 owned-submodule equal-codebase mandate;
+  separate cycle.
+
+**Regression-protection:** test 19; verify.sh layer-1 gate; M15.
+
+### A18. CodeGraph code-intelligence integration (§11.4.78) — `RESOLVED`
+
+**Closure cycle:** v1.0.4 / versionCode 5 (2026-05-21).
+**Mandate:** `constitution/Constitution.md` §11.4.78 +
+operator follow-up 2026-05-21 — "Incorporate / install codegraph into
+the our project … installed for Claude Code, OpenCode, Kimi CLI,
+Crush, Qwen Code … create comprehensive tests to validate and verify
+with anti-bluff approach that codegraph is working completely as
+expected!"
+
+**Change:**
+- Installed `@colbymchenry/codegraph` v0.6.8 globally (npm prefix
+  user-writable per §11.4.78 — no sudo).
+- `codegraph init` in repo root → `.codegraph/config.json` tracked,
+  `.codegraph/codegraph.db` gitignored.
+- Augmented `config.json` `exclude` list with §11.4.10 secret patterns
+  (`.env*`, `*.pem`, `*.key`, `*.crt`, `id_rsa*`, `id_ed25519*`,
+  `secrets/`) + §11.4.28 owned-submodule paths
+  (`constitution/**`, `Containers/**`, `tmux/**`). 119 total exclude
+  entries.
+- §11.4.30 `.gitignore` updated for `.codegraph/codegraph.db*`.
+- §11.4.77 regeneration manifest at
+  `.gitignore-meta/codegraph-db.yaml` + executable
+  `scripts/codegraph_reindex.sh` (idempotent, writes
+  `.gitignore-meta/.regenerated/codegraph-db.ok` stamp).
+- MCP wiring per agent (5 configs):
+  - `.mcp.json` (Claude Code, project-scoped, NEW)
+  - `~/.config/opencode/opencode.json` (OpenCode, already had entry,
+    audited correct)
+  - `~/.kimi/mcp.json` (Kimi CLI, already had entry, audited correct)
+  - `.crush.json` (Crush, project-scoped, NEW)
+  - `.qwen/settings.json` (Qwen Code, project-scoped, NEW)
+- All configs reference the bare `codegraph` command on PATH (no
+  hardcoded host paths) per §11.4.78 portability.
+
+**Captured evidence (4-layer per §103):**
+- Layer 2: three new tests, all PASS:
+  - `scripts/tests/20_codegraph_installed.sh` — PASS=5/0/0; CLI
+    version 0.6.8 captured, 12 required exclude patterns verified,
+    .gitignore + §11.4.77 manifest checked.
+  - `scripts/tests/21_codegraph_index_present.sh` — PASS=4/0/0;
+    `.codegraph/codegraph.db` 155648 bytes, `codegraph status` reports
+    6 nodes (positive runtime evidence per §11.4.5; the small index
+    reflects honest gap — CodeGraph 0.6.8 ships no shell parser, see
+    docs/codegraph/README.md §9), stamp file present.
+  - `scripts/tests/22_codegraph_mcp_wired.sh` — PASS=7/0/0; all 5
+    agent configs JSON-parsed, every `command` field references the
+    bare `codegraph`, T7 spawns `codegraph serve --mcp` and asserts it
+    stays alive > 400ms.
+- Layer 3: `TMUX-CH-20` + `TMUX-CH-21` + `TMUX-CH-22` in
+  `scripts/challenges/tmux.yaml`.
+- Layer 4: `M16` (strip `**/*.pem` from config.json) → test 20 T3
+  FAILs; `M17` (strip codegraph from `.mcp.json`) → test 22 T1 FAILs.
+  Both MUTATION CAUGHT + FEATURE INTACT both directions.
+- Comprehensive documentation: `docs/codegraph/README.md` (§1-§11) with
+  install, prereqs, per-agent wiring table, anti-bluff verification
+  contract, troubleshooting, honest gaps.
+
+**Honest gaps (§11.4.6):**
+- Shell parser not shipped with CodeGraph 0.6.8 — only the C file
+  indexed (6 nodes). Honest, not bluff. Upstream contribution to add
+  shell tree-sitter is out of scope this cycle per §11.4.74.
+- Agent-driven unforgeable-challenge end-to-end test classified
+  `AUTONOMOUS_DESIGNED` per §11.4.52 carve-out (mechanical seam exists
+  via test 22 T7; agent-driven layer lands in a follow-up cycle when
+  a headless agent harness is wired).
+
+**Regression-protection:** tests 20, 21, 22; M16; M17;
+`scripts/codegraph_reindex.sh` (regen mechanism per §11.4.77).
+**Tracked task:** operator mandate 2026-05-21 (this cycle).
+
 ### A17. HelixConstitution governance submodule + verified inheritance — `RESOLVED`
 
 **Closure cycle:** v1.0.3 / versionCode 4 (2026-05-21).
@@ -360,7 +556,7 @@ M12 + M13.
   - Test 14 hand-spawned three `systemd-run --user --scope` units
     by hand to simulate isolation. It PASSed while the operator-
     facing `tmx new` path placed everything in one cgroup.
-* **Plan + decision capture:** [`docs/PER_SESSION_ISOLATION_PLAN.md`](docs/PER_SESSION_ISOLATION_PLAN.md)
+* **Plan + decision capture:** [`docs/plans/per-session-isolation.md`](docs/plans/per-session-isolation.md)
   §6 records the four operator decisions made before implementation:
   host-adaptive memory budget (§12.6 / 4), unit-name sanitise +
   error-on-collision, explicit `systemctl stop` cleanup, no macOS
@@ -418,8 +614,8 @@ M12 + M13.
 * **Challenges yaml:** CH-14 description updated to reflect operator-
   path coverage; CH-15 added (per-session distinctness).
 * **Documentation:** README architecture diagram redrawn for per-
-  session scope tree; `docs/GUIDE.md` §5.6 new section documenting
-  naming, caps, cleanup, and verification; `docs/PER_SESSION_ISOLATION_PLAN.md`
+  session scope tree; `docs/guide/README.md` §5.6 new section documenting
+  naming, caps, cleanup, and verification; `docs/plans/per-session-isolation.md`
   records the plan + operator decisions for future audit;
   `CLAUDE.md` + `AGENTS.md` reference §11.4.7 + per-session arch.
 * **Captured post-fix evidence (all four gates GREEN simultaneously):**
@@ -440,7 +636,7 @@ M12 + M13.
 ### A12. Plan-doc for per-session containerization landed — `RESOLVED`
 
 * **Closure cycle:** 2026-05-13.
-* **Closure commit:** `abb0af8` (`Add docs/PER_SESSION_ISOLATION_PLAN.md`).
+* **Closure commit:** `abb0af8` (`Add docs/plans/per-session-isolation.md`).
 * **Discovery context:** user "Do in depth research and plan the
   changes" — landed the plan document before implementation per the
   operator's explicit instruction.
@@ -713,7 +909,7 @@ M12 + M13.
   machine restarts don't break it. Both `scripts/tmx-vm` and
   `scripts/tmx-mac.template` are regenerated by `setup.sh` so a fresh
   install on a different macOS user is reproducible. Documentation
-  diagram in `docs/GUIDE.md` §5.5 + README.md "Architecture" section.
+  diagram in `docs/guide/README.md` §5.5 + README.md "Architecture" section.
 * **Tracked task:** none originally — caught when user invoked setup.sh
   and asked for operational tmx.
 
@@ -744,8 +940,8 @@ M12 + M13.
     target environment. Operators don't share `scripts/tmx` across
     contexts.
 * **Defect 2 — Constitution §255 violations in production code:**
-  - `docs/GUIDE.md:1` title was "ATMOSphere Optimized tmux".
-  - `docs/GUIDE.md:216` referenced "ATMOSphere's actual production use".
+  - `docs/guide/README.md:1` title was "ATMOSphere Optimized tmux".
+  - `docs/guide/README.md:216` referenced "ATMOSphere's actual production use".
   - `scripts/challenges/tmux.yaml:10` described "tmux from the
     ATMOSphere build".
   - `scripts/oom_set.c:29` claimed "License: same as ATMOSphere
@@ -1008,7 +1204,7 @@ M12 + M13.
 
 * **Closure cycle:** 2026-05-13.
 * **Closure commit:** (this commit).
-* **Discovery context:** while updating `docs/GUIDE.md` §4 to add tests
+* **Discovery context:** while updating `docs/guide/README.md` §4 to add tests
   09-14 to the table, I almost extended the existing "severity hierarchy"
   paragraph by adding test 09 to "blockers" and 10/11 to "critical".
   Before committing, audited `scripts/verify.sh` + `scripts/tests/run_all.sh`
@@ -1017,7 +1213,7 @@ M12 + M13.
   (exit 1, no PATH export). The severity hierarchy described in the docs
   did not exist in the code.
 * **Source-side fix:** replaced the "Severity hierarchy: 01+02+08 blockers,
-  03/06/07 critical, 04/05 advisory" paragraph in `docs/GUIDE.md` §4 with
+  03/06/07 critical, 04/05 advisory" paragraph in `docs/guide/README.md` §4 with
   an honest description of the actual gate logic: "any FAIL = RED, every
   test treated equally; SKIPs are honest precondition gates; tests 12/13/14
   are destructive and opt-in via `TMX_TEST_DESTRUCTIVE=1`."
@@ -1059,7 +1255,7 @@ M12 + M13.
     twice = same colour) must FAIL under M6 — this is the dedicated
     coverage for the "same-host = same-color" user invariant that was
     previously only protected by side-effect.
-  - `docs/GUIDE.md`: `verify_tmux.sh` → `verify.sh` (3×), `setup_tmux.sh`
+  - `docs/guide/README.md`: `verify_tmux.sh` → `verify.sh` (3×), `setup_tmux.sh`
     → `setup.sh` (3×), `install_tmux_deps.sh` → `install_deps.sh` (3×),
     "8 tests" → "14 tests" (2×). The phantom-script bluff is closed.
 * **Captured evidence:**

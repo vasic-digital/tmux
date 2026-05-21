@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="scrolling-terminal-output-in-tmx">Scrolling terminal output in
+<code>tmx</code></h1>
+<p>This build is configured so you can scroll back through terminal
+output <strong>from any device</strong> — a desktop mouse, a laptop
+trackpad, or a phone (Termux on Android) — and it works the same inside
+full-screen TUIs such as the Claude Code TUI.</p>
+<p>All of this is set up automatically by
+<code>bash scripts/setup.sh</code>. The settings live in <a href="../scripts/tmux.conf.template"><code>scripts/tmux.conf.template</code></a>,
+which the <code>tmx</code> wrapper loads on every
+<code>tmx new</code>.</p>
+<h2 id="what-you-get">What you get</h2>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>history-limit</code></td>
+<td><code>50000</code> lines</td>
+<td>Output history survives — you can scroll a long way back.</td>
+</tr>
+<tr>
+<td><code>mode-keys</code></td>
+<td><code>vi</code></td>
+<td>vi-style navigation in copy-mode.</td>
+</tr>
+<tr>
+<td><code>mouse</code></td>
+<td><code>on</code></td>
+<td>Wheel + touch scrolling.</td>
+</tr>
+<tr>
+<td><code>WheelUpPane</code> / <code>WheelDownPane</code></td>
+<td>copy-mode override</td>
+<td>The wheel <strong>always</strong> scrolls tmux&#39;s own buffer — even
+inside Claude Code.</td>
+</tr>
+<tr>
+<td><code>allow-passthrough</code></td>
+<td><code>on</code></td>
+<td>Apps can pass escape sequences through tmux.</td>
+</tr>
+<tr>
+<td><code>extended-keys</code></td>
+<td><code>on</code></td>
+<td>Modified keys (e.g. <code>Shift+Enter</code>) reach the app.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-claude-code-tui-fix">The Claude Code TUI fix</h2>
+<p>The Claude Code TUI requests mouse reporting from the terminal. With
+tmux&#39;s <em>default</em> wheel binding, that means the wheel is forwarded
+to Claude Code instead of scrolling tmux&#39;s scrollback — so you cannot
+scroll back through earlier output.</p>
+<p>This build overrides <code>WheelUpPane</code> /
+<code>WheelDownPane</code> so the wheel (and a touch-scroll, which
+terminals deliver as wheel events) <strong>always</strong> drives tmux
+copy-mode scrollback. You scroll the real output history regardless of
+what the running application does with the mouse.</p>
+<h2 id="how-to-scroll">How to scroll</h2>
+<h3 id="with-a-mouse-or-trackpad">With a mouse or trackpad</h3>
+<ul>
+<li><strong>Scroll up</strong> — wheel up. tmux enters copy-mode and
+scrolls back.</li>
+<li><strong>Scroll down</strong> — wheel down. When you reach the
+bottom, copy-mode exits automatically.</li>
+</ul>
+<h3 id="without-a-mouse--keyboard-and-phones">Without a mouse — keyboard
+(and phones)</h3>
+<ul>
+<li><code>Ctrl-b</code> then <code>[</code> — enter copy-mode.</li>
+<li><code>Ctrl-b</code> then <code>PageUp</code> — enter copy-mode
+<strong>and</strong> page up in one motion.</li>
+<li>In copy-mode: <code>k</code>/<code>j</code> line up/down,
+<code>Ctrl-u</code>/<code>Ctrl-d</code> half-page,
+<code>PageUp</code>/<code>PageDown</code>, <code>g</code>/<code>G</code>
+top/bottom, <code>/</code> search forward, <code>?</code> search back,
+<code>q</code> to exit.</li>
+</ul>
+<h3 id="on-a-phone-termux--android">On a phone (Termux / Android)</h3>
+<ul>
+<li><strong>Touch-scroll</strong> the terminal — Termux delivers the
+swipe as wheel events, so it enters copy-mode and scrolls, exactly like
+a mouse.</li>
+<li>The <code>Ctrl-b [</code> route also works using Termux&#39;s extra-keys
+row (enable it with a long-press on the keyboard area if hidden).</li>
+</ul>
+<h2 id="copying-text">Copying text</h2>
+<p>In copy-mode: press <code>v</code> to start a selection, move the
+cursor, then press <code>y</code> or <code>Enter</code> to copy. A mouse
+drag also selects and copies on release.</p>
+<p>The selection is routed to your system clipboard automatically — the
+config detects <code>pbcopy</code> (macOS), <code>wl-copy</code>
+(Wayland), <code>xclip</code> (X11), or
+<code>termux-clipboard-set</code> (Termux) at copy time, and also emits
+OSC-52 so copying works over SSH and on terminals that support it.</p>
+<h2 id="verifying-it-works">Verifying it works</h2>
+<p>The behaviour is covered by
+<code>scripts/tests/17_scrollback_copy_mode.sh</code>, which runs as
+part of the verification gate. It spawns a real session via
+<code>tmx new</code>, generates 3000 lines of output, proves the first
+line scrolled off the visible screen, then proves copy-mode can scroll
+back to it and copy it — all with captured runtime evidence per the
+anti-bluff covenant.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tests/17_scrollback_copy_mode.sh</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># → PASS=13  FAIL=0  SKIP=0</span></span></code></pre></div>
+<h2 id="re-applying-after-a-config-change">Re-applying after a config
+change</h2>
+<p><code>scripts/tmux.conf.template</code> is the single source. After
+editing it (or pulling an update), re-run
+<code>bash scripts/setup.sh</code> — or, in a running session,
+<code>tmx</code> picks up the template on the next <code>tmx new</code>.
+To reload into an already-running session: <code>Ctrl-b</code> then
+<code>:source-file ~/.tmux.conf</code>.</p>
+</body>
+</html>

@@ -20,3 +20,9 @@ scripts/oom_set
 # Generated wrappers (installed via setup.sh / test_vm.sh; never committed)
 scripts/tmx
 scripts/tmx-vm
+
+# §11.4.78 CodeGraph — local SQLite knowledge graph (per-machine, regenerated via scripts/codegraph_reindex.sh per §11.4.77)
+.codegraph/codegraph.db
+.codegraph/codegraph.db-*
+.codegraph/cache/
+.codegraph/.dirty

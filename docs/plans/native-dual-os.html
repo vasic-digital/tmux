@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="native-dual-os-plan--tmx-works-flawlessly-on-linux-and-macos-with-host-access--isolation">Native
+dual-OS Plan — <code>tmx</code> works flawlessly on Linux AND macOS with
+host access + isolation</h1>
+<blockquote>
+<p>Engineering plan for: making <code>tmx</code> deliver three things
+simultaneously on both Linux and macOS — (1) plain-vanilla-tmux UX, (2)
+full host command access, (3) per-session resource isolation. Captures
+the architectural decisions made 2026-05-13 by the operator after
+observing that the VM-based design failed requirement (2).</p>
+<p><strong>No implementation lands without this plan reviewed and the
+four-gate regression suite GREEN at the end.</strong></p>
+</blockquote>
+<h2 id="0--why-this-plan-supersedes-the-vm-design">§0 — Why this plan
+supersedes the VM design</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement (operator-mandated)</th>
+<th>VM design (current)</th>
+<th>Native dual-OS (this plan)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain tmux UX</td>
+<td>✓ (after a fix cycle)</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Per-session resource cap</td>
+<td>✓ Linux cgroup, in VM</td>
+<td>✓ Linux cgroup native, ✓ macOS rlimit native</td>
+</tr>
+<tr>
+<td>Full host command access (Homebrew, system tools,
+<code>scutil</code>, etc.)</td>
+<td>✗ session is <code>core@localhost</code> in VM</td>
+<td>✓ session is the operator&#39;s user on the host</td>
+</tr>
+<tr>
+<td>OOM in session A doesn&#39;t kill B</td>
+<td>✓ on VM</td>
+<td>✓ Linux cgroup scope, ✓ macOS rlimit per-process</td>
+</tr>
+<tr>
+<td>Built reproducibly from pinned source</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<p>The VM design satisfied (1)+(2)+(4) but failed (3) — operator could
+not run <code>brew</code>, <code>scutil</code>, <code>lima</code>,
+Mach-O binaries from inside a tmx session. The native dual-OS design
+satisfies all five by delivering the strongest containment each OS
+supports natively.</p>
+<h2 id="1--architecture-one-paragraph">§1 — Architecture (one
+paragraph)</h2>
+<p><code>tmx new -s NAME</code> on <strong>Linux</strong> spawns a fresh
+tmux server on socket <code>tmx-NAME</code> inside a fresh cgroup-v2
+transient scope <code>tmx-NAME.scope</code> via
+<code>systemd-run --user --scope</code>. Identical to current
+default-arch but the binary is the Linux ELF run <strong>on the
+operator&#39;s Linux host</strong>, not in any VM. The shell inside the
+session is the operator&#39;s <code>$SHELL</code>, with full PATH, full FS,
+full host commands.</p>
+<p><code>tmx new -s NAME</code> on <strong>macOS</strong> spawns a fresh
+tmux server on socket <code>tmx-NAME</code> with the operator&#39;s
+<code>$SHELL</code> wrapped in a <code>ulimit</code>-set launcher:
+<code>ulimit -v &lt;bytes&gt; -t &lt;cpu-seconds&gt; -u &lt;max-procs&gt;; exec $SHELL -l</code>.
+RLIMIT_AS, RLIMIT_CPU, RLIMIT_NPROC are enforced by the Darwin kernel
+per-process; children inherit. Shell PATH includes
+<code>/opt/homebrew/bin</code>, <code>/usr/local/bin</code>, all of the
+operator&#39;s environment. <code>brew</code>, <code>scutil</code>,
+<code>osascript</code>, Homebrew Mach-O binaries — all reachable.</p>
+<p>The binary is <strong>built natively for each OS</strong> from the
+same <code>tmux/</code> submodule (pinned to upstream tag
+<code>3.6a</code>):</p>
+<ul>
+<li>Linux: <code>scripts/build_containerized.sh</code> →
+<code>tmux/build/bin/tmux</code> (Linux ELF, existing pipeline)</li>
+<li>macOS: <code>scripts/build_native.sh</code> →
+<code>tmux/build-darwin/bin/tmux</code> (Mach-O, NEW pipeline, native
+compile against Homebrew libevent + jemalloc)</li>
+</ul>
+<p>The wrapper picks the right binary based on <code>uname -s</code> and
+the right isolation mechanism based on the same.</p>
+<h2 id="2--per-os-isolation-primitives">§2 — Per-OS isolation
+primitives</h2>
+<h3 id="21-linux--cgroup-v2-transient-scopes-unchanged">§2.1 Linux —
+cgroup-v2 transient scopes (unchanged)</h3>
+<pre><code>systemd-run --user --scope \
+    --unit=tmx-NAME.scope \
+    -p MemoryMax=&lt;host-adaptive&gt;  \
+    -p CPUQuota=200%             \
+    -p TasksMax=4096             \
+    -p Delegate=yes              \
+    tmux -L tmx-NAME new-session -d -s NAME</code></pre>
+<p>Tests 09, 14, 15 already prove this works (PASS=15/0/0 destructive
+suite GREEN). Constitution §11.4.7 operator-path coverage already binds.
+No change to Linux-side test gates.</p>
+<h3 id="22-macos--posix-rlimit-wrapper-per-session-shell">§2.2 macOS —
+POSIX rlimit wrapper per session shell</h3>
+<pre><code>tmux -L tmx-NAME new-session -d -s NAME \
+    &quot;/path/to/scripts/tmx-rlimit-wrapper $TMX_MEM_BYTES $TMX_CPU_SEC $TMX_PROC_MAX $SHELL -l&quot;</code></pre>
+<p><code>scripts/tmx-rlimit-wrapper</code> (NEW, ~10 lines):</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Wraps the operator&#39;s shell with kernel-enforced resource limits.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Inherited by all children. Per-session enforcement is per-process</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># in the limit hierarchy — see docs/guide/README.md §5.6 for the strength</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># comparison with Linux cgroup.</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="va">mem_bytes</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$1</span><span class="st">&quot;</span><span class="kw">;</span> <span class="bu">shift</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="va">cpu_sec</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$1</span><span class="st">&quot;</span><span class="kw">;</span> <span class="bu">shift</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="va">proc_max</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$1</span><span class="st">&quot;</span><span class="kw">;</span> <span class="bu">shift</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="bu">ulimit</span> <span class="at">-v</span> <span class="st">&quot;</span><span class="va">$mem_bytes</span><span class="st">&quot;</span> <span class="dv">2</span><span class="op">&gt;</span>/dev/null   <span class="co"># RLIMIT_AS (virtual memory)</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="bu">ulimit</span> <span class="at">-t</span> <span class="st">&quot;</span><span class="va">$cpu_sec</span><span class="st">&quot;</span>   <span class="dv">2</span><span class="op">&gt;</span>/dev/null   <span class="co"># RLIMIT_CPU</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="bu">ulimit</span> <span class="at">-u</span> <span class="st">&quot;</span><span class="va">$proc_max</span><span class="st">&quot;</span>  <span class="dv">2</span><span class="op">&gt;</span>/dev/null   <span class="co"># RLIMIT_NPROC</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="bu">exec</span> <span class="st">&quot;</span><span class="va">$@</span><span class="st">&quot;</span></span></code></pre></div>
+<p>Verification per §11.4.2 (captured runtime evidence):
+<code>tmux send-keys -t NAME &#39;ulimit -v -t -u&#39; Enter</code> then
+<code>tmux capture-pane -p</code> returns the actual rlimit values from
+the kernel. Numeric readback matches configured cap.</p>
+<h3 id="23-the-strength-gap-honest-documentation-per-1">§2.3 The
+strength gap (honest documentation per §1)</h3>
+<p>Linux cgroup is <strong>per-group</strong> and
+<strong>kernel-tracked</strong>: every process in the scope counts
+toward <code>memory.current</code>, kernel OOM-kills the scope when
+total exceeds <code>memory.max</code>, no process escapes.</p>
+<p>macOS rlimit is <strong>per-process</strong> and
+<strong>inherited</strong>: each forked process has its own RLIMIT_AS,
+but if all 100 children individually respect their per-process cap and
+TOTAL across them exceeds the practical host memory, the host swaps /
+pressures. This is weaker than cgroup.</p>
+<p>The plan documents this in <code>README.md</code> Architecture
+section and <code>docs/guide/README.md</code> §5.6 explicitly. No bluff.
+On Linux you get per-group containment; on macOS you get per-process
+containment. Both are the strongest the OS supports natively.</p>
+<h2 id="3--build-pipelines">§3 — Build pipelines</h2>
+<h3 id="31-linux-unchanged">§3.1 Linux (unchanged)</h3>
+<p><code>scripts/build_containerized.sh</code> — already works. Produces
+<code>tmux/build/bin/tmux</code> (Linux ELF, jemalloc-linked,
+<code>-fstack-protector-strong</code>, etc.).</p>
+<h3 id="32-macos-new">§3.2 macOS (NEW)</h3>
+<p><code>scripts/build_native.sh</code>:</p>
+<pre><code>1. Verify Homebrew + required brews present:
+   libevent, jemalloc, automake, autoconf, pkg-config
+   (Auto-install if missing AND user is on macOS — `brew install` is safe.)
+
+2. cd tmux/ (the submodule)
+3. autoreconf -fi  (if configure absent)
+4. ./configure \
+     --prefix=&quot;$PWD/../tmux/build-darwin&quot; \
+     CFLAGS=&quot;-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2 \
+             -I$(brew --prefix)/include&quot; \
+     LDFLAGS=&quot;-Wl,-bind_at_load \
+              -Wl,-search_paths_first \
+              -L$(brew --prefix)/lib \
+              -ljemalloc&quot;
+5. make -j$(sysctl -n hw.ncpu)
+6. make install
+7. Verify binary: tmux/build-darwin/bin/tmux -V → &quot;tmux 3.6a&quot;
+   Verify Mach-O: file tmux/build-darwin/bin/tmux | grep &quot;Mach-O&quot;
+   Verify jemalloc linked: otool -L tmux/build-darwin/bin/tmux | grep -q jemalloc</code></pre>
+<p>Output: <code>tmux/build-darwin/bin/tmux</code> Mach-O binary, arm64
+or x86_64 per <code>arch -arm64</code> / <code>arch -x86_64</code>
+invocation. Universal binary is future work; ship native-arch first.</p>
+<h3 id="33-the-verification-gate-per-os">§3.3 The verification gate per
+OS</h3>
+<p><code>scripts/verify.sh</code> already respects
+<code>$TMUX_BIN</code> env var. Setup.sh picks the right binary path
+based on <code>uname -s</code> before invoking verify.</p>
+<h2 id="4--wrapper-rewrite-os-aware">§4 — Wrapper rewrite
+(OS-aware)</h2>
+<p><code>scripts/tmx.template</code> — single template, OS-dispatched at
+runtime.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">case</span> <span class="st">&quot;</span><span class="va">$(</span><span class="fu">uname</span> <span class="at">-s</span><span class="va">)</span><span class="st">&quot;</span> <span class="kw">in</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="ss">Linux</span><span class="kw">)</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="co"># systemd-run --user --scope ... (existing implementation)</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">;;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="ss">Darwin</span><span class="kw">)</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># rlimit wrapper (new implementation)</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">;;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="pp">*</span><span class="kw">)</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        <span class="co"># SKIP — unsupported OS, fall back to plain tmux invocation</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">;;</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="cf">esac</span></span></code></pre></div>
+<p>The host-adaptive memory calculation, session-name sanitisation,
+collision detection, and hostname-colour application are OS-agnostic
+(work on both). Only the isolation-mechanism dispatch is per-OS.</p>
+<h2 id="5--tests-per-os">§5 — Tests per OS</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Purpose</th>
+<th>Linux behaviour</th>
+<th>macOS behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01 smoke</td>
+<td>binary version</td>
+<td>runs natively</td>
+<td>runs natively</td>
+</tr>
+<tr>
+<td>02 session</td>
+<td>tmux lifecycle</td>
+<td>native</td>
+<td>native</td>
+</tr>
+<tr>
+<td>03 jemalloc</td>
+<td>LD_PRELOAD / DYLD_INSERT_LIBRARIES</td>
+<td>LD_PRELOAD</td>
+<td>DYLD_INSERT_LIBRARIES + <code>DYLD_FORCE_FLAT_NAMESPACE</code></td>
+</tr>
+<tr>
+<td>04 history-limit</td>
+<td>config respected</td>
+<td>native</td>
+<td>native</td>
+</tr>
+<tr>
+<td>05 clear-history</td>
+<td>apparent leak fix</td>
+<td>native</td>
+<td>native</td>
+</tr>
+<tr>
+<td>06 concurrent panes</td>
+<td>RSS bounded</td>
+<td>native</td>
+<td>native</td>
+</tr>
+<tr>
+<td>07 long session</td>
+<td>leak check</td>
+<td>native</td>
+<td>native</td>
+</tr>
+<tr>
+<td>08 oom_score_adj</td>
+<td>-500 set</td>
+<td>tmx-oom-set via setcap</td>
+<td>SKIP (no oom_score_adj on Darwin)</td>
+</tr>
+<tr>
+<td>09 crash isolation</td>
+<td>cgroup scope ops</td>
+<td>systemd-run scope</td>
+<td>SKIP (no systemd on Darwin)</td>
+</tr>
+<tr>
+<td>10 hostname colour</td>
+<td>algorithm</td>
+<td>works on both</td>
+<td>works on both</td>
+</tr>
+<tr>
+<td>11 hostname colour integration</td>
+<td>wrapper applies bg</td>
+<td>works on both</td>
+<td>works on both</td>
+</tr>
+<tr>
+<td>12 memory pressure</td>
+<td>OOM in scope</td>
+<td>systemd-run + stress-ng</td>
+<td>NEW: ulimit -v + memory allocation; verify malloc fails</td>
+</tr>
+<tr>
+<td>13 TasksMax</td>
+<td>fork-bomb</td>
+<td>cgroup pids.max</td>
+<td>NEW: ulimit -u; verify fork() returns EAGAIN</td>
+</tr>
+<tr>
+<td>14 concurrent OOM independence</td>
+<td>sessions B+C survive A&#39;s OOM</td>
+<td>cgroup independence</td>
+<td>NEW: rlimit independence (different sessions, different
+ulimits)</td>
+</tr>
+<tr>
+<td>15 per-session cgroup</td>
+<td>distinct units</td>
+<td>cgroup readback</td>
+<td>NEW: per-session ulimit readback via send-keys + capture-pane</td>
+</tr>
+</tbody>
+</table>
+<p>The Linux destructive tests (12/13/14) and Test 15 stay as-is on
+Linux. macOS equivalents are NEW tests using ulimit-based verification.
+Test 09 (cgroup-scope-specific) SKIPs on Darwin with explicit reason per
+§11.4.3 topology dispatch.</p>
+<p>Meta-test mutations M1–M10 are mostly OS-agnostic (algorithm-level).
+M4, M5, M9, M10 (wrapper-targeting) need per-OS sed patterns; the target
+file is now <code>scripts/tmx</code> on the host (no more
+<code>scripts/tmx-vm</code> since there&#39;s no VM in daily use).</p>
+<h2 id="6--files-changed">§6 — Files changed</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scripts/build_native.sh</code></td>
+<td>NEW — macOS native build</td>
+</tr>
+<tr>
+<td><code>scripts/build_containerized.sh</code></td>
+<td>UNCHANGED (still used for Linux artifact)</td>
+</tr>
+<tr>
+<td><code>scripts/tmx.template</code></td>
+<td>OS-aware dispatch in scope-creation block</td>
+</tr>
+<tr>
+<td><code>scripts/tmx-rlimit-wrapper.sh</code></td>
+<td>NEW — wraps shell with ulimit on macOS</td>
+</tr>
+<tr>
+<td><code>scripts/setup.sh</code></td>
+<td>OS-aware: native build on Darwin, containerized on Linux; no VM
+bridge</td>
+</tr>
+<tr>
+<td><code>scripts/tmx-mac.template</code></td>
+<td>DELETE (no more bridge — tmx runs natively on macOS)</td>
+</tr>
+<tr>
+<td><code>scripts/tmx-vm</code></td>
+<td>DELETE (no more VM-side wrapper for daily use)</td>
+</tr>
+<tr>
+<td><code>scripts/test_vm.sh</code></td>
+<td>KEEP for CI cross-verification only; remove from default operator
+flow</td>
+</tr>
+<tr>
+<td><code>scripts/test_e2e.sh</code></td>
+<td>rewritten to test the NATIVE flow (no bridge)</td>
+</tr>
+<tr>
+<td><code>scripts/tests/12_*.sh</code></td>
+<td>OS-aware: rlimit on macOS, cgroup on Linux</td>
+</tr>
+<tr>
+<td><code>scripts/tests/13_*.sh</code></td>
+<td>OS-aware</td>
+</tr>
+<tr>
+<td><code>scripts/tests/14_*.sh</code></td>
+<td>OS-aware</td>
+</tr>
+<tr>
+<td><code>scripts/tests/15_*.sh</code></td>
+<td>OS-aware</td>
+</tr>
+<tr>
+<td><code>scripts/tests/16_macos_rlimit_distinct.sh</code></td>
+<td>NEW — macOS-specific per-session rlimit verification</td>
+</tr>
+<tr>
+<td><code>README.md</code></td>
+<td>architecture diagram redrawn for native dual-OS</td>
+</tr>
+<tr>
+<td><code>docs/guide/README.md</code></td>
+<td>§5.6 updated to describe both isolation primitives</td>
+</tr>
+<tr>
+<td><code>Constitution.md</code></td>
+<td>§11.4.3 topology dispatch now covers Darwin natively</td>
+</tr>
+<tr>
+<td><code>CLAUDE.md</code> / <code>AGENTS.md</code></td>
+<td>updated to reference native dual-OS</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7--acceptance-criteria">§7 — Acceptance criteria</h2>
+<p>The plan is &quot;done&quot; when ALL of these are true:</p>
+<ol type="1">
+<li><code>bash scripts/setup.sh</code> on Darwin completes GREEN,
+produces <code>tmux/build-darwin/bin/tmux</code> (Mach-O), installs the
+shell snippet pointing at the host-local wrapper (no VM bridge).</li>
+<li><code>tmx new -s X</code> on Darwin opens a session whose prompt is
+<code>$USER@&lt;mac-hostname&gt;</code> (NOT
+<code>core@localhost</code>), with full PATH including Homebrew, with
+<code>which brew</code> returning a path.</li>
+<li><code>tmx new -s heavy</code> on Darwin with <code>TMX_MEM=2G</code>
+enforces a 2 GiB virtual-memory cap on the session shell;
+<code>ulimit -v</code> inside returns <code>2097152</code>.</li>
+<li><code>bash scripts/setup.sh</code> on a Linux host (existing path)
+still GREEN — <code>TMX_TEST_DESTRUCTIVE=1 bash scripts/verify.sh</code>
+PASS=15 FAIL=0 SKIP=0.</li>
+<li>Meta-test 10/10 mutations caught on Linux; macOS-equivalent
+mutations caught on macOS.</li>
+<li><code>Constitution.md</code> §11.4.7 still bind; no test bypasses
+the operator path.</li>
+</ol>
+<h2 id="8--migration--regression-risk">§8 — Migration / regression
+risk</h2>
+<ul>
+<li>Operators who already ran the VM-based setup will have a stale
+bridge in <code>scripts/tmx</code>. Re-running setup.sh overwrites it
+with the native wrapper. The VM remains startable for CI verification
+only.</li>
+<li>The <code>scripts/tmx-vm</code> file is removed from default flow
+but kept as <code>scripts/test_vm.sh</code> for CI cross-verification of
+the Linux artifact on a real Linux VM.</li>
+<li>Existing sessions running in the podman machine VM will need to be
+killed
+(<code>podman machine ssh &quot;&lt;vm-path&gt;/scripts/tmx-vm kill-server&quot;</code>).
+After that the VM can be stopped and forgotten by daily operators.</li>
+</ul>
+</body>
+</html>

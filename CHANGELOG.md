@@ -6,6 +6,142 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.4] — 2026-05-21
+
+**CodeGraph code-intelligence integration (§11.4.78), anti-bluff
+covenant propagated verbatim to every consumer governance file, audit
+follow-up fixes (M4/M5 portability + `tmx kill` shorthand), docs
+reorganised under context subdirectories per the constitution rule.**
+
+### Added
+
+- **A18 — CodeGraph integration (§11.4.78).** Installed
+  `@colbymchenry/codegraph` v0.6.8 globally (npm prefix user-writable;
+  no sudo per §11.4.78). `codegraph init` + indexed; config tracked
+  (`.codegraph/config.json`), DB gitignored (`.codegraph/codegraph.db`).
+  §11.4.10 secret-exclusion patterns + §11.4.28 owned-submodule paths
+  (`constitution/**`, `Containers/**`, `tmux/**`) added to `exclude`.
+  §11.4.77 regeneration mechanism at `.gitignore-meta/codegraph-db.yaml`
+  + executable `scripts/codegraph_reindex.sh`. MCP wired for 5 CLI
+  agents:
+  - Claude Code (project-scoped `.mcp.json`, NEW)
+  - OpenCode (`~/.config/opencode/opencode.json`, pre-existing — audited)
+  - Kimi CLI (`~/.kimi/mcp.json`, pre-existing — audited)
+  - Crush (`.crush.json`, NEW)
+  - Qwen Code (`.qwen/settings.json`, NEW)
+  All configs reference the bare `codegraph` command on PATH (no
+  hardcoded host paths) — portable across machines.
+
+- **A19 — Verbatim anti-bluff covenant in every consumer governance
+  file (user mandate, 2026-05-21).** Inserted the literal 2026-04-28
+  user-mandate quote into project `CLAUDE.md`, `AGENTS.md`, and
+  `QWEN.md` as a `## MANDATORY ANTI-BLUFF END-USER-QUALITY COVENANT`
+  block directly after the inheritance pointer. Project
+  `Constitution.md` already had it. Tools that don't expand `@imports`
+  now still read the covenant.
+
+- **`docs/codegraph/README.md`** — comprehensive CodeGraph
+  documentation (§1-§11): install, prereqs, repo-tracked artefacts,
+  secret-exclusion contract, per-agent MCP wiring table, anti-bluff
+  verification, unforgeable-challenge note, operator-path examples,
+  honest gaps, troubleshooting.
+
+- **`docs/plans/v1.0.4.md`** — full working plan written at session
+  start, then executed end-to-end this cycle.
+
+- **`scripts/export_docs.sh`** — idempotent §11.4.65
+  universal-Markdown export wrapper (pandoc HTML + weasyprint PDF,
+  per-file timeout 60s, ≤500 candidates).
+
+### Fixed
+
+- **A20 — M4/M5 paired mutations honest topology dispatch (AUDIT-1).**
+  Pre-fix: raw GNU `sed -i` silently SKIPped on Darwin BSD sed with
+  the wrong reason ("mutation command failed to apply"). Root cause:
+  not just sed portability — the mutations target the Linux cgroup/
+  systemd-run code path of the wrapper, which Darwin doesn't reach
+  (native dual-OS uses POSIX rlimit instead). Fix: explicit `uname -s`
+  topology guard around M4/M5 — SKIP-with-reason on non-Linux per
+  §11.4.3; portable `inplace_sed` on Linux.
+
+- **A21 — `tmx kill` shorthand resolves to `kill-session` (AUDIT-2).**
+  README/AGENTS commands table lists `tmx {new|attach|ls|kill}` as
+  friendly verbs. Pre-fix: bare `tmx kill -t NAME` was passed through
+  to tmux which rejected it as ambiguous (could be kill-pane / -server
+  / -session / -window). Fix: SUBCMD-translation hook in
+  `scripts/tmx.template` detects bare `kill` and rewrites `"$@"` to
+  use `kill-session`.
+
+### Hardened (4-layer regression protection per §103)
+
+- **Layer 1 (static gate):** `scripts/verify.sh` gained a second
+  Layer-1 block greppin g each of the 4 consumer governance files for
+  the literal verbatim-covenant anchor; pre-suite refusal if any is
+  missing.
+- **Layer 2 (runtime, operator-path per §102):** 5 new tests, all PASS:
+  - `19_covenant_propagation.sh` (PASS=7/0/0)
+  - `20_codegraph_installed.sh` (PASS=5/0/0)
+  - `21_codegraph_index_present.sh` (PASS=4/0/0)
+  - `22_codegraph_mcp_wired.sh` (PASS=7/0/0)
+  - `23_tmx_kill_shorthand.sh` (PASS=5/0/0)
+- **Layer 3 (Challenges):** `TMUX-CH-19` through `TMUX-CH-23` in
+  `scripts/challenges/tmux.yaml`.
+- **Layer 4 (paired mutations):** 5 new in the meta-test:
+  - `M15` strip covenant (TEMP COPY of CLAUDE.md — real file untouched)
+  - `M16` strip `**/*.pem` from `.codegraph/config.json`
+  - `M17` strip codegraph from `.mcp.json`
+  - `M19` strip AUDIT-2 block from `scripts/tmx`
+  - M4/M5 topology guard (the meta-test itself is layer 4 — pattern
+    closes the long-standing latent BSD-sed bluff)
+
+### Reorganised
+
+Docs moved under context-named subdirectories per the constitution
+rule (the user mandate 2026-05-21 explicitly invoked this):
+
+- `docs/GUIDE.md` → `docs/guide/README.md`
+- `docs/SCROLLING.md` → `docs/scrolling/README.md`
+- `docs/CODEGRAPH.md` → `docs/codegraph/README.md`
+- `docs/CONTAINERIZATION_PLAN.md` → `docs/plans/containerization.md`
+- `docs/NATIVE_DUAL_OS_PLAN.md` → `docs/plans/native-dual-os.md`
+- `docs/PER_SESSION_ISOLATION_PLAN.md` → `docs/plans/per-session-isolation.md`
+- `docs/PLAN_v1.0.4.md` → `docs/plans/v1.0.4.md`
+
+Every reference across the codebase + governance files updated
+atomically.
+
+### Verification (this cycle, captured 2026-05-21 on Darwin arm64)
+
+- `bash scripts/setup.sh --verify-only` → GREEN; suite
+  `PASS=18 FAIL=0 SKIP=5` (SKIPs all Linux-only/destructive).
+- `bash scripts/tests/meta_test_false_positive_proof.sh` →
+  `26 caught / 0 escaped / 6 skipped` GREEN. The 6 SKIPs are §11.4.3
+  topology-correct (M4/M5/M7/M8/M9/M10 — Linux-only mutations).
+- `bash scripts/test_e2e.sh` → GREEN.
+- `bash scripts/codegraph_reindex.sh` → 6 nodes, stamp written.
+- §11.4.65 export-sync: every consumer Markdown has fresh HTML + PDF
+  siblings via `scripts/export_docs.sh`.
+- §11.4.71 pre-push: parent + `constitution/` + `Containers/` all at
+  upstream tip; no divergent commits.
+
+### Out-of-scope this cycle (honest tracking per §11.4.6)
+
+- Upstream `constitution/QWEN.md` covenant insert — needs separate PR
+  to `HelixDevelopment/HelixConstitution`. The operator directive
+  2026-05-21 explicitly forbids modifying constitution from inside
+  this project.
+- `Containers/QWEN.md` create — needs separate PR to
+  `vasic-digital/Containers` (its own §11.4.28 owned-submodule cycle).
+- Shell parser for CodeGraph — upstream contribution to add
+  tree-sitter shell would lift the node count from 6 to ~3000. Out
+  of scope per §11.4.74; tracked at the upstream project.
+- Agent-driven unforgeable-challenge end-to-end test — classified
+  `AUTONOMOUS_DESIGNED` per §11.4.52 carve-out (mechanical seam exists
+  via test 22 T7; agent-driven layer lands when a headless agent
+  harness is wired).
+
+---
+
 ## [v1.0.3] — 2026-05-21
 
 **tmux scrolling fixed for the Claude Code TUI and mobile (Termux);
@@ -256,7 +392,7 @@ that does NOT hold:
   `systemd-run --user --scope`, `/sys/fs/cgroup`). SKIP-with-reason
   per Constitution §11.4.3 (per-host-topology test dispatch).
 
-See `docs/GUIDE.md` §5.6 for the full strength-gap table.
+See `docs/guide/README.md` §5.6 for the full strength-gap table.
 
 ### Bluffs caught and fixed during the development cycle
 

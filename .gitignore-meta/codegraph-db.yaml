@@ -1,0 +1,42 @@
+# §11.4.77 regeneration-mechanism manifest for the CodeGraph SQLite knowledge graph.
+#
+# The .codegraph/codegraph.db file is gitignored per §11.4.30 (per-machine,
+# build derivative). §11.4.77 requires every gitignored artefact essential
+# to building/running/testing the project to declare HOW it is regenerated
+# so a fresh clone can produce it without operator guesswork.
+#
+# Forensic anchor — user mandate (2026-05-21):
+#   "Incorporate / install codegraph into the our project … create
+#    comprehensive tests to validate and verify with anti-bluff approach
+#    that codegraph is working completely as expected!"
+#
+# A bare .gitignore entry without this manifest would be a §11.4 PASS-bluff
+# variant: the project appears complete to casual inspection but a fresh
+# clone cannot rebuild the index.
+
+schema_version: 1
+pattern: .codegraph/codegraph.db
+mechanism_type: regenerate
+script_path: scripts/codegraph_reindex.sh
+expected_disk_usage_mb: 1
+vendor_url_or_source: "npm:@colbymchenry/codegraph (https://github.com/colbymchenry/codegraph)"
+integrity_hash: null  # SQLite content is per-machine; integrity is structural (status query returns non-zero node count)
+requires_network: false
+requires_credentials: false
+notes: |
+  CodeGraph builds a local SQLite knowledge graph of the project's source
+  code. This repo is primarily shell-script, for which CodeGraph (as of
+  v0.6.8) does not ship a tree-sitter parser — the indexed surface is
+  small (scripts/oom_set.c). The MCP server still exposes useful tools
+  (codegraph status, files, query) which agents call. Per §11.4.6
+  no-guessing: this small index is HONEST, not bluff — it reflects the
+  actual parsed coverage.
+
+  Regeneration is idempotent. The mechanism stamp file
+  .gitignore-meta/.regenerated/codegraph-db.ok records the last
+  successful index time so the §11.4.77 pre-build gate (when wired) can
+  check freshness.
+
+  Per §11.4.78 the .codegraph/config.json is TRACKED (so the secret
+  exclusions per §11.4.10 propagate across clones); only the .db artefact
+  is gitignored.

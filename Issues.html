@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="vasic-digital-tmux--open-issues-tracker">vasic-digital tmux —
+Open Issues Tracker</h1>
+<blockquote>
+<p><strong>Canonical source of truth for everything currently
+unfinished, partially validated, or at risk of violating the anti-bluff
+covenant (<code>Constitution.md</code> §1 + §11.4.1 through
+§11.4.6).</strong></p>
+<p>Every PASS in this codebase MUST carry positive evidence captured
+live that the feature works for the end user. Metadata-only PASS,
+configuration-only PASS, &quot;absence-of-error&quot; PASS, and grep-based PASS
+without runtime evidence are all critical defects regardless of how
+green the summary line looks. <strong>Tests AND HelixQA Challenges are
+bound equally.</strong></p>
+<p>Forensic anchor — direct user mandate (verbatim, 2026-04-28 +
+2026-05-07 + 2026-05-08, repeatedly reasserted from upstream
+<code>vasic-digital</code> projects):</p>
+<blockquote>
+<p>&quot;We had been in position that all tests do execute with success and
+all Challenges as well, but in reality the most of the features does not
+work and can&#39;t be used! This MUST NOT be the case and execution of tests
+and Challenges MUST guarantee the quality, the completion and full
+usability by end users of the product!&quot;</p>
+</blockquote>
+<p>§11.4.6 forensic anchor (verbatim, 2026-05-08):</p>
+<blockquote>
+<p>&quot;&#39;LIKELY&#39; is guessing, we MUST NOT have guessing, since it can be or
+may not be! No bluffing and uncertainity is allowed at any cost! We MUST
+always know exactly precisly what is happening exactly, in any context,
+under any conditions, everywhere!&quot;</p>
+</blockquote>
+</blockquote>
+<p><strong>Compiled:</strong> 2026-05-08 (Phase B
+per-session-containerization cycle). <strong>Author:</strong>
+Engineering coordinator <strong>Working pool source:</strong> the items
+below feed the active task list directly. Each item carries a current
+state, the captured-evidence requirement, and a fix-direction proposal
+so future-self can resume cold.</p>
+<blockquote>
+<p><strong>Migration policy</strong> (mirrors upstream
+<code>vasic-digital</code> projects): resolved items are moved to
+<strong><a href="Fixed.md"><code>Fixed.md</code></a></strong> in the
+same commit that closes them. <strong><code>Issues.md</code> holds OPEN
+/ PARTIAL / BLOCKED / RUNNING / INVESTIGATED only</strong>; once an item
+is closed and verified end-to-end, it migrates to <code>Fixed.md</code>
+and disappears from here. Never delete items outright — history matters
+for cold-start handover.</p>
+</blockquote>
+<hr />
+<h2 id="document-conventions">Document conventions</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OPEN</code></td>
+<td>Unfinished work; needs implementation + anti-bluff coverage</td>
+</tr>
+<tr>
+<td><code>PARTIAL</code></td>
+<td>Implementation exists but coverage gaps remain (positive evidence
+missing or environmental SKIP unresolved)</td>
+</tr>
+<tr>
+<td><code>BLOCKED</code></td>
+<td>Cannot progress without external dependency (host capability,
+third-party tool, distro support, etc.)</td>
+</tr>
+<tr>
+<td><code>RUNNING</code></td>
+<td>In-flight in this session (background process, ongoing test
+cycle)</td>
+</tr>
+<tr>
+<td><code>INVESTIGATED</code></td>
+<td>Forensic investigation produced findings; closure pending decision
+on fix scope</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Status reclassification rules (§11.4.6
+enforced):</strong></p>
+<ul>
+<li>A <code>PARTIAL</code> may not move to closed without runtime
+evidence (<code>/sys/fs/cgroup/.../memory.max</code> readback,
+<code>systemctl status</code> showing scope active, <code>kill -9</code>
+survivor proof — never just script exit code).</li>
+<li>A <code>BLOCKED</code> reclassifies to <code>OPEN</code> when the
+blocking dependency resolves; it must NOT skip directly to closed.</li>
+<li>An <code>INVESTIGATED</code> item must record the captured forensic
+trace (file path / command output / log timestamp) — never speculation
+(&quot;likely&quot; / &quot;probably&quot; / &quot;appears to&quot; — see Constitution §11.4.6).</li>
+</ul>
+<p>Categories:</p>
+<ul>
+<li><strong>A</strong> — Tooling / harness gaps</li>
+<li><strong>B</strong> — Anti-bluff completeness across the existing
+test surface</li>
+<li><strong>C</strong> — Per-session containerization features pending
+evidence</li>
+<li><strong>D</strong> — Host-capability + topology dispatch gaps</li>
+<li><strong>E</strong> — Documentation / Continuation drift</li>
+</ul>
+<hr />
+<h2 id="a-tooling--harness-gaps">A. Tooling / harness gaps</h2>
+<p>(none open at this time — A1 META-MUT-001 landed in
+<code>Fixed.md</code>.)</p>
+<hr />
+<h2 id="b-anti-bluff-completeness-across-the-existing-test-surface">B.
+Anti-bluff completeness across the existing test surface</h2>
+<p>(none open at this time — B1 CHAL-COVER-001, B2 TEST-AUDIT-001 landed
+in <code>Fixed.md</code>.)</p>
+<hr />
+<h2 id="c-per-session-containerization-features-pending-evidence">C.
+Per-session containerization features pending evidence</h2>
+<p>(none open at this time — C1 TMX-T5, C2 TMX-T7, C3 TMX-T8 landed in
+<code>Fixed.md</code>.)</p>
+<hr />
+<h2 id="d-host-capability--topology-dispatch-gaps">D. Host-capability +
+topology dispatch gaps</h2>
+<p>(none open at this time — D1 TOPO-DISPATCH-001 landed in
+<code>Fixed.md</code>.)</p>
+<hr />
+<h2 id="e-documentation--continuation-drift">E. Documentation /
+Continuation drift</h2>
+<p>(none open at this time; CONTINUATION.md §3 entries that resolve land
+in <code>Fixed.md</code> per Constitution §5 / §12.10.)</p>
+<hr />
+<p><strong>Last reviewed:</strong> 2026-05-13 (audit cycle: tmux
+submodule pin-drift caught + reverted; README/AGENTS/CLAUDE staleness
+fixed; CONTINUATION refreshed).</p>
+</body>
+</html>

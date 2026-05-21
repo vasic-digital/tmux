@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="vasic-digital-tmux--claudemd">vasic-digital tmux —
+CLAUDE.md</h1>
+<h2 id="inherited-from-constitutionclaudemd">INHERITED FROM
+constitution/CLAUDE.md</h2>
+<p>All rules in <code>constitution/CLAUDE.md</code> and the
+<code>constitution/Constitution.md</code> it references apply
+<strong>unconditionally</strong> to this project. Project-specific rules
+below <strong>extend</strong> them — they do NOT weaken or override any
+universal clause. When this file disagrees with the constitution
+submodule, <strong>the constitution wins</strong>.</p>
+<p>@constitution/CLAUDE.md</p>
+<h2 id="mandatory-anti-bluff-end-user-quality-covenant">MANDATORY
+ANTI-BLUFF END-USER-QUALITY COVENANT</h2>
+<p><strong>Forensic anchor — verbatim user mandate (2026-04-28,
+reasserted 2026-05-21):</strong></p>
+<blockquote>
+<p>&quot;We had been in position that all tests do execute with success and
+all Challenges as well, but in reality the most of the features does not
+work and can&#39;t be used! This MUST NOT be the case and execution of tests
+and Challenges MUST guarantee the quality, the completion and full
+usability by end users of the product!&quot;</p>
+</blockquote>
+<p><strong>Operative rule.</strong> The bar for shipping is
+<strong>not</strong> &quot;tests pass&quot; but <strong>&quot;end users can actually
+use the feature.&quot;</strong> Every PASS — test OR HelixQA Challenge — MUST
+carry positive captured runtime evidence that the feature works for the
+end user. Metadata-only PASS, configuration- only PASS,
+&quot;absence-of-error&quot; PASS, and grep-without-runtime PASS are all critical
+defects regardless of how green the summary line looks. Tests and
+Challenges are bound EQUALLY.</p>
+<p>This covenant is restated verbatim in every governance file at the
+consumer layer (<code>CLAUDE.md</code>, <code>AGENTS.md</code>,
+<code>QWEN.md</code>) so any tool that does not expand
+<code>@imports</code> still reads it. The same verbatim block lives
+upstream at <code>constitution/Constitution.md</code> §11.4,
+<code>constitution/CLAUDE.md</code>, and
+<code>constitution/AGENTS.md</code>. Removing or weakening this block is
+a §11.4-class release blocker.</p>
+<p>Canonical authority: <code>constitution/Constitution.md</code> §11.4
+and its sub-anchors §11.4.1 through §11.4.78. Project anchor: <a href="Constitution.md"><code>Constitution.md</code></a> §101.</p>
+<p>Non-compliance is a release blocker regardless of context.</p>
+<blockquote>
+<p><strong>Read first on a fresh conversation:</strong>
+<code>CONTINUATION.md</code> (§0/§3/§8 are mandatory), then
+<code>Issues.md</code> for OPEN/PARTIAL/BLOCKED/RUNNING items. Canonical
+project authority: <a href="Constitution.md"><code>Constitution.md</code></a> (Project
+Articles §101–§109) which extends
+<code>constitution/Constitution.md</code>.</p>
+</blockquote>
+<hr />
+<h2 id="project-overview">Project overview</h2>
+<p>Verified hardened tmux 3.6a build with jemalloc, OOM protection, and
+per-session isolation via the <code>tmx</code> wrapper. Built around a
+hard verification gate that refuses to expose the binary unless
+functional tests pass. <strong>Native dual-OS</strong> (since
+2026-05-13): runs as a host process on Linux AND macOS — no VM in the
+daily-use path. Each <code>tmx new -s NAME</code> creates its own tmux
+server with OS-native isolation: cgroup-v2 transient scope
+(<code>systemd-run --user --scope</code>) on Linux; POSIX rlimit wrapper
+(<code>RLIMIT_CPU</code> + <code>RLIMIT_NPROC</code>) on macOS. The
+session shell is the operator&#39;s host shell with full <code>$PATH</code>.
+Honest gap: <code>RLIMIT_AS</code> (memory) is NOT enforced by XNU for
+unprivileged processes — see <code>docs/guide/README.md</code> §5.6.</p>
+<h2 id="critical-base-rules-restated-for-sessions-that-dont-expand-imports">Critical
+base rules restated (for sessions that don&#39;t expand @imports)</h2>
+<ul>
+<li><strong>No bluffing.</strong> Every PASS — test OR HelixQA Challenge
+— carries positive runtime evidence (cgroup/<code>/proc</code> file
+<em>content</em>, <code>capture-pane</code> output, kernel log lines),
+never just an exit code. Universal §11.4 / Project §101.</li>
+<li><strong>FAIL-bluffs equally forbidden.</strong> A test that exits
+FAIL for a script bug (not a product defect) is fixed at the source
+layer, never at call sites. Universal §11.4.1.</li>
+<li><strong>No-guessing.</strong> Never use
+<code>likely</code>/<code>probably</code>/<code>maybe</code>/<code>seems</code>/<code>appears</code>
+in cause descriptions — prove with forensic evidence or mark
+<code>UNCONFIRMED:</code> / <code>PENDING_FORENSICS:</code>. Universal
+§11.4.6.</li>
+<li><strong>Operator-path coverage.</strong> Every gate test exercises
+the SAME entry point an end-user invokes (<code>tmx new -s X</code>, not
+hand-spawned equivalents). Project §102.</li>
+<li><strong>Four-layer coverage.</strong> Every defect lands all four
+layers before the cycle closes. Project §103.</li>
+<li><strong>CONTINUATION.md</strong> updated in the SAME commit as any
+non-trivial state change. Universal §12.10.</li>
+<li><strong>commit_all.sh only.</strong> Never <code>git push</code>
+directly on the main repo.</li>
+</ul>
+<h2 id="commands-exact">Commands (exact)</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Install build deps (one-time; Linux needs root, macOS uses
+brew)</td>
+<td><code>bash scripts/install_deps.sh</code></td>
+</tr>
+<tr>
+<td>Full pipeline</td>
+<td><code>bash scripts/setup.sh</code></td>
+</tr>
+<tr>
+<td>Build only</td>
+<td><code>bash scripts/setup.sh --build-only</code></td>
+</tr>
+<tr>
+<td>Verify only</td>
+<td><code>bash scripts/setup.sh --verify-only</code></td>
+</tr>
+<tr>
+<td>Verification gate</td>
+<td><code>bash scripts/verify.sh</code></td>
+</tr>
+<tr>
+<td>Run all tests</td>
+<td><code>bash scripts/tests/run_all.sh</code></td>
+</tr>
+<tr>
+<td>Single test</td>
+<td><code>bash scripts/tests/NN_*.sh</code> (zero-padded, 01..17)</td>
+</tr>
+<tr>
+<td>Constitution inheritance gate</td>
+<td><code>bash scripts/tests/test_constitution_inheritance.sh</code></td>
+</tr>
+<tr>
+<td>Meta-test (paired mutation)</td>
+<td><code>bash scripts/tests/meta_test_false_positive_proof.sh</code></td>
+</tr>
+<tr>
+<td>Containerized test run (bounded subset)</td>
+<td><code>bash scripts/test_containerized.sh</code></td>
+</tr>
+<tr>
+<td>VM test run (full suite)</td>
+<td><code>bash scripts/test_vm.sh</code>
+(<code>TMX_TEST_DESTRUCTIVE=1</code> for tests 12/13/14;
+<code>META=1</code> for meta-test)</td>
+</tr>
+<tr>
+<td>End-to-end automation</td>
+<td><code>bash scripts/test_e2e.sh</code></td>
+</tr>
+<tr>
+<td>Commit + push (github+gitlab)</td>
+<td><code>bash commit_all.sh &quot;message&quot;</code></td>
+</tr>
+<tr>
+<td>Per-session wrapper</td>
+<td><code>tmx {new|attach|ls|kill}</code></td>
+</tr>
+</tbody>
+</table>
+<p>Never <code>git push</code> directly — use
+<code>commit_all.sh</code>.</p>
+<h2 id="structure">Structure</h2>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>constitution/</code></td>
+<td>HelixConstitution submodule — universal governance (pinned
+<code>7f738df</code>) — <strong>do not modify</strong></td>
+</tr>
+<tr>
+<td><code>tmux/</code></td>
+<td>upstream submodule (tag <code>3.6a</code>) — <strong>do not
+modify</strong></td>
+</tr>
+<tr>
+<td><code>Containers/</code></td>
+<td>vasic-digital cgroup helpers submodule</td>
+</tr>
+<tr>
+<td><code>tmux/build*/</code></td>
+<td>build output (<code>.gitignore</code>&#39;d)</td>
+</tr>
+<tr>
+<td><code>scripts/</code></td>
+<td>build, verify, install, 17 tests + inheritance gate, challenges,
+wrapper + conf templates</td>
+</tr>
+<tr>
+<td><code>scripts/tmx</code></td>
+<td>generated dispatcher (<code>.gitignore</code>&#39;d) — from
+<code>tmx.template</code> (Linux) or <code>tmx-mac.template</code>
+(macOS bridge)</td>
+</tr>
+<tr>
+<td><code>scripts/tmux.conf.template</code></td>
+<td>the tmux config template (scrollback, copy-mode, Claude-Code TUI
+passthrough, clipboard)</td>
+</tr>
+<tr>
+<td><code>scripts/tests/meta_test_false_positive_proof.sh</code></td>
+<td>§103 layer-4 paired-mutation harness</td>
+</tr>
+<tr>
+<td><code>scripts/challenges/tmux.yaml</code></td>
+<td>HelixQA Challenge specs</td>
+</tr>
+<tr>
+<td><code>commit_all.sh</code></td>
+<td>only allowed push mechanism</td>
+</tr>
+<tr>
+<td><code>Constitution.md</code></td>
+<td>project authority — Project Articles §101–§109 (extends
+<code>constitution/</code>)</td>
+</tr>
+<tr>
+<td><code>Issues.md</code></td>
+<td>OPEN / PARTIAL / BLOCKED / RUNNING only</td>
+</tr>
+<tr>
+<td><code>Fixed.md</code></td>
+<td>RESOLVED items with closure SHA + evidence</td>
+</tr>
+<tr>
+<td><code>CONTINUATION.md</code></td>
+<td>live handoff state (must stay fresh)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="project-specific-mandatory-constraints">Project-specific
+MANDATORY constraints</h2>
+<h3 id="build--packaging">Build / packaging</h3>
+<ul>
+<li><code>scripts/setup.sh</code> detects host OS and invokes the right
+build pipeline (Linux ELF / macOS Mach-O) — Project §108.</li>
+<li><code>scripts/tmux.conf.template</code> is the source for the
+generated tmux config; <code>setup.sh</code> substitutes OS-specific
+placeholders (clipboard command). Never hand-edit the generated
+<code>~/.tmux.conf</code> / wrapper.</li>
+</ul>
+<h3 id="test--verification">Test / verification</h3>
+<ul>
+<li><strong>Test-interrupt-on-discovery</strong> (§103): any defect
+found during a test cycle STOPS the cycle. Fix at root cause + land all
+four layers (pre-build gate / runtime test / HelixQA Challenge / paired
+mutation)
+<ul>
+<li>rebuild + repeat from the beginning.</li>
+</ul></li>
+<li><strong>Operator-path coverage</strong> (§102): gate tests use
+<code>tmx new -s X</code>.</li>
+<li><strong>Topology dispatch</strong> (§104): tests detect topology and
+SKIP-with- reason — never silently degrade.</li>
+<li><strong>Destructive tests</strong> (tests 12/13/14): require
+<code>TMX_TEST_DESTRUCTIVE=1</code> — run only on dedicated test
+hosts.</li>
+<li><strong>Constitution inheritance</strong> is itself gated:
+<code>scripts/tests/test_constitution_inheritance.sh</code> + the
+<code>CM-CONSTITUTION-INHERITANCE</code> paired mutation.</li>
+</ul>
+<h3 id="deployment--release">Deployment / release</h3>
+<ul>
+<li><code>bash commit_all.sh &quot;&lt;msg&gt;&quot;</code> is the ONLY push
+mechanism — pushes to <code>github</code> + <code>gitlab</code>.</li>
+<li><code>VERSION</code> is the single source of truth
+(<code>version=</code> semver + <code>versionCode=</code> monotonic).
+Both bump together with a <code>CHANGELOG.md</code> entry on every
+release.</li>
+</ul>
+<h3 id="project-specific-applied-fixes-reference">Project-specific
+Applied Fixes Reference</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Fix</th>
+<th>Key files</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A13</td>
+<td>Per-session cgroup isolation (OOM contained per scope)</td>
+<td><code>scripts/tmx.template</code></td>
+</tr>
+<tr>
+<td>A15</td>
+<td>Status bar showed <code>claude.exe</code> — strip <code>.exe</code>
+from window name</td>
+<td><code>scripts/tmux.conf.template</code></td>
+</tr>
+<tr>
+<td>A16</td>
+<td>tmux scrolling fix for Claude Code TUI + mobile/Termux</td>
+<td><code>scripts/tmux.conf.template</code>,
+<code>scripts/tests/17_*.sh</code></td>
+</tr>
+<tr>
+<td>A17</td>
+<td>HelixConstitution submodule + verified governance inheritance</td>
+<td><code>constitution/</code>,
+<code>scripts/tests/test_constitution_inheritance.sh</code></td>
+</tr>
+</tbody>
+</table>
+<p>Full forensic detail: <code>Fixed.md</code>.</p>
+<h2 id="files-to-never-edit-directly">Files to never edit directly</h2>
+<ul>
+<li><code>scripts/tmx</code> — generated by <code>setup.sh</code> from
+<code>scripts/tmx.template</code></li>
+<li><code>tmux/build*/</code> — build output (in
+<code>.gitignore</code>)</li>
+<li><code>tmux/</code> — upstream submodule pinned to tag
+<code>3.6a</code></li>
+<li><code>constitution/</code> — HelixConstitution submodule (governance
+authority)</li>
+</ul>
+<hr />
+<h2 id="project-overrides-of-universal-rules">Project overrides of
+universal rules</h2>
+<p>None. This project introduces no override of any universal
+clause.</p>
+</body>
+</html>

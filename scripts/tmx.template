@@ -182,6 +182,31 @@ for a in "$@"; do
     esac
 done
 
+# AUDIT-2 fix (2026-05-21): the README/AGENTS commands table lists
+# `tmx kill` as one of the friendly verbs ({new|attach|ls|kill}). tmux's
+# own dispatcher rejects bare `kill` as ambiguous ("could be: kill-pane,
+# kill-server, kill-session, kill-window"). The user-intent of `tmx kill
+# -t NAME` is unambiguous: kill THIS session. Translate the bare verb to
+# `kill-session` so the documented operator-path actually works. Does
+# NOT intercept `kill-pane` / `kill-server` / `kill-session` /
+# `kill-window` — those still pass through verbatim.
+if [ "$SUBCMD" = "kill" ]; then
+    SUBCMD="kill-session"
+    # Rewrite "$@" so downstream `case "$SUBCMD" in kill-session)` sees the
+    # translated verb. The bare `kill` was always the FIRST non-flag arg
+    # per the SUBCMD discovery loop above.
+    _new_args=()
+    _replaced=0
+    for a in "$@"; do
+        if [ "$_replaced" -eq 0 ] && [ "$a" = "kill" ]; then
+            _new_args+=("kill-session"); _replaced=1
+        else
+            _new_args+=("$a")
+        fi
+    done
+    set -- "${_new_args[@]}"
+fi
+
 SESSION_ARG=""
 TARGET_ARG=""
 EXPLICIT_LABEL=""

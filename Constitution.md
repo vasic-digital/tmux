@@ -145,7 +145,7 @@ inside its OWN OS-native isolation boundary:
 - **macOS (Darwin)** — POSIX rlimit wrapper as session
   `default-command`: `RLIMIT_CPU` + `RLIMIT_NPROC`, kernel-enforced.
   `RLIMIT_AS` (memory) is NOT enforced by XNU for unprivileged
-  processes — documented honestly per §101, see `docs/GUIDE.md` §5.6.
+  processes — documented honestly per §101, see `docs/guide/README.md` §5.6.
 
 The session shell is the operator's host shell with full `$PATH`.
 Plain-vanilla tmux UX with OS-native isolation as a safeguard.

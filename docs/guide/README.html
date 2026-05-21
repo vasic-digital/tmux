@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="vasic-digital-optimized-tmux--user--operator-guide">vasic-digital
+Optimized tmux — User &amp; Operator Guide</h1>
+<p><strong>Status:</strong> Phase 38, Bug #33 (this session,
+2026-05-07). <strong>Constitution alignment:</strong> §11.4 anti-bluff
+covenant (gated PATH export), §12.9 containerized build pattern, §12.10
+continuation-doc invariant.</p>
+<hr />
+<h2 id="1-what-this-is">§1 What this is</h2>
+<p>A reproducible, containerized build of <code>tmux 3.6a</code> (latest
+stable) with:</p>
+<ol type="1">
+<li><strong>Hardened compile flags</strong> —
+<code>-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2</code>,
+RELRO + immediate-binding link.</li>
+<li><strong>Build-time <code>-ljemalloc</code></strong> — jemalloc
+directly linked at the binary level (more aggressive RAM return than
+glibc malloc).</li>
+<li><strong>Runtime <code>LD_PRELOAD=libjemalloc.so</code></strong> —
+additional safety; ensures jemalloc engages even on hosts where the
+linker resolved a different malloc.</li>
+<li><strong>OOM-score protection</strong> — wrapper script sets
+<code>oom_score_adj=-500</code> on the spawned server, making tmux
+survive nearly all OOM cascades (preserving operator session for
+investigation).</li>
+<li><strong>Bounded <code>history-limit</code></strong> — explicit
+<code>2000</code> (the default; making it explicit prevents accidental
+future bumps).</li>
+<li><strong>Hermetic install</strong> — built artifact lives in
+<code>&lt;project&gt;/tmux/build/</code>. PATH export points there;
+system tmux untouched.</li>
+</ol>
+<p><strong>Why this is gated by §11.4</strong> — the original article
+warns about &quot;apparent leaks&quot; in tmux. Our forensic record (§12 incidents
+2026-04-27, 2026-04-28, 2026-04-30, 2026-05-06) shows tmux was
+<em>not</em> the actual cause of any documented host-distress event.
+Building from source therefore would not have prevented those incidents.
+We do this work for <strong>defensive</strong> reasons (so future
+unforeseen tmux issues never affect us) and we GATE the install behind a
+full test suite to make sure the new build is genuinely better than the
+system tmux — not silently worse.</p>
+<hr />
+<h2 id="2-one-command-install">§2 One-command install</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 0 — install build deps (one-time, requires sudo)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> bash scripts/install_deps.sh</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1 — build + verify + install (no sudo)</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span></code></pre></div>
+<p>The orchestrator runs five gated phases:</p>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Action</th>
+<th>Gate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Verify host build deps present</td>
+<td>aborts if <code>gcc</code> / <code>pkg-config libevent</code>
+missing</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Containerized build (podman, mem_limit=2g)</td>
+<td>aborts if container cannot be built or fails to produce
+<code>tmux/build/bin/tmux</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Generate <code>tmx</code> wrapper script (LD_PRELOAD + OOM
+score)</td>
+<td>aborts if wrapper template missing</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Verification gate</strong> — run all 14 tests via
+<code>verify.sh</code></td>
+<td><strong>STOPS HERE if any FAIL — no PATH export</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Install <code>~/.tmux.conf</code> + <code>~/.bashrc</code>
+snippet</td>
+<td>only runs if Phase 4 GREEN</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-architecture">§3 Architecture</h2>
+<pre><code>&lt;project&gt;/
+├── tmux/                                  # Git submodule (upstream tmux/tmux, pinned to 3.6a)
+│   └── build/bin/tmux                     # Built artifact (volume-mounted from container)
+├── docker/
+│   ├── Dockerfile.tmux-build              # Ubuntu 22.04 + libevent-dev + libncurses-dev + libjemalloc-dev
+│   ├── docker-compose.tmux-build.yml      # mem_limit:2g, cpus:2, network:none
+│   └── build_inside_container.sh          # Runs autogen + configure + make + install (in-container)
+└── scripts/
+    ├── install_deps.sh                    # Host package installer (sudo, OS-aware)
+    ├── build_containerized.sh             # Orchestrator that runs the container
+    ├── tmux.conf.template                 # Optimized config template
+    ├── tmx.template                       # Wrapper template (LD_PRELOAD + OOM + scope + colour)
+    ├── bashrc_snippet.template            # PATH-export snippet for ~/.bashrc
+    ├── hostname_color.sh                  # Deterministic hostname → status-bg colour
+    ├── tests/
+    │   ├── 01_smoke.sh                            # Binary version
+    │   ├── 02_session.sh                          # new-session/list-sessions/kill-server
+    │   ├── 03_jemalloc_loaded.sh                  # /proc/PID/maps grep for jemalloc
+    │   ├── 04_history_limit.sh                    # show-options after config
+    │   ├── 05_clear_history_releases.sh           # The article&#39;s &quot;apparent leak&quot; check
+    │   ├── 06_concurrent_panes.sh                 # 10-pane RSS bounding
+    │   ├── 07_long_session.sh                     # 30-s sustained activity
+    │   ├── 08_oom_score_adj.sh                    # /proc/PID/oom_score_adj == -500
+    │   ├── 09_crash_isolation_scope.sh            # cgroup-v2 transient scope readbacks + crash containment
+    │   ├── 10_hostname_color_algorithm.sh         # DJB2 hash → palette determinism + spread
+    │   ├── 11_hostname_color_integration.sh       # wrapper applies expected status-bg
+    │   ├── 12_memory_pressure_under_cap.sh        # destructive: alloc up to MemoryMax, OOM-kill evidence
+    │   ├── 13_tasksmax_stress.sh                  # destructive: fork-bomb resistance via TasksMax
+    │   ├── 14_concurrent_oom_independence.sh      # destructive: kill scope A, B + C survive
+    │   ├── meta_test_false_positive_proof.sh     # §11.4.4 layer-4 paired-mutation harness
+    │   └── run_all.sh                             # Orchestrator
+    ├── challenges/
+    │   └── tmux.yaml                      # HelixQA Challenges (mirrors tests with §11.4 evidence semantics)
+    ├── verify.sh                          # Gate that decides green/red
+    └── setup.sh                           # Master orchestrator (one command)</code></pre>
+<hr />
+<h2 id="4-the-14-verification-tests--what-they-prove">§4 The 14
+verification tests — what they prove</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Proves</th>
+<th>If FAIL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01 smoke</td>
+<td>binary invocable, version matches pin</td>
+<td>broken build</td>
+</tr>
+<tr>
+<td>02 session</td>
+<td>basic lifecycle works</td>
+<td>broken libevent integration</td>
+</tr>
+<tr>
+<td>03 jemalloc loaded</td>
+<td>LD_PRELOAD engages at runtime</td>
+<td>wrapper broken or jemalloc absent — fall back to glibc malloc (not
+catastrophic)</td>
+</tr>
+<tr>
+<td>04 history-limit</td>
+<td>user config respected</td>
+<td>broken option-parsing</td>
+</tr>
+<tr>
+<td>05 clear-history releases</td>
+<td>the article&#39;s &quot;apparent leak&quot; — clear-history actually frees
+memory</td>
+<td>glibc fragmentation (no jemalloc) — degrades to WARN, not FAIL</td>
+</tr>
+<tr>
+<td>06 concurrent panes</td>
+<td>10 panes don&#39;t OOM the server</td>
+<td>severe leak</td>
+</tr>
+<tr>
+<td>07 long session</td>
+<td>25 s sustained activity grows &lt; 50%</td>
+<td>gradual leak</td>
+</tr>
+<tr>
+<td>08 oom_score_adj</td>
+<td>wrapper applies -500</td>
+<td>wrapper script broken — biggest §12-protection benefit gone</td>
+</tr>
+<tr>
+<td>09 crash isolation scope</td>
+<td>cgroup-v2 transient scope enforces MemoryMax/CPUQuota/TasksMax;
+SIGKILL containment does not take user.slice down</td>
+<td>per-session isolation broken</td>
+</tr>
+<tr>
+<td>10 hostname colour algorithm</td>
+<td>DJB2 → 27-palette deterministic on same hostname; spread ≥ 12/16
+across distinct names</td>
+<td>host distinguishability broken</td>
+</tr>
+<tr>
+<td>11 hostname colour integration</td>
+<td>wrapper applies expected status-bg to running server; persists on
+second session</td>
+<td>colour-on-attach broken</td>
+</tr>
+<tr>
+<td>12 memory pressure under cap (destructive,
+<code>TMX_TEST_DESTRUCTIVE=1</code>)</td>
+<td>allocation up to MemoryMax triggers OOM-kill of scope only;
+user.slice survives</td>
+<td>memory cap not enforced</td>
+</tr>
+<tr>
+<td>13 TasksMax stress (destructive)</td>
+<td>fork-bomb caps at TasksMax=4096; cgroup pids interface readback</td>
+<td>task-count cap not enforced</td>
+</tr>
+<tr>
+<td>14 concurrent OOM independence (destructive)</td>
+<td>kill scope A → scopes B and C survive with original MainPIDs</td>
+<td>scope independence broken</td>
+</tr>
+</tbody>
+</table>
+<p>Plus a §11.4.4 layer-4 paired-mutation harness
+(<code>meta_test_false_positive_proof.sh</code>) with 6 registered
+mutations against tests 09 / 10. The gate is considered self-validating
+only when all mutations are caught.</p>
+<p><strong>Gate logic</strong> (<code>scripts/tests/run_all.sh</code> +
+<code>scripts/verify.sh</code>): every test is treated equally. Any test
+line starting with <code>FAIL</code> aborts the gate (exit 1, no PATH
+export). Tests that emit a <code>SKIP</code> line are counted as SKIP
+and do not block (intended for honest precondition gates — see
+Constitution §11.4.2). Tests 12 / 13 / 14 are destructive and opt-in via
+<code>TMX_TEST_DESTRUCTIVE=1</code> — they SKIP by default on
+non-dedicated hosts. There is no per-test &quot;blocker / critical /
+advisory&quot; hierarchy in the gate code: the rule is &quot;any FAIL = RED&quot;.</p>
+<hr />
+<h2 id="5-operator-commands">§5 Operator commands</h2>
+<table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Install everything (Linux)</td>
+<td><code>sudo bash scripts/install_deps.sh &amp;&amp; bash scripts/setup.sh</code></td>
+</tr>
+<tr>
+<td>Install everything (macOS)</td>
+<td><code>brew install podman &amp;&amp; podman machine init &amp;&amp; podman machine start &amp;&amp; bash scripts/setup.sh</code></td>
+</tr>
+<tr>
+<td>Re-verify after upstream pull (Linux)</td>
+<td><code>bash scripts/verify.sh</code></td>
+</tr>
+<tr>
+<td>Re-verify after upstream pull (macOS)</td>
+<td><code>bash scripts/test_vm.sh</code></td>
+</tr>
+<tr>
+<td>Run full destructive suite</td>
+<td><code>TMX_TEST_DESTRUCTIVE=1 bash scripts/test_vm.sh</code></td>
+</tr>
+<tr>
+<td>Run §11.4.4 paired-mutation meta-test</td>
+<td><code>META=1 bash scripts/test_vm.sh</code></td>
+</tr>
+<tr>
+<td>Force rebuild</td>
+<td><code>bash scripts/setup.sh --rebuild</code></td>
+</tr>
+<tr>
+<td>Uninstall</td>
+<td><code>bash scripts/setup.sh --uninstall</code></td>
+</tr>
+<tr>
+<td>Run a specific test</td>
+<td><code>TMUX_BIN=$(pwd)/tmux/build/bin/tmux bash scripts/tests/03_jemalloc_loaded.sh</code></td>
+</tr>
+<tr>
+<td>Update tmux to a new pinned tag</td>
+<td><code>cd tmux &amp;&amp; git checkout &lt;new-tag&gt; &amp;&amp; cd .. &amp;&amp; bash scripts/setup.sh --rebuild</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="56-native-dual-os-per-session-isolation-architecture-since-2026-05-13">§5.6
+Native dual-OS per-session isolation (architecture since
+2026-05-13)</h2>
+<p>Each <code>tmx new -s NAME</code> invocation produces its own tmux
+server running as a <strong>host-native process</strong> with
+OS-specific resource isolation. The session&#39;s shell IS the operator&#39;s
+host shell — same <code>$USER</code>, same <code>$HOME</code>, same
+<code>$PATH</code>, full filesystem access. The wrapper applies the
+strongest containment each OS natively supports.</p>
+<h3 id="mechanism-per-os">Mechanism per OS</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Linux</th>
+<th>macOS (Darwin)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Binary format</td>
+<td>ELF 64 (built via <code>build_containerized.sh</code> or
+<code>build_native.sh</code>)</td>
+<td>Mach-O 64 (built via <code>build_native.sh</code> against Homebrew
+deps)</td>
+</tr>
+<tr>
+<td>Output dir</td>
+<td><code>tmux/build/bin/tmux</code></td>
+<td><code>tmux/build-darwin/bin/tmux</code></td>
+</tr>
+<tr>
+<td>Isolation primitive</td>
+<td>cgroup-v2 transient scope via
+<code>systemd-run --user --scope --unit=tmx-NAME.scope</code></td>
+<td>POSIX rlimit wrapper (<code>scripts/tmx-rlimit-wrapper.sh</code>)
+applied as session <code>default-command</code></td>
+</tr>
+<tr>
+<td>Memory cap</td>
+<td><code>MemoryMax</code> (kernel-enforced per cgroup)</td>
+<td><strong>NOT ENFORCED</strong> — see &quot;Honest gap&quot; below</td>
+</tr>
+<tr>
+<td>CPU cap</td>
+<td><code>CPUQuota=200%</code> (per cgroup)</td>
+<td><code>RLIMIT_CPU</code> (kernel-enforced per process, SIGXCPU on
+hard exhaust)</td>
+</tr>
+<tr>
+<td>Task cap</td>
+<td><code>TasksMax=4096</code> (per cgroup)</td>
+<td><code>RLIMIT_NPROC</code> (kernel-enforced per user)</td>
+</tr>
+<tr>
+<td>jemalloc preload</td>
+<td><code>LD_PRELOAD</code></td>
+<td><code>DYLD_INSERT_LIBRARIES</code> +
+<code>DYLD_FORCE_FLAT_NAMESPACE=1</code></td>
+</tr>
+<tr>
+<td>OOM containment</td>
+<td>OOM in scope ⇒ kernel kills only that scope; <code>user.slice</code>
+survives</td>
+<td>CPU/NPROC enforced; <strong>memory: process may grow until host
+swaps</strong></td>
+</tr>
+<tr>
+<td>OOM helper</td>
+<td><code>tmx-oom-set</code> (setcap, sets
+<code>oom_score_adj=-500</code>)</td>
+<td>N/A (no <code>oom_score_adj</code> interface on Darwin)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="honest-gap-macos-memory-cap">Honest gap (macOS memory cap)</h3>
+<p>Per Constitution §1 / §11.4 anti-bluff: <strong>the Darwin XNU kernel
+does NOT enforce <code>RLIMIT_AS</code> / <code>RLIMIT_DATA</code> /
+<code>RLIMIT_RSS</code> for unprivileged processes.</strong>
+Verified:</p>
+<pre><code>$ ulimit -v 102400               # try to cap virtual memory at 100 MB
+bash: ulimit: virtual memory: cannot modify limit: Invalid argument
+
+$ python3 -c &quot;x = &#39;a&#39; * 200_000_000; print(len(x))&quot;
+alloc OK: 200000000              # process allocates 200 MB freely</code></pre>
+<p>The <code>tmx-rlimit-wrapper</code> on Darwin therefore applies ONLY
+the limits the kernel actually enforces (<code>RLIMIT_CPU</code>,
+<code>RLIMIT_NPROC</code>). The setup.sh closing message documents this
+explicitly. For full memory containment on macOS, you&#39;d need launchd
+jobs with <code>HardResourceLimits</code> (root) or — for the same
+workload on a Linux host — cgroup scopes which DO enforce memory.</p>
+<h3 id="naming--sanitisation-both-oses">Naming + sanitisation (both
+OSes)</h3>
+<ul>
+<li><strong>Socket</strong>: <code>tmx-&lt;sanitised-NAME&gt;</code>
+(under <code>/tmp/tmux-&lt;uid&gt;/</code>). Tmux routing via
+<code>-L tmx-NAME</code>.</li>
+<li><strong>Scope unit (Linux only)</strong>:
+<code>tmx-&lt;sanitised-NAME&gt;.scope</code>. Operator-targetable:
+<code>systemctl --user status tmx-mywork.scope</code>.</li>
+<li><strong>Sanitisation</strong>: characters outside
+<code>[A-Za-z0-9._-]</code> → <code>_</code>. Collision (scope already
+active OR server already running on socket) errors out explicitly.</li>
+</ul>
+<h3 id="caps-per-session-both-oses">Caps (per session, both OSes)</h3>
+<table>
+<thead>
+<tr>
+<th>Cap</th>
+<th>Default</th>
+<th>Override</th>
+<th>Linux</th>
+<th>Darwin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Memory</td>
+<td>host-adaptive: <code>max(MemTotal × 60% / 4, 2 GB)</code></td>
+<td><code>TMX_MEM=8G tmx new -s heavy</code></td>
+<td>✓ cgroup <code>MemoryMax</code> enforced</td>
+<td>✗ NOT enforced (XNU gap)</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td><code>200%</code> (2 cores) on Linux; <code>86400 s</code> (24 h) on
+Darwin</td>
+<td><code>TMX_CPU=400</code> (Linux); <code>TMX_CPU_HARD_SEC=3600</code>
+(Darwin)</td>
+<td>✓ <code>CPUQuota</code></td>
+<td>✓ <code>RLIMIT_CPU</code></td>
+</tr>
+<tr>
+<td>Tasks</td>
+<td><code>4096</code></td>
+<td>(env: no; edit template)</td>
+<td>✓ <code>TasksMax</code> per scope</td>
+<td>✓ <code>RLIMIT_NPROC</code> per user</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cleanup">Cleanup</h3>
+<p><code>tmx kill-session -t NAME</code>:</p>
+<ol type="1">
+<li><code>tmux -L tmx-NAME kill-session -t NAME</code></li>
+<li><strong>Linux only</strong>:
+<code>systemctl --user stop tmx-NAME.scope</code> (explicit scope
+teardown for cgroup reclaim)</li>
+</ol>
+<p><code>tmx kill-server</code> enumerates every
+<code>/tmp/tmux-&lt;uid&gt;/tmx-*</code> socket, kills each server, and
+(Linux) stops every <code>tmx-*.scope</code> unit.</p>
+<h3 id="verifying-isolation-positive-evidence-both-oses">Verifying
+isolation (positive evidence, both OSes)</h3>
+<p><strong>Linux:</strong></p>
+<pre><code>$ tmx new -s a -d; tmx new -s b -d
+$ systemctl --user list-units --type=scope --no-legend | grep tmx-
+  tmx-a.scope loaded active running ...
+  tmx-b.scope loaded active running ...
+$ cat /sys/fs/cgroup/.../tmx-a.scope/memory.max
+  2147483648                                ← per-session memory cap
+$ cat /sys/fs/cgroup/.../tmx-a.scope/cgroup.procs
+  &lt;session A PIDs&gt;                          ← distinct from B&#39;s</code></pre>
+<p><strong>Darwin:</strong></p>
+<pre><code>$ tmx new -s a -d; tmx new -s b -d
+$ tmx ls
+  a: 1 windows (created …)
+  b: 1 windows (created …)
+$ # Inside session a (via tmx attach):
+$ ulimit -t  ; ulimit -u
+  86400                                     ← RLIMIT_CPU enforced
+  2666                                      ← RLIMIT_NPROC enforced
+$ id ; hostname ; which brew
+  uid=501(milosvasic) gid=20(staff) …       ← operator&#39;s host user
+  Mistborn.local                            ← operator&#39;s macOS host
+  /opt/homebrew/bin/brew                    ← Homebrew reachable</code></pre>
+<p>Test 15 + e2e T7 in <code>scripts/tests/</code> automate these checks
+with OS-dispatched assertions per Constitution §11.4.2.</p>
+<hr />
+<h2 id="6-why-we-did-this-despite-the-data">§6 Why we did this despite
+the data</h2>
+<p>The forensic record (§12 incidents) does NOT name tmux as a root
+cause. The actual culprits were <code>soong_build</code>,
+<code>kotlinc</code>, <code>gradle</code>, <code>git pack-objects</code>
+— all already addressed by §12.6/§12.7/§12.8/§12.9. So the question
+naturally arises: why this work?</p>
+<p><strong>Three reasons:</strong></p>
+<ol type="1">
+<li><p><strong>Defense-in-depth.</strong> §12 incidents are rare but
+catastrophic when they happen. tmux survives at
+<code>oom_score_adj=-500</code> even if the user.slice goes down —
+meaning the operator can attach to the surviving session and
+investigate, instead of losing all context.</p></li>
+<li><p><strong>Reproducibility.</strong> The system tmux on a future
+host might be 1.x with known leaks. Pinning to 3.6a + jemalloc removes
+that variable.</p></li>
+<li><p><strong>Documentation as a teaching artifact.</strong> The 14
+tests + Challenges show <em>exactly</em> what &quot;tmux is healthy&quot; means in
+measurable terms. Future engineers can re-run these on any new
+host.</p></li>
+</ol>
+<p><strong>This is justified Defense-in-Depth, not a fix for an existing
+problem.</strong> The investigation explicitly recorded that the
+article&#39;s premise doesn&#39;t apply to us; we still proceeded because the
+marginal cost is small and the upside is non-zero.</p>
+<hr />
+<h2 id="8-full-oom-protection-options-cap_sys_resource-required">§8 Full
+OOM protection options (CAP_SYS_RESOURCE required)</h2>
+<p><code>oom_score_adj=-500</code> requires
+<code>CAP_SYS_RESOURCE</code>, which a regular user shell does NOT have.
+The Linux kernel rejects writes of negative oom_score_adj values from
+non-root processes (per
+<code>Documentation/filesystems/proc.rst</code>).</p>
+<p>The wrapper (<code>tmx</code>) attempts the write defensively but the
+kernel will silently no-op for non-root operators. Test 08 SKIPs
+honestly to acknowledge this rather than reporting a misleading
+PASS.</p>
+<h3 id="three-real-options-for-full-oom-protection">Three real options
+for full OOM protection</h3>
+<h4 id="option-a--run-wrapper-via-sudo-simplest-annoying-ux">Option A —
+Run wrapper via sudo (simplest, annoying UX)</h4>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> tmux=<span class="st">&#39;sudo -E /path/to/tmx&#39;</span></span></code></pre></div>
+<p>Pro: works immediately, no new binaries. Con: requires sudo password
+every tmux launch.</p>
+<h4 id="option-b--setcap-enabled-oom_set-helper-recommended">Option B —
+setcap-enabled <code>oom_set</code> helper (recommended)</h4>
+<p>Build a tiny C helper that has CAP_SYS_RESOURCE via setcap, called by
+the wrapper:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* oom_set.c — minimal helper to set oom_score_adj on a target PID */</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">**</span>argv<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>argc <span class="op">!=</span> <span class="dv">3</span><span class="op">)</span> <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> path<span class="op">[</span><span class="dv">256</span><span class="op">];</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    snprintf<span class="op">(</span>path<span class="op">,</span> <span class="kw">sizeof</span> path<span class="op">,</span> <span class="st">&quot;/proc/</span><span class="sc">%s</span><span class="st">/oom_score_adj&quot;</span><span class="op">,</span> argv<span class="op">[</span><span class="dv">1</span><span class="op">]);</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">FILE</span> <span class="op">*</span>f <span class="op">=</span> fopen<span class="op">(</span>path<span class="op">,</span> <span class="st">&quot;w&quot;</span><span class="op">);</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>f<span class="op">)</span> <span class="cf">return</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    fputs<span class="op">(</span>argv<span class="op">[</span><span class="dv">2</span><span class="op">],</span> f<span class="op">);</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    fclose<span class="op">(</span>f<span class="op">);</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Build + grant capability (one-time):</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">gcc</span> <span class="at">-o</span> oom_set oom_set.c</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> setcap cap_sys_resource+ep ./oom_set</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-m</span> 755 ./oom_set /usr/local/bin/tmx-oom-set</span></code></pre></div>
+<p>Then update the wrapper to call
+<code>tmx-oom-set &quot;$server_pid&quot; -500</code> instead of writing
+directly.</p>
+<p>Pro: no per-invocation sudo. Helper has only one capability (minimal
+blast radius). Con: requires one-time root setup; the helper binary must
+be audited (it&#39;s tiny so this is easy).</p>
+<h4 id="option-c--systemd-user-service-with-oomscoreadjust">Option C —
+systemd user service with <code>OOMScoreAdjust=</code></h4>
+<p>Run tmux as a systemd user service whose unit file declares
+<code>OOMScoreAdjust=-500</code>. systemd applies the adjustment at
+process startup (it has CAP_SYS_RESOURCE).</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode ini"><code class="sourceCode ini"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ~/.config/systemd/user/tmux.service</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">[Service]</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="dt">ExecStart</span><span class="ot">=</span><span class="st">/path/to/tmx new-session -A -s main</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="dt">OOMScoreAdjust</span><span class="ot">=</span><span class="dv">-500</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="dt">Restart</span><span class="ot">=</span><span class="st">on-failure</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="kw">[Install]</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="dt">WantedBy</span><span class="ot">=</span><span class="st">default.target</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">systemctl</span> <span class="at">--user</span> enable <span class="at">--now</span> tmux.service</span></code></pre></div>
+<p>Pro: clean, capability-less from the operator&#39;s perspective. systemd
+handles everything. Con: tmux runs in a different cgroup hierarchy; some
+plugins / <code>$TMUX_PANE</code> integrations may behave
+differently.</p>
+<h3 id="recommendation">Recommendation</h3>
+<p>For most operators: <strong>Option C</strong> if you&#39;re already on a
+systemd-based distro and use tmux as your &quot;main&quot; workspace.
+<strong>Option B</strong> if you launch tmux ad-hoc from terminals.
+<strong>Option A</strong> if you only want OOM protection during
+high-risk tasks (a single sudo-tmux session for the AOSP build
+window).</p>
+<p>For most production use, none of these is mandatory. The
+<code>oom_score_adj</code> work is the smallest of the three benefits we
+get from the new build (the bigger ones being jemalloc + bounded
+<code>history-limit</code> + reproducible 3.6a pin). The covenant tests
+SKIP cleanly and the binary is GREEN as-is.</p>
+<hr />
+<h2 id="7-cross-references">§7 Cross-references</h2>
+<ul>
+<li><code>CLAUDE.md</code> — Applied Fixes Reference, Phase 38</li>
+<li><code>docs/CONTINUATION.md</code> §3 — current Phase 38 status</li>
+<li><code>docs/guides/ATMOSPHERE_CONSTITUTION.md</code> §11.4, §12.9 —
+invoked patterns</li>
+<li><code>tools/helixqa/HelixQA/banks/atmosphere.yaml</code> —
+TMUX-CH-01..08 entries</li>
+</ul>
+</body>
+</html>

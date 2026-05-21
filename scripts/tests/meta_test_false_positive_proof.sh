@@ -193,31 +193,39 @@ elif [ -f "$REPO_ROOT/scripts/tmx" ]; then
 else
     M4_TARGET=""
 fi
-if [ -n "$M4_TARGET" ]; then
+# AUDIT-1 root-cause analysis (2026-05-21): M4/M5 target the Linux
+# cgroup-v2 / systemd-run path of the tmx wrapper. On Darwin the
+# wrapper uses POSIX rlimit instead (Fixed.md A4-A8 native dual-OS).
+# Mutating `systemd-run` / `MemoryMax` on the Darwin wrapper either
+# (a) hits unreachable code paths (no signal) or (b) hits the rlimit
+# branch and silently leaves the test happy. The proper §11.4.3
+# topology dispatch is to SKIP-with-reason on non-Linux hosts.
+#
+# Pre-AUDIT-1 the SKIP was implicit (raw `sed -i` failed on BSD sed)
+# and reported with the WRONG reason ("mutation command failed to
+# apply"). Post-AUDIT-1 the SKIP is explicit and §11.4.3-correct.
+if [ "$(uname -s)" != "Linux" ]; then
+    _skip "M4: scripts/tmx wrapper uses POSIX rlimit (not systemd-run) on $(uname -s) — Linux-only mutation per §11.4.3 topology dispatch"
+    _skip "M5: scripts/tmx wrapper uses POSIX rlimit (not MemoryMax cgroup) on $(uname -s) — Linux-only mutation per §11.4.3 topology dispatch"
+elif [ -n "$M4_TARGET" ]; then
+    # On Linux, run with the portable inplace_sed helper (same parity
+    # as M1/M2/M3/M6 already had — fixed in A17).
     run_mutation \
         "M4: tmx wrapper remove systemd-run flag" \
         "$M4_TARGET" \
-        "sed -i 's|systemd-run --user --scope|systemd-run-bogus --user --scope|' \"\$target_abs\"" \
-        "sed -i 's|systemd-run-bogus --user --scope|systemd-run --user --scope|' \"\$target_abs\"" \
+        "inplace_sed 's|systemd-run --user --scope|systemd-run-bogus --user --scope|' \"\$target_abs\"" \
+        "inplace_sed 's|systemd-run-bogus --user --scope|systemd-run --user --scope|' \"\$target_abs\"" \
         "scripts/tests/09_crash_isolation_scope.sh" \
         "SKIP.*T2"
-else
-    _skip "M4: no wrapper present (neither scripts/tmx-vm nor scripts/tmx)"
-fi
-
-# ── M5: tmx wrapper — corrupt MemoryMax option name ─────────────────
-# Mutate: rename "MemoryMax=" → "MemMax=" in the wrapper. Same target
-# priority as M4 — must mutate the file that test 09 actually reads
-# (scripts/tmx-vm on Darwin install, scripts/tmx on Linux).
-if [ -n "$M4_TARGET" ]; then
     run_mutation \
         "M5: tmx wrapper corrupt MemoryMax" \
         "$M4_TARGET" \
-        "sed -i 's|MemoryMax|MemMax|g' \"\$target_abs\"" \
+        "inplace_sed 's|MemoryMax|MemMax|g' \"\$target_abs\"" \
         "false" \
         "scripts/tests/15_per_session_cgroup_distinct.sh" \
         "FAIL.*T(1|3)"
 else
+    _skip "M4: no wrapper present (neither scripts/tmx-vm nor scripts/tmx)"
     _skip "M5: no wrapper present"
 fi
 
@@ -391,6 +399,174 @@ run_mutation \
     "false" \
     "scripts/tests/18_constitution_inheritance.sh" \
     "FAIL.*T5"
+
+# ── M16: .codegraph/config.json — strip the §11.4.10 secret exclusion ──
+#        Mandate (§11.4.78 + user 2026-05-21 + §11.4.10): the codegraph
+#        config MUST exclude credentials. Mutation removes one required
+#        secret pattern from the exclude list and asserts test 20 T3
+#        FAILs. We mutate via python JSON edit (the file is JSON, not
+#        line-oriented — sed would be brittle and risk JSON corruption).
+echo ""
+echo "--- MUTATION: M16: .codegraph/config.json strip secret exclusion ---"
+M16_CFG="$REPO_ROOT/.codegraph/config.json"
+M16_TEST="$REPO_ROOT/scripts/tests/20_codegraph_installed.sh"
+if [ ! -f "$M16_CFG" ] || [ ! -f "$M16_TEST" ]; then
+    _skip "M16: codegraph config or test 20 not present"
+else
+    M16_BACKUP="${M16_CFG}.bak.m16"
+    cp "$M16_CFG" "$M16_BACKUP" || { _skip "M16: cannot back up config.json"; }
+    python3 - <<PYEOF
+import json
+p = '$M16_CFG'
+c = json.load(open(p))
+c['exclude'] = [e for e in c.get('exclude', []) if e != '**/*.pem']
+json.dump(c, open(p,'w'), indent=2)
+PYEOF
+    m16_out="$(bash "$M16_TEST" 2>&1)" || true
+    if echo "$m16_out" | grep -qE '^FAIL.*T3'; then
+        _pass "M16: MUTATION CAUGHT — test 20 T3 FAILed on stripped secret exclusion"
+    else
+        echo "  >>> test 20 (mutated): $(echo "$m16_out" | grep -E '^(PASS|FAIL)' | tr '\n' ';')"
+        _fail "M16: MUTATION ESCAPED — test 20 did not FAIL with **/*.pem stripped"
+    fi
+    cp "$M16_BACKUP" "$M16_CFG"
+    rm -f "$M16_BACKUP"
+    m16_out="$(bash "$M16_TEST" 2>&1)" || true
+    if echo "$m16_out" | grep -qE '^PASS.*T3'; then
+        _pass "M16: FEATURE INTACT — test 20 T3 PASSes after revert"
+    else
+        _fail "M16: test 20 T3 does not PASS after revert"
+    fi
+fi
+
+# ── M17: .mcp.json — strip the codegraph entry ─────────────────────────
+#        Mandate (§11.4.78): Claude Code's project-scoped MCP config
+#        MUST carry the codegraph server. Mutation removes the entry
+#        and asserts test 22 T1 FAILs.
+echo ""
+echo "--- MUTATION: M17: .mcp.json strip codegraph entry ---"
+M17_CFG="$REPO_ROOT/.mcp.json"
+M17_TEST="$REPO_ROOT/scripts/tests/22_codegraph_mcp_wired.sh"
+if [ ! -f "$M17_CFG" ] || [ ! -f "$M17_TEST" ]; then
+    _skip "M17: .mcp.json or test 22 not present"
+else
+    M17_BACKUP="${M17_CFG}.bak.m17"
+    cp "$M17_CFG" "$M17_BACKUP"
+    python3 - <<PYEOF
+import json
+p = '$M17_CFG'
+c = json.load(open(p))
+c.get('mcpServers', {}).pop('codegraph', None)
+json.dump(c, open(p,'w'), indent=2)
+PYEOF
+    m17_out="$(bash "$M17_TEST" 2>&1)" || true
+    if echo "$m17_out" | grep -qE '^FAIL.*T1'; then
+        _pass "M17: MUTATION CAUGHT — test 22 T1 FAILed on stripped .mcp.json codegraph"
+    else
+        echo "  >>> test 22 (mutated): $(echo "$m17_out" | grep -E '^(PASS|FAIL)' | tr '\n' ';')"
+        _fail "M17: MUTATION ESCAPED — test 22 did not FAIL with codegraph stripped from .mcp.json"
+    fi
+    cp "$M17_BACKUP" "$M17_CFG"
+    rm -f "$M17_BACKUP"
+    m17_out="$(bash "$M17_TEST" 2>&1)" || true
+    if echo "$m17_out" | grep -qE '^PASS.*T1'; then
+        _pass "M17: FEATURE INTACT — test 22 T1 PASSes after revert"
+    else
+        _fail "M17: test 22 T1 does not PASS after revert"
+    fi
+fi
+
+# ── M19: scripts/tmx wrapper — strip the AUDIT-2 kill-shorthand alias ──
+#        Mandate (AUDIT-2 + §102 operator-path): the documented
+#        `tmx kill -t NAME` MUST translate to `kill-session`. Mutation
+#        removes the translation block from the generated wrapper and
+#        asserts test 23 T3 FAILs ("ambiguous" stderr returns).
+echo ""
+echo "--- MUTATION: M19: scripts/tmx strip kill→kill-session shorthand ---"
+M19_WRAP="$REPO_ROOT/scripts/tmx"
+M19_TEST="$REPO_ROOT/scripts/tests/23_tmx_kill_shorthand.sh"
+if [ ! -f "$M19_WRAP" ] || [ ! -f "$M19_TEST" ]; then
+    _skip "M19: scripts/tmx wrapper or test 23 not present"
+else
+    M19_BACKUP="${M19_WRAP}.bak.m19"
+    cp "$M19_WRAP" "$M19_BACKUP"
+    # Delete the entire AUDIT-2 translation block (between markers).
+    # The block starts with the `if [ "$SUBCMD" = "kill" ]; then` line
+    # and ends at the OUTER `fi`. We use a quoted heredoc so bash does
+    # not expand `\$` and corrupt the regex; pass the file path via env.
+    M19_WRAP_PATH="$M19_WRAP" python3 - <<'PYEOF'
+import re, pathlib, os
+p = pathlib.Path(os.environ['M19_WRAP_PATH'])
+s = p.read_text()
+# Match the AUDIT-2 if-block: from the SUBCMD-kill check through the
+# outer closing `fi`. The block contains an inner if/else/fi so we
+# anchor on the literal `set -- "${_new_args[@]}"\nfi\n` tail to be
+# robust to whitespace changes inside.
+pat = re.compile(
+    r'if \[ "\$SUBCMD" = "kill" \]; then\n.*?\n    set -- "\$\{_new_args\[@\]\}"\nfi\n',
+    re.DOTALL,
+)
+s2, n = pat.subn('', s, count=1)
+if n != 1:
+    raise SystemExit(f"M19: failed to find AUDIT-2 block (n={n})")
+p.write_text(s2)
+PYEOF
+    m19_out="$(bash "$M19_TEST" 2>&1)" || true
+    if echo "$m19_out" | grep -qE '^FAIL.*T3'; then
+        _pass "M19: MUTATION CAUGHT — test 23 T3 FAILed on stripped kill-shorthand"
+    else
+        echo "  >>> test 23 (mutated): $(echo "$m19_out" | grep -E '^(PASS|FAIL)' | tr '\n' ';')"
+        _fail "M19: MUTATION ESCAPED — test 23 did not FAIL with the kill-shorthand removed"
+    fi
+    cp "$M19_BACKUP" "$M19_WRAP"
+    chmod +x "$M19_WRAP"
+    rm -f "$M19_BACKUP"
+    m19_out="$(bash "$M19_TEST" 2>&1)" || true
+    if echo "$m19_out" | grep -qE '^PASS' && ! echo "$m19_out" | grep -qE '^FAIL'; then
+        _pass "M19: FEATURE INTACT — test 23 PASSes after revert"
+    else
+        _fail "M19: test 23 does not PASS after revert"
+    fi
+fi
+
+# ── M15: project CLAUDE.md — strip the verbatim anti-bluff covenant ────
+#        Mandate (user, 2026-05-21): the verbatim 2026-04-28 covenant
+#        MUST be literally present in every consumer governance file.
+#        Mutation runs against a TEMP COPY so the real CLAUDE.md is
+#        never touched — same pattern as CM-CONSTITUTION-INHERITANCE.
+#        The test honors $CLAUDE_MD_TARGET so the harness can point it
+#        at the mutated copy without source modification.
+echo ""
+echo "--- MUTATION: M15: project CLAUDE.md strip verbatim anti-bluff covenant (temp-copy) ---"
+M15_SRC="$REPO_ROOT/CLAUDE.md"
+M15_TEST="$REPO_ROOT/scripts/tests/19_covenant_propagation.sh"
+M15_SENTINEL='We had been in position that all tests do execute with success'
+if [ ! -f "$M15_SRC" ] || [ ! -f "$M15_TEST" ]; then
+    _skip "M15: CLAUDE.md or test 19 not present"
+else
+    M15_TMP="$(mktemp 2>/dev/null || mktemp -t m15claude)"
+    grep -vF "$M15_SENTINEL" "$M15_SRC" > "$M15_TMP"
+    if grep -qF "$M15_SENTINEL" "$M15_TMP"; then
+        _fail "M15: mutation did not remove the covenant anchor from the temp copy"
+    else
+        m15_out="$(CLAUDE_MD_TARGET="$M15_TMP" bash "$M15_TEST" 2>&1)" || true
+        if echo "$m15_out" | grep -qE '^FAIL.*T2'; then
+            _pass "M15: MUTATION CAUGHT — test 19 T2 FAILed on the covenant-stripped CLAUDE.md copy"
+        else
+            echo "  >>> test 19 (mutated): $(echo "$m15_out" | grep -E '^(PASS|FAIL)' | tr '\n' ';')"
+            _fail "M15: MUTATION ESCAPED — test 19 did not FAIL with a stripped covenant"
+        fi
+        # Restore-direction proof: real CLAUDE.md still passes.
+        m15_out="$(bash "$M15_TEST" 2>&1)" || true
+        if echo "$m15_out" | grep -qE '^PASS' && ! echo "$m15_out" | grep -qE '^FAIL'; then
+            _pass "M15: FEATURE INTACT — test 19 PASSes against the real CLAUDE.md"
+        else
+            echo "  >>> test 19 (real): $(echo "$m15_out" | grep -E '^FAIL' | tr '\n' ';')"
+            _fail "M15: test 19 does not PASS against the real CLAUDE.md"
+        fi
+    fi
+    rm -f "$M15_TMP"
+fi
 
 # ── CM-CONSTITUTION-INHERITANCE — prove test 18 catches a WEAKENED
 #    constitution, without ever touching the real, decoupled,

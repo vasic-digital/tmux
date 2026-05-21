@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="working-plan--v104-cycle-2026-05-21">Working Plan — v1.0.4 cycle
+(2026-05-21)</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-21T00:00:00Z <strong>Scope:</strong> anti-bluff covenant
+propagation + CodeGraph (§11.4.78) + audit follow-ups</p>
+<hr />
+<h2 id="1-triggering-directives">§1 Triggering directives</h2>
+<ol type="1">
+<li><strong>User mandate (2026-05-21):</strong> &quot;create full working
+plan for tackling all these points completely … all existing tests and
+Challenges MUST work in anti-bluff manner … must guarantee the quality,
+the completion and full usability by end users of the product! This MUST
+BE part of Constitution … its CLAUDE.MD and AGENTS.MD if it is not there
+already, and to be applied to all Submodules&#39;s Constitution, CLAUDE.MD
+and AGENTS.MD as well … Pay attention that we now use and incorporate
+fully the HelixConstitution submodule responsible for root
+definitions.&quot;</li>
+<li><strong>User mandate (2026-05-21, follow-up):</strong> &quot;Incorporate
+/ install codegraph into the our project … installed for Claude Code,
+OpenCode, Kimi CLI, Crush, Qwen Code … create comprehensive tests to
+validate and verify with anti-bluff approach that codegraph is working
+completely as expected!&quot;</li>
+<li><strong>My honest audit (2026-05-21):</strong> M4/M5
+paired-mutations use raw GNU <code>sed -i</code> (silently SKIP on
+Darwin); <code>tmx kill</code> shorthand in README/AGENTS table doesn&#39;t
+resolve (must say <code>kill-session</code>).</li>
+</ol>
+<h2 id="2-constitutional-authority">§2 Constitutional authority</h2>
+<ul>
+<li><strong>§11.4</strong> end-user-quality covenant (verbatim user
+mandate 2026-04-28)</li>
+<li><strong>§11.4.2</strong> recorded-evidence requirement</li>
+<li><strong>§11.4.4 / §103</strong> four-layer test coverage</li>
+<li><strong>§11.4.10</strong> credentials-handling mandate (codegraph
+secret exclusions)</li>
+<li><strong>§11.4.20 / §11.4.70</strong> subagent-driven by default</li>
+<li><strong>§11.4.26</strong> constitution-submodule update workflow
+(fetch first — done)</li>
+<li><strong>§11.4.30</strong> .gitignore + no-versioned-build-artifacts
+(codegraph DB)</li>
+<li><strong>§11.4.32</strong> post-constitution-pull validation
+sweep</li>
+<li><strong>§11.4.65</strong> universal Markdown export (HTML+PDF
+siblings)</li>
+<li><strong>§11.4.71</strong> pre-push fetch + investigate +
+integrate</li>
+<li><strong>§11.4.74</strong> submodule-catalogue-first discovery</li>
+<li><strong>§11.4.77</strong> regeneration-mechanism-required (codegraph
+DB)</li>
+<li><strong>§11.4.78</strong> CodeGraph code-intelligence mandate</li>
+<li><strong>§102 / §11.4.7</strong> operator-path test coverage</li>
+<li><strong>§12.10</strong> continuation-document maintenance</li>
+</ul>
+<h2 id="3-audit-state-captured-this-session">§3 Audit state (captured
+this session)</h2>
+<h3 id="31-verbatim-user-mandate-2026-04-28-presence">§3.1 Verbatim
+user-mandate (2026-04-28) presence</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Hits</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Project <code>Constitution.md</code></td>
+<td>1</td>
+<td>✓ keep</td>
+</tr>
+<tr>
+<td>Project <code>CLAUDE.md</code></td>
+<td>0</td>
+<td><strong>insert verbatim block</strong></td>
+</tr>
+<tr>
+<td>Project <code>AGENTS.md</code></td>
+<td>0</td>
+<td><strong>insert verbatim block</strong></td>
+</tr>
+<tr>
+<td>Project <code>QWEN.md</code></td>
+<td>0</td>
+<td><strong>insert verbatim block</strong></td>
+</tr>
+<tr>
+<td><code>constitution/Constitution.md</code></td>
+<td>1</td>
+<td>✓ upstream</td>
+</tr>
+<tr>
+<td><code>constitution/CLAUDE.md</code></td>
+<td>1</td>
+<td>✓ upstream</td>
+</tr>
+<tr>
+<td><code>constitution/AGENTS.md</code></td>
+<td>1</td>
+<td>✓ upstream</td>
+</tr>
+<tr>
+<td><code>constitution/QWEN.md</code></td>
+<td>0</td>
+<td><strong>upstream gap — separate PR to HelixConstitution out of scope
+here; note it</strong></td>
+</tr>
+<tr>
+<td><code>Containers/CONSTITUTION.md</code> (same inode as
+<code>Constitution.md</code>)</td>
+<td>2</td>
+<td>✓</td>
+</tr>
+<tr>
+<td><code>Containers/CLAUDE.md</code></td>
+<td>3</td>
+<td>✓</td>
+</tr>
+<tr>
+<td><code>Containers/AGENTS.md</code></td>
+<td>3</td>
+<td>✓</td>
+</tr>
+<tr>
+<td><code>Containers/QWEN.md</code></td>
+<td>missing</td>
+<td><strong>out-of-scope — Containers is owned but separate
+cycle</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The four ✗-gap rows in the project layer are the work for this cycle.
+The upstream <code>constitution/QWEN.md</code> gap and the
+<code>Containers/QWEN.md</code> gap are honest-noted but deferred to
+their own commit cycles (different submodule ownership boundaries, per
+§11.4.26 step 4 — those need their own fetch+pull+commit+push in their
+own repos).</p>
+<h3 id="32-codegraph-11478-state">§3.2 CodeGraph (§11.4.78) state</h3>
+<ul>
+<li>CodeGraph CLI <strong>already installed</strong>
+(<code>/opt/homebrew/opt/node@25/bin/codegraph</code>, v0.6.8).</li>
+<li><code>.codegraph/</code> not yet present in the repo — needs
+<code>codegraph init</code> + <code>codegraph index</code>.</li>
+<li>MCP wiring state per agent:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Config path</th>
+<th>Exists?</th>
+<th>Needs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude Code (project-scoped)</td>
+<td><code>.mcp.json</code></td>
+<td>✗</td>
+<td>create with codegraph entry</td>
+</tr>
+<tr>
+<td>OpenCode</td>
+<td><code>~/.config/opencode/opencode.json</code></td>
+<td>✓</td>
+<td>add codegraph entry</td>
+</tr>
+<tr>
+<td>Kimi CLI</td>
+<td><code>~/.kimi/mcp.json</code></td>
+<td>✓</td>
+<td>add codegraph entry</td>
+</tr>
+<tr>
+<td>Crush</td>
+<td><code>.crush.json</code></td>
+<td>✗</td>
+<td>create with codegraph entry</td>
+</tr>
+<tr>
+<td>Qwen Code</td>
+<td><code>.qwen/settings.json</code></td>
+<td>✗</td>
+<td>create with codegraph entry</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-audit-follow-ups-from-whats-left-unfinished">§3.3 Audit
+follow-ups (from &quot;what&#39;s left unfinished&quot;)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Issue</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AUDIT-1</td>
+<td>M4/M5 use raw <code>sed -i</code> (GNU-only) → SKIP on Darwin</td>
+<td>Minor (gap, not failure)</td>
+</tr>
+<tr>
+<td>AUDIT-2</td>
+<td><code>tmx kill -t NAME</code> ambiguous (README claims it
+works)</td>
+<td>Minor doc/UX bug</td>
+</tr>
+<tr>
+<td>AUDIT-3</td>
+<td>CONTINUATION.md §4 self-referential placeholder SHA stale</td>
+<td>Cosmetic</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-phased-implementation">§4 Phased implementation</h2>
+<p>Each phase ends with a captured-evidence checkpoint per §11.4.2; each
+non-trivial code path lands all four §103 layers (static gate / runtime
+test / challenge / paired mutation).</p>
+<h3 id="phase-1--anti-bluff-covenant-propagation-project-layer">Phase 1
+— Anti-bluff covenant propagation (project layer)</h3>
+<ul>
+<li><strong>1.1</strong> Insert verbatim user-mandate (2026-04-28) +
+§11.4 covenant summary into project <code>CLAUDE.md</code> (in a
+clearly-labeled
+<code>## MANDATORY ANTI-BLUFF COVENANT (verbatim from upstream §11.4)</code>
+section, BELOW the existing inheritance pointer so it doesn&#39;t break the
+@import semantics).</li>
+<li><strong>1.2</strong> Same into project <code>AGENTS.md</code>.</li>
+<li><strong>1.3</strong> Same into project <code>QWEN.md</code>.</li>
+<li><strong>1.4</strong> Add
+<code>scripts/tests/19_anti_bluff_covenant_propagation.sh</code>
+(operator-path: greps each governance file for the literal quote; FAILs
+if any file lacks it).</li>
+<li><strong>1.5</strong> Static gate in <code>verify.sh</code>:
+pre-suite check that all four governance files carry the literal anchor
+<code>We had been in position that all tests do execute with success</code>.</li>
+<li><strong>1.6</strong> Challenge <code>TMUX-CH-19</code> in
+<code>scripts/challenges/tmux.yaml</code>.</li>
+<li><strong>1.7</strong> Paired mutation <code>M15</code>: strip the
+literal from a TEMP COPY of <code>CLAUDE.md</code>, run test 19, assert
+FAIL; restore, assert PASS.</li>
+<li><strong>Evidence:</strong> test 19 + verify.sh layer-1 + meta-test
+M15.</li>
+</ul>
+<h3 id="phase-2--codegraph-install--initialisation-11478">Phase 2 —
+CodeGraph install + initialisation (§11.4.78)</h3>
+<ul>
+<li><strong>2.1</strong> <code>codegraph init</code> from repo root —
+produces <code>.codegraph/config.json</code>.</li>
+<li><strong>2.2</strong> Edit <code>.codegraph/config.json</code>
+<code>exclude</code> list to add (per §11.4.10):
+<ul>
+<li><code>constitution/</code> (other-owned submodule)</li>
+<li><code>Containers/</code> (other-owned submodule)</li>
+<li><code>tmux/</code> (upstream third-party submodule)</li>
+<li><code>.env*</code>, <code>*.env</code>, <code>*.pem</code>,
+<code>*.key</code>, <code>*.crt</code>, <code>id_rsa*</code>,
+<code>id_ed25519*</code>, <code>secrets/</code>,
+<code>.netrc</code></li>
+<li><code>tmux/build*/</code>, <code>out/</code>,
+<code>.codegraph/codegraph.db*</code></li>
+</ul></li>
+<li><strong>2.3</strong> Add <code>.codegraph/codegraph.db</code> (and
+<code>.codegraph/codegraph.db-*</code>) to project
+<code>.gitignore</code>. <code>.codegraph/config.json</code> stays
+tracked.</li>
+<li><strong>2.4</strong> Document the regeneration mechanism per
+§11.4.77 at <code>.gitignore-meta/codegraph-db.yaml</code>: pattern,
+mechanism-type=regenerate,
+script-path=<code>scripts/codegraph_reindex.sh</code>,
+expected-disk-usage, vendor-url, requires-network=false,
+requires-credentials=false.</li>
+<li><strong>2.5</strong> <code>scripts/codegraph_reindex.sh</code> —
+idempotent script that runs <code>codegraph index</code> and writes the
+stamp file
+<code>.gitignore-meta/.regenerated/codegraph-db.ok</code>.</li>
+<li><strong>2.6</strong> Wire into <code>scripts/setup.sh</code> as a
+post-build step so a fresh clone gets a usable index.</li>
+<li><strong>Evidence:</strong> <code>.codegraph/codegraph.db</code>
+materialised, node count non-zero captured via
+<code>codegraph status</code>.</li>
+</ul>
+<h3 id="phase-3--multi-agent-mcp-wiring">Phase 3 — Multi-agent MCP
+wiring</h3>
+<p>For each of the 5 agents listed in §11.4.78:</p>
+<ul>
+<li><strong>3.1 Claude Code</strong> — create project-scoped
+<code>.mcp.json</code>:
+<div class="sourceCode" id="cb1"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;mcpServers&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;codegraph&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;stdio&quot;</span><span class="fu">,</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;command&quot;</span><span class="fu">:</span> <span class="st">&quot;codegraph&quot;</span><span class="fu">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;args&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;serve&quot;</span><span class="ot">,</span> <span class="st">&quot;--mcp&quot;</span><span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;env&quot;</span><span class="fu">:</span> <span class="fu">{}</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div></li>
+<li><strong>3.2 OpenCode</strong> — read
+<code>~/.config/opencode/opencode.json</code>, merge a
+<code>codegraph</code> entry under <code>mcp.servers</code>, write back
+atomically.</li>
+<li><strong>3.3 Kimi CLI</strong> — read <code>~/.kimi/mcp.json</code>,
+merge a <code>codegraph</code> entry, write back atomically.</li>
+<li><strong>3.4 Crush</strong> — create <code>.crush.json</code> with
+the codegraph MCP server.</li>
+<li><strong>3.5 Qwen Code</strong> — create
+<code>.qwen/settings.json</code> with the codegraph MCP server.</li>
+<li>Every config references the bare <code>codegraph</code> command on
+<code>PATH</code>; no hardcoded host paths (so configs are portable
+across machines).</li>
+</ul>
+<h3 id="phase-4--anti-bluff-codegraph-verification-suite-11478">Phase 4
+— Anti-bluff CodeGraph verification suite (§11.4.78)</h3>
+<p>The mandate REQUIRES an unforgeable challenge — a fact obtainable
+only by calling a CodeGraph MCP tool, so an agent answering from
+file-reading cannot produce a false PASS.</p>
+<ul>
+<li><strong>4.1</strong>
+<code>scripts/tests/20_codegraph_installed.sh</code> — verifies
+<code>codegraph</code> on PATH, version ≥ 0.6.0,
+<code>.codegraph/config.json</code> present, secret exclusions
+present.</li>
+<li><strong>4.2</strong>
+<code>scripts/tests/21_codegraph_index_present.sh</code> — verifies
+<code>.codegraph/codegraph.db</code> exists, runs
+<code>codegraph status</code> (or equivalent CLI), captures node count
+&gt; 0 as positive runtime evidence.</li>
+<li><strong>4.3</strong>
+<code>scripts/tests/22_codegraph_mcp_wired.sh</code> — verifies each of
+the 5 agent configs references <code>codegraph</code> MCP server.
+Operator-path: parses each config JSON; SKIPs the config-path check for
+agents whose binary isn&#39;t installed on this host (and records WHY per
+§11.4.3).</li>
+<li><strong>4.4</strong> Unforgeable-challenge per §11.4.78: end-to-end
+test that drives Claude Code (or the available CLI agent) with a prompt
+asking for a CodeGraph-only fact. Per §11.4.3 if no agent CLI is
+available on this host the test SKIPs with documented reason
+(<code>AUTONOMOUS_DESIGNED</code> per §11.4.52 — falls in the &quot;agent
+that genuinely cannot be driven end-to-end&quot; carve-out the mandate
+enumerates).</li>
+<li><strong>4.5</strong> Challenges <code>TMUX-CH-20</code>,
+<code>TMUX-CH-21</code>, <code>TMUX-CH-22</code> in yaml.</li>
+<li><strong>4.6</strong> Paired mutations (3): <code>M16</code> strips
+secret exclusion from <code>config.json</code>; <code>M17</code> removes
+codegraph entry from <code>.mcp.json</code>; <code>M18</code> deletes
+<code>.codegraph/codegraph.db</code> stamp.</li>
+<li><strong>Evidence:</strong> every test runs, every mutation
+caught.</li>
+</ul>
+<h3 id="phase-5--audit-1-m4m5-portability-fix">Phase 5 — AUDIT-1: M4/M5
+portability fix</h3>
+<ul>
+<li><strong>5.1</strong> Replace inline
+<code>sed -i &#39;s|…|…|&#39; &quot;$target_abs&quot;</code> in M4/M5 with a call to the
+portable <code>inplace_sed</code> helper already added in A17.</li>
+<li><strong>5.2</strong> Re-run meta-test on Darwin; expect SKIP count 6
+→ 4 (M7-M10 remain SKIP — they need <code>scripts/tmx-vm</code> which is
+the Linux-in-VM wrapper, not present on Darwin host — that&#39;s correct
+§11.4.3 topology dispatch).</li>
+<li><strong>Evidence:</strong> before/after meta-test transcript showing
+SKIP count drop.</li>
+</ul>
+<h3 id="phase-6--audit-2-tmx-kill-shorthand-fix">Phase 6 — AUDIT-2:
+<code>tmx kill</code> shorthand fix</h3>
+<ul>
+<li><strong>6.1</strong> Wrapper: detect
+<code>tmx kill &lt;args&gt;</code> (bare verb) and translate to
+<code>tmx kill-session &lt;args&gt;</code>. Don&#39;t break
+<code>tmx kill-pane</code> / <code>kill-server</code> /
+<code>kill-window</code> — only intercept the bare unambiguous
+<code>kill</code> verb.</li>
+<li><strong>6.2</strong> Update README + AGENTS commands table — still
+lists <code>tmx kill</code> as the friendly verb, now actually
+works.</li>
+<li><strong>6.3</strong> Test 23
+<code>scripts/tests/23_tmx_kill_shorthand.sh</code> — creates a session,
+kills via <code>tmx kill -t NAME</code>, asserts session removed.
+Operator-path per §102.</li>
+<li><strong>6.4</strong> Paired mutation <code>M19</code>: remove the
+shorthand translation, assert test 23 FAILs.</li>
+<li><strong>Evidence:</strong> test 23 captures session
+before/after.</li>
+</ul>
+<h3 id="phase-7--documentation--sync-per-11465--1210">Phase 7 —
+Documentation + sync (per §11.4.65 + §12.10)</h3>
+<ul>
+<li><strong>7.1</strong> <code>docs/codegraph/README.md</code> —
+Overview / Prerequisites / Install / Init / MCP wiring per agent /
+Anti-bluff verification / Troubleshooting.
+<ul>
+<li>HTML + PDF siblings per §11.4.65.</li>
+</ul></li>
+<li><strong>7.2</strong> <code>Fixed.md</code>: A18 (CodeGraph
+integration), A19 (anti-bluff covenant propagation), A20 (M4/M5
+portability), A21 (<code>tmx kill</code> shorthand).</li>
+<li><strong>7.3</strong> <code>CHANGELOG.md</code>:
+<code>[v1.0.4]</code> block.</li>
+<li><strong>7.4</strong> <code>VERSION</code>: bump to
+<code>1.0.4</code> / <code>versionCode=5</code>.</li>
+<li><strong>7.5</strong> <code>CONTINUATION.md</code> §3.10 (this
+cycle); §1 snapshot table refresh.</li>
+<li><strong>7.6</strong> Issues.md: zero open items confirmed; record
+the upstream gap (constitution/QWEN.md + Containers/QWEN.md missing the
+covenant) as a NEW E1 entry blocking on separate-submodule cycles.</li>
+</ul>
+<h3 id="phase-8--11471-pre-push--11432-post-pull-sweep--commit--push">Phase
+8 — §11.4.71 pre-push + §11.4.32 post-pull sweep + commit + push</h3>
+<ul>
+<li><strong>8.1</strong> <code>git fetch --all --prune --tags</code>
+parent + every owned submodule (re-run; integration already done at
+start of this cycle).</li>
+<li><strong>8.2</strong> Re-run full verify gate fresh (per §11.4 Iron
+Law).</li>
+<li><strong>8.3</strong> Re-run meta-test fresh (expect 21 caught / 0
+escaped / 4 skipped — 18 prior + 3 new from Phase 4 mutations, minus
+M4/M5 portability fix dropping their SKIP).</li>
+<li><strong>8.4</strong> Re-run e2e test fresh.</li>
+<li><strong>8.5</strong>
+<code>commit_all.sh &quot;&lt;v1.0.4 message&gt;&quot;</code> → push to github +
+gitlab.</li>
+<li><strong>Evidence:</strong> full transcript triple captured this
+session.</li>
+</ul>
+<h2 id="5-risk-register">§5 Risk register</h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>codegraph init</code> discovers project-specific config schema
+→ first-class fields differ from what §11.4.78 mandates</td>
+<td>Read actual generated config first; adapt secret-exclusion list to
+schema</td>
+</tr>
+<tr>
+<td>MCP config formats differ per agent</td>
+<td>Each agent&#39;s docs consulted before wiring; configs validated by
+parsing JSON post-write</td>
+</tr>
+<tr>
+<td><code>.codegraph/codegraph.db</code> could be very large
+(multi-MB)</td>
+<td>Honest size capture in
+<code>.gitignore-meta/codegraph-db.yaml</code>; gitignored</td>
+</tr>
+<tr>
+<td>End-to-end MCP test requires running an agent CLI in non-interactive
+mode</td>
+<td>Per §11.4.78 carve-out, document SKIP for agents that cannot be
+driven (with reason); the helper-presence + parse-validation gates are
+still mechanical</td>
+</tr>
+<tr>
+<td>Editing constitution/ submodule out of scope (§11.4.26 step 1+)</td>
+<td>Upstream gaps logged as separate work items; this cycle touches
+consumer side only</td>
+</tr>
+</tbody>
+</table>
+<h2 id="6-out-of-scope-logged-not-done-this-cycle">§6 Out-of-scope
+(logged, not done this cycle)</h2>
+<ul>
+<li>Upstream <code>constitution/QWEN.md</code> add covenant — needs
+separate PR to <code>HelixDevelopment/HelixConstitution</code>.</li>
+<li><code>Containers/QWEN.md</code> create + populate — needs separate
+PR to <code>vasic-digital/Containers</code>.</li>
+<li>Linux-host SKIPs (M7-M10 + tests 08, 09, 12, 13, 14) — they require
+Linux+cgroup-v2+systemd; no Darwin path exists.</li>
+<li>XNU memory-cap gap — kernel-level, not addressable.</li>
+</ul>
+<h2 id="7-approval-gate">§7 Approval gate</h2>
+<p>Plan covers four cycle goals:</p>
+<ol type="1">
+<li>(Mandate) anti-bluff covenant verbatim in every consumer governance
+file.</li>
+<li>(Mandate) CodeGraph installed + wired for all 5 agents + verified
+anti-bluff.</li>
+<li>(Audit) M4/M5 portability + <code>tmx kill</code> shorthand.</li>
+<li>(Discipline) §103 four-layer coverage on every new behaviour,
+§11.4.65 doc sync, §11.4.71 pre-push, §12.10 CONTINUATION, commit via
+<code>commit_all.sh</code>.</li>
+</ol>
+<p>Estimated commits: 1 (everything in one v1.0.4 cycle commit per
+§11.4.42 iteration discipline). Approve to proceed with execution.</p>
+</body>
+</html>

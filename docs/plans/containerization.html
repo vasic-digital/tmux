@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="per-session-tmux-isolation--plan">Per-Session Tmux Isolation —
+Plan</h1>
+<p><strong>Source:</strong> Web deep-research dispatched 2026-05-07. See
+repository CONTINUATION.md §3.2 for status.</p>
+<h2 id="recommended-pattern-systemd-run---user---scope">Recommended
+pattern: <code>systemd-run --user --scope</code></h2>
+<p>Each <code>tmx new &lt;name&gt;</code> creates a transient systemd
+<code>--user --scope</code> cgroup-v2 unit named
+<code>tmx-&lt;name&gt;.scope</code> with:</p>
+<ul>
+<li><code>MemoryMax=8G</code> (default; tunable via <code>TMX_MEM</code>
+env var)</li>
+<li><code>CPUQuota=200%</code> (= 2 CPUs; tunable via
+<code>TMX_CPU</code>)</li>
+<li><code>Delegate=yes</code> (lets tmux/children create sub-cgroups for
+LSPs etc.)</li>
+<li><code>TasksMax=4096</code></li>
+</ul>
+<p>A separate tmux server runs INSIDE each scope (own
+<code>-L &lt;name&gt; -S /run/.../&lt;name&gt;.sock</code> socket).
+Crash isolation: when the scope hits its memory cap or a fatal signal,
+<strong>only that scope dies</strong>. Other scopes and the user session
+are unaffected (same property §12.7 already validates for AOSP
+builds).</p>
+<h2 id="why-not-podman-per-session">Why NOT podman-per-session</h2>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>systemd scope</th>
+<th>podman container</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FS access (<code>$HOME</code>, ssh keys,
+<code>~/.tmux.conf</code>)</td>
+<td><strong>Native, zero config</strong></td>
+<td>Needs explicit bind-mounts</td>
+</tr>
+<tr>
+<td>Network (host VPN, DNS)</td>
+<td><strong>Native</strong></td>
+<td>slirp4netns slow, port &lt;1024 blocked</td>
+</tr>
+<tr>
+<td>TTY (xterm-256color)</td>
+<td><strong>Native PTY</strong></td>
+<td><code>podman exec -it</code> has OPOST/ONLCR glitch (<a href="https://github.com/containers/podman/issues/3179">containers/podman#3179</a>)</td>
+</tr>
+<tr>
+<td>Per-keystroke latency</td>
+<td><strong>Zero</strong></td>
+<td>+1 PTY copy (conmon)</td>
+</tr>
+<tr>
+<td>Setup complexity</td>
+<td>~40 line bash wrapper</td>
+<td>image build + volumes + userns mapping</td>
+</tr>
+<tr>
+<td>Nesting (parent already containerized)</td>
+<td><strong>Fine</strong> — scopes nest in user.slice</td>
+<td>Pidfd/userns drama</td>
+</tr>
+<tr>
+<td>Host deps</td>
+<td>systemd ≥ 230, cgroup v2</td>
+<td>podman/docker + conmon + slirp4netns</td>
+</tr>
+</tbody>
+</table>
+<p>systemd scope wins on every dimension that matters for an interactive
+shell tmux session.</p>
+<h2 id="wrapper-api-subcommands">Wrapper API (subcommands)</h2>
+<pre><code>tmx new &lt;name&gt;          create + attach (one server per scope)
+tmx attach &lt;name&gt;       reattach
+tmx ls                  list running scopes with mem/cpu usage
+tmx kill &lt;name&gt;         systemctl --user stop tmx-&lt;name&gt;.scope + cleanup socket</code></pre>
+<p>Tunables (env vars):</p>
+<ul>
+<li><code>TMX_MEM</code> (default <code>8G</code>) —
+<code>MemoryMax</code> per scope</li>
+<li><code>TMX_CPU</code> (default <code>200%</code>) —
+<code>CPUQuota</code> per scope</li>
+</ul>
+<h2 id="crash-isolation-invariants-must-be-tested">Crash isolation
+invariants (must be tested)</h2>
+<table>
+<thead>
+<tr>
+<th>Invariant</th>
+<th>Test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OOM-kill confined to one scope</td>
+<td><code>tmx new victim</code> → exhaust 16G in victim → only
+<code>tmx-victim.scope</code> exits, <code>tmx-survivor</code>
+alive</td>
+</tr>
+<tr>
+<td>User session survives</td>
+<td><code>loginctl is-active user@&lt;uid&gt;.service</code> stays
+<code>active</code> throughout T1+T2</td>
+</tr>
+<tr>
+<td>CPU quota enforced</td>
+<td>spawn 16 hot threads → <code>systemd-cgtop</code> shows ≤ 220%
+sustained</td>
+</tr>
+<tr>
+<td>SIGKILL containment</td>
+<td><code>kill -9 -- -$$</code> inside scope → only that scope dies</td>
+</tr>
+<tr>
+<td>Concurrent sessions</td>
+<td>5 sessions × Neovim + LSPs → all 5 visible, sum &lt; 5×cap</td>
+</tr>
+<tr>
+<td>Detach/attach idempotent</td>
+<td><code>$$</code> unchanged across detach/attach round-trip</td>
+</tr>
+<tr>
+<td>Mutation of <code>MemoryMax=</code> line FAILS T1</td>
+<td>Anti-bluff §1 covenant proof</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="../scripts/tests/"><code>scripts/tests/</code></a> for
+actual test scripts (to be written in v2 implementation phase).</p>
+<h2 id="edge-cases--gotchas">Edge cases &amp; gotchas</h2>
+<ol type="1">
+<li><strong><code>KillUserProcesses=yes</code></strong> (systemd ≥ 230
+default): logout would kill scopes. Run
+<code>loginctl enable-linger $USER</code> to survive logout.</li>
+<li><strong>One tmux server per scope</strong> = no cross-session
+window-move (acceptable trade-off — single-server defeats
+isolation).</li>
+<li><strong><code>Delegate=yes</code> mandatory</strong> for child
+cgroups (LSPs, build watchers).</li>
+<li><strong>Cgroup v1 hosts</strong>: limited support. Add
+<code>systemd.unified_cgroup_hierarchy=1</code> to kernel cmdline on
+Ubuntu 20.04 / RHEL 8.</li>
+<li><strong>RHEL 8</strong> has known <a href="https://access.redhat.com/solutions/7099227">systemd bug</a> —
+MemoryMax not enforced in transient <code>--user</code> scope. RHEL 9
+fine.</li>
+<li><strong><code>PrivateTmp=yes</code></strong> would break ssh-agent /
+gpg-agent sockets — DO NOT enable on the scope.</li>
+</ol>
+<h2 id="recommended-ram-cap-rationale">Recommended RAM cap
+rationale</h2>
+<p>Heavy interactive tmux session (Neovim + LSPs + treesitter + htop +
+build watcher + 2-3 MCP servers) typically holds 2-4 GB RSS, with rare
+spikes to 6 GB during heavy compile/dexopt. Default <code>8G</code>
+gives 2× headroom. On a 64 GB host, 5 concurrent sessions × 8 GB cap =
+40 GB — fits below 60% (38 GB) cap if not all run heavy at once.
+Realistic concurrent heavy-use is 2-3 sessions.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://ankursinha.in/2022/10/29/isolating-tmux-windows-to-prevent-systemd-oomd-from-killing-the-server.html">Ankur
+Sinha — Isolating tmux windows</a> — primary prior art</li>
+<li><a href="https://github.com/tmux/tmux/issues/428">tmux/tmux#428</a>
+— confirms no upstream feature</li>
+<li><a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html">systemd.resource-control(5)</a>
+— semantics</li>
+<li><a href="https://github.com/containers/podman/issues/3179">containers/podman#3179</a>
+— pattern-A TTY cost</li>
+<li><a href="https://access.redhat.com/solutions/7099227">Red Hat KB
+7099227</a> — RHEL 8 MemoryMax bug</li>
+</ul>
+</body>
+</html>

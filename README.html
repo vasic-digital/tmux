@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="vasic-digital-tmux--optimized--verified-containerized-build">vasic-digital
+tmux — optimized + verified containerized build</h1>
+<p>A reproducible, hardened build of <a href="https://github.com/tmux/tmux"><code>tmux</code></a> with built-in
+jemalloc support, OOM-protection helper, and a comprehensive
+verification gate. <strong>Runs natively on any Linux host</strong>
+(Ubuntu, ALT, Fedora, Arch, openSUSE, Alpine) where podman or docker is
+available. <strong>macOS hosts</strong> (Apple Silicon + Intel) are
+supported via a transparent bridge into the podman machine VM — the
+operator gets a working <code>tmx</code> command on the macOS shell with
+no manual SSH-juggling.</p>
+<p><strong>The 18 verification tests are why this matters</strong>: a
+typical &quot;build tmux from source&quot; guide assumes the build worked. This
+project ships a hard wall — <code>bash scripts/setup.sh</code> will
+refuse to PATH-export the binary unless functional tests pass with
+positive runtime evidence (cgroup interface readbacks,
+<code>/proc</code> files, real session output), backed by a §11.4.4
+layer-4 paired-mutation harness that proves the gates aren&#39;t themselves
+bluffs. SKIPs document precondition gates (CAP_SYS_RESOURCE, libjemalloc
+presence, destructive-test opt-in) explicitly. No PASS-bluffs.</p>
+<h2 id="quick-install-one-command">Quick install (one command)</h2>
+<p><strong>Linux host:</strong></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> bash scripts/install_deps.sh    <span class="co"># one-time host build deps</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh                 <span class="co"># build + verify + install (no sudo)</span></span></code></pre></div>
+<p><strong>macOS host (Apple Silicon or Intel):</strong></p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install podman                   <span class="co"># one-time: container runtime</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> machine init <span class="kw">&amp;&amp;</span> <span class="ex">podman</span> machine start</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh                 <span class="co"># build + VM-verify + install bridge</span></span></code></pre></div>
+<p>After <code>setup.sh</code> reports GREEN: open a new shell, or
+source the rc for your shell (<code>source ~/.bashrc</code> or
+<code>source ~/.zshrc</code>). Then <code>tmx new|attach|ls|kill</code>
+invokes the verified vasic-digital build; the system <code>tmux</code>
+command stays untouched and reachable side-by-side.</p>
+<h2 id="architecture-native-dual-os-per-session-isolation">Architecture
+(native dual-OS per-session isolation)</h2>
+<pre><code>                    ┌────────────────────────────────────┐
+                    │        OPERATOR SHELL              │
+                    │   $ tmx new -s mywork              │
+                    │   $ tmx new -s build  ← own scope! │
+                    └──────────────────┬─────────────────┘
+                                       │
+                                       │  scripts/tmx (host-native, OS-aware dispatch)
+                                       ▼
+            ┌──────────────────────────┴──────────────────────────┐
+            │                                                     │
+       Linux host                                          macOS host (Darwin)
+            │                                                     │
+            │ for each `tmx new -s NAME`:                         │ for each `tmx new -s NAME`:
+            │   systemd-run --user --scope                        │   tmux -L tmx-NAME new-session -d -s NAME \
+            │     --unit=tmx-NAME.scope                           │     &quot;tmx-rlimit-wrapper.sh \
+            │     -p MemoryMax=&lt;host-adaptive&gt;                    │       &lt;mem-kb&gt; &lt;cpu-sec&gt; &lt;nproc&gt; \
+            │     -p CPUQuota=200% -p TasksMax=4096               │       $SHELL -l&quot;
+            │     -p Delegate=yes                                 │   set -g default-command &quot;rlimit-wrapper …&quot;
+            │   tmux -L tmx-NAME new -s NAME -d                   │
+            │                                                     │
+            ▼                                                     ▼
+   ┌─────────────────────────────────┐         ┌──────────────────────────────────────────┐
+   │  cgroup-v2 transient scope      │         │  POSIX rlimit wrapper                    │
+   │  tmx-NAME.scope                 │         │  scripts/tmx-rlimit-wrapper.sh           │
+   │  ├ MemoryMax = host-adaptive    │         │  ├ ulimit -t  ← RLIMIT_CPU   (enforced)  │
+   │  ├ CPUQuota  = 200%             │         │  ├ ulimit -u  ← RLIMIT_NPROC (enforced)  │
+   │  ├ TasksMax  = 4096             │         │  └ ulimit -v  ← RLIMIT_AS NOT enforced   │
+   │  ├ Delegate  = yes              │         │                  by XNU (documented gap) │
+   │  └ tmux 3.6a (Linux ELF)        │         │  tmux 3.6a (Mach-O)                      │
+   │  status-bar = DJB2(host)        │         │  status-bar = DJB2(host)                 │
+   │  oom_score_adj = -500           │         │  (oom_score_adj N/A on Darwin)           │
+   └─────────────────────────────────┘         └──────────────────────────────────────────┘
+       Shell sees the operator&#39;s              Shell sees the operator&#39;s macOS host:
+       Linux host: full FS, full PATH,        full FS, full PATH (Homebrew, system tools,
+       all system binaries reachable.         all Mach-O binaries), `id` = operator&#39;s user.</code></pre>
+<p><strong>Native dual-OS per-session isolation</strong> (architecture
+since 2026-05-13). Each <code>tmx new -s NAME</code> invocation creates
+its own tmux server (socket <code>tmx-NAME</code>) with OS-native
+isolation:</p>
+<ul>
+<li><strong>Linux</strong> — cgroup-v2 transient scope
+<code>tmx-NAME.scope</code> via <code>systemd-run --user --scope</code>.
+Kernel enforces MemoryMax, CPUQuota, TasksMax per-group. OOM in one
+session is contained to that scope — every other session AND
+<code>user.slice</code> survive (Constitution §1 invariant).</li>
+<li><strong>macOS (Darwin)</strong> — POSIX rlimit wrapper sets
+<code>RLIMIT_CPU</code> (CPU time) and <code>RLIMIT_NPROC</code>
+(per-user process count) before exec&#39;ing the operator&#39;s
+<code>$SHELL</code>. The Darwin XNU kernel enforces these per-process.
+Children inherit. <strong><code>RLIMIT_AS</code> (virtual memory) is NOT
+enforced</strong> by XNU for unprivileged processes — this is a
+documented gap; full memory containment on macOS requires launchd jobs
+with <code>HardResourceLimits</code> plist (root). See
+<code>docs/guide/README.md</code> §5.6 for the strength comparison.</li>
+</ul>
+<p>Both OS paths deliver the <strong>same operator UX</strong>:
+plain-vanilla tmux behaviour, the operator&#39;s shell with full host PATH
+(Homebrew on macOS, /usr/local/bin on Linux, all system tools),
+per-session resource ceilings applied transparently. No VM. No bridge.
+No <code>core@localhost</code>. No bluff.</p>
+<h2 id="what-you-get">What you get</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>tmux 3.6a</strong> (latest stable)</td>
+<td>Pinned to a known-good upstream tag</td>
+</tr>
+<tr>
+<td><strong>Hardened compile flags</strong></td>
+<td><code>-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2</code>,
+RELRO + immediate-binding link</td>
+</tr>
+<tr>
+<td><strong>Build-time <code>-ljemalloc</code></strong></td>
+<td>jemalloc linked at the binary level (more aggressive RAM return than
+glibc malloc)</td>
+</tr>
+<tr>
+<td><strong>Runtime <code>LD_PRELOAD=libjemalloc.so</code></strong></td>
+<td>Wrapper preloads jemalloc even on hosts where the linker resolved a
+different malloc</td>
+</tr>
+<tr>
+<td><strong>OOM-score protection</strong></td>
+<td>Optional setcap-enabled helper (<code>tmx-oom-set</code>) sets
+<code>oom_score_adj=-500</code> on the spawned server, making tmux
+survive most OOM cascades</td>
+</tr>
+<tr>
+<td><strong>Bounded <code>history-limit</code></strong></td>
+<td>Explicit <code>2000</code> (the default — explicit so future bumps
+are intentional)</td>
+</tr>
+<tr>
+<td><strong>Hermetic install</strong></td>
+<td>Built artifact lives in <code>tmux/build/</code>. PATH export points
+there; system tmux untouched. Removable via
+<code>bash scripts/setup.sh --uninstall</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="verification-gate">Verification gate</h2>
+<pre><code>SUMMARY: PASS=13  FAIL=0  SKIP=5
+GREEN: tmux binary verified — safe to PATH-export.</code></pre>
+<p>The 18 tests cover: smoke (binary version), session lifecycle,
+jemalloc loaded, history-limit honored, clear-history releases memory
+(the &quot;apparent leak&quot;), 10 concurrent panes, 30-s sustained session
+no-leak, OOM-score wrapper applies -500, crash isolation scope
+(cgroup-v2 transient), hostname-derived status-bar colour (algorithm +
+wrapper integration), memory pressure under cap, TasksMax stress,
+concurrent OOM independence, per-session cgroup distinctness,
+window-name <code>.exe</code> strip, <strong>scrollback + copy-mode
+scrolling</strong> (operator-path: 3000 lines generated, proven scrolled
+off-screen, proven reachable via copy-mode), and
+<strong>HelixConstitution inheritance</strong> (the
+<code>constitution/</code> submodule + every governance doc&#39;s
+inheritance pointer).</p>
+<p>Four honest SKIPs document precondition gates:</p>
+<ul>
+<li><code>03_jemalloc_loaded</code> SKIPs if host doesn&#39;t have
+libjemalloc — <code>sudo bash scripts/install_deps.sh</code> provides
+it</li>
+<li><code>08_oom_score_adj</code> SKIPs unless running as root OR the
+setcap helper is installed —
+<code>sudo bash scripts/build_oom_set.sh --install</code> enables
+it</li>
+<li>Tests 12 / 13 / 14 (memory-pressure / TasksMax / concurrent-OOM)
+require <code>TMX_TEST_DESTRUCTIVE=1</code> — run only on dedicated test
+hosts</li>
+</ul>
+<p>A layer-4 paired-mutation harness (Constitution §103) lives at
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>: registered
+mutations M1–M14 plus <code>CM-CONSTITUTION-INHERITANCE</code> each
+break a feature, assert the matching test then FAILs, revert, and assert
+it PASSes again. On macOS the harness reports <strong>18 caught / 0
+escaped / 6 skipped</strong> (the 6 SKIPs are Linux-only isolation
+mutations); the remainder run on Linux via
+<code>META=1 bash scripts/test_vm.sh</code>. The gate is not considered
+self-validating until every runnable mutation is caught.</p>
+<h2 id="roadmap">Roadmap</h2>
+<p>See <a href="docs/plans/containerization.md"><code>docs/plans/containerization.md</code></a>
+for the <strong>per-session containerization plan</strong> — each tmux
+session running in its own cgroup-bounded container so that:</p>
+<ul>
+<li>2 CPU + reasonable RAM cap per session</li>
+<li>Crash isolation: if one session OOMs/crashes, only that session
+dies; other sessions and their processes survive</li>
+<li>One-command bootstrap: <code>tmx new &lt;session&gt;</code>
+transparently creates the container</li>
+</ul>
+<h2 id="documentation-map">Documentation map</h2>
+<p>Every project doc lives under a context-named subdirectory of
+<code>docs/</code> per <code>constitution/Constitution.md</code>&#39;s
+file-layout rule. Every Markdown has a synced HTML + PDF sibling
+generated by <code>scripts/export_docs.sh</code> per §11.4.65
+universal-Markdown-export.</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Doc</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Operator guide</td>
+<td><a href="docs/guide/README.md"><code>docs/guide/README.md</code></a>
+— install, OS-by-OS notes, isolation comparison, troubleshooting</td>
+</tr>
+<tr>
+<td>Scrolling (Claude Code TUI + mobile)</td>
+<td><a href="docs/scrolling/README.md"><code>docs/scrolling/README.md</code></a></td>
+</tr>
+<tr>
+<td>CodeGraph (§11.4.78)</td>
+<td><a href="docs/codegraph/README.md"><code>docs/codegraph/README.md</code></a>
+— install, per-agent MCP wiring, anti-bluff verification</td>
+</tr>
+<tr>
+<td>Architecture plans</td>
+<td><a href="docs/plans/native-dual-os.md"><code>docs/plans/native-dual-os.md</code></a>
+— current native-host design (no VM)</td>
+</tr>
+<tr>
+<td></td>
+<td><a href="docs/plans/per-session-isolation.md"><code>docs/plans/per-session-isolation.md</code></a>
+— per-session OOM containment</td>
+</tr>
+<tr>
+<td></td>
+<td><a href="docs/plans/containerization.md"><code>docs/plans/containerization.md</code></a>
+— original (now superseded) containerization plan</td>
+</tr>
+<tr>
+<td>Cycle plans</td>
+<td><a href="docs/plans/v1.0.4.md"><code>docs/plans/v1.0.4.md</code></a>
+— this cycle&#39;s plan (CodeGraph + covenant propagation + AUDIT
+fixes)</td>
+</tr>
+<tr>
+<td>Research notes</td>
+<td><a href="docs/research/customization/colors.md"><code>docs/research/customization/colors.md</code></a>
+— hostname-derived status colour</td>
+</tr>
+<tr>
+<td>Governance</td>
+<td><a href="Constitution.md"><code>Constitution.md</code></a> — Project
+Articles §101–§109 (extends <code>constitution/</code>); <a href="CLAUDE.md"><code>CLAUDE.md</code></a>, <a href="AGENTS.md"><code>AGENTS.md</code></a>, <a href="QWEN.md"><code>QWEN.md</code></a> — per-agent inheritance pointers
++ project-specific overlay</td>
+</tr>
+<tr>
+<td>Universal governance</td>
+<td><a href="constitution/"><code>constitution/</code></a> submodule
+(<code>HelixDevelopment/HelixConstitution</code>, pinned
+<code>7f738df</code>)</td>
+</tr>
+<tr>
+<td>Live state</td>
+<td><a href="CONTINUATION.md"><code>CONTINUATION.md</code></a> — read
+first on a fresh conversation</td>
+</tr>
+<tr>
+<td>Tracker</td>
+<td><a href="Issues.md"><code>Issues.md</code></a> (open) / <a href="Fixed.md"><code>Fixed.md</code></a> (closed with closure SHA +
+evidence)</td>
+</tr>
+<tr>
+<td>Changelog</td>
+<td><a href="CHANGELOG.md"><code>CHANGELOG.md</code></a> — per-release
+positive-evidence verification record</td>
+</tr>
+</tbody>
+</table>
+<h2 id="repository-conventions">Repository conventions</h2>
+<p>This repo follows the <strong>vasic-digital anti-bluff
+covenant</strong>: every test that PASSes carries positive evidence of
+the feature working; every SKIP documents its precondition; every gate
+has a paired mutation in <code>meta_test_*.sh</code> proving the gate
+isn&#39;t itself a bluff. The covenant is restated verbatim in
+<code>Constitution.md</code>, <code>CLAUDE.md</code>,
+<code>AGENTS.md</code>, and <code>QWEN.md</code> (per the 2026-05-21
+operator mandate) so that any tool which doesn&#39;t expand
+<code>@imports</code> still reads it. The upstream source lives in <a href="constitution/Constitution.md"><code>constitution/Constitution.md</code></a>
+§11.4.</p>
+<h2 id="codegraph-code-intelligence">CodeGraph (code-intelligence)</h2>
+<p>This project is wired with <a href="https://github.com/colbymchenry/codegraph">CodeGraph</a> per
+<code>constitution/Constitution.md</code> §11.4.78. The MCP server is
+configured for Claude Code, OpenCode, Kimi CLI, Crush, and Qwen Code —
+see <a href="docs/codegraph/README.md"><code>docs/codegraph/README.md</code></a>
+for the install + per-agent wiring contract.</p>
+<h2 id="license">License</h2>
+<p>Apache 2.0 — see <code>LICENSE</code>.</p>
+</body>
+</html>

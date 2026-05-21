@@ -293,3 +293,113 @@ challenges:
       §11.4 sentinel line) + .gitmodules + `git submodule status` +
       each project governance doc.
     severity: blocker
+
+  - id: TMUX-CH-19
+    title: Verbatim anti-bluff covenant propagation across governance files
+    description: |
+      Forensic anchor — user mandate (2026-05-21): the verbatim
+      2026-04-28 anti-bluff covenant MUST be literally present in every
+      consumer governance file (project Constitution.md, CLAUDE.md,
+      AGENTS.md, QWEN.md), not only reachable through the @import
+      pointer. Any tool that does not expand @imports still reads the
+      covenant. This Challenge proves the propagation by reading file
+      CONTENT (positive evidence per §11.4.2) — never on file existence
+      alone. The paired mutation (M15) strips the literal from a TEMP
+      COPY of CLAUDE.md and asserts test 19 FAILs; the real CLAUDE.md is
+      never modified.
+    test_script: scripts/tests/19_covenant_propagation.sh
+    pass_condition: |
+      FAIL=0. T1 Constitution.md, T2 CLAUDE.md, T3 AGENTS.md, T4
+      QWEN.md all carry the verbatim "We had been in position that all
+      tests do execute with success…" anchor literally. T5 all four
+      consumer files reference §11.4 / §101 canonical authority. T6
+      upstream constitution/Constitution.md retains the same anchor
+      (composition check). T7 governance HTML+PDF siblings in sync per
+      §11.4.65 universal-Markdown-export.
+    evidence: |
+      file-content greps of each consumer governance doc + composition
+      grep of constitution/Constitution.md + mtime parity check of the
+      .html + .pdf siblings.
+    severity: blocker
+
+  - id: TMUX-CH-20
+    title: CodeGraph CLI installed and initialised
+    description: |
+      Per §11.4.78 (CodeGraph code-intelligence mandate): every project
+      worked on by AI coding agents MUST install CodeGraph (npm
+      `@colbymchenry/codegraph`) and run `codegraph init` + `codegraph
+      index`. This Challenge proves the CLI is on PATH, the
+      `.codegraph/config.json` exists, secret-exclusion paths per
+      §11.4.10 are present, and `.codegraph/codegraph.db` (the SQLite
+      knowledge graph) is materialised and non-empty.
+    test_script: scripts/tests/20_codegraph_installed.sh
+    pass_condition: |
+      FAIL=0. T1 `codegraph --version` ≥ 0.6.0; T2 `.codegraph/
+      config.json` exists; T3 secret-exclusion patterns (.env*, *.pem,
+      *.key, secrets/, constitution/, Containers/, tmux/) present in
+      config exclude list; T4 .gitignore covers `.codegraph/codegraph.db`
+      and friends; T5 `.gitignore-meta/codegraph-db.yaml` declares the
+      §11.4.77 regeneration mechanism.
+    evidence: |
+      `codegraph --version` stdout; `cat .codegraph/config.json`;
+      `grep .gitignore`; file presence of regeneration metadata.
+    severity: blocker
+
+  - id: TMUX-CH-21
+    title: CodeGraph index present + non-empty
+    description: |
+      Building on TMUX-CH-20, this Challenge proves the SQLite knowledge
+      graph is actually built (not just configured). The index node
+      count is captured as positive runtime evidence — the same fact a
+      §11.4.78 unforgeable challenge would query via the MCP server.
+    test_script: scripts/tests/21_codegraph_index_present.sh
+    pass_condition: |
+      FAIL=0. T1 `.codegraph/codegraph.db` file present; T2 file size
+      > 4 KB (non-empty SQLite); T3 `codegraph status` reports a
+      non-zero node count.
+    evidence: |
+      `ls -la .codegraph/codegraph.db`; `codegraph status` stdout
+      capture; node-count integer extracted.
+    severity: blocker
+
+  - id: TMUX-CH-22
+    title: CodeGraph MCP wired for every CLI agent we support
+    description: |
+      Per §11.4.78 + user mandate (2026-05-21): CodeGraph MCP server
+      must be configured for Claude Code (project-scoped `.mcp.json`),
+      OpenCode (`~/.config/opencode/opencode.json`), Kimi CLI
+      (`~/.kimi/mcp.json`), Crush (`.crush.json`), Qwen Code
+      (`.qwen/settings.json`). Per-agent SKIP-with-reason when the
+      agent binary isn't installed on the host (§11.4.3 topology
+      dispatch).
+    test_script: scripts/tests/22_codegraph_mcp_wired.sh
+    pass_condition: |
+      FAIL=0. For each agent: config file exists OR is documented as
+      "agent not installed on this host" SKIP; if present, codegraph
+      MCP server entry resolvable via JSON parse; `command` field
+      references the bare `codegraph` on PATH (no hardcoded host paths).
+    evidence: |
+      JSON parse of each config; bare-PATH command field captured;
+      SKIP-reasons for absent agents recorded per §11.4.3.
+    severity: high
+
+  - id: TMUX-CH-23
+    title: tmx kill shorthand resolves to kill-session (AUDIT-2 fix)
+    description: |
+      README/AGENTS commands table lists `tmx {new|attach|ls|kill}` as
+      the friendly verb set. Pre-AUDIT-2 the wrapper passed `kill`
+      through to tmux, which reported "ambiguous command: kill" because
+      tmux only knows `kill-pane`/`kill-server`/`kill-session`/`kill-
+      window`. This Challenge proves the wrapper translates the bare
+      `kill` verb to `kill-session` so the documented operator-path
+      actually works.
+    test_script: scripts/tests/23_tmx_kill_shorthand.sh
+    pass_condition: |
+      FAIL=0. T1 create a session via `tmx new -s NAME -d`; T2
+      `tmx ls` shows it; T3 `tmx kill -t NAME` resolves cleanly (no
+      "ambiguous command" stderr); T4 `tmx ls` no longer shows the
+      session.
+    evidence: |
+      `tmx ls` before + after; `tmx kill -t NAME` exit code + stderr;
+      `tmux -L tmx-NAME ls` confirms server gone.
+    severity: medium

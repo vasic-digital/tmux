@@ -1,0 +1,9 @@
+{
+  "_comment": "Qwen Code project-scoped settings — wires CodeGraph MCP per §11.4.78. Bare `codegraph` on PATH for portability.",
+  "mcpServers": {
+    "codegraph": {
+      "command": "codegraph",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}

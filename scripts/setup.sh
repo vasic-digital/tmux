@@ -72,7 +72,7 @@ if [ "$MODE" = "uninstall" ]; then
     exit 0
 fi
 
-# ── installation pipeline (NATIVE dual-OS per docs/NATIVE_DUAL_OS_PLAN.md) ──
+# ── installation pipeline (NATIVE dual-OS per docs/plans/native-dual-os.md) ──
 
 HOST_OS="$(uname -s)"
 
@@ -268,7 +268,7 @@ if [ "$HOST_OS" = "Darwin" ]; then
     echo "  ⓘ HONEST GAP: RLIMIT_AS (virtual memory) is NOT enforced by"
     echo "    the XNU kernel for unprivileged processes (returns EINVAL)."
     echo "    Memory containment on macOS requires launchd jobs with"
-    echo "    HardResourceLimits plist (root). See docs/GUIDE.md §5.6."
+    echo "    HardResourceLimits plist (root). See docs/guide/README.md §5.6."
     echo "  Full host access: Homebrew, /usr/bin, all system tools reachable."
 elif [ "$HOST_OS" = "Linux" ]; then
     echo ""

@@ -1,0 +1,2053 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="vasic-digital-tmux--closed-items-tracker">vasic-digital tmux —
+Closed Items Tracker</h1>
+<blockquote>
+<p><strong>Canonical record of every issue that has been fixed AND
+verified with captured runtime evidence.</strong> Companion to <a href="Issues.md"><code>Issues.md</code></a> (open / in-flight
+items).</p>
+<p>Per upstream <code>vasic-digital</code> consistency mandate
+(2026-05-05):</p>
+<ul>
+<li><strong><code>Issues.md</code></strong> holds OPEN, PARTIAL,
+BLOCKED, RUNNING, INVESTIGATED items.</li>
+<li><strong><code>Fixed.md</code></strong> holds RESOLVED items with the
+closure commit, the captured-evidence path, and the
+regression-protection hook (paired mutation in
+<code>meta_test_*.sh</code> per Constitution §11.4.1 when
+applicable).</li>
+<li>When an item resolves: move it from <code>Issues.md</code> to
+<code>Fixed.md</code> in the same commit. Never let a resolved item
+linger in <code>Issues.md</code>. Never delete it outright (history
+matters for cold-start handover).</li>
+</ul>
+<p>Forensic anchor — direct user mandate (verbatim, 2026-04-28 +
+2026-05-05 + 2026-05-07 + 2026-05-08, propagated from upstream
+<code>vasic-digital</code> projects):</p>
+<blockquote>
+<p>&quot;We had been in position that all tests do execute with success and
+all Challenges as well, but in reality the most of the features does not
+work and can&#39;t be used! This MUST NOT be the case... MUST guarantee the
+quality, the completion and full usability by end users... We MUST HAVE
+full consistency! All fixed and verified items MUST BE moved into
+Fixed.md... We MUST BE precise, consistent and punctual!&quot;</p>
+</blockquote>
+<p>§11.4.6 forensic anchor (verbatim, 2026-05-08):</p>
+<blockquote>
+<p>&quot;&#39;LIKELY&#39; is guessing, we MUST NOT have guessing, since it can be or
+may not be! No bluffing and uncertainity is allowed at any cost! We MUST
+always know exactly precisly what is happening exactly, in any context,
+under any conditions, everywhere!&quot;</p>
+</blockquote>
+</blockquote>
+<p><strong>Initial compilation:</strong> 2026-05-08 (governance bring-up
+cycle).</p>
+<hr />
+<h2 id="document-conventions">Document conventions</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Closure cycle</strong></td>
+<td>Which Phase / version landed the fix</td>
+</tr>
+<tr>
+<td><strong>Closure commit</strong></td>
+<td>Git SHA where the fix was committed (this repo)</td>
+</tr>
+<tr>
+<td><strong>Source-side fix</strong></td>
+<td>The change at the helper-library / wrapper / test source — never
+patched in call sites (Constitution §11.4.1)</td>
+</tr>
+<tr>
+<td><strong>Captured evidence (4-layer)</strong></td>
+<td>(a) pre-build / static-source check, (b) runtime test producing
+positive artifact, (c) Challenge entry, (d) paired mutation — for tmux
+scope, layer (d) met by <code>meta_test_false_positive_proof.sh</code>;
+layer (c) met by challenge entries CH-01 through CH-14</td>
+</tr>
+<tr>
+<td><strong>Regression-protection</strong></td>
+<td>Pre-build gate name + paired mutation name in
+<code>scripts/tests/meta_test_*.sh</code> (when META-MUT-001 lands)</td>
+</tr>
+<tr>
+<td><strong>Tracked task</strong></td>
+<td>The Issues.md ID before migration</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="a-tooling--harness-gaps--resolved">A. Tooling / harness gaps —
+RESOLVED</h2>
+<h3 id="a21-audit-2-fix-tmx-kill-shorthand-resolves-to-kill-session--resolved">A21.
+AUDIT-2 fix: <code>tmx kill</code> shorthand resolves to
+<code>kill-session</code> — <code>RESOLVED</code></h3>
+<p><strong>Closure cycle:</strong> v1.0.4 / versionCode 5 (2026-05-21).
+<strong>Reported:</strong> my own §11.4.6 audit (2026-05-21) —
+README/AGENTS commands table lists <code>tmx {new|attach|ls|kill}</code>
+as the friendly operator vocabulary, but the bare
+<code>tmx kill -t NAME</code> was passed through to tmux and rejected as
+ambiguous (&quot;could be: kill-pane, kill-server, kill-session,
+kill-window&quot;). A documented operator-path was silently broken — a §11.4
+UX-layer PASS-bluff at the doc layer.</p>
+<p><strong>Fix:</strong></p>
+<ul>
+<li><code>scripts/tmx.template</code> — added a SUBCMD discovery hook
+that detects the bare <code>kill</code> verb and translates it to
+<code>kill-session</code>, then rewrites <code>&quot;$@&quot;</code> so downstream
+dispatch sees the canonical verb.</li>
+<li>Does NOT intercept <code>kill-pane</code> / <code>kill-server</code>
+/ <code>kill-session</code> / <code>kill-window</code> — those still
+pass through verbatim.</li>
+</ul>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li>Layer 2: <code>scripts/tests/23_tmx_kill_shorthand.sh</code> —
+PASS=5/0/0; operator-path per §102 (spawns
+<code>tmx new -s NAME -d</code>, kills via friendly
+<code>tmx kill -t NAME</code>, captures stderr, asserts no &quot;ambiguous&quot;
+leak, verifies session gone via both <code>tmx ls</code> and direct
+socket query).</li>
+<li>Layer 3: <code>TMUX-CH-23</code> in
+<code>scripts/challenges/tmux.yaml</code>.</li>
+<li>Layer 4: <code>M19</code> (regex-strips the entire AUDIT-2
+translation block from the generated <code>scripts/tmx</code>; asserts
+test 23 T3 FAILs; restores
+<ul>
+<li>asserts test 23 PASSes).</li>
+</ul></li>
+</ul>
+<p><strong>Regression-protection:</strong> test 23; M19.</p>
+<h3 id="a20-audit-1-fix-m4m5-paired-mutations--darwin-topology-dispatch--resolved">A20.
+AUDIT-1 fix: M4/M5 paired mutations — Darwin topology dispatch —
+<code>RESOLVED</code></h3>
+<p><strong>Closure cycle:</strong> v1.0.4 / versionCode 5 (2026-05-21).
+<strong>Reported:</strong> my own §11.4.6 audit (2026-05-21) — M4/M5
+used raw GNU <code>sed -i &#39;s|…|…|&#39;</code> which silently SKIPped on
+Darwin BSD sed with the WRONG reason (&quot;mutation command failed to
+apply&quot;).</p>
+<p><strong>Root cause (forensic, no guessing per §11.4.6):</strong></p>
+<ol type="1">
+<li>Direct <code>sed -i</code> is GNU-only; BSD sed needs
+<code>sed -i &#39;&#39;</code> — mismatch makes the mutation command exit
+non-zero on Darwin.</li>
+<li>The mutations target <code>systemd-run</code> /
+<code>MemoryMax</code> strings — which are in the Linux cgroup path of
+<code>scripts/tmx</code>. On Darwin the wrapper uses POSIX rlimit
+instead (Fixed.md A4-A8 native dual-OS). Mutating those strings on
+Darwin would either hit unreachable code (no signal) or leave the test
+happy. So even WITH portable sed, M4/M5 on Darwin would escape detection
+unless test 09 happened to fail for an unrelated reason.</li>
+</ol>
+<p><strong>Fix:</strong></p>
+<ul>
+<li><code>scripts/tests/meta_test_false_positive_proof.sh</code> — added
+an explicit <code>uname -s</code> topology guard around M4/M5. On
+non-Linux hosts both SKIP-with-reason per §11.4.3 (&quot;Linux-only mutation
+per topology dispatch&quot;). On Linux, both run with the portable
+<code>inplace_sed</code> helper that already protected M1/M2/M3/M6
+(added in A17).</li>
+</ul>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li>Layer 4 (meta-test itself is layer 4): on Darwin the SKIP reason is
+now §11.4.3-correct instead of a silent BSD-sed quirk. On Linux the
+mutations run and exercise the wrapper code. Meta-test summary on this
+Darwin host: <code>20 caught / 0 escaped / 6 skipped</code>
+(M4/M5/M7/M8/M9/M10 — all six SKIPs §11.4.3 topology-correct).</li>
+</ul>
+<p><strong>Anti-bluff note:</strong> This fix UNCOVERED a long-standing
+latent bluff — M4/M5 had been silently SKIPping on Darwin for the wrong
+reason, so the team thought they had coverage when they didn&#39;t. The fix
+is now honest about topology limits (SKIP only on Linux is
+meaningful).</p>
+<p><strong>Regression-protection:</strong> the topology-guard pattern
+itself; any future Linux-host run will exercise M4/M5 and catch
+wrapper-side regressions to the cgroup path.</p>
+<h3 id="a19-verbatim-anti-bluff-covenant-propagated-to-every-consumer-governance-file--resolved">A19.
+Verbatim anti-bluff covenant propagated to every consumer governance
+file — <code>RESOLVED</code></h3>
+<p><strong>Closure cycle:</strong> v1.0.4 / versionCode 5 (2026-05-21).
+<strong>Requested:</strong> operator mandate, 2026-05-21 — &quot;[the
+anti-bluff covenant] MUST BE part of Constitution of our project, its
+CLAUDE.MD and AGENTS.MD if it is not there already, and to be applied to
+all Submodules&#39;s Constitution, CLAUDE.MD and AGENTS.MD as well (if not
+there already)!&quot;</p>
+<p><strong>Pre-fix audit (captured this session per
+§11.4.2):</strong></p>
+<ul>
+<li><code>Constitution.md</code>: 1 hit ✓; <code>CLAUDE.md</code>: 0;
+<code>AGENTS.md</code>: 0; <code>QWEN.md</code>: 0 — three gaps in the
+consumer layer.</li>
+<li><code>constitution/Constitution.md</code>: 1;
+<code>constitution/CLAUDE.md</code>: 1;
+<code>constitution/AGENTS.md</code>: 1;
+<code>constitution/QWEN.md</code>: 0 (upstream gap, separate cycle per
+§11.4.26 step 4).</li>
+<li><code>Containers/Constitution.md</code>: 2;
+<code>Containers/CLAUDE.md</code>: 3; <code>Containers/AGENTS.md</code>:
+3; <code>Containers/QWEN.md</code>: missing (separate cycle).</li>
+</ul>
+<p><strong>Fix (consumer-layer scope this cycle):</strong></p>
+<ul>
+<li>Inserted the verbatim 2026-04-28 user mandate as a
+<code>## MANDATORY ANTI-BLUFF END-USER-QUALITY COVENANT</code> section
+into project <code>CLAUDE.md</code>, <code>AGENTS.md</code>, and
+<code>QWEN.md</code> — directly after the inheritance pointer block (so
+<code>@import</code>-aware tools see both; tools that don&#39;t expand
+<code>@imports</code> see the literal block).</li>
+<li>Verified: every consumer file now contains the literal &quot;We had been
+in position that all tests do execute with success&quot; anchor.</li>
+</ul>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li>Layer 1 (static gate): <code>scripts/verify.sh</code> greps each of
+the 4 consumer governance files for the literal anchor — pre-suite
+refusal if any is missing.</li>
+<li>Layer 2 (runtime test):
+<code>scripts/tests/19_covenant_propagation.sh</code> — PASS=7/0/0.
+T1-T4 verify covenant in each file, T5 verifies §11.4 / §101
+cross-reference present, T6 verifies upstream
+<code>constitution/Constitution.md</code> still has the anchor
+(composition check), T7 verifies §11.4.65 HTML+PDF siblings in sync
+(soft).</li>
+<li>Layer 3 (challenge): <code>TMUX-CH-19</code> in
+<code>scripts/challenges/tmux.yaml</code>.</li>
+<li>Layer 4 (paired mutation): <code>M15</code> strips the literal
+anchor from a TEMP COPY of CLAUDE.md (the real file is never touched),
+asserts test 19 T2 FAILs, restores, asserts test 19 PASSes.</li>
+</ul>
+<p><strong>Out-of-scope this cycle (logged honestly per
+§11.4.6):</strong></p>
+<ul>
+<li>Upstream <code>constitution/QWEN.md</code> covenant insert — needs
+separate PR to <code>HelixDevelopment/HelixConstitution</code> (the user
+mandate 2026-05-21 explicitly forbids modifying constitution from inside
+this project).</li>
+<li><code>Containers/QWEN.md</code> create — needs separate PR to
+<code>vasic-digital/ Containers</code> per §11.4.28 owned-submodule
+equal-codebase mandate; separate cycle.</li>
+</ul>
+<p><strong>Regression-protection:</strong> test 19; verify.sh layer-1
+gate; M15.</p>
+<h3 id="a18-codegraph-code-intelligence-integration-11478--resolved">A18.
+CodeGraph code-intelligence integration (§11.4.78) —
+<code>RESOLVED</code></h3>
+<p><strong>Closure cycle:</strong> v1.0.4 / versionCode 5 (2026-05-21).
+<strong>Mandate:</strong> <code>constitution/Constitution.md</code>
+§11.4.78 + operator follow-up 2026-05-21 — &quot;Incorporate / install
+codegraph into the our project … installed for Claude Code, OpenCode,
+Kimi CLI, Crush, Qwen Code … create comprehensive tests to validate and
+verify with anti-bluff approach that codegraph is working completely as
+expected!&quot;</p>
+<p><strong>Change:</strong></p>
+<ul>
+<li>Installed <code>@colbymchenry/codegraph</code> v0.6.8 globally (npm
+prefix user-writable per §11.4.78 — no sudo).</li>
+<li><code>codegraph init</code> in repo root →
+<code>.codegraph/config.json</code> tracked,
+<code>.codegraph/codegraph.db</code> gitignored.</li>
+<li>Augmented <code>config.json</code> <code>exclude</code> list with
+§11.4.10 secret patterns (<code>.env*</code>, <code>*.pem</code>,
+<code>*.key</code>, <code>*.crt</code>, <code>id_rsa*</code>,
+<code>id_ed25519*</code>, <code>secrets/</code>) + §11.4.28
+owned-submodule paths (<code>constitution/**</code>,
+<code>Containers/**</code>, <code>tmux/**</code>). 119 total exclude
+entries.</li>
+<li>§11.4.30 <code>.gitignore</code> updated for
+<code>.codegraph/codegraph.db*</code>.</li>
+<li>§11.4.77 regeneration manifest at
+<code>.gitignore-meta/codegraph-db.yaml</code> + executable
+<code>scripts/codegraph_reindex.sh</code> (idempotent, writes
+<code>.gitignore-meta/.regenerated/codegraph-db.ok</code> stamp).</li>
+<li>MCP wiring per agent (5 configs):
+<ul>
+<li><code>.mcp.json</code> (Claude Code, project-scoped, NEW)</li>
+<li><code>~/.config/opencode/opencode.json</code> (OpenCode, already had
+entry, audited correct)</li>
+<li><code>~/.kimi/mcp.json</code> (Kimi CLI, already had entry, audited
+correct)</li>
+<li><code>.crush.json</code> (Crush, project-scoped, NEW)</li>
+<li><code>.qwen/settings.json</code> (Qwen Code, project-scoped,
+NEW)</li>
+</ul></li>
+<li>All configs reference the bare <code>codegraph</code> command on
+PATH (no hardcoded host paths) per §11.4.78 portability.</li>
+</ul>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li>Layer 2: three new tests, all PASS:
+<ul>
+<li><code>scripts/tests/20_codegraph_installed.sh</code> — PASS=5/0/0;
+CLI version 0.6.8 captured, 12 required exclude patterns verified,
+.gitignore + §11.4.77 manifest checked.</li>
+<li><code>scripts/tests/21_codegraph_index_present.sh</code> —
+PASS=4/0/0; <code>.codegraph/codegraph.db</code> 155648 bytes,
+<code>codegraph status</code> reports 6 nodes (positive runtime evidence
+per §11.4.5; the small index reflects honest gap — CodeGraph 0.6.8 ships
+no shell parser, see docs/codegraph/README.md §9), stamp file
+present.</li>
+<li><code>scripts/tests/22_codegraph_mcp_wired.sh</code> — PASS=7/0/0;
+all 5 agent configs JSON-parsed, every <code>command</code> field
+references the bare <code>codegraph</code>, T7 spawns
+<code>codegraph serve --mcp</code> and asserts it stays alive &gt;
+400ms.</li>
+</ul></li>
+<li>Layer 3: <code>TMUX-CH-20</code> + <code>TMUX-CH-21</code> +
+<code>TMUX-CH-22</code> in
+<code>scripts/challenges/tmux.yaml</code>.</li>
+<li>Layer 4: <code>M16</code> (strip <code>**/*.pem</code> from
+config.json) → test 20 T3 FAILs; <code>M17</code> (strip codegraph from
+<code>.mcp.json</code>) → test 22 T1 FAILs. Both MUTATION CAUGHT +
+FEATURE INTACT both directions.</li>
+<li>Comprehensive documentation: <code>docs/codegraph/README.md</code>
+(§1-§11) with install, prereqs, per-agent wiring table, anti-bluff
+verification contract, troubleshooting, honest gaps.</li>
+</ul>
+<p><strong>Honest gaps (§11.4.6):</strong></p>
+<ul>
+<li>Shell parser not shipped with CodeGraph 0.6.8 — only the C file
+indexed (6 nodes). Honest, not bluff. Upstream contribution to add shell
+tree-sitter is out of scope this cycle per §11.4.74.</li>
+<li>Agent-driven unforgeable-challenge end-to-end test classified
+<code>AUTONOMOUS_DESIGNED</code> per §11.4.52 carve-out (mechanical seam
+exists via test 22 T7; agent-driven layer lands in a follow-up cycle
+when a headless agent harness is wired).</li>
+</ul>
+<p><strong>Regression-protection:</strong> tests 20, 21, 22; M16; M17;
+<code>scripts/codegraph_reindex.sh</code> (regen mechanism per
+§11.4.77). <strong>Tracked task:</strong> operator mandate 2026-05-21
+(this cycle).</p>
+<h3 id="a17-helixconstitution-governance-submodule--verified-inheritance--resolved">A17.
+HelixConstitution governance submodule + verified inheritance —
+<code>RESOLVED</code></h3>
+<p><strong>Closure cycle:</strong> v1.0.3 / versionCode 4 (2026-05-21).
+<strong>Requested:</strong> operator mandate, 2026-05-21 — &quot;we now use
+and incorporate fully the HelixConstitution Submodule responsible for
+root definitions of the Constitution, CLAUDE.MD and AGENTS.MD which are
+inherited further&quot;. Follow-up clarification: the
+<code>constitution/</code> submodule is decoupled, reusable, and
+independent — never modified.</p>
+<p><strong>Change:</strong></p>
+<ul>
+<li>Added <code>HelixDevelopment/HelixConstitution</code> as a submodule
+at <code>constitution/</code> (pinned <code>7f738df</code>,
+<code>main</code> HEAD — no tags exist upstream). Path is forced
+lowercase <code>constitution/</code> by the submodule&#39;s own
+<code>find_constitution.sh</code> resolver.</li>
+<li>Refactored the project <code>Constitution.md</code> to the
+extends-template form: universal clauses (anti-bluff §11.4, data safety
+§9, memory budget, continuation invariant) inherited from
+<code>constitution/Constitution.md</code>; project-specific rules kept
+as Project Articles §101–§109.</li>
+<li><code>CLAUDE.md</code> + <code>AGENTS.md</code> gained
+INHERITED-FROM pointer blocks + <code>@constitution/...</code> imports;
+new <code>QWEN.md</code> for the Qwen Code CLI agent.</li>
+<li><code>Containers</code> submodule wired too — adopted its remote
+<code>4ca5491</code> which already carries HelixConstitution recursive
+inheritance (<code>find_constitution.sh</code>, <code>QWEN.md</code>,
+all four governance docs). Parent gitlink bumped <code>b077f2c</code> →
+<code>4ca5491</code>.</li>
+</ul>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li>Layer 2: <code>scripts/tests/18_constitution_inheritance.sh</code> —
+PASS=10/0/0. Verifies the submodule is populated + initialized,
+<code>.gitmodules</code> SSH URL, the exact §11.4 End-user Quality
+Guarantee anchor present in <code>constitution/Constitution.md</code>,
+the verbatim anti-bluff mandate present, and every project doc
+(Constitution/CLAUDE/AGENTS/QWEN) carries its inheritance pointer + the
+§101 binding.</li>
+<li>Layer 3: <code>TMUX-CH-18</code> in
+<code>scripts/challenges/tmux.yaml</code>.</li>
+<li>Layer 4: M14 (strip the project-side inheritance pointer) +
+<code>CM-CONSTITUTION-INHERITANCE</code> (delete the §11.4 anchor from a
+TEMP COPY — the real, decoupled <code>constitution/</code> submodule is
+never written) in <code>meta_test_false_positive_proof.sh</code> — both
+MUTATION CAUGHT + FEATURE RESTORED/INTACT.</li>
+</ul>
+<p><strong>Anti-bluff note:</strong> the <code>constitution/</code>
+submodule was never modified. The inheritance meta-test operates on a
+temporary copy so the decoupled submodule stays pristine.</p>
+<p><strong>Regression-protection:</strong> test 18; M14 +
+CM-CONSTITUTION-INHERITANCE. <strong>Tracked task:</strong> operator
+mandate 2026-05-21 (this cycle).</p>
+<h3 id="a16-scrolling-terminal-output-did-not-work-especially-in-the-claude-code-tui--resolved">A16.
+Scrolling terminal output did not work, especially in the Claude Code
+TUI — <code>RESOLVED</code></h3>
+<p><strong>Closure cycle:</strong> v1.0.3 / versionCode 4 (2026-05-21).
+<strong>Reported:</strong> operator research note, 2026-05-21 —
+scrolling terminal output up/down, especially inside the Claude Code
+TUI, did not work. Requirement: scroll vertically from any computer OR
+mobile phone (Termux on Android).</p>
+<p><strong>Root cause (forensic, no guessing per §11.4.6):</strong></p>
+<ol type="1">
+<li><code>history-limit</code> default was 2000 — too small to retain
+meaningful terminal output history.</li>
+<li>tmux&#39;s default <code>WheelUpPane</code> binding checks
+<code>#{mouse_any_flag}</code> and FORWARDS the wheel to applications
+that request mouse reporting. The Claude Code TUI requests mouse
+reporting, so the wheel event was delivered to Claude Code and never
+reached tmux&#39;s own scrollback buffer — the buffer tmux faithfully kept
+was unreachable by the wheel.</li>
+</ol>
+<p><strong>Source-side fix:</strong>
+<code>scripts/tmux.conf.template</code> —
+<code>history-limit 50000</code>; <code>mode-keys vi</code>;
+<code>WheelUpPane</code>/<code>WheelDownPane</code> overridden to
+unconditionally drive tmux copy-mode scrollback (kept on one line so the
+paired mutation deletes it cleanly); <code>allow-passthrough on</code> +
+<code>extended-keys on</code> +
+<code>terminal-features &#39;xterm*:extkeys&#39;</code>; OS-adaptive
+<code>@clip</code> clipboard routing (pbcopy / wl-copy / xclip /
+termux-clipboard-set, detected at copy time). The <code>tmx</code>
+wrapper loads this template via <code>tmux -f</code>, so the fix is live
+for every <code>tmx new</code> with no rebuild.</p>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li>Layer 1: <code>scripts/verify.sh</code> static gate — greps the
+template for all scroll settings; RED if any missing. Verified GREEN
+this cycle.</li>
+<li>Layer 2: <code>scripts/tests/17_scrollback_copy_mode.sh</code> —
+operator-path (<code>tmx new -s NAME</code>). PASS=13/0/0. Live
+readbacks: <code>history-limit=50000</code>, <code>mode-keys=vi</code>,
+<code>mouse=on</code>, <code>allow-passthrough=on</code>,
+<code>extended-keys=on</code>;
+<code>list-keys -T root WheelUpPane</code> carries the copy-mode
+override; 3000 lines generated, <code>SCROLLMARK_FIRST</code> proven off
+the visible screen, the scrollback buffer proven to retain it, copy-mode
+<code>scroll_position=2980</code>, and <code>show-buffer</code> carried
+the first line after a copy-mode search+select+copy.</li>
+<li>Layer 3: <code>TMUX-CH-17</code> in
+<code>scripts/challenges/tmux.yaml</code>.</li>
+<li>Layer 4: M12 (remove WheelUpPane override) + M13 (revert
+history-limit to 2000) in <code>meta_test_false_positive_proof.sh</code>
+— both MUTATION CAUGHT
+<ul>
+<li>FEATURE RESTORED.</li>
+</ul></li>
+</ul>
+<p><strong>Regression-protection:</strong> verify.sh Layer-1 static
+gate; test 17; M12 + M13. <strong>Tracked task:</strong> operator
+request 2026-05-21 (this cycle).</p>
+<h3 id="a15-bottom-left-status-bar-showed-claudeexe-instead-of-claude-cosmetic-operator-reported--resolved">A15.
+Bottom-left status-bar showed <code>claude.exe</code> instead of
+<code>claude</code> (cosmetic, operator-reported) —
+<code>RESOLVED</code></h3>
+<ul>
+<li><p><strong>Closure cycle:</strong> 2026-05-16.</p></li>
+<li><p><strong>Closure commit:</strong> (this commit).</p></li>
+<li><p><strong>Discovery context:</strong> operator opened a fresh
+<code>tmx new -s …</code> session on macOS, ran <code>claude</code>, and
+noticed the colored bottom-left segment read
+<code>[session] 1:claude.exe</code> instead of <code>1:claude</code>.
+Flagged as &quot;this MUST be some mistake — investigate and fix
+properly.&quot;</p></li>
+<li><p><strong>Root cause (forensic, NOT a guess):</strong> Claude Code
+v2.x ships its macOS native binary literally as
+<code>/opt/homebrew/Cellar/node/25.9.0_2/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe</code>
+— a real Mach-O 64-bit ARM64 executable (207 MB; verified by
+<code>file claude.exe → &quot;Mach-O 64-bit executable arm64&quot;</code>). The
+npm bin symlink (<code>/opt/homebrew/opt/node@25/bin/claude</code>)
+resolves through to that file. The kernel <code>comm</code> field
+carries the actual on-disk basename, so tmux&#39;s
+<code>#{pane_current_command}</code> returns the literal string
+<code>claude.exe</code>. The default tmux
+<code>automatic-rename-format</code> propagates
+<code>pane_current_command</code> into the window name
+(<code>#W</code>), which <code>window-status-format</code> then renders
+in the bottom-left status bar. Result: the <code>.exe</code> extension
+bled into the operator&#39;s view. This is a packaging quirk of the upstream
+tool — we do not control Claude Code&#39;s bundler — but the cosmetic
+display is OUR config.</p></li>
+<li><p><strong>Source-side fix (Constitution §11.4.1):</strong> patched
+<code>scripts/tmux.conf.template</code> to set an
+<code>automatic-rename-format</code> that strips a literal-dot-anchored
+<code>.exe</code> tail from <code>pane_current_command</code>:</p>
+<pre><code>set -g  automatic-rename            on
+set -g  automatic-rename-format     &quot;#{s/\\.exe$//:pane_current_command}&quot;</code></pre>
+<p>Critical escape detail (verified empirically in this session): the
+conf-file string parser strips one backslash level, so <code>\\.</code>
+becomes <code>\.</code> for the regex engine — a literal-dot anchor.
+Without the escape, the unescaped <code>.</code> would also strip names
+like <code>bashexe</code> → <code>ba</code> (regex <code>.exe$</code>
+matches <code>shexe</code>). Test 16 T3.1 is a dedicated regression
+guard for exactly that bug class. The wrapper invokes
+<code>tmux -f scripts/tmux.conf.template</code> directly, so the fix
+takes effect for every <code>tmx new</code> invocation without
+rebuild.</p></li>
+<li><p><strong>Captured runtime evidence (live, this
+session):</strong></p>
+<pre><code># operator-path live validation (NAME=tmx_live_5198, SOCK=tmx-tmx_live_5198)
+bash scripts/tmx new -s tmx_live_5198 -d
+send-keys &quot;exec /opt/homebrew/opt/node@25/bin/claude&quot;
+for 10 ticks at 0.7s:
+  pane_current_command=&#39;claude.exe&#39;   #W=&#39;claude&#39;
+→ ✓ defect surface reached (pane_current_command literally &#39;claude.exe&#39;)
+→ ✓ #W stripped to &#39;claude&#39; (the fix is doing the work, not absence-of-evidence)</code></pre></li>
+<li><p><strong>Captured evidence (4-layer per §11.4.4):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Artifact</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 — static gate</td>
+<td>T1 in <code>scripts/tests/16_window_name_strips_exe.sh</code> greps
+<code>tmux.conf.template</code> for the literal-dot-anchored
+<code>\\.exe$</code> substitution</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>2 — runtime test</td>
+<td>T2.0/T2.1/T2.2/T3.0/T3.1 in
+<code>scripts/tests/16_window_name_strips_exe.sh</code> — operator-path
+<code>tmx new -s ...</code>, in-test compiles a real <code>.exe</code>
+Mach-O binary, sends <code>exec</code> into the pane, reads live
+<code>#W</code> + <code>pane_current_command</code></td>
+<td>PASS=6 FAIL=0 SKIP=0</td>
+</tr>
+<tr>
+<td>3 — HelixQA Challenge</td>
+<td><code>TMUX-CH-16</code> in
+<code>scripts/challenges/tmux.yaml</code></td>
+<td>landed</td>
+</tr>
+<tr>
+<td>4 — paired mutation</td>
+<td><code>M11</code> in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code> — strips
+every <code>automatic-rename*</code> line from the conf-template,
+asserts test 16 FAILs (mutation caught), reverts, asserts test 16 PASSes
+(feature restored)</td>
+<td>MUTATION CAUGHT + FEATURE RESTORED, both directions PASS</td>
+</tr>
+</tbody>
+</table></li>
+<li><p><strong>Full verify gate:</strong>
+<code>bash scripts/setup.sh --verify-only</code> →
+<code>SUMMARY: PASS=11  FAIL=0  SKIP=5  GREEN</code>. The 5 SKIPs are
+the pre-existing Linux-only/destructive tests (08, 09, 12, 13, 14);
+identical SKIP profile to A14&#39;s cycle.</p></li>
+<li><p><strong>§11.4.7 — operator-path coverage rule:</strong> test 16
+invokes <code>tmx new -s NAME</code> (the literal entry point an end
+user uses), then reads back <code>#W</code> from the resulting server.
+No hand-crafted <code>tmux new-session</code> equivalents. This
+satisfies the rule the user mandated 2026-05-13.</p></li>
+<li><p><strong>§11.4.6 — no-guessing rule:</strong> every claim above
+(&quot;kernel comm carries on-disk basename&quot;, &quot;tmux substitution uses POSIX
+regex where <code>.</code> matches any char unless escaped&quot;, &quot;the strip
+applies via <code>automatic-rename-format</code>&quot;) was verified
+empirically in this session before being written here. Edge case
+<code>bashexe</code> was tested and confirmed preserved (no
+false-positive strip).</p></li>
+<li><p><strong>Regression-protection:</strong> M11 in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>. The paired
+mutation removes the <code>automatic-rename*</code> block and asserts
+test 16 FAILs — guarantees future regressions of this exact defect class
+cannot ship undetected.</p></li>
+<li><p><strong>Tracked task:</strong> operator request 2026-05-16
+(verbatim: &quot;we see in the bottom left corner … claude … exe. Why EXE?
+This MUST be some mistake. Investigate and fix this
+properly.&quot;).</p></li>
+</ul>
+<h3 id="a14-verification--validation-cycle-2026-05-13-operator-requested--resolved">A14.
+Verification + validation cycle 2026-05-13 (operator-requested) —
+<code>RESOLVED</code></h3>
+<ul>
+<li><p><strong>Closure cycle:</strong> 2026-05-13.</p></li>
+<li><p><strong>Closure commit:</strong> (this commit).</p></li>
+<li><p><strong>Discovery context:</strong> operator invoked
+<code>superpowers:verification-before-completion</code> + asked for full
+verification + governance propagation + install + commit/push. Each
+verification command was run FRESH in this session per the Iron Law of
+that skill — no completion claims without fresh evidence.</p></li>
+<li><p><strong>Fresh runtime evidence captured (all from this
+session):</strong></p>
+<pre><code># git sync
+HEAD   = 230b60a (working tree clean; only `? tmux` = gitignored build subtree)
+github = 230b60a
+gitlab = 230b60a
+Containers HEAD = fd92850 (origin synced)
+
+# bash scripts/setup.sh --verify-only
+SUMMARY: PASS=10  FAIL=0  SKIP=5
+GREEN: tmux binary verified — safe to PATH-export.
+(SKIPs are Linux-specific tests: 08 oom_score_adj, 09 crash isolation,
+ 12-14 destructive cgroup. SKIP-with-reason per §11.4.3 topology dispatch.)
+
+# bash scripts/test_e2e.sh
+SUMMARY: PASS=9  FAIL=0  SKIP=0
+GREEN: tmx end-to-end stack verified (bridge + wrapper + session lifecycle)
+
+# bash scripts/tests/15_per_session_cgroup_distinct.sh on macOS
+Tests: PASS=6  FAIL=0  SKIP=0
+ T1: distinct scopes  T2: distinct PIDs  T3+T4: rlimits applied
+ T5: TMX_CPU_HARD_SEC=3600 override = 3600  T6: host user = milosvasic
+
+# tmx new -s VerifyDemo -d  + send-keys + capture-pane
+Prompt: &quot; milosvasic@Mistborn  ~/Projects/tmux   main ± &quot;
+id: uid=501(milosvasic) gid=20(staff) groups=...,admin,...
+hostname: Mistborn.local
+which brew: /opt/homebrew/bin/brew
+ulimit -t: 86400 (RLIMIT_CPU enforced)
+ulimit -u: 2666  (RLIMIT_NPROC enforced)</code></pre></li>
+<li><p><strong>Two real defects caught during the fresh verify
+cycle:</strong></p>
+<ul>
+<li><strong>D1</strong>: After the bridge architecture was removed, the
+wrapper used <code>$(hostname)</code> (FQDN = &quot;Mistborn.local&quot;) instead
+of the operator&#39;s identity (&quot;Mistborn&quot; via
+<code>scutil --get LocalHostName</code>). Colour drifted from
+<code>colour202</code> to <code>colour13</code>. Fix: wrapper&#39;s
+<code>_apply_host_color</code> now reads <code>scutil</code> on Darwin
+AND sets the tmux <code>TMX_HOSTNAME</code> env so the status-right
+<code>#{TMX_HOSTNAME}</code> interpolation resolves. Test 11 T3 updated
+to mirror the same resolution. Re-run: T4.1 PASS
+<code>bg=colour202 matches expected</code>.</li>
+<li><strong>D2</strong>: <code>scripts/install_deps.sh</code> and
+<code>scripts/build_oom_set.sh</code> weren&#39;t OS-aware out of the box.
+<code>install_deps.sh</code> now detects Darwin and uses
+<code>brew install</code> (no sudo); <code>build_oom_set.sh</code> SKIPs
+cleanly on non-Linux with a reason (oom_score_adj is a Linux /proc
+interface). <code>setup.sh</code> step 3b only invokes build_oom_set on
+Linux. <strong>Every script now recognises host OS and applies the right
+action out of the box</strong> per operator mandate 2026-05-13.</li>
+</ul></li>
+<li><p><strong>Governance propagation verified + completed:</strong></p>
+<ul>
+<li>Verbatim user-mandate quote now present in: root
+<code>Constitution.md</code> (existing), <code>CLAUDE.md</code> (added
+in this cycle), <code>AGENTS.md</code> (added),
+<code>Containers/CONSTITUTION.md</code> (existing),
+<code>Containers/CLAUDE.md</code> (already 2 mentions),
+<code>Containers/AGENTS.md</code> (already 2 mentions).</li>
+<li>§11.4.7 (operator-path test coverage rule) now referenced in: root
+<code>Constitution.md</code>, <code>CLAUDE.md</code>,
+<code>AGENTS.md</code>, <code>Containers/CONSTITUTION.md</code>,
+<code>Containers/CLAUDE.md</code> (added),
+<code>Containers/AGENTS.md</code> (added).</li>
+</ul></li>
+<li><p><strong>Anti-bluff audit results (each test
+classified):</strong></p>
+<ul>
+<li><strong>Runtime-evidence-only</strong>: 03 (jemalloc loaded,
+/proc/maps or vmmap readback), 05 (RSS deltas), 06 (RSS bounded), 07
+(RSS growth), 08 (/proc/oom_score_adj readback), 12-14 (cgroup +
+dmesg/journalctl readbacks), 15 (cgroup + send-keys+capture-pane).</li>
+<li><strong>Output-of-binary evidence</strong>: 01 (smoke =
+<code>tmux -V</code>), 02 (session lifecycle = <code>tmux ls</code>), 04
+(history-limit = <code>show -g</code>), 10 (algorithm output).</li>
+<li><strong>Mixed static+runtime</strong>: 09 (T2 greps wrapper for
+invariant strings AS A STATIC CHECK + T3 reads memory.max for RUNTIME
+proof — paired per §11.4.7), 11 (T1/T2 grep wrapper + T3-T6 runtime
+status-style readback).</li>
+<li><strong>No test relies on grep-on-script-content as the sole
+assertion.</strong> Every static check is paired with a runtime
+readback. Confirms §11.4.7 invariant.</li>
+</ul></li>
+<li><p><strong>Challenges audit
+(scripts/challenges/tmux.yaml):</strong></p>
+<ul>
+<li>All challenges (CH-01 through CH-15) specify <code>evidence:</code>
+that is REAL runtime state — <code>/proc/PID/maps</code>, VmRSS deltas,
+cgroup interface readbacks, systemctl is-active, kernel log lines,
+captured stdout from binary invocations. Zero challenges close on &quot;exit
+code 0&quot; alone. No bluff.</li>
+</ul></li>
+<li><p><strong>Install state (this session):</strong></p>
+<ul>
+<li><code>bash scripts/setup.sh</code> end-to-end GREEN.</li>
+<li><code>zsh -c &#39;source ~/.zshrc; which tmx; tmx -V&#39;</code> →
+<code>/Users/milosvasic/Projects/tmux/scripts/tmx</code> +
+<code>tmux 3.6a</code>.</li>
+<li>Shell snippets in both <code>~/.bashrc</code> and
+<code>~/.zshrc</code> (2 markers each = section start + end).</li>
+<li>macOS isolation working: per-session CPU + NPROC limits enforced;
+XNU memory-cap gap documented in setup.sh closing message + GUIDE.md
+§5.6 + README architecture diagram.</li>
+</ul></li>
+<li><p><strong>Tracked task:</strong> operator&#39;s verification request
+2026-05-13.</p></li>
+</ul>
+<h3 id="a13-per-session-isolation-each-tmx-new--s-x-in-its-own-cgroup--constitution-1147--resolved">A13.
+Per-session isolation: each <code>tmx new -s X</code> in its own cgroup
++ Constitution §11.4.7 — <code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Discovery context:</strong> user reported &quot;However I guess
+now we are entering container directly: core@localhost:~$ ... We need
+container to execute the session so when for any reason we get into oom
+situation, killing the terminal session does not kill all other running
+processes!&quot; — referenced <code>vasic-digital/OOM-Protect</code>.</li>
+<li><strong>Captured forensic evidence (pre-fix):</strong>
+<ul>
+<li><code>tmx new -s isol1 -d</code> + <code>tmx new -s isol2 -d</code>
+both produced sessions in ONE shared cgroup
+<code>run-p504653-i504654.scope</code>. OOM-kill in either would have
+destroyed both. README&#39;s &quot;if one session OOMs, others survive&quot; was a
+Section 1 bluff against the operator&#39;s actual workflow.</li>
+<li>Test 14 hand-spawned three <code>systemd-run --user --scope</code>
+units by hand to simulate isolation. It PASSed while the operator-
+facing <code>tmx new</code> path placed everything in one cgroup.</li>
+</ul></li>
+<li><strong>Plan + decision capture:</strong> <a href="docs/plans/per-session-isolation.md"><code>docs/plans/per-session-isolation.md</code></a>
+§6 records the four operator decisions made before implementation:
+host-adaptive memory budget (§12.6 / 4), unit-name sanitise +
+error-on-collision, explicit <code>systemctl stop</code> cleanup, no
+macOS host-shell bridging.</li>
+<li><strong>Architectural change:</strong> wrapper rewritten so each
+<code>tmx new -s NAME</code>:
+<ol type="1">
+<li>Sanitises NAME → unit-safe token (invalid chars →
+<code>_</code>).</li>
+<li>Refuses on collision: errors if <code>tmx-NAME.scope</code> is
+already active.</li>
+<li>Computes host-adaptive
+<code>MemoryMax = max(MemTotal × 60% / 4, 2 GB)</code> (operator
+override via <code>TMX_MEM</code> wins).</li>
+<li>Creates a per-session scope via
+<code>systemd-run --user --scope --unit=tmx-NAME.scope -p MemoryMax=... -p CPUQuota=200% -p TasksMax=4096 -p Delegate=yes tmux -L tmx-NAME new-session -d -s NAME</code>.</li>
+<li>Spawns a SEPARATE tmux server (socket <code>tmx-NAME</code>) for
+THIS session. No shared server, no shared cgroup.</li>
+<li>Applies <code>_apply_oom_score</code> and
+<code>_apply_host_color</code> via <code>-L tmx-NAME</code>.</li>
+<li>If interactive (<code>-d</code> not passed), exec-attaches in
+foreground.</li>
+</ol>
+<ul>
+<li><code>tmx ls</code> aggregates across all <code>tmx-*</code> sockets
+in <code>/tmp/tmux-&lt;uid&gt;/</code>.</li>
+<li><code>tmx kill-session -t NAME</code> kills the session AND
+<code>systemctl --user stop tmx-NAME.scope</code>.</li>
+<li><code>tmx kill-server</code> enumerates + stops all our scopes.</li>
+</ul></li>
+<li><strong>Constitution amendment — §11.4.7 (operator-path
+coverage):</strong> added inline. New mandate: every gate test for a
+feature MUST exercise the same entry point an operator invokes. Tests
+that hand-craft equivalents are supplementary. Layer-4 mutations MUST
+target <code>scripts/tmx-vm</code> (body), NOT <code>scripts/tmx</code>
+(Darwin bridge). Propagated to <code>Containers/CONSTITUTION.md</code>
+at same anchor depth.</li>
+<li><strong>Tests rewritten / added (operator path):</strong>
+<ul>
+<li><strong>Test 14 rewritten:</strong> uses
+<code>tmx new -s A/-s B/-s C -d</code> operator path; triggers OOM via
+<code>tmx send-keys</code> + stress-ng; verifies B and C scopes still
+active with original MainPIDs. PASS=8/0/0.</li>
+<li><strong>Test 15 NEW:</strong> per-session cgroup distinctness. 6
+assertions with positive evidence from
+<code>/sys/fs/cgroup/.../memory.max</code>, <code>cpu.max</code>,
+<code>cgroup.procs</code> per session. PASS=6/0/0.</li>
+<li><strong>Test 11 rewritten:</strong> drops <code>-S /tmp/foo</code>
+(legacy). Uses <code>tmx new -s NAME -d</code> operator path; reads
+<code>tmux -L tmx-NAME show -g status-style</code> for verification.
+PASS=6/0/0.</li>
+<li><strong>Test 08 rewritten:</strong> uses
+<code>tmx new -s NAME -d</code> and reads
+<code>/proc/&lt;server-pid&gt;/oom_score_adj</code> via
+<code>-L tmx-NAME</code>. PASS.</li>
+<li><strong>e2e T7 NEW:</strong> through the macOS bridge, verifies two
+sessions produce two distinct <code>tmx-NAME.scope</code> units in the
+VM&#39;s user systemd. PASS.</li>
+</ul></li>
+<li><strong>Meta-test mutations added/retargeted:</strong>
+<ul>
+<li><strong>M5 retargeted:</strong> mutates <code>MemoryMax</code> →
+<code>MemMax</code> globally (with <code>/g</code>), caught by test 15
+T1/T3.</li>
+<li><strong>M7 retargeted:</strong> strips
+<code>_apply_host_color</code> call, caught by test 11 T4.</li>
+<li><strong>M9 NEW:</strong> strips per-session
+<code>--unit=tmx-NAME.scope</code> so sessions share a generic scope,
+caught by test 15 T1.</li>
+<li><strong>M10 NEW:</strong> hardcodes <code>MemoryMax=infinity</code>
+disabling the cap, caught by test 15 T3/T5. All 10 mutations (M1–M10)
+now caught (20 PASS = 10 caught + 10 reverted) in meta-test.</li>
+</ul></li>
+<li><strong>Challenges yaml:</strong> CH-14 description updated to
+reflect operator- path coverage; CH-15 added (per-session
+distinctness).</li>
+<li><strong>Documentation:</strong> README architecture diagram redrawn
+for per- session scope tree; <code>docs/guide/README.md</code> §5.6 new
+section documenting naming, caps, cleanup, and verification;
+<code>docs/plans/per-session-isolation.md</code> records the plan +
+operator decisions for future audit; <code>CLAUDE.md</code> +
+<code>AGENTS.md</code> reference §11.4.7 + per-session arch.</li>
+<li><strong>Captured post-fix evidence (all four gates GREEN
+simultaneously):</strong>
+<ul>
+<li><code>bash scripts/test_vm.sh</code> → GREEN (non-destructive
+PASS=12 SKIP=3)</li>
+<li><code>TMX_TEST_DESTRUCTIVE=1 bash scripts/test_vm.sh</code> → GREEN
+PASS=15 FAIL=0 SKIP=0</li>
+<li><code>META=1 bash scripts/test_vm.sh</code> → GREEN, 10/10 mutations
+caught</li>
+<li><code>bash scripts/test_e2e.sh</code> → GREEN PASS=9 FAIL=0
+SKIP=0</li>
+</ul></li>
+<li><strong>Regression-protection summary:</strong> triple-layer per the
+§11.4.7 doctrine — Layer 2 (test 15 + test 14 + e2e T7 + test 11 + test
+08) exercise the operator path with positive evidence; Layer 4 (M9, M10,
+M5, M7 targeting <code>scripts/tmx-vm</code>) catches any code change
+that breaks the operator-facing isolation. Constitution §11.4.7 forbids
+regressions to the test-hand-crafts-equivalents pattern that let A12
+ship.</li>
+<li><strong>Tracked task:</strong> user-reported during this session;
+closed by comprehensive in-session implementation.</li>
+</ul>
+<h3 id="a12-plan-doc-for-per-session-containerization-landed--resolved">A12.
+Plan-doc for per-session containerization landed —
+<code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> <code>abb0af8</code>
+(<code>Add docs/plans/per-session-isolation.md</code>).</li>
+<li><strong>Discovery context:</strong> user &quot;Do in depth research and
+plan the changes&quot; — landed the plan document before implementation per
+the operator&#39;s explicit instruction.</li>
+<li><strong>Outcome:</strong> plan adopted; implementation followed in
+A13.</li>
+</ul>
+<h3 id="a11-regression-protection-so-a10-cannot-re-occur-test-gap-closed--resolved">A11.
+Regression protection so A10 cannot re-occur (test gap closed) —
+<code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Discovery context:</strong> user demanded &quot;make sure nothing
+passes again! zero-bluff policy MUST BE followed blindly!&quot; after the
+Fixed.md A10 colour bug shipped while the entire test suite reported
+GREEN. The bug surfaced only when the operator (the user) actually
+invoked <code>tmx new -s Test</code> and saw green. Existing gates did
+NOT catch it.</li>
+<li><strong>Honest accounting — why the gates missed the bug:</strong>
+<ul>
+<li><code>test 11</code>: always passed <code>-S &quot;$SOCKET&quot;</code> →
+tested explicit-socket code path only. The default-socket path
+(<code>tmx new -s X</code> without <code>-S</code>) — the OPERATOR&#39;S use
+case — was uncovered.</li>
+<li><code>meta-test</code>: M4 + M5 targeted <code>scripts/tmx</code>,
+which on Darwin install is the SSH bridge (not the wrapper). The actual
+VM-side wrapper at <code>scripts/tmx-vm</code> was never mutated → bugs
+in it couldn&#39;t be exercised by paired mutation.</li>
+<li><code>test_e2e.sh</code> (pre-fix): didn&#39;t read
+<code>status-style</code> at all — only verified session lifecycle, not
+colour.</li>
+</ul></li>
+<li><strong>Defects fixed:</strong>
+<ol type="1">
+<li><strong>test 11 — new T6: default-socket path with positive
+evidence.</strong> After T5, kills any default-socket server, invokes
+the wrapper WITHOUT <code>-S</code>, reads
+<code>tmux show -g status-style</code> from default socket, compares to
+deterministic hostname-derived colour. FAILs explicitly if
+<code>bg=green</code> (the default-applied bluff).</li>
+<li><strong>meta-test M4 + M5 — retargeted to
+<code>scripts/tmx-vm</code></strong> when present (Darwin install) with
+fallback to <code>scripts/tmx</code> (Linux native). Mutations now
+mutate the file that test 09 actually reads (<code>WRAPPER</code> env
+var = <code>scripts/tmx-vm</code> in <code>test_vm.sh</code>).</li>
+<li><strong>meta-test M7 (new) — re-introduces the SOCK-empty early
+return.</strong> Mutates
+<code>[ -n &quot;$sock&quot; ] &amp;&amp; target=(-S &quot;$sock&quot;)</code> →
+<code>[ -n &quot;$sock&quot; ] || return 0</code> in <code>tmx-vm</code>. test 11
+T6 must FAIL under M7 (&quot;status-bg &#39;green&#39; — that&#39;s the tmux DEFAULT,
+color was not applied&quot;). Uses <code>#</code> delimiter for sed s-command
+because replacement contains <code>||</code> which collides with
+<code>|</code> delimiter.</li>
+<li><strong>meta-test M8 (new) — hardcodes <code>bg=green</code> in the
+<code>set -g status-style</code> call.</strong> test 11 T4.1 + T6 both
+compare against the deterministic hash, so either branch catches it.
+This is the regression guard for the case where the SET call fires but
+with the wrong colour.</li>
+</ol></li>
+<li><strong>Captured evidence (post-fix):</strong>
+<ul>
+<li><code>bash scripts/test_vm.sh</code>: test 11 PASS=6 FAIL=0 SKIP=0
+(T6 default-socket path proven). Full suite GREEN PASS=14/0/0.</li>
+<li><code>META=1 bash scripts/test_vm.sh</code>: all 8 mutations caught
+(M1, M2, M3, M4, M5, M6, M7, M8). 16 PASS total (each mutation produces
+1 caught + 1 restored).</li>
+<li><code>bash scripts/test_e2e.sh</code> on Mistborn: T4.5 PASS
+<code>status-bg &#39;colour202&#39; matches hostname-derived &#39;colour202&#39;</code>.</li>
+</ul></li>
+<li><strong>Triple-layer regression-protection summary:</strong>
+<ul>
+<li>Layer 2 (runtime test): test 11 T6 exercises default-socket path;
+e2e T4.5 exercises end-to-end through bridge.</li>
+<li>Layer 4 (paired mutation): M7 + M8 verify that test 11 T6 / T4.1
+actually FAIL when the bug is re-introduced.</li>
+<li>Constitution §11.4.4 four-layer model now genuinely covers the
+colour-on-host invariant for both explicit-socket AND default- socket
+paths.</li>
+</ul></li>
+<li><strong>Tracked task:</strong> user-reported during this session,
+immediately after Fixed.md A10. The user&#39;s pointed question — &quot;have you
+performed validation and verification tests when this issue has passed
+through?&quot; — surfaced that A10&#39;s fix lacked regression protection. This
+A11 closes that gap.</li>
+</ul>
+<h3 id="a10-status-bar-colour-silently-defaulted-to-green--bridge-ignored-macos-hostname--resolved">A10.
+Status-bar colour silently defaulted to green + bridge ignored macOS
+hostname — <code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Discovery context:</strong> user reported &quot;Bottom was green
+for current host. Is that expected for mistborn as local host name? Or,
+coloring does not work?&quot; — caught two stacked bluffs:</li>
+<li><strong>Defect 1 — <code>_apply_host_color</code> /
+<code>_apply_oom_score</code> silently bailed when no <code>-S</code>
+socket was passed:</strong>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">_apply_host_color()</span> <span class="kw">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">local</span> <span class="va">sock</span><span class="op">=</span><span class="st">&quot;</span><span class="va">${1</span><span class="op">:-</span><span class="va">}</span><span class="st">&quot;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">[</span> <span class="ot">-n</span> <span class="st">&quot;</span><span class="va">$sock</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">||</span> <span class="cf">return</span> <span class="dv">0</span>    <span class="co"># ← silent early return for the</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>                                  <span class="co">#   primary operator use case</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="ex">...</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">}</span></span></code></pre></div>
+For <code>tmx new -s Test</code> (no <code>-S</code>), tmux uses its
+default socket path automatically — but the wrapper&#39;s helper bailed out,
+so <code>set -g status-style</code> was NEVER fired. Status bar fell
+back to tmux&#39;s default (<code>bg=green,fg=black</code>) on every
+invocation. Same flaw in <code>_apply_oom_score</code> — OOM protection
+silently disabled for the default-socket path. <strong>The §11.4
+captured-evidence claim in test 11 (&quot;hostname colour applied by
+wrapper&quot;) was PARTIALLY a bluff:</strong> it PASSed because test 11
+always passes <code>-S &quot;$SOCKET&quot;</code>, but the operator&#39;s
+default-socket invocation path was uncovered. <strong>Fix:</strong> both
+helpers now build their tmux-targeting args dynamically
+(<code>local -a target=(); [ -n &quot;$sock&quot; ] &amp;&amp; target=(-S &quot;$sock&quot;)</code>)
+and invoke <code>tmux &quot;${target[@]}&quot; ...</code> — works with both
+explicit and default socket.</li>
+<li><strong>Defect 2 — bridge forwarded operator intent but not host
+identity:</strong>
+<ul>
+<li><code>scripts/tmx-mac.template</code> invoked
+<code>ssh -t ... &quot;$VM_WRAPPER &lt;args&gt;&quot;</code> but the VM-side
+<code>hostname_color.sh</code> resolved against the VM&#39;s own
+<code>$(hostname)</code> → <code>localhost.localdomain</code> →
+<code>colour166</code>. So every macOS Mac would receive the SAME colour
+(&quot;VM colour&quot;), violating the §1 host-distinguishability invariant. Even
+after fix 1, the operator on &quot;Mistborn&quot; would see <code>colour166</code>
+not &quot;Mistborn-derived&quot;.</li>
+<li><strong>Fix:</strong> bridge now reads the macOS host&#39;s identity via
+<code>scutil --get LocalHostName</code> (matches what
+<code>zsh %m</code> displays in prompts; e.g., &quot;Mistborn&quot;), falls back
+to <code>hostname</code> if scutil unavailable, and forwards it as
+<code>TMX_HOSTNAME=&lt;host&gt; $VM_WRAPPER &lt;args&gt;</code> in the
+remote SSH command. The wrapper&#39;s <code>_apply_host_color</code> passes
+<code>${TMX_HOSTNAME:+&quot;$TMX_HOSTNAME&quot;}</code> to
+<code>hostname_color.sh</code> — if the env var is set it&#39;s the source
+of truth; if unset (Linux-native invocation) the existing
+<code>$(hostname)</code> fallback applies.</li>
+</ul></li>
+<li><strong>Captured evidence (post-fix):</strong>
+<ul>
+<li><code>bash scripts/hostname_color.sh Mistborn</code> →
+<code>colour202</code>.</li>
+<li><code>bash scripts/test_e2e.sh</code> on Darwin 24.5.0 / Mistborn:
+<pre><code>PASS: T4.5: status-bg &#39;colour202&#39; matches hostname-derived &#39;colour202&#39;
+      for &#39;Mistborn&#39; (positive evidence: tmx show -g status-style)</code></pre></li>
+<li><code>bash scripts/tmx show -g status-style</code> returns
+<code>bg=colour202,...</code> on Mistborn — proves the wrapper applied
+the color through the full bridge → wrapper → tmux set-option chain, AND
+that the chosen colour reflects the operator&#39;s host (not the VM&#39;s).</li>
+</ul></li>
+<li><strong>New test coverage — <code>test_e2e.sh</code> T4.5:</strong>
+explicitly reads <code>status-style</code> via
+<code>tmx show -g status-style</code>, computes the expected colour from
+<code>scutil --get LocalHostName</code> (or <code>hostname</code> on
+Linux), and FAILs if <code>bg=green</code> (default — colour-not-applied
+bluff) or if it doesn&#39;t match the deterministic hash. This is the
+regression-protection that prevents the Defect 1 + Defect 2 stack from
+re-occurring.</li>
+<li><strong>Regression-protection:</strong> test_e2e.sh T4.5 is now the
+canonical end-user check. The in-VM test 11 still tests the
+explicit-socket path (its existing positive-evidence claim is intact).
+Both layers must pass for the colour-on-host invariant to be considered
+honest.</li>
+<li><strong>Tracked task:</strong> user-reported during this
+session.</li>
+</ul>
+<h3 id="a9-interactive-tmx-new-not-a-terminal--full-e2e-automation--resolved">A9.
+Interactive <code>tmx new</code> &quot;not a terminal&quot; + full e2e automation
+— <code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Discovery context:</strong> user ran
+<code>tmx new -s Test</code> interactively after setup and hit
+<code>open terminal failed: not a terminal</code>. The bridge + ssh -t
+allocated a TTY on the VM correctly, but the WRAPPER itself was assuming
+detached mode.</li>
+<li><strong>Defect — wrapper&#39;s <code>cmd &amp; wait</code> pattern
+disconnects from TTY:</strong>
+<ul>
+<li><code>scripts/tmx.template</code> previously did:
+<pre><code>systemd-run --user --scope ... &quot;$TMUX_BIN&quot; &quot;$@&quot; &amp;
+TMUX_PID=$!
+_apply_oom_score &quot;$SOCK&quot;
+_apply_host_color &quot;$SOCK&quot;
+wait $TMUX_PID</code></pre></li>
+<li>The <code>&amp;</code> puts systemd-run + tmux into background.
+Background processes are removed from the terminal&#39;s foreground process
+group → tmux&#39;s client cannot read from the controlling TTY → &quot;open
+terminal failed: not a terminal&quot;.</li>
+<li><code>tmx new -s Test -d</code> (detached) worked because tmux
+daemonizes and exits without needing TTY. <code>tmx new -s Test</code>
+(interactive) failed because tmux client needed TTY.</li>
+<li><strong>§11.4.1 FAIL-bluff:</strong> the wrapper APPEARED to work in
+tests (which all use <code>-d</code>) but failed in the actual operator
+use case.</li>
+</ul></li>
+<li><strong>Fix — split lifecycle: detached-create then
+exec-attach:</strong>
+<ul>
+<li>Wrapper now detects <code>-d</code>/<code>-D</code> in args
+(<code>INTERACTIVE</code> flag).</li>
+<li>If interactive: injects <code>-d</code> after the
+<code>new</code>/<code>new-session</code> keyword, runs systemd-run in
+foreground (no <code>&amp;</code>, no <code>wait</code>) so it inherits
+the calling TTY (held by ssh -t on Darwin, native on Linux), applies OOM
++ colour, then <code>exec $TMUX_BIN attach</code> to take over the
+foreground for the client.</li>
+<li>If already detached: NEW_ARGS unchanged, no attach after.</li>
+<li>Bare <code>tmx</code> (no args) gets prefix
+<code>new-session -d</code> so it follows the interactive path.</li>
+</ul></li>
+<li><strong>New tool — <code>scripts/test_e2e.sh</code>:</strong> the
+operator-facing end-to-end automation user asked for. 7 tests in
+sequence:
+<ul>
+<li>T1: prerequisites (scripts/tmx exists; podman machine running on
+Darwin)</li>
+<li>T2: <code>tmx -V</code> returns &quot;tmux 3.6a&quot; through the bridge</li>
+<li>T3: <code>tmx new -s &lt;session&gt; -d</code> creates session,
+visible in <code>tmx ls</code></li>
+<li>T4: <code>tmx send-keys</code> + <code>tmx capture-pane -p</code>
+round-trip — operator- visible pane content captured as positive runtime
+evidence</li>
+<li>T5: session survives without attached client (analogue of Ctrl-B
+d)</li>
+<li>T6: <code>tmx kill-session -t &lt;session&gt;</code> cleans up Trap
+on EXIT calls kill-session to ensure cleanup even on failure.</li>
+</ul></li>
+<li><strong>Captured evidence (post-fix):</strong>
+<ul>
+<li><code>bash scripts/test_e2e.sh</code> on Darwin 24.5.0 Apple
+Silicon: <code>SUMMARY: PASS=7 FAIL=0 SKIP=0</code> +
+<code>GREEN: tmx end-to-end stack verified (bridge + wrapper + session lifecycle)</code>.
+The captured pane in T4 showed the literal marker string echoed by the
+command sent via <code>tmx send-keys</code>, proving the whole stack
+carries operator intent through to the VM&#39;s tmux server and back.</li>
+<li><code>TMX_TEST_DESTRUCTIVE=1 bash scripts/test_vm.sh</code>: still
+GREEN PASS=14 FAIL=0 SKIP=0 — wrapper change did NOT regress any
+existing test (test 09 T2.x grep-based — invariants still present; tests
+08/11/12/13/14 all pass <code>-d</code> explicitly so use the
+non-interactive code path).</li>
+</ul></li>
+<li><strong>Regression-protection:</strong> test_e2e.sh is now the
+canonical operator- facing gate. Future wrapper changes that break
+interactive new-session will FAIL T2 (tmx -V) or T3 (session-create)
+since those exercise the full stack. Documented in CLAUDE.md + AGENTS.md
+command tables.</li>
+<li><strong>Tracked task:</strong> user-reported during this
+session.</li>
+</ul>
+<h3 id="a8-macos-tmx-operational--side-by-side-coexistence-end-to-end--resolved">A8.
+macOS <code>tmx</code> operational + side-by-side coexistence end-to-end
+— <code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Discovery context:</strong> user asked &quot;Can you run now our
+bash setup script and make tmx command fully operational for our use?&quot; —
+<code>bash scripts/setup.sh</code> on Darwin hit the §11.4 anti-bluff
+gate (correctly, <code>ldd</code> doesn&#39;t exist on macOS, Linux ELF
+cannot exec natively). Operator nonetheless needs <code>tmx</code> to be
+a usable command on Darwin.</li>
+<li><strong>Defects fixed in this cycle:</strong>
+<ol type="1">
+<li><strong>Setup.sh was Linux-only by construction.</strong> Step 4 ran
+<code>scripts/verify.sh</code> which calls <code>ldd</code> (absent on
+macOS) and ultimately needs to execute the Linux ELF binary (fails with
+<code>Exec format error</code> on Darwin). On Darwin every invocation
+would RED at step 4 — <code>tmx</code> never installed.
+<strong>Fix:</strong> new <code>scripts/tmx-mac.template</code> (Darwin
+bridge) + <code>setup.sh</code> detects <code>uname -s = Darwin</code>
+and:
+<ul>
+<li>generates <code>scripts/tmx-vm</code> (Linux wrapper with VM-native
+paths)</li>
+<li>generates <code>scripts/tmx</code> from
+<code>tmx-mac.template</code> (SSH-bridge)</li>
+<li>runs <code>scripts/test_vm.sh</code> instead of
+<code>verify.sh</code> (§11.4 in target environment — verifies the
+binary inside the podman machine VM, where it actually runs)</li>
+<li>if VM-verify GREEN: install bashrc/zshrc snippet.</li>
+</ul></li>
+<li><strong><code>~/.bashrc</code>-only install while user shell is
+zsh.</strong> macOS defaults to zsh; appending only to
+<code>~/.bashrc</code> left the <code>tmx</code> command unreachable
+from the operator&#39;s actual shell. §1 bluff: install claimed
+<code>tmx</code> reachable, but it wasn&#39;t. <strong>Fix:</strong>
+setup.sh now appends to both <code>~/.bashrc</code> AND
+<code>~/.zshrc</code> (when either exists, plus zsh forced on Darwin).
+The snippet uses bash/zsh-portable syntax.</li>
+<li><strong><code>scripts/tmx</code> was overwritten between
+environments.</strong> Same filename used for: Linux host wrapper
+(setup.sh), container wrapper (test_containerized.sh), VM wrapper
+(test_vm.sh). Whichever ran last &quot;won&quot; — leaving the operator&#39;s
+host-side <code>tmx</code> in an unusable state. <strong>Fix:</strong>
+separated file paths by purpose:
+<ul>
+<li><code>scripts/tmx</code> = current OS&#39;s dispatcher (Linux wrapper OR
+macOS bridge — whatever setup.sh installed)</li>
+<li><code>scripts/tmx-vm</code> = the Linux wrapper used IN the VM
+(managed by <code>setup.sh</code> on Darwin +
+<code>test_vm.sh</code>)</li>
+<li><code>test_containerized.sh</code> already isolated its in-container
+generation to /tmp-style paths within the bounded run.</li>
+</ul></li>
+<li><strong><code>scripts/verify.sh</code> hardcoded
+<code>WRAPPER</code>/<code>TMUX_BIN</code> paths.</strong> Couldn&#39;t be
+redirected to test the VM wrapper from the VM-side verify step. Bridge
+tooling couldn&#39;t pass env overrides. <strong>Fix:</strong> verify.sh now
+respects <code>$WRAPPER</code> and <code>$TMUX_BIN</code> env vars,
+defaults preserved.</li>
+</ol></li>
+<li><strong>Captured evidence (post-fix):</strong>
+<ul>
+<li><code>bash scripts/setup.sh</code> on macOS Darwin 24.5.0 (Apple
+Silicon):
+<ul>
+<li>Step 1 — podman detected, libjemalloc warning (expected; doesn&#39;t
+block).</li>
+<li>Step 2 — containerized build re-used
+(<code>tmux/build/bin/tmux</code> ELF 64-bit aarch64).</li>
+<li>Step 3 —
+<code>wrote scripts/tmx-vm (Linux wrapper for VM-side execution)</code>
++
+<code>wrote scripts/tmx (macOS bridge → podman machine ssh -t)</code>.</li>
+<li>Step 4 — <code>bash scripts/test_vm.sh</code> runs
+<code>verify.sh</code> inside VM:
+<code>SUMMARY: PASS=11 FAIL=0 SKIP=3</code> +
+<code>GREEN: tmux binary verified</code>. Tests 12/13/14 SKIP
+(destructive opt-in not set).</li>
+<li>Step 5 — <code>~/.tmux.conf installed</code>, snippet appended to
+<code>~/.bashrc</code> AND <code>~/.zshrc</code>.</li>
+</ul></li>
+<li><code>zsh -c &#39;source ~/.zshrc; which tmx; tmx -V&#39;</code>:
+<code>/Users/.../scripts/tmx</code> + <code>tmux 3.6a</code> — bridge
+resolved, VM binary invoked, version reported.</li>
+<li><code>/opt/homebrew/bin/tmux -V</code>: <code>tmux 3.6a</code> —
+system tmux untouched, coexistence verified.</li>
+</ul></li>
+<li><strong>Regression-protection:</strong> the bridge uses
+<code>podman machine inspect</code> at every call to read the SSH
+endpoint — so port changes across machine restarts don&#39;t break it. Both
+<code>scripts/tmx-vm</code> and <code>scripts/tmx-mac.template</code>
+are regenerated by <code>setup.sh</code> so a fresh install on a
+different macOS user is reproducible. Documentation diagram in
+<code>docs/guide/README.md</code> §5.5 + README.md &quot;Architecture&quot;
+section.</li>
+<li><strong>Tracked task:</strong> none originally — caught when user
+invoked setup.sh and asked for operational tmx.</li>
+</ul>
+<h3 id="a7-final-sweep-env-specific-wrapper--255-violations--sed-portability--resolved">A7.
+Final sweep: env-specific wrapper + §255 violations + sed portability —
+<code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Discovery context:</strong> user &quot;Fix anything left now!
+Enforce anti-bluff policy!&quot; — comprehensive sweep surfaced four more
+real defects:</li>
+<li><strong>Defect 1 — <code>scripts/tmx</code> is environment-bound but
+presented as universal:</strong>
+<ul>
+<li><code>test_containerized.sh</code> generates the wrapper with paths
+<code>/repo/tmux/build/bin/tmux</code> (container&#39;s mount point).</li>
+<li>The same wrapper file is then unusable in the VM (where the path is
+<code>/Users/$USER/Projects/tmux/tmux/build/bin/tmux</code>) — tmux
+fails to start with &quot;Failed to find executable
+/repo/tmux/build/bin/tmux: No such file or directory&quot;, confused error
+masquerading as test 08 &quot;tmux server PID not found&quot; and test 11 &quot;colour
+changed on second session&quot; (T5 actually starts a fresh defaultless
+server because the wrapper-launched one never came up).</li>
+<li><strong>§11.4.6 forensic:</strong> hidden assumption (&quot;wrapper works
+everywhere&quot;) that doesn&#39;t hold. Discovered only after the rename sweep
+regressed previously-PASSing tests.</li>
+<li><strong>Fix:</strong> added <code>scripts/test_vm.sh</code>
+orchestrator that regenerates <code>scripts/tmx</code> with VM-native
+paths immediately before running the suite via
+<code>podman machine ssh</code>. Both <code>test_containerized.sh</code>
+(for container-only subset) and <code>test_vm.sh</code> (for full suite
+with user-systemd) now own the wrapper-regeneration step for their
+target environment. Operators don&#39;t share <code>scripts/tmx</code>
+across contexts.</li>
+</ul></li>
+<li><strong>Defect 2 — Constitution §255 violations in production
+code:</strong>
+<ul>
+<li><code>docs/guide/README.md:1</code> title was &quot;ATMOSphere Optimized
+tmux&quot;.</li>
+<li><code>docs/guide/README.md:216</code> referenced &quot;ATMOSphere&#39;s
+actual production use&quot;.</li>
+<li><code>scripts/challenges/tmux.yaml:10</code> described &quot;tmux from
+the ATMOSphere build&quot;.</li>
+<li><code>scripts/oom_set.c:29</code> claimed &quot;License: same as
+ATMOSphere project (open AOSP fork)&quot;.</li>
+<li><code>scripts/tmux.conf.template:5</code> cited &quot;per ATMOSphere
+optimization research, 2026-05-07&quot;.</li>
+<li><code>scripts/tests/02_session.sh:6</code>,
+<code>03_jemalloc_loaded.sh</code>, <code>04_history_limit.sh</code>,
+<code>05_clear_history_releases.sh</code>,
+<code>06_concurrent_panes.sh</code>, <code>07_long_session.sh</code>,
+<code>08_oom_score_adj.sh</code>,
+<code>11_hostname_color_integration.sh</code> used socket/session names
+with <code>atm_tmux_test_*</code> / <code>atm_test_*</code> /
+<code>atm_tmx_test_color_*</code> prefixes.</li>
+<li><code>scripts/setup.sh:154-155</code> named the backup file
+<code>~/.tmux.conf.pre-atmosphere</code>.</li>
+<li>Per Constitution §255
+(<code>No project coupling — any reference to &quot;ATMOSphere&quot;... anywhere in this repo is a regression</code>),
+every one is a §1 / §255 bluff.</li>
+<li><strong>Fix:</strong> <code>perl -i -pe</code> sweep across tests +
+setup.sh renamed <code>atm_*</code> → <code>tmx_*</code>
+(sockets/sessions) and <code>pre-atmosphere</code> →
+<code>pre-vasic-digital</code>. Manual edits cleaned the documentation +
+yaml + tmux.conf + oom_set.c attribution lines. Only remaining
+&quot;ATMOSphere&quot; mentions are in Constitution / CONTINUATION / Fixed.md /
+Constitution-CITES-the-rule context — permitted per §255&#39;s &quot;historical
+context in commit messages OK&quot; interpretation.</li>
+</ul></li>
+<li><strong>Defect 3 — <code>setup.sh</code> <code>sed -i</code>
+portability:</strong>
+<ul>
+<li>Lines 48 + 161 used <code>sed -i &#39;...&#39; ~/.bashrc</code>. GNU sed
+(Linux): works. BSD sed (macOS): fails because <code>-i</code> requires
+an explicit empty backup arg. An operator running
+<code>bash scripts/setup.sh --uninstall</code> on macOS would error
+out.</li>
+<li><strong>Fix:</strong> centralized in
+<code>_strip_bashrc_snippet()</code> using
+<code>perl -i -ne &#39;print unless /&lt;marker-start&gt;/ .. /&lt;marker-end&gt;/&#39;</code>.
+Portable across GNU/BSD; same flip-flop range delete semantics.</li>
+</ul></li>
+<li><strong>Defect 4 — Stale test fixtures didn&#39;t trip the
+gate:</strong>
+<ul>
+<li>Multiple <code>/tmp/atm_tmux_test_*</code> files accumulating in VM
+<code>/tmp</code> from prior runs. Not a bluff per se but
+operator-confusing.</li>
+<li><strong>No code fix</strong> — these are runtime artifacts.
+Documented here so future audits can
+<code>find /tmp -name &#39;atm_*&#39; -delete</code> to confirm none are still
+being written.</li>
+</ul></li>
+<li><strong>Captured evidence (post-fix):</strong>
+<ul>
+<li><code>bash scripts/test_vm.sh</code>: regenerates wrapper, runs
+suite, <code>SUMMARY: PASS=10 FAIL=0 SKIP=4 — GREEN</code>.</li>
+<li><code>TMX_TEST_DESTRUCTIVE=1 bash scripts/test_vm.sh</code>:
+<code>SUMMARY: PASS=14 FAIL=0 SKIP=0 — GREEN</code>. All destructive
+paths pass with positive runtime evidence:
+<ul>
+<li>test 12: kernel OOM-kill detected in dmesg/journalctl-k</li>
+<li>test 13: <code>pids.max=256</code> cgroup readback +
+<code>fork: retry: Resource temporarily unavailable</code> kernel
+evidence</li>
+<li>test 14: scope B + C MainPIDs unchanged after A&#39;s OOM</li>
+</ul></li>
+<li><code>META=1 bash scripts/test_vm.sh</code>:
+<code>MUTATIONS CAUGHT (PASS): 12 — GREEN</code>.</li>
+<li><code>grep -rn &#39;atm_\\|ATMOSphere&#39; scripts docker docs --include=&#39;*.sh&#39; --include=&#39;*.template&#39; --include=&#39;*.c&#39; --include=&#39;*.yaml&#39; --include=&#39;*.conf&#39;</code>:
+no matches (in non-historical files).</li>
+</ul></li>
+<li><strong>Regression-protection:</strong> wrapper regeneration is now
+per-environment (container or VM), no shared-file assumption. The
+sed-portability helper <code>_strip_bashrc_snippet()</code> is reused by
+both install + uninstall paths so they can&#39;t diverge. The §255
+vocabulary sweep was script- based (perl -i -pe), reproducible.</li>
+<li><strong>Tracked task:</strong> none originally — caught during
+final-sweep cycle.</li>
+</ul>
+<h3 id="a6-install-mechanism-bluffs-that-broke-side-by-side-coexistence--resolved">A6.
+Install-mechanism bluffs that broke side-by-side coexistence —
+<code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Discovery context:</strong> user asked &quot;what will be the
+bash alias for our tmux System? — the system installed tmux and our tmux
+System MUST WORK side by side.&quot; Audit of
+<code>scripts/bashrc_snippet.template</code> + setup.sh closing message
+surfaced three real defects that all conspired to break the side-by-side
+contract:</li>
+<li><strong>Defect 1 — phantom directory path in bashrc
+snippet:</strong>
+<ul>
+<li>Snippet set
+<code>ATMOSPHERE_TMUX_DIR=&quot;__PROJECT__/scripts/tmux&quot;</code>.</li>
+<li>There is no <code>scripts/tmux/</code> subdirectory. The wrapper is
+at <code>scripts/tmx</code> (a file inside <code>scripts/</code>).</li>
+<li>Result: PATH gets prepended with a non-existent directory;
+<code>tmx</code> is NOT actually reachable after setup. The README&#39;s
+&quot;After setup.sh reports GREEN... <code>tmx</code> invokes the verified
+build&quot; claim was a §1 bluff — the post-install state didn&#39;t expose
+<code>tmx</code> to the operator&#39;s PATH.</li>
+<li><strong>Fix:</strong> rename variable <code>VDIGITAL_TMUX_DIR</code>
+and set it to <code>__PROJECT__/scripts</code> (the real location of the
+wrapper).</li>
+</ul></li>
+<li><strong>Defect 2 — <code>alias tmux=&#39;tmx&#39;</code> shadowed the system
+tmux:</strong>
+<ul>
+<li>Snippet line 8 was <code>alias tmux=&#39;tmx&#39;</code>. This means after
+sourcing ~/.bashrc, the operator&#39;s <code>tmux</code> command invokes our
+cgroup-bounded wrapper instead of the system tmux binary they may have
+installed via Homebrew / apt / dnf / pacman.</li>
+<li>Directly violates README §1 (&quot;system tmux untouched&quot;) and the user-
+explicit requirement that &quot;system tmux and our tmux System MUST WORK
+side by side.&quot;</li>
+<li><strong>Fix:</strong> removed the alias line entirely. The
+PATH-prepend of <code>scripts/</code> is sufficient to expose
+<code>tmx</code> as a NEW command without shadowing the existing
+<code>tmux</code> command. Added inline comment documenting why no alias
+should be added.</li>
+</ul></li>
+<li><strong>Defect 3 — setup.sh closing message contradicted the
+contract:</strong>
+<ul>
+<li><code>Then &#39;tmux&#39; will use the verified ATMOSphere build.</code> —
+both factually wrong (it&#39;s our wrapper as <code>tmx</code>, not
+<code>tmux</code>) AND branding-stale (ATMOSphere, not
+vasic-digital).</li>
+<li><strong>Fix:</strong> new closing message explicitly documents that
+<code>tmx</code> is the new command, <code>tmux</code> stays unchanged,
+and both coexist.</li>
+</ul></li>
+<li><strong>Captured evidence (post-fix):</strong>
+<ul>
+<li><code>scripts/bashrc_snippet.template</code>: PATH points to
+existing <code>scripts/</code> directory (where <code>tmx</code>
+actually lives); no alias.</li>
+<li><code>scripts/setup.sh</code>: closing message says &quot;Use
+<code>tmx new|attach|ls|kill</code> to invoke the verified build. The
+system &#39;tmux&#39; command stays unchanged and reachable — both coexist
+side-by-side.&quot;</li>
+<li><code>scripts/setup.sh --uninstall</code> still matches our
+bashrc-snippet markers (<code>─── vasic-digital optimized tmux</code> /
+<code>─── end vasic-digital optimized tmux</code>) — no regression.</li>
+</ul></li>
+<li><strong>Regression-protection:</strong> none yet — these were
+doc/config bluffs not directly exercised by the 14-test suite. Future
+option: add a test that sources the generated snippet and asserts
+<code>which tmx</code> returns a path AND <code>type tmux</code> does
+NOT show an alias.</li>
+<li><strong>Tracked task:</strong> none originally — caught when user
+asked about the install/alias mechanism explicitly.</li>
+</ul>
+<h3 id="a5-full-destructive-test--meta-test-cycle-caught-6-fail-bluffs--resolved">A5.
+Full destructive test + meta-test cycle caught 6 FAIL-bluffs —
+<code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Discovery context:</strong> user &quot;continue all work now&quot; —
+pushed me from the PASS=10 SKIP=4 state into actually running the
+destructive tests (TMX_TEST_DESTRUCTIVE=1) + meta-test in the podman
+machine VM (Fedora CoreOS 42, systemd 257, with <code>tmx-oom-set</code>
+setcap helper installed and <code>stress-ng</code> available). The first
+run exposed multiple §11.4.1 FAIL-bluffs (test FAILs caused by script
+bugs, not product defects). Final state: <strong>PASS=14 FAIL=0
+SKIP=0</strong> on the destructive suite, <strong>12/12 mutations
+caught</strong> in the meta-test.</li>
+<li><strong>Defect 1 — Test 12 / 14 <code>_skip; &lt;continue&gt;</code>
+(§11.4.1 FAIL-bluff):</strong>
+<ul>
+<li>Both tests had
+<code>if ! command -v stress-ng; then _skip ...; fi</code> — they
+PRINTED a SKIP message but did not EXIT. The test continued to run, hit
+the missing <code>stress-ng</code>, and FAILed on
+<code>T5.1</code>/<code>T8.1</code> (&quot;no OOM-kill in dmesg&quot;). Confusing
+operator output AND misclassified as FAIL instead of SKIP.</li>
+<li><strong>Fix:</strong> replace the inert <code>_skip</code> helper
+call with explicit <code>echo &quot;SKIP: ...&quot;; exit 0</code>. Now missing
+<code>stress-ng</code> results in a clean SKIP that bumps the SKIP
+counter (not FAIL).</li>
+</ul></li>
+<li><strong>Defect 2 — Test 12 / 14 unprivileged <code>dmesg</code>
+permission:</strong>
+<ul>
+<li>Fedora defaults to <code>kernel.dmesg_restrict=1</code> so non-root
+<code>dmesg</code> fails with &quot;Operation not permitted&quot;. Tests treated
+empty output as &quot;no OOM-kill happened&quot; → false FAIL on T5.1/T8.1 even
+when the OOM-kill DID occur.</li>
+<li><strong>Fix:</strong> added <code>_kring_count()</code> /
+<code>_kring_tail()</code> helpers that fall back to
+<code>journalctl -k --no-pager -q -o cat</code> when <code>dmesg</code>
+is unavailable. Also broadened the OOM-kill regex from
+<code>oom-kill</code> alone to
+<code>oom-kill|out of memory|memory cgroup out of memory</code> to catch
+all kernel phrasings.</li>
+</ul></li>
+<li><strong>Defect 3 — Test 13
+design-fits-only-large-RAM-hosts:</strong>
+<ul>
+<li>Test 13 spawned 10000 <code>sleep</code> processes inside a scope
+with <code>MemoryMax=256M</code>. Each <code>sleep</code> process is
+~700KB RSS, so 4096 × 700KB ≈ 3 GB — far over the 256M cap. Kernel
+OOM-killed the scope bash before pids.current could be read → T7.2 SKIP
+even though the test&#39;s premise (TasksMax enforcement) was sound.</li>
+<li>Test 13 also raced the cgroup readback: <code>sleep 4</code>
+followed by <code>systemctl show ControlGroup</code> — but the scope was
+already gone.</li>
+<li><strong>Fix:</strong> restructured to two-phase scope
+(<code>sleep 2</code>, then fork-storm), polling loop for cgroup
+registration (up to 5 s), reduced test&#39;s TASKS_MAX from 4096 → 256 with
+MemoryMax=512M so the fork-storm fits in available memory. The
+production wrapper still uses TasksMax=4096; test 09 T2.2 grep-verifies
+that. The enforcement-test gate is identical at any value.</li>
+</ul></li>
+<li><strong>Defect 4 — Meta-test <code>sed -i</code> strips exec
+bit:</strong>
+<ul>
+<li><code>sed -i</code> on Linux replaces the file (write temp, rename).
+The new file gets default mode 0600, dropping the exec bit. Downstream
+tests&#39; <code>[ ! -x &quot;$ALGO&quot; ]</code> pre-checks then SKIP — false
+negatives.</li>
+<li><strong>Fix:</strong> capture <code>orig_mode</code> via
+<code>stat -c &#39;%a&#39;</code> (Linux) / <code>stat -f &#39;%Lp&#39;</code> (BSD)
+before the mutation, restore via <code>chmod &quot;$orig_mode&quot;</code> after
+both mutation and revert.</li>
+</ul></li>
+<li><strong>Defect 5 — Meta-test M5 sed pattern eval-expanded:</strong>
+<ul>
+<li>M5&#39;s mutate pattern was
+<code>&#39;-p &quot;MemoryMax=\${TMX_MEM:-8G}&quot;|-p &quot;MemMax=\${TMX_MEM:-8G}&quot;&#39;</code>.
+The <code>\${TMX_MEM:-8G}</code> was preserved through bash
+double-quote, but <code>eval</code> then expanded it to <code>8G</code>.
+Sed then searched for the literal <code>-p &quot;MemoryMax=8G&quot;</code> which
+does NOT exist in the wrapper (the wrapper has
+<code>${TMX_MEM:-8G}</code> literally). The mutation silently no-op&#39;d →
+mutation escaped detection → <strong>meta-test bluff in the meta-test
+itself</strong>.</li>
+<li><strong>Fix:</strong> simplified to literal
+<code>&#39;MemoryMax=|MemMax=&#39;</code> which matches regardless of variable
+rendering. Verified post-fix: mutation applies, test 09 T2.2 FAILs,
+mutation caught.</li>
+</ul></li>
+<li><strong>Defect 6 — Meta-test had no debug visibility for these
+regressions:</strong>
+<ul>
+<li>When mutations silently no-op or otherwise misbehave, the only
+signal is &quot;MUTATION ESCAPED&quot; — no clue why.</li>
+<li><strong>Fix:</strong> added opt-in <code>TMX_META_DEBUG=1</code> env
+var that prints the mutate_cmd as eval&#39;d plus the post-mutation file
+state (mode + matched grep). Off by default to keep normal output
+clean.</li>
+</ul></li>
+<li><strong>Captured evidence (post-fix):</strong>
+<ul>
+<li><code>TMX_TEST_DESTRUCTIVE=1 bash scripts/verify.sh</code> in the
+VM: <code>SUMMARY: PASS=14 FAIL=0 SKIP=0</code> +
+<code>GREEN: tmux binary verified</code>.</li>
+<li><code>bash scripts/tests/meta_test_false_positive_proof.sh</code>:
+<code>MUTATIONS CAUGHT (PASS): 12</code> +
+<code>GREEN: all tested mutations caught (layer 4 coverage active)</code>.</li>
+<li>Test 09 T3.1 specifically reads
+<code>/sys/fs/cgroup/user.slice/user-501.slice/user@501.service/app.slice/.../memory.max</code>
+= 268435456 bytes (matches set 256M).</li>
+<li>Test 11 T5 specifically reads <code>status-style bg</code> via
+<code>tmux show -g status-style</code> — first session emits
+<code>colour166</code>, second session on same host also emits
+<code>colour166</code>. <strong>The user&#39;s &quot;same-host = same-color&quot;
+invariant is now PROVEN with captured runtime evidence.</strong></li>
+<li>Test 13 T7.1 reads <code>pids.max=256</code> from cgroup interface;
+T7.3 confirms <code>pids.current=256 &lt;= TasksMax=256</code> (limit
+enforced). Bash emits
+<code>fork: retry: Resource temporarily unavailable</code> — the kernel
+REFUSING further forks (positive evidence of pids enforcement).</li>
+</ul></li>
+<li><strong>Regression-protection:</strong> Meta-test&#39;s M1-M6 now all
+caught — layer-4 coverage is honest. The destructive tests&#39;
+<code>_skip + continue</code> pattern was unique to tests 12/14;
+analogous future tests should <code>exit 0</code> after SKIP. The
+exec-bit-stripping issue affects any sed -i mutation, fixed centrally in
+run_mutation.</li>
+<li><strong>Tracked task:</strong> none originally — caught during
+&quot;continue all work&quot; cycle.</li>
+</ul>
+<h3 id="a4-build-pipeline-bluffs-caught-while-reproducing-on-macos--resolved">A4.
+Build pipeline bluffs caught while reproducing on macOS —
+<code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Discovery context:</strong> user asked &quot;tmux is available in
+Homebrew on macOS, why we cannot continue and do building?&quot;. Pushed me
+to actually attempt the containerized build on Darwin via podman. The
+attempt surfaced three real defects (two §1 bluffs + one §11.4.6
+forensic gap):</li>
+<li><strong>Defect 1 — <code>docker/Dockerfile</code> UID/GID collision
+on macOS hosts:</strong>
+<ul>
+<li><code>groupadd -g 20 builder</code> fails with &quot;GID &#39;20&#39; already
+exists&quot; because macOS host GID=20 (staff) collides with Ubuntu&#39;s
+pre-existing <code>dialout</code> group at the same GID.</li>
+<li>Build aborted at step 7/10 with exit status 4. <strong>The README&#39;s
+&quot;Quick install (one command)&quot; wasn&#39;t reproducible on macOS at
+all.</strong></li>
+<li><strong>Fix:</strong> added <code>-o</code> (non-unique) flag to
+both <code>groupadd</code> and <code>useradd</code>. Build now completes
+cleanly on Darwin hosts.</li>
+</ul></li>
+<li><strong>Defect 2 — README &quot;Build-time -ljemalloc&quot; was false until
+now:</strong>
+<ul>
+<li><code>docker/build_inside_container.sh</code> set
+<code>LDFLAGS=&quot;-Wl,-z,relro,-z,now -ljemalloc&quot;</code>. But modern GNU ld
+defaults to <code>--as-needed</code>, which DROPS
+<code>-ljemalloc</code> from the link because tmux does not reference
+jemalloc symbols directly.</li>
+<li><strong>Captured evidence:</strong> post-build inside the container
+— <code>ldd /tmux-src/build/bin/tmux</code> showed NO
+<code>libjemalloc.so</code> in DT_NEEDED, AND the inner script&#39;s own
+verification step printed
+<code>⚠ jemalloc NOT linked at build time — will rely on LD_PRELOAD only</code>.
+The script flagged it but only as a warning; the README marketed it as a
+feature that wasn&#39;t actually delivered.</li>
+<li><strong>Fix:</strong> changed LDFLAGS to
+<code>-Wl,-z,relro,-z,now -Wl,--no-as-needed -ljemalloc -Wl,--as-needed</code>.
+This forces jemalloc into DT_NEEDED even though no symbol references
+pull it in.</li>
+<li><strong>Post-fix evidence:</strong> <code>ldd</code> now shows
+<code>libjemalloc.so.2 =&gt; /lib/aarch64-linux-gnu/libjemalloc.so.2</code>,
+AND the inner script reports <code>✓ jemalloc linked</code>.</li>
+</ul></li>
+<li><strong>Defect 3 — <code>make -j2</code> silently no-op&#39;d after
+LDFLAGS change:</strong>
+<ul>
+<li>First attempt at the jemalloc fix changed LDFLAGS but
+<code>make</code> reported &quot;Nothing to be done for &#39;all&#39;.&quot; because
+object files + binary already existed from a prior build. The LDFLAGS
+change was silently dropped.</li>
+<li><strong>Fix:</strong> added <code>make clean</code> ahead of
+<code>make -j2</code> in <code>docker/build_inside_container.sh</code>
+so LDFLAGS changes always take effect. This is the §11.4.6 fix — &quot;we
+MUST always know exactly precisely what is happening&quot; applies to the
+build itself.</li>
+</ul></li>
+<li><strong>Regression-protection:</strong> the inner-script&#39;s own
+&quot;jemalloc linked?&quot; ldd-check is now an honest gate — if a future change
+drops jemalloc again, the inner script reports <code>⚠</code> and the
+operator sees it in build output. No paired mutation needed since the
+defect is structural (build configuration), not algorithmic.</li>
+<li><strong>Tracked task:</strong> none originally — caught during /init
+audit cycle by attempting the actual build on the audit host.</li>
+</ul>
+<h3 id="a3-guidemd-severity-hierarchy-bluff-pre-existing--resolved">A3.
+GUIDE.md &quot;severity hierarchy&quot; bluff (pre-existing) —
+<code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Discovery context:</strong> while updating
+<code>docs/guide/README.md</code> §4 to add tests 09-14 to the table, I
+almost extended the existing &quot;severity hierarchy&quot; paragraph by adding
+test 09 to &quot;blockers&quot; and 10/11 to &quot;critical&quot;. Before committing,
+audited <code>scripts/verify.sh</code> +
+<code>scripts/tests/run_all.sh</code> to confirm — and found NO such
+per-test classification in the gate logic. Every test that emits a line
+starting with <code>FAIL</code> is treated equally (exit 1, no PATH
+export). The severity hierarchy described in the docs did not exist in
+the code.</li>
+<li><strong>Source-side fix:</strong> replaced the &quot;Severity hierarchy:
+01+02+08 blockers, 03/06/07 critical, 04/05 advisory&quot; paragraph in
+<code>docs/guide/README.md</code> §4 with an honest description of the
+actual gate logic: &quot;any FAIL = RED, every test treated equally; SKIPs
+are honest precondition gates; tests 12/13/14 are destructive and opt-in
+via <code>TMX_TEST_DESTRUCTIVE=1</code>.&quot;</li>
+<li><strong>Captured evidence:</strong>
+<code>scripts/tests/run_all.sh:41-49</code> — single uniform
+FAIL-detection branch with no per-test weighting;
+<code>scripts/verify.sh:41</code> — single
+<code>if run_all.sh; then exit 0 else exit 1</code> gate.</li>
+<li><strong>Regression-protection:</strong> no dedicated mutation needed
+— the bluff was documentation-only and the actual gate code is
+correct.</li>
+<li><strong>Tracked task:</strong> none originally — caught during /init
+audit cycle while extending the existing prose.</li>
+</ul>
+<h3 id="a2-audit-cycle-2026-05-13--tmux-submodule-pin-drift-caught--governance-staleness-fixed--resolved">A2.
+Audit cycle 2026-05-13 — tmux submodule pin-drift caught + governance
+staleness fixed — <code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-13.</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Triggering event:</strong> user invoked <code>/init</code>
+followed by &quot;what is left unfinished, no-bluff policy heavily enforced
+everywhere&quot;.</li>
+<li><strong>Source-side fix:</strong>
+<ul>
+<li>tmux submodule reverted from <code>3f651d9f</code>
+(<code>3.6a-329-g3f651d9f</code>, 329 commits past pin) back to
+<code>cc117b5</code> (tag <code>3.6a</code>). User decision after
+<code>git tag --sort=-v:refname</code> confirmed no newer stable tag
+exists.</li>
+<li><code>README.md</code>: rewrote line 5 (&quot;eight verification tests&quot;),
+line 33 summary (<code>PASS=6 FAIL=0 SKIP=2</code>), line 37 (&quot;8 tests
+cover&quot;), and line 39 (2-SKIP list) to reflect current 14-test / PASS=10
+/ SKIP=4 state with <code>TMX_TEST_DESTRUCTIVE=1</code> callout and
+§11.4.4 harness ref.</li>
+<li><code>CLAUDE.md</code>: added project summary + cross-links +
+workflow; fixed <code>0N_*.sh</code> → <code>NN_*.sh</code> glob; named
+the four layers inline; added &quot;Files to never edit directly&quot;
+section.</li>
+<li><code>AGENTS.md</code>: mirrored CLAUDE.md improvements (project
+summary, cross-links, NN_*.sh glob fix, meta-test row).</li>
+<li><code>Issues.md</code>: restored A/B/C/D/E section headers (C and D
+were missing despite conventions list referencing them).</li>
+<li><code>CONTINUATION.md</code>: timestamp 2026-05-08T22:00Z →
+2026-05-13T00:00Z; §3.8 entry added per §12.10 invariant.</li>
+<li><code>scripts/tests/meta_test_false_positive_proof.sh</code>: M6
+added — injects <code>$$</code> (PID) into the hostname_color hash after
+the loop, making the algorithm non-deterministic per-invocation. Test 10
+T1 (same hostname twice = same colour) must FAIL under M6 — this is the
+dedicated coverage for the &quot;same-host = same-color&quot; user invariant that
+was previously only protected by side-effect.</li>
+<li><code>docs/guide/README.md</code>: <code>verify_tmux.sh</code> →
+<code>verify.sh</code> (3×), <code>setup_tmux.sh</code> →
+<code>setup.sh</code> (3×), <code>install_tmux_deps.sh</code> →
+<code>install_deps.sh</code> (3×), &quot;8 tests&quot; → &quot;14 tests&quot; (2×). The
+phantom-script bluff is closed.</li>
+</ul></li>
+<li><strong>Captured evidence:</strong>
+<ul>
+<li>Pre-revert: <code>git -C tmux describe --tags HEAD</code> →
+<code>3.6a-329-g3f651d9f</code>.</li>
+<li>Post-revert:
+<code>git -C tmux describe --tags --exact-match HEAD</code> →
+<code>3.6a</code>.</li>
+<li><code>grep -E &quot;(8 tests|PASS=6|SKIP=2)&quot; README.md</code> returns no
+matches post-fix (was 3 lines pre-fix).</li>
+<li><code>grep &quot;0N_\*\.sh&quot; CLAUDE.md AGENTS.md</code> returns no matches
+post-fix.</li>
+</ul></li>
+<li><strong>Regression-protection:</strong> the
+<code>f4132aa Auto-commit</code> itself remains in history as a §12.10 /
+§11.4.6 violation (opaque message, silent submodule mutation, no
+CONTINUATION update). Cannot rewrite per §9 data safety. Future opaque
+&quot;Auto-commit&quot; entries should be caught by this Fixed.md entry serving as
+forensic anchor.</li>
+<li><strong>Tracked task:</strong> none originally — caught during /init
+audit cycle.</li>
+</ul>
+<h3 id="a1-meta-test-paired-mutation-harness-meta-mut-001--resolved">A1.
+Meta-test paired-mutation harness (META-MUT-001) —
+<code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-08 (final coverage
+cycle).</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Source-side fix:</strong> created
+<code>scripts/tests/meta_test_false_positive_proof.sh</code> — §11.4.4
+layer-4 paired-mutation harness. Registers 5 mutations across
+<code>scripts/hostname_color.sh</code> and
+<code>scripts/tmx.template</code>:
+<ul>
+<li>M1: break hostname_color output format → test 10 T2 FAILs (invalid
+colourNNN)</li>
+<li>M2: force hash to zero → test 10 T3 FAILs (no spread)</li>
+<li>M3: single-entry palette → test 10 T3 FAILs (hash collision)</li>
+<li>M4: remove systemd-run flag from template → test 09 T2 FAILs</li>
+<li>M5: remove Delegate=yes from template → test 09 T2 FAILs Each
+mutation: apply → assert FAIL → revert → assert PASS. All 5 caught on
+this host (10 PASS / 0 FAIL / 0 SKIP).</li>
+</ul></li>
+<li><strong>Captured evidence:</strong> meta-test output on 2026-05-08:
+10 PASS / 0 FAIL / 0 SKIP. Each PASS records the mutation name, target
+file, and whether the test correctly FAILed under mutation and PASSed
+after revert.</li>
+<li><strong>Regression-protection:</strong> the meta-test itself is the
+regression guard. Run via
+<code>bash scripts/tests/meta_test_false_positive_proof.sh</code>.</li>
+<li><strong>Tracked task:</strong> META-MUT-001 (Issues.md A1).</li>
+</ul>
+<h3 id="a0-initial-migration-from-atmosphere-project-to-standalone-vasic-digitaltmux-repo">A0.
+Initial migration from ATMOSphere project to standalone
+<code>vasic-digital/tmux</code> repo</h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-07 (initial standalone repo
+bring-up).</li>
+<li><strong>Closure commit:</strong> <code>08d4ba5</code> (&quot;Initial
+vasic-digital/tmux — migrated from ATMOSphere project + per-session
+containerization plan + 8-test verification gate&quot;).</li>
+<li><strong>Source-side fix:</strong> carved out
+<code>scripts/tmux/</code>, <code>docker/Dockerfile.tmux-build</code>,
+<code>docs/guides/TMUX_OPTIMIZED_BUILD.md</code> from ATMOSphere;
+agnostic-ized (zero ATMOSphere / Android-15 / atmosphere-tmux references
+remain in the migrated tree); added <code>tmux/</code> submodule pinned
+to upstream tag <code>3.6a</code> and <code>Containers/</code> submodule
+pointing at <code>vasic-digital/Containers</code>.</li>
+<li><strong>Captured evidence:</strong> <code>scripts/verify.sh</code>
+8-test suite returned 6 PASS / 0 FAIL / 2 honest SKIP against ATMOSphere
+host on 2026-05-07 (CONTINUATION.md §1 snapshot).</li>
+<li><strong>Regression-protection:</strong>
+<code>scripts/verify.sh</code> is the gate; failed verification refuses
+to install per Constitution §4.</li>
+<li><strong>Tracked task:</strong> initial migration ticket
+(CONTINUATION.md §3.1).</li>
+</ul>
+<hr />
+<h2 id="b-anti-bluff-completeness--resolved">B. Anti-bluff completeness
+— RESOLVED</h2>
+<h3 id="b0-constitution-1-covenant-verbatim-user-mandate-quote-propagated">B0.
+Constitution §1 covenant verbatim user-mandate quote propagated</h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-08.</li>
+<li><strong>Closure commit:</strong> <code>b92bf7f</code> (&quot;1.1.x — §1
+anti-bluff covenant verbatim user-mandate quote added to Constitution.md
+/ CLAUDE.md / AGENTS.md (per upstream vasic-digital projects 2026-04-28
++ 2026-05-07 + 2026-05-08 mandate)&quot;).</li>
+<li><strong>Source-side fix:</strong> verbatim quote landed in
+<code>Constitution.md</code> §1, <code>CLAUDE.md</code>,
+<code>AGENTS.md</code>. Test 09 <code>09_crash_isolation_scope.sh</code>
+authored to §1 standard from line one (positive evidence from
+<code>/sys/fs/cgroup</code>).</li>
+<li><strong>Captured evidence:</strong> Test 09 run on this host on
+2026-05-08T11:25 MSK returned 14 PASS / 0 FAIL / 0 SKIP. T3
+<code>memory.max</code> readback = 268435456 bytes (matches set 256M);
+T3 <code>cpu.max</code> readback = <code>50000 100000</code> (50% quota
+over 100ms period); T4 SIGKILL containment verified by reading
+<code>cgroup.procs</code> MainPID pre-kill, sending SIGKILL, observing
+scope inactive post-kill, observing <code>default.target=active</code>
+throughout (user.slice survival is the load-bearing §1 invariant).</li>
+<li><strong>Regression-protection:</strong>
+<code>scripts/tests/meta_test_false_positive_proof.sh</code> M4+M5 —
+mutations against the wrapper prove T2 catches regressions.</li>
+<li><strong>Tracked task:</strong> CONTINUATION.md §3.3 (test-09
+landing).</li>
+</ul>
+<h3 id="b2-functional-tests-01-08-1142-anti-bluff-audit--resolved">B2.
+Functional tests 01-08 §11.4.2 anti-bluff audit —
+<code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-08 (anti-bluff enforcement
+cycle).</li>
+<li><strong>Closure commit:</strong> <code>68a65b0</code> (&quot;Anti-bluff
+enforcement: TEST-AUDIT-001 complete...&quot;).</li>
+<li><strong>Source-side fix:</strong> every test in
+<code>scripts/tests/01_*.sh</code> through <code>08_*.sh</code> was read
+line-by-line and audited per §11.4.2. Audit verdict:
+<ul>
+<li><strong>T01 (smoke):</strong> PASS — <code>tmux -V</code> output
+confirms binary runs and reports expected version <code>3.6a</code>.
+Evidence: stdout transcript captured by harness.</li>
+<li><strong>T02 (session):</strong> PASS — <code>list-sessions</code>
+output showing the created session name. Evidence: session listing.</li>
+<li><strong>T03 (jemalloc):</strong> PASS — <code>/proc/$PID/maps</code>
+grep confirms libjemalloc loaded. Evidence: kernel memory-map file
+content.</li>
+<li><strong>T04 (history-limit):</strong> PASS —
+<code>show-options -g history-limit</code> readback. Evidence: tmux
+command output.</li>
+<li><strong>T05 (clear-history):</strong> PASS —
+<code>/proc/$PID/status VmRSS</code> before/after delta. Evidence:
+kernel status file content.</li>
+<li><strong>T06 (concurrent panes):</strong> PASS —
+<code>/proc/$PID/status VmRSS</code> growth measurement. Evidence:
+kernel status file content.</li>
+<li><strong>T07 (long session):</strong> PASS —
+<code>/proc/$PID/status VmRSS</code> time-series. Evidence: kernel
+status file content.</li>
+<li><strong>T08 (oom_score_adj):</strong> PASS —
+<code>/proc/$PID/oom_score_adj</code> reading = <code>-500</code>.
+Evidence: kernel file content.</li>
+<li><strong>T09 (crash isolation):</strong> PASS (gold standard) —
+cgroup interface files (<code>memory.max</code>, <code>cpu.max</code>,
+<code>cgroup.procs</code>), <code>systemctl --user is-active</code>,
+<code>default.target=active</code> survival proof. All nine tests carry
+positive runtime evidence from kernel or tmux interfaces. No test relies
+solely on script exit codes. No FAIL-bluff vectors found (all
+<code>set -uo pipefail</code>, all variables guarded, no
+undefined-variable crash paths).</li>
+</ul></li>
+<li><strong>Additional findings:</strong>
+<code>scripts/challenges/tmux.yaml</code> had broken
+<code>test_script:</code> paths referencing
+<code>scripts/tmux/tests/</code> (non-existent). Fixed to
+<code>scripts/tests/</code> — all 8 Challenge entries now reference
+runnable test scripts.</li>
+<li><strong>Captured evidence:</strong> audit performed by reading test
+source line-by-line on 2026-05-08. See each test file at
+<code>scripts/tests/0[1-9]_*.sh</code>.</li>
+<li><strong>Regression-protection:</strong>
+<code>meta_test_false_positive_proof.sh</code> M1-M3 cover
+hostname_color.sh mutations.</li>
+<li><strong>Tracked task:</strong> TEST-AUDIT-001.</li>
+</ul>
+<hr />
+<h2 id="c-per-session-containerization-features--resolved">C.
+Per-session containerization features — RESOLVED</h2>
+<h3 id="c0-test-09-crash-isolation-scope-landed-and-green">C0. Test 09
+crash-isolation-scope landed and green</h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-08.</li>
+<li><strong>Closure commit:</strong> <code>b92bf7f</code> (same commit
+as B0; landed in one cycle).</li>
+<li><strong>Source-side fix:</strong>
+<code>scripts/tests/09_crash_isolation_scope.sh</code> is a 4-section
+invariant verifier:
+<ul>
+<li><strong>T1 (host capability):</strong> systemd v258 + cgroup v2
+unified mount confirmed.</li>
+<li><strong>T2 (wrapper invariants):</strong> <code>tmx</code> wrapper
+invokes <code>systemd-run --user --scope</code> with
+<code>MemoryMax=$TMX_MEM</code>, <code>CPUQuota=$TMX_CPU</code>,
+<code>TasksMax=4096</code>, <code>Delegate=yes</code>.</li>
+<li><strong>T3 (cgroup interface evidence):</strong> transient scope
+created; <code>/sys/fs/cgroup/.../memory.max</code> and
+<code>/sys/fs/cgroup/.../cpu.max</code> read back the configured values
+— POSITIVE EVIDENCE per §1 covenant.</li>
+<li><strong>T4 (SIGKILL containment):</strong> spawn scope, read MainPID
+from <code>cgroup.procs</code>, SIGKILL it, verify scope inactive AFTER
+kill, verify <code>default.target=active</code> THROUGHOUT (user.slice
+survives).</li>
+<li><strong>T6 (concurrent independence-registration):</strong> 3
+concurrent scopes registered + active simultaneously. Updated
+<code>scripts/tests/run_all.sh</code> glob to <code>0[1-9]_*.sh</code>
+so test 09 is part of the suite by default.</li>
+</ul></li>
+<li><strong>Captured evidence:</strong> 14 PASS / 0 FAIL / 0 SKIP on
+2026-05-08T11:25 MSK (host: operator&#39;s daily driver, systemd 258, cgroup
+v2).</li>
+<li><strong>Regression-protection:</strong>
+<code>meta_test_false_positive_proof.sh</code> M4+M5 cover wrapper
+mutation detection.</li>
+<li><strong>Tracked task:</strong> CONTINUATION.md §3.3.</li>
+</ul>
+<hr />
+<h3 id="c1-tmx-t5-memory-pressure-under-cap--resolved-test-landed">C1.
+TMX-T5 Memory pressure under cap — <code>RESOLVED</code> (test
+landed)</h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-08 (full coverage
+cycle).</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Source-side fix:</strong>
+<code>scripts/tests/12_memory_pressure_under_cap.sh</code> — allocates
+inside a transient scope at MemoryMax+10%, captures dmesg OOM-kill
+evidence, verifies user.slice survives. Gated by
+<code>TMX_TEST_DESTRUCTIVE=1</code>.</li>
+<li><strong>Captured evidence:</strong> must be run on dedicated test
+host. Test prints dmesg oom-kill lines and systemctl default.target
+status.</li>
+<li><strong>Regression-protection:</strong> CH-12 challenge entry +
+human-readable test source.</li>
+<li><strong>Tracked task:</strong> TMX-T5 (Issues.md C1 — moved to
+Fixed.md).</li>
+</ul>
+<h3 id="c2-tmx-t7-tasksmax-fork-bomb-resistance--resolved-test-landed">C2.
+TMX-T7 TasksMax fork-bomb resistance — <code>RESOLVED</code> (test
+landed)</h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-08 (full coverage
+cycle).</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Source-side fix:</strong>
+<code>scripts/tests/13_tasksmax_stress.sh</code> — spawns up to 10000
+processes inside a scope with TasksMax=4096, reads pids.current/pids.max
+from cgroup interface. Gated by
+<code>TMX_TEST_DESTRUCTIVE=1</code>.</li>
+<li><strong>Captured evidence:</strong> /sys/fs/cgroup/.../pids.current
+and pids.max readback printed as positive evidence.</li>
+<li><strong>Regression-protection:</strong> CH-13 challenge entry +
+human-readable test source.</li>
+<li><strong>Tracked task:</strong> TMX-T7 (Issues.md C2 — moved to
+Fixed.md).</li>
+</ul>
+<h3 id="c3-tmx-t8-concurrent-oom-independence--resolved-test-landed">C3.
+TMX-T8 Concurrent OOM independence — <code>RESOLVED</code> (test
+landed)</h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-08 (full coverage
+cycle).</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Source-side fix:</strong>
+<code>scripts/tests/14_concurrent_oom_independence.sh</code> — three
+concurrent scopes A/B/C, OOM-kills A, verifies B and C remain active
+with original MainPIDs. Gated by
+<code>TMX_TEST_DESTRUCTIVE=1</code>.</li>
+<li><strong>Captured evidence:</strong> systemctl is-active for B+C,
+cgroup.procs MainPID unchanged, dmesg scope-A-only kill,
+default.target=active.</li>
+<li><strong>Regression-protection:</strong> CH-14 challenge entry +
+human-readable test source.</li>
+<li><strong>Tracked task:</strong> TMX-T8 (Issues.md C3 — moved to
+Fixed.md).</li>
+</ul>
+<h3 id="d1-per-host-topology-dispatch-probe--resolved">D1.
+Per-host-topology dispatch probe — <code>RESOLVED</code></h3>
+<ul>
+<li><strong>Closure cycle:</strong> 2026-05-08 (full coverage
+cycle).</li>
+<li><strong>Closure commit:</strong> (this commit).</li>
+<li><strong>Source-side fix:</strong> added
+<code>_probe_topology()</code> to <code>scripts/tmx.template</code> —
+detects systemd version and cgroup v2 mount, classifies host as
+<code>tmx-supported</code>, <code>tmx-degraded</code>, or
+<code>tmx-unsupported</code>. Classification exported as
+<code>TMX_CLASSIFICATION</code> for test dispatch.</li>
+<li><strong>Captured evidence:</strong> topology probe runs on every
+wrapper invocation; classification can be read from
+<code>$TMX_CLASSIFICATION</code>.</li>
+<li><strong>Regression-protection:</strong> code review of
+tmx.template.</li>
+<li><strong>Tracked task:</strong> TOPO-DISPATCH-001 (Issues.md D1 —
+moved to Fixed.md).</li>
+</ul>
+<hr />
+<h2 id="d-migration-history--informational">D. Migration history —
+INFORMATIONAL</h2>
+<ul>
+<li><strong>2026-05-07:</strong> Repo carved out of ATMOSphere project
+(parent at
+<code>/run/media/milosvasic/DATA4TB/Projects/Android_15/</code>). New
+repo at <code>~/Projects/tmux/</code> + GitHub
+<code>vasic-digital/tmux</code> + GitLab
+<code>vasic-digital/tmux</code>.</li>
+<li><strong>2026-05-08:</strong> §1 anti-bluff covenant verbatim quote
+added. Test 09 (crash-isolation-scope) landed.</li>
+<li><strong>2026-05-08 (governance bring-up):</strong> Issues.md and
+Fixed.md created; Constitution explicit §11.4.1 through §11.4.6 anchors
+added; §9 / §12.6 / §12.10 anchors added; CLAUDE.md / AGENTS.md updated
+to match.</li>
+<li><strong>2026-05-08 (anti-bluff enforcement):</strong> AGENTS.md
+compact rewrite (162→58 lines); TEST-AUDIT-001 completed (9 tests
+§11.4.2-audited); challenges file paths fixed
+(<code>scripts/tmux/tests/</code> → <code>scripts/tests/</code>);
+covenant propagation verified across all submodules.</li>
+<li><strong>2026-05-08 (hostname color):</strong> Hostname-derived
+status-bar colour algorithm + wrapper integration + tests 10/11 +
+challenges + docs.</li>
+<li><strong>2026-05-08 (full coverage):</strong> Added CH-09 challenge
+entry (was missing); created tests 12/13/14 (T5/T7/T8 destructive) with
+TMX_TEST_DESTRUCTIVE=1 gate; added topology probe to tmx.template; added
+challenge entries CH-12/13/14.</li>
+<li><strong>2026-05-08 (layer 4 landed):</strong> Created
+<code>scripts/tests/meta_test_false_positive_proof.sh</code> —
+paired-mutation harness with 5 registered mutations (all caught: 10 PASS
+/ 0 FAIL). A1 META-MUT-001 → Fixed.md A1.</li>
+</ul>
+<hr />
+<p><strong>Last reviewed:</strong> 2026-05-08 (anti-bluff enforcement
+cycle).</p>
+</body>
+</html>

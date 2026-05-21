@@ -1,0 +1,11 @@
+{
+  "$schema": "https://crush.charm.land/config.json",
+  "_comment": "Crush CLI config — wires CodeGraph MCP per §11.4.78. The CodeGraph CLI must be on PATH (npm install -g @colbymchenry/codegraph; no sudo per §11.4.78).",
+  "mcp": {
+    "codegraph": {
+      "type": "stdio",
+      "command": "codegraph",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}

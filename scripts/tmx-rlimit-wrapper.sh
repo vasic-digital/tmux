@@ -6,7 +6,7 @@
 # kernel; children inherit them.
 #
 # Per-session containment is per-process in the limit hierarchy. The
-# strength gap vs. Linux cgroup is documented in docs/GUIDE.md §5.6.
+# strength gap vs. Linux cgroup is documented in docs/guide/README.md §5.6.
 #
 # Usage (invoked by scripts/tmx as the session's default command):
 #   tmx-rlimit-wrapper.sh <mem-kbytes> <cpu-seconds> <max-procs> <shell> [args…]
@@ -51,7 +51,7 @@ HOST_OS="$(uname -s)"
 case "$HOST_OS" in
     Darwin)
         # Memory rlimit ignored by XNU; do not pretend to apply it.
-        # Operator informed via setup.sh + docs/GUIDE.md §5.6.
+        # Operator informed via setup.sh + docs/guide/README.md §5.6.
         :
         ;;
     *)

@@ -190,8 +190,8 @@ files still report their MainPID. Operator-facing path is now in the gate.
 | `scripts/challenges/tmux.yaml` | New CH-15 + CH-16 entries; CH-14 updated to reflect operator-path coverage |
 | `scripts/test_e2e.sh` | New T7 — §2.5 |
 | `scripts/tmx-mac.template` | No change — bridge already delegates to VM-side wrapper |
-| `docs/CONTAINERIZATION_PLAN.md` | Update §B-conclusion to "per-session scope (NOT per-server scope)" |
-| `docs/GUIDE.md` | New §5.6 explaining per-session isolation + how to override caps via env |
+| `docs/plans/containerization.md` | Update §B-conclusion to "per-session scope (NOT per-server scope)" |
+| `docs/guide/README.md` | New §5.6 explaining per-session isolation + how to override caps via env |
 | `README.md` | Architecture diagram update — show per-session scope tree, not single-shared scope |
 | `Constitution.md` | New §11.4.7 — operator-path test coverage rule (see §4 below) |
 | `CLAUDE.md` / `AGENTS.md` | Reflect §11.4.7 + new test commands |
@@ -255,7 +255,7 @@ Answered by operator before implementation:
    logind versions that GC inactive scopes slowly.
 
 4. **macOS host-shell access — document explicitly, no bridging.**
-   `docs/GUIDE.md` §5.6: "tmx sessions are Linux environments running in
+   `docs/guide/README.md` §5.6: "tmx sessions are Linux environments running in
    the podman machine VM. Your files under `/Users/<name>` are accessible
    via virtiofs; macOS-only Mach-O commands (Homebrew binaries, `scutil`,
    etc.) are not available inside a session." Operators use system tmux

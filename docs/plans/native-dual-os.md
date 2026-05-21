@@ -83,7 +83,7 @@ tmux -L tmx-NAME new-session -d -s NAME \
 #!/usr/bin/env bash
 # Wraps the operator's shell with kernel-enforced resource limits.
 # Inherited by all children. Per-session enforcement is per-process
-# in the limit hierarchy — see docs/GUIDE.md §5.6 for the strength
+# in the limit hierarchy — see docs/guide/README.md §5.6 for the strength
 # comparison with Linux cgroup.
 mem_bytes="$1"; shift
 cpu_sec="$1"; shift
@@ -112,7 +112,7 @@ practical host memory, the host swaps / pressures. This is weaker
 than cgroup.
 
 The plan documents this in `README.md` Architecture section and
-`docs/GUIDE.md` §5.6 explicitly. No bluff. On Linux you get
+`docs/guide/README.md` §5.6 explicitly. No bluff. On Linux you get
 per-group containment; on macOS you get per-process containment.
 Both are the strongest the OS supports natively.
 
@@ -230,7 +230,7 @@ since there's no VM in daily use).
 | `scripts/tests/15_*.sh` | OS-aware |
 | `scripts/tests/16_macos_rlimit_distinct.sh` | NEW — macOS-specific per-session rlimit verification |
 | `README.md` | architecture diagram redrawn for native dual-OS |
-| `docs/GUIDE.md` | §5.6 updated to describe both isolation primitives |
+| `docs/guide/README.md` | §5.6 updated to describe both isolation primitives |
 | `Constitution.md` | §11.4.3 topology dispatch now covers Darwin natively |
 | `CLAUDE.md` / `AGENTS.md` | updated to reference native dual-OS |
 
