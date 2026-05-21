@@ -24,6 +24,19 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Augment PATH from npm's reported prefix so tests + codegraph_reindex.sh
+# resolve `codegraph` even when setup.sh is invoked from a non-interactive
+# shell (SSH-batch, cron, CI) that didn't source .bashrc / .zshrc and
+# therefore lacks the user's npm-global/bin entry. Nezha fix 2026-05-21.
+# Idempotent: if codegraph is already on PATH, the npm probe is a no-op.
+if ! command -v codegraph >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    NPM_PREFIX="$(npm config get prefix 2>/dev/null | tr -d '\r\n' || true)"
+    if [ -n "$NPM_PREFIX" ] && [ -x "${NPM_PREFIX}/bin/codegraph" ]; then
+        export PATH="${NPM_PREFIX}/bin:$PATH"
+        echo "[setup] PATH augmented with ${NPM_PREFIX}/bin (codegraph resolved)"
+    fi
+fi
+
 # ── arg parsing ─────────────────────────────────────────────────────────────
 MODE="install"
 while [ $# -gt 0 ]; do

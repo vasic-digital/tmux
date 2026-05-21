@@ -291,20 +291,26 @@ if [ -n "$victim_pid" ] && [ "$victim_pid" != "0" ]; then
         # 2` produced spurious T4.2 FAILs on the same scope that DID
         # eventually transition. §11.4.6: this is observed live, not
         # guessed — Nezha reproducer captured 2026-05-21.
-        T4_TIMEOUT_S=10
-        T4_ELAPSED=0
-        while [ "$T4_ELAPSED" -lt "$T4_TIMEOUT_S" ]; do
+        #
+        # Iteration counter is INTEGER (bash `-lt` is integer-only —
+        # the first version of this fix used a fractional accumulator
+        # and silently failed on every iteration, exiting the loop
+        # immediately without polling). 20 ticks × 0.5s = 10s budget.
+        T4_TIMEOUT_TICKS=20
+        T4_TICK=0
+        while [ "$T4_TICK" -lt "$T4_TIMEOUT_TICKS" ]; do
             if ! systemctl --user is-active --quiet "${TEST_NAME_T4}.scope" 2>/dev/null; then
                 break
             fi
             sleep 0.5
-            T4_ELAPSED=$(awk -v e="$T4_ELAPSED" 'BEGIN{print e + 0.5}')
+            T4_TICK=$((T4_TICK + 1))
         done
+        T4_ELAPSED_S=$(awk -v t="$T4_TICK" 'BEGIN{printf "%.1f", t * 0.5}')
         # Final verdict (after either early-exit or full timeout).
         if systemctl --user is-active --quiet "${TEST_NAME_T4}.scope" 2>/dev/null; then
-            _fail "T4.2: scope ${TEST_NAME_T4}.scope still active ${T4_TIMEOUT_S}s after SIGKILL of MainPID (systemd cgroup-cleanup not progressing)"
+            _fail "T4.2: scope ${TEST_NAME_T4}.scope still active 10s after SIGKILL of MainPID (systemd cgroup-cleanup not progressing)"
         else
-            _pass "T4.2: scope ${TEST_NAME_T4}.scope inactive after SIGKILL (positive evidence: systemctl --user is-active = inactive after ${T4_ELAPSED}s poll)"
+            _pass "T4.2: scope ${TEST_NAME_T4}.scope inactive after SIGKILL (positive evidence: systemctl --user is-active = inactive after ${T4_ELAPSED_S}s poll)"
         fi
         # Verify user@<uid>.service still alive (the critical invariant)
         USER_SVC_AFTER=$(systemctl --user is-active default.target 2>/dev/null || echo "unknown")

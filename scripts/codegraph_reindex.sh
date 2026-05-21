@@ -24,8 +24,24 @@ STAMP_DIR="$REPO_ROOT/.gitignore-meta/.regenerated"
 STAMP_FILE="$STAMP_DIR/codegraph-db.ok"
 
 # Step 1: ensure the CLI is on PATH.
+#
+# Nezha fix (2026-05-21): npm installs to ~/.npm-global/bin (or whatever
+# `npm config get prefix` returns) which interactive shells add to PATH
+# via .bashrc / .zshrc — but non-interactive contexts (SSH-batch, cron,
+# systemd-run, setup.sh invoked from a shell that didn't source .bashrc)
+# inherit only /bin:/usr/bin:/usr/local/bin. Augment PATH from npm's
+# reported prefix BEFORE bailing out. This makes the bootstrap robust
+# to non-interactive invocation per §11.4.78's portability requirement.
 if ! command -v codegraph >/dev/null 2>&1; then
-    echo "RED: codegraph CLI not on PATH" >&2
+    if command -v npm >/dev/null 2>&1; then
+        NPM_PREFIX="$(npm config get prefix 2>/dev/null | tr -d '\r\n' || true)"
+        if [ -n "$NPM_PREFIX" ] && [ -x "${NPM_PREFIX}/bin/codegraph" ]; then
+            export PATH="${NPM_PREFIX}/bin:$PATH"
+        fi
+    fi
+fi
+if ! command -v codegraph >/dev/null 2>&1; then
+    echo "RED: codegraph CLI not on PATH (also not at npm-prefix/bin/codegraph)" >&2
     echo "     install per §11.4.78:" >&2
     echo "       npm install -g @colbymchenry/codegraph" >&2
     echo "       (npm prefix MUST be user-writable; no sudo)" >&2
