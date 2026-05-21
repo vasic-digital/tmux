@@ -282,21 +282,33 @@ fi
 if [ -n "$victim_pid" ] && [ "$victim_pid" != "0" ]; then
     if kill -0 "$victim_pid" 2>/dev/null; then
         _pass "T4.1: scope ${TEST_NAME_T4}.scope MainPID=$victim_pid alive"
-        # SIGKILL it
-        kill -KILL "$victim_pid" 2>/dev/null
-        # Poll for scope-inactive transition (Nezha fix 2026-05-21):
-        # systemd 258 on ALT Linux 11 (kernel 6.12) takes longer than 2s
-        # to mark the scope inactive after its MainPID dies — cgroup
-        # cleanup ordering changed in systemd 258+. The old fixed `sleep
-        # 2` produced spurious T4.2 FAILs on the same scope that DID
-        # eventually transition. §11.4.6: this is observed live, not
-        # guessed — Nezha reproducer captured 2026-05-21.
+        # SIGKILL ALL PIDs in the scope's cgroup, not just the first one
+        # in cgroup.procs. Nezha fix 2026-05-21 round-3: a scope created
+        # via `systemd-run --user --scope bash -c "exec sleep 120"` can
+        # leave 2 PIDs in cgroup.procs (the transient wrapper + the
+        # child sleep) on systemd 258 / ALT 11 / kernel 6.12. Killing
+        # only the first PID leaves the second running, scope stays
+        # active. Reading cgroup.procs and SIGKILLing each PID models
+        # the OOM-kill-the-cgroup invariant correctly.
+        T4_CGROUP_PATH="/sys/fs/cgroup${t4_cgroup_path}"
+        if [ -f "$T4_CGROUP_PATH/cgroup.procs" ]; then
+            while read -r p; do
+                [ -n "$p" ] && kill -KILL "$p" 2>/dev/null
+            done < "$T4_CGROUP_PATH/cgroup.procs"
+        else
+            kill -KILL "$victim_pid" 2>/dev/null
+        fi
+
+        # Poll for scope-inactive transition. systemd 258 on ALT Linux 11
+        # (kernel 6.12) takes longer than older systemd versions to mark
+        # a scope inactive after its processes die — cgroup cleanup
+        # ordering changed in systemd 258+. §11.4.6: this is observed
+        # live, not guessed — Nezha reproducer captured 2026-05-21.
         #
-        # Iteration counter is INTEGER (bash `-lt` is integer-only —
-        # the first version of this fix used a fractional accumulator
-        # and silently failed on every iteration, exiting the loop
-        # immediately without polling). 20 ticks × 0.5s = 10s budget.
-        T4_TIMEOUT_TICKS=20
+        # Iteration counter is INTEGER (bash `-lt` is integer-only). 60
+        # ticks × 0.5s = 30s budget — generous enough for systemd 258
+        # cgroup-cleanup on slower hosts; still bounded.
+        T4_TIMEOUT_TICKS=60
         T4_TICK=0
         while [ "$T4_TICK" -lt "$T4_TIMEOUT_TICKS" ]; do
             if ! systemctl --user is-active --quiet "${TEST_NAME_T4}.scope" 2>/dev/null; then
@@ -308,9 +320,9 @@ if [ -n "$victim_pid" ] && [ "$victim_pid" != "0" ]; then
         T4_ELAPSED_S=$(awk -v t="$T4_TICK" 'BEGIN{printf "%.1f", t * 0.5}')
         # Final verdict (after either early-exit or full timeout).
         if systemctl --user is-active --quiet "${TEST_NAME_T4}.scope" 2>/dev/null; then
-            _fail "T4.2: scope ${TEST_NAME_T4}.scope still active 10s after SIGKILL of MainPID (systemd cgroup-cleanup not progressing)"
+            _fail "T4.2: scope ${TEST_NAME_T4}.scope still active 30s after SIGKILL of all cgroup.procs (systemd cgroup-cleanup not progressing)"
         else
-            _pass "T4.2: scope ${TEST_NAME_T4}.scope inactive after SIGKILL (positive evidence: systemctl --user is-active = inactive after ${T4_ELAPSED_S}s poll)"
+            _pass "T4.2: scope ${TEST_NAME_T4}.scope inactive after SIGKILL of all cgroup.procs (positive evidence: systemctl --user is-active = inactive after ${T4_ELAPSED_S}s poll)"
         fi
         # Verify user@<uid>.service still alive (the critical invariant)
         USER_SVC_AFTER=$(systemctl --user is-active default.target 2>/dev/null || echo "unknown")

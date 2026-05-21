@@ -33,11 +33,20 @@ fi
 
 # T2 — DB non-trivial size. SQLite minimum is ~4 KB; a real index is
 # at least tens of KB.
-DB_SIZE=$(stat -f '%z' "$CG_DB" 2>/dev/null || stat -c '%s' "$CG_DB" 2>/dev/null || echo 0)
-if [ "$DB_SIZE" -gt 4096 ] 2>/dev/null; then
-    _pass "T2: codegraph.db size = $DB_SIZE bytes > 4 KB SQLite minimum (positive evidence: stat readback)"
+#
+# Nezha fix 2026-05-21: `stat -f '%z' FILE` means DIFFERENT things on
+# different platforms. On Darwin (BSD stat), -f selects the FORMAT
+# template and `%z` is file size. On Linux (GNU stat), -f selects
+# FILE SYSTEM mode (cat-fs-info) and the format string is ignored —
+# `%z` is not a valid filesystem-format token. The OR-fallback to
+# `stat -c '%s'` (GNU) didn't fire because the `-f '%z'` call exited 0
+# on GNU stat (it just printed garbage filesystem info to stdout).
+# Use `wc -c < FILE` which is portable + has no format-string trap.
+DB_SIZE=$(wc -c < "$CG_DB" 2>/dev/null | tr -d ' \n' || echo 0)
+if [ -n "$DB_SIZE" ] && [ "$DB_SIZE" -gt 4096 ] 2>/dev/null; then
+    _pass "T2: codegraph.db size = $DB_SIZE bytes > 4 KB SQLite minimum (positive evidence: wc -c readback)"
 else
-    _fail "T2: codegraph.db size = $DB_SIZE bytes — too small to contain a real index"
+    _fail "T2: codegraph.db size = '$DB_SIZE' bytes — too small to contain a real index"
 fi
 
 # T3 — codegraph status reports non-zero node count.
