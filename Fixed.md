@@ -54,6 +54,213 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A26. §11.4.79 compliance — own-org submodules removed from CodeGraph exclude list — `RESOLVED`
+
+**Closure cycle:** v1.0.5 / versionCode 6 (2026-05-21).
+**Trigger:** constitution submodule §11.4.79 anchor landed upstream
+(`19ce1b1`) 2026-05-21 mandating own-org submodules MUST be INCLUDED in
+the CodeGraph index. v1.0.4's `.codegraph/config.json` was a §11.4.79
+violation: `constitution/**` and `Containers/**` were both in the exclude
+list. Test-interrupt per §11.4.4 fired the moment the constitution pull
+revealed the new mandate.
+
+**Fix:**
+- `.codegraph/config.json`: removed `constitution/**` + `Containers/**`
+  from `exclude` (own-org); kept `tmux/**` excluded (third-party
+  upstream); `Upstreams/**` indirectly handled by the project's git
+  ls-files (Upstreams contains only operator-facing recipe shell scripts).
+- Full reindex performed; `codegraph status` reports 6 nodes (honest
+  small — CodeGraph 0.6.8 has no shell tree-sitter grammar, and the
+  submodule directories aren't traversed by codegraph's git-aware
+  walker — documented per §11.4.6 in V4 SKIP).
+- NEW `scripts/codegraph_validate.sh` — invoked by the constitution's
+  `scripts/codegraph_sync.sh` per §11.4.80 inherited-by-reference
+  pattern. 5 probes: V1 (CLI version), V2 (node count > 0), V3
+  (§11.4.79 own-org/third-party split), V4 (§11.4.79 honest-gap re
+  submodule traversal — SKIP, not FAIL), V5 (MCP server spawn).
+- `scripts/tests/20_codegraph_installed.sh` T3 rewritten to enforce
+  BOTH the must-exclude set (secrets + `tmux/**`) AND the must-include
+  set (`constitution/**`, `Containers/**`) per §11.4.79.
+- M22 paired mutation: re-adds `Containers/**` to exclude → validate V3
+  FAILs → restore → V3 PASSes.
+
+**Honest gaps logged (§11.4.6):**
+- CodeGraph 0.6.8 does NOT traverse git submodule directories from the
+  parent index. Even with own-org NOT in exclude, the parser walks only
+  the parent repo's git ls-files. The config compliance is met; the
+  practical "agents see own-org code via parent index" expansion needs
+  either (a) upstream CodeGraph adds a `--include-submodules` flag or
+  (b) each owned submodule maintains its own `.codegraph/` (out of
+  scope here — separate cycles per §11.4.28).
+
+**Captured evidence (4-layer per §103):**
+- Layer 1: `codegraph_validate.sh` V3 grep on `.codegraph/config.json`.
+- Layer 2: test 20 T3 + `codegraph_validate.sh` running fresh this
+  session — all PASS.
+- Layer 3: existing TMUX-CH-20 challenge (covers config compliance).
+- Layer 4: M22 (config re-exclude mutation → validate FAILs).
+
+**Regression-protection:** `codegraph_validate.sh`; test 20 T3; M22.
+
+### A25. §11.4.81 — Cross-platform-parity infrastructure: Darwin branches for tests 09/13/14 + NEW test 24 (CPU cap) — `RESOLVED`
+
+**Closure cycle:** v1.0.5 / versionCode 6 (2026-05-21).
+**Mandate:** user directive 2026-05-21 — every Linux-only blocker MUST
+have a macOS-equivalent implementation. This cycle ALSO landed the
+universal §11.4.81 anchor in the constitution submodule
+(`HelixDevelopment/HelixConstitution@6e164f3`) so EVERY consuming
+project under this Constitution gets the same discipline.
+
+**Change:**
+
+- **Constitution submodule (pushed 2026-05-21, `6e164f3`):** new
+  universal §11.4.81 anchor added to `Constitution.md` (full text),
+  with shorter mirror blocks in `CLAUDE.md`, `AGENTS.md`, `QWEN.md`.
+  Three sub-mandates: (A) per-OS implementation REQUIRED via runtime
+  `uname -s` dispatch, (B) per-OS tests REQUIRED with captured
+  evidence per branch, (C) honest kernel-gap citation + adjacent
+  equivalent test REQUIRED where no equivalent exists. Per-OS
+  catalogue: `systemd-run --user --scope` ↔ POSIX `ulimit -t -u` /
+  launchd; cgroup `MemoryMax` ↔ XNU gap (use `RLIMIT_CPU` adjacent);
+  cgroup `TasksMax` ↔ `RLIMIT_NPROC`; `/proc/.../oom_score_adj` ↔ no
+  equivalent. Constitution submodule's `QWEN.md` also expanded to
+  include the verbatim 2026-04-28 anti-bluff user-mandate quote
+  (audit identified it was missing).
+
+- **Project consumer side (this cycle):**
+
+  - `scripts/tests/09_crash_isolation_scope.sh` — Darwin branch added.
+    Probe wrapper invokes `tmx-rlimit-wrapper.sh` (macOS analogue of
+    Linux systemd-run --user --scope per §11.4.81 catalogue); spawn 2
+    operator-path sessions, capture distinct server PIDs, read back
+    `ulimit -t`/`-u` inside each session via send-keys+capture-pane,
+    SIGKILL session A's tmux server directly, verify session B
+    survives with ORIGINAL PID. PASS=6/0/0.
+
+  - `scripts/tests/13_tasksmax_stress.sh` — Darwin branch added.
+    D-T1: spawn operator-path session, read `ulimit -u` inside the
+    pane (positive evidence: 2666). D-T2: child bash lowers
+    `ulimit -u 64` and fork-bombs; captures EAGAIN occurrences
+    from stderr (`bash: fork: Resource temporarily unavailable`).
+    EAGAIN = kernel-enforced RLIMIT_NPROC = positive runtime evidence
+    per §11.4.5. PASS=2/0/0.
+
+  - `scripts/tests/14_concurrent_oom_independence.sh` — Darwin branch
+    added. §11.4.81 (C) adjacent test (Darwin has no OOM-killer per
+    docs/guide/README.md §5.6). 3 operator-path sessions, direct
+    SIGKILL session A's server, verify B+C survive with ORIGINAL
+    PIDs + tmx ls still lists them. PASS=5/0/0.
+
+  - **NEW** `scripts/tests/24_cpu_cap_enforcement.sh` — Darwin
+    branch is the §11.4.81 (C) adjacent test for test 12 memory
+    pressure (which Darwin cannot run due to XNU RLIMIT_AS gap).
+    D-T1: child bash sets `ulimit -t 2` (2 CPU-seconds), runs a
+    CPU-bound loop; verifies the process is killed by signal 24
+    (SIGXCPU) after ~3 seconds wall time. Captured evidence per
+    §11.4.5: exit code 152 = 128 + 24 = SIGXCPU = XNU enforcement.
+    D-T2: TMX_CPU_HARD_SEC=7200 propagated to RLIMIT_CPU=7200
+    inside session (positive evidence: ulimit -t readback). Linux
+    branch: cgroup CPUQuota=10% bounds CPU-bound loop; positive
+    evidence via iteration-count comparison vs unrestricted ref.
+    PASS=2/0/0 on Darwin.
+
+  - Meta-test `scripts/tests/meta_test_false_positive_proof.sh`:
+    M7-M10 RETIRED (targeted dead `scripts/tmx-vm`, the legacy VM
+    wrapper not used in native dual-OS); replaced by M20+M21 Darwin
+    rlimit mutations + M22 codegraph exclude mutation.
+    - M20: strip `ulimit -t` from Darwin rlimit wrapper → test 15
+      T5 (TMX_CPU_HARD_SEC override readback) FAILs.
+    - M21: clobber `ulimit -u` to 1 in Darwin rlimit wrapper →
+      session lifecycle fails (NPROC=1 cannot fork server helpers).
+      The clobber-to-1 approach is needed because the macOS host's
+      default `ulimit -u` happens to match the wrapper's configured
+      2666 — stripping the line alone wouldn't change readback.
+      Documented honestly in the M21 comment block per §11.4.6.
+    - M22: re-exclude own-org `Containers/**` from
+      `.codegraph/config.json` → `codegraph_validate.sh` V3 FAILs.
+
+**Captured evidence (4-layer per §103):**
+- Layer 2: tests 09 D-T1-T5, 13 D-T1-T2, 14 D-T1-T5, 24 D-T1-T2 — all
+  PASS this cycle with positive runtime evidence per branch.
+- Layer 3: existing TMUX-CH-09/13/14 challenges; NEW TMUX-CH-24 added.
+- Layer 4: M4/M5 topology guards (Linux-only); M20+M21 (Darwin rlimit);
+  M22 (§11.4.79 codegraph exclude). M7-M10 retired with explicit
+  SKIP-with-reason citing the v1.0.5 retirement rationale.
+
+**Pre-existing M4/M5 latent bluff (v1.0.4 carry-over):** these had been
+silently SKIPping on Darwin for the WRONG reason (BSD sed quirk). v1.0.4
+A20 added explicit `uname -s` topology guards. This cycle confirms the
+guards are correct: M4/M5 SKIP on Darwin with the §11.4.3 reason
+"Linux-only mutation per topology dispatch".
+
+**Regression-protection:**
+- Tests 09 D-*, 13 D-*, 14 D-*, 24 D-* (Darwin branches).
+- M20 + M21 + M22.
+- Constitution §11.4.81 anchor + mirror blocks (consuming projects bump
+  their pointer and inherit the discipline).
+
+### A24. Constitution submodule §11.4.81 anchor + project pointer bump — `RESOLVED`
+
+**Closure cycle:** v1.0.5 / versionCode 6 (2026-05-21).
+**Trigger:** user 2026-05-21 directive to add OS/platform-parity rule
+as a UNIVERSAL anchor in `HelixDevelopment/HelixConstitution` so all
+inheriting projects get the discipline.
+
+**Change:**
+- Fetched + ff-merged constitution to `19ce1b1` upstream tip
+  (brought in §11.4.79 + §11.4.80 CodeGraph anchors).
+- Drafted §11.4.81 full anchor + classified universal per §11.4.17.
+- Inserted into `constitution/Constitution.md` (between §11.4.80
+  closing line and §12 heading) + mirror blocks in `CLAUDE.md`,
+  `AGENTS.md`, `QWEN.md`. Also added the verbatim 2026-04-28
+  anti-bluff covenant to `constitution/QWEN.md` (audit gap fix).
+- Validated: no conflict markers, §11.4.81 cross-references
+  present in all 4 files.
+- Commit `6e164f3` pushed to `origin` (HelixDevelopment GitHub).
+- Project pointer bumped from `19ce1b1` → `6e164f3` in this commit
+  per §11.4.26 step 7.
+
+**Captured evidence:** push transcript shows `19ce1b1..6e164f3`
+landing on origin/main; `git submodule status` reports
+`constitution/` at `6e164f3 heads/main`; project test 18 PASSes
+fresh against the new constitution HEAD.
+
+**Regression-protection:** test 18 (constitution-inheritance);
+CM-CONSTITUTION-INHERITANCE meta-mutation (temp-copy probe).
+
+### A23. §11.4.80 wiring — CodeGraph regular-update + sync (DEFERRED, honest tracking) — `Fixed — pending follow-up`
+
+**Closure cycle:** v1.0.5 / versionCode 6 (2026-05-21).
+**Status:** the CONFIG side is compliant (constitution provides
+`scripts/codegraph_update.sh` + `codegraph_sync.sh`; this project
+provides `scripts/codegraph_validate.sh` invoked by them). The DAILY
+WIRING (cron / git hook) for automatic invocation per §11.4.80 weekly
+cadence is deferred to a follow-up cycle — this cycle prioritised the
+§11.4.81 cross-platform parity per user directive. Manual operator
+invocation works: `bash constitution/scripts/codegraph_update.sh`
++ `bash constitution/scripts/codegraph_sync.sh`.
+
+**Regression-protection placeholder:** `docs/codegraph/README.md`
+notes the cadence requirement; follow-up cycle adds the automatic
+trigger + paired mutation.
+
+### A22. §11.4.81 — Universal cross-platform-parity anchor LANDED in constitution submodule — `RESOLVED`
+
+(Sibling to A24; A22 records the constitutional change, A24 records
+the project pointer bump. Kept as separate entries per §11.4.16 type
+tracking — A22 is a universal-governance change, A24 is a project-
+side integration change.)
+
+**Closure cycle:** v1.0.5 / versionCode 6 (2026-05-21).
+**Mandate text:** "Any Linux-only blocker / issue we have MUST BE
+created macOS and other supported platforms equivalent! So, depending
+on platform proper implementation will be used for particular OS!
+EVERYTHING MUST BE PROPERLY EXTENDED AND UPDATED!"
+
+See A24 above for the operational closure (text inserted + push SHA
++ project pointer bump). The universal anchor is now a release-blocker
+discipline for every multi-platform project under this Constitution.
+
 ### A21. AUDIT-2 fix: `tmx kill` shorthand resolves to `kill-session` — `RESOLVED`
 
 **Closure cycle:** v1.0.4 / versionCode 5 (2026-05-21).

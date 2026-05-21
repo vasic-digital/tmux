@@ -403,3 +403,35 @@ challenges:
       `tmx ls` before + after; `tmx kill -t NAME` exit code + stderr;
       `tmux -L tmx-NAME ls` confirms server gone.
     severity: medium
+
+  - id: TMUX-CH-24
+    title: Per-platform CPU-cap enforcement (§11.4.81 (C) adjacent test)
+    description: |
+      Per the new constitution §11.4.81 cross-platform-parity mandate
+      (universal anchor pushed `6e164f3`): every Linux-only test must
+      have a platform-correct equivalent. Linux test 12 (memory
+      pressure under cgroup MemoryMax cap) has no direct macOS
+      analogue — XNU does NOT enforce RLIMIT_AS / RLIMIT_DATA /
+      RLIMIT_RSS for unprivileged processes (kernel limitation
+      documented in docs/guide/README.md §5.6). Per §11.4.81 (C) the
+      ADJACENT TEST exercises the closest invariant macOS CAN
+      enforce: RLIMIT_CPU + SIGXCPU. This Challenge proves the macOS
+      kernel actually fires SIGXCPU when a CPU-bound process exceeds
+      its configured CPU-second budget, AND proves the wrapper
+      propagates the operator's TMX_CPU_HARD_SEC override into
+      RLIMIT_CPU inside the session.
+    test_script: scripts/tests/24_cpu_cap_enforcement.sh
+    pass_condition: |
+      FAIL=0. Darwin: D-T1 — child bash with `ulimit -t 2` runs a
+      CPU-bound loop and exits with rc=152 (= 128 + signal 24
+      SIGXCPU) within ~3s wall (positive evidence: kernel-enforced
+      RLIMIT_CPU). D-T2 — `TMX_CPU_HARD_SEC=7200 tmx new -s NAME -d`
+      session shows `ulimit -t = 7200` inside the pane (positive
+      evidence: wrapper-to-rlimit propagation). Linux: L-T1 — cgroup
+      CPUQuota=10% bounds a CPU-bound loop, iteration count
+      observably throttled vs unrestricted reference.
+    evidence: |
+      Darwin: probe exit code + wall time captured; ulimit -t
+      readback via send-keys + capture-pane. Linux: cgroup iteration
+      count vs unrestricted reference.
+    severity: high

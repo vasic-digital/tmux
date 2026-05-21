@@ -36,11 +36,107 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 
 echo "════════════════════════════════════════════════════════════════"
-echo "  Test 09 — crash isolation invariants for tmx --user --scope"
+echo "  Test 09 — crash isolation invariants (per-platform per §11.4.81)"
 echo "════════════════════════════════════════════════════════════════"
 
+# §11.4.81 cross-platform-parity dispatch. The Linux branch (below)
+# exercises cgroup-v2 + systemd --user --scope. The Darwin branch
+# exercises the POSIX rlimit wrapper which is the macOS equivalent
+# implementation (Fixed.md A4-A8 native dual-OS). Both branches
+# enforce the same invariant: per-session resource bounding + a
+# session SIGKILL leaves sibling sessions surviving.
+
+HOST_OS="$(uname -s)"
+
+if [ "$HOST_OS" = "Darwin" ]; then
+    echo ""
+    echo "--- Darwin branch (POSIX rlimit wrapper, per §11.4.81 cross-platform parity) ---"
+
+    if [ ! -x "$WRAPPER" ]; then
+        _skip "D-T1: tmx wrapper $WRAPPER not generated" "run scripts/setup.sh first"
+        echo ""; echo "  Tests: PASS=$PASS_COUNT  FAIL=$FAIL_COUNT  SKIP=$SKIP_COUNT"; exit 0
+    fi
+    _pass "D-T1: tmx wrapper present at $WRAPPER (positive evidence: -x check)"
+
+    # D-T2 — wrapper invokes the rlimit wrapper (the macOS analogue of
+    # systemd-run --user --scope per Fixed.md A4-A8 native dual-OS).
+    if grep -q "tmx-rlimit-wrapper.sh" "$WRAPPER"; then
+        _pass "D-T2: tmx wrapper invokes scripts/tmx-rlimit-wrapper.sh (macOS equivalent of Linux systemd-run --user --scope per §11.4.81 catalogue)"
+    else
+        _fail "D-T2: tmx wrapper does not reference tmx-rlimit-wrapper.sh — macOS isolation path broken"
+    fi
+
+    # D-T3 — spawn two operator-path sessions; each gets its own server.
+    SESS_A="t09_d_a_$$"
+    SESS_B="t09_d_b_$$"
+    "$WRAPPER" new -s "$SESS_A" -d >/dev/null 2>&1 || { _fail "D-T3.0: $WRAPPER new -s $SESS_A -d failed"; }
+    "$WRAPPER" new -s "$SESS_B" -d >/dev/null 2>&1 || { _fail "D-T3.0: $WRAPPER new -s $SESS_B -d failed"; }
+    sleep 0.5
+
+    TMUX_BIN_DARWIN="${TMUX_BIN:-$REPO_ROOT/tmux/build-darwin/bin/tmux}"
+    SOCK_A="tmx-${SESS_A}"
+    SOCK_B="tmx-${SESS_B}"
+
+    PID_A="$("$TMUX_BIN_DARWIN" -L "$SOCK_A" display-message -p '#{pid}' 2>/dev/null)"
+    PID_B="$("$TMUX_BIN_DARWIN" -L "$SOCK_B" display-message -p '#{pid}' 2>/dev/null)"
+    if [ -n "$PID_A" ] && [ -n "$PID_B" ] && [ "$PID_A" != "$PID_B" ]; then
+        _pass "D-T3: distinct tmux server PIDs A=$PID_A B=$PID_B (positive evidence: independent server processes per session)"
+    else
+        _fail "D-T3: could not get distinct server PIDs (A='$PID_A' B='$PID_B')"
+    fi
+
+    # D-T4 — read RLIMIT_CPU + RLIMIT_NPROC values back from inside each
+    # session. Per §11.4.81 (B): captured runtime evidence per platform
+    # via send-keys + capture-pane.
+    "$TMUX_BIN_DARWIN" -L "$SOCK_A" send-keys "echo TMXLIMITS:cpu=\$(ulimit -t):nproc=\$(ulimit -u)" Enter 2>/dev/null
+    sleep 0.4
+    READBACK_A="$("$TMUX_BIN_DARWIN" -L "$SOCK_A" capture-pane -p 2>/dev/null | grep -oE 'TMXLIMITS:cpu=[0-9unlimited]+:nproc=[0-9unlimited]+' | head -1)"
+    if echo "$READBACK_A" | grep -qE '^TMXLIMITS:cpu=[0-9]+:nproc=[0-9]+$'; then
+        _pass "D-T4: session A rlimits applied — $READBACK_A (positive evidence: ulimit -t/-u captured inside session)"
+    else
+        _fail "D-T4: session A rlimit readback unexpected: '$READBACK_A'"
+    fi
+
+    # D-T5 — SIGKILL session A's tmux server; assert B survives with
+    # original PID. macOS analogue of the Linux scope-SIGKILL invariant.
+    if [ -n "$PID_A" ]; then
+        kill -KILL "$PID_A" 2>/dev/null
+        sleep 1
+        # Session A's server should be gone.
+        if "$TMUX_BIN_DARWIN" -L "$SOCK_A" ls >/dev/null 2>&1; then
+            _fail "D-T5.0: session A's server survived SIGKILL"
+        else
+            _pass "D-T5.0: session A's tmux server terminated by SIGKILL (positive evidence: tmux -L $SOCK_A ls = no server)"
+        fi
+        # Session B must survive with the original PID.
+        PID_B_NOW="$("$TMUX_BIN_DARWIN" -L "$SOCK_B" display-message -p '#{pid}' 2>/dev/null)"
+        if [ "$PID_B_NOW" = "$PID_B" ]; then
+            _pass "D-T5.1: session B survived A's SIGKILL with ORIGINAL PID $PID_B (positive evidence: cross-session independence per §11.4.81)"
+        else
+            _fail "D-T5.1: session B PID changed or died: was=$PID_B now='$PID_B_NOW'"
+        fi
+    else
+        _skip "D-T5: skipped" "no PID_A to kill"
+    fi
+
+    # Cleanup
+    "$WRAPPER" kill-session -t "$SESS_B" >/dev/null 2>&1 || true
+    "$TMUX_BIN_DARWIN" -L "$SOCK_A" kill-server >/dev/null 2>&1 || true
+    "$TMUX_BIN_DARWIN" -L "$SOCK_B" kill-server >/dev/null 2>&1 || true
+
+    echo ""
+    echo "════════════════════════════════════════════════════════════════"
+    echo "  09_crash_isolation_scope.sh summary (Darwin branch)"
+    echo "════════════════════════════════════════════════════════════════"
+    echo "  PASS:  $PASS_COUNT"
+    echo "  FAIL:  $FAIL_COUNT"
+    echo "  SKIP:  $SKIP_COUNT"
+    [ "$FAIL_COUNT" -gt 0 ] && exit 1
+    exit 0
+fi
+
 # ─────────────────────────────────────────────────────────────────────
-# T1 — systemd + cgroup v2 capability
+# T1 — systemd + cgroup v2 capability  (Linux branch)
 # ─────────────────────────────────────────────────────────────────────
 echo ""
 echo "--- T1: systemd + cgroup v2 capability ---"

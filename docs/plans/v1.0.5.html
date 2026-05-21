@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="working-plan--v105-cycle-2026-05-21">Working Plan — v1.0.5 cycle
+(2026-05-21)</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-21T06:00:00Z <strong>Scope:</strong> every Linux-only gate gains
+a macOS-equivalent implementation per the user mandate 2026-05-21. Tests
+dispatch on <code>uname -s</code> and execute the platform-correct
+invariant. §11.4.6: where XNU genuinely cannot enforce the Linux
+primitive, the test SKIPs with verbatim kernel-citation evidence AND a
+sibling test exercises what XNU CAN enforce.</p>
+<hr />
+<h2 id="1-triggering-directive-verbatim-2026-05-21">§1 Triggering
+directive (verbatim, 2026-05-21)</h2>
+<blockquote>
+<p>&quot;Any Linux-only blocker / issue we have MUST BE created macOS and
+other supported platforms equivalent! So, depending on platform proper
+implementation will be used for particular OS! EVERYTHING MUST BE
+PROPERLY EXTENDED AND UPDATED!&quot;</p>
+</blockquote>
+<h2 id="2-platform-equivalence-matrix">§2 Platform-equivalence
+matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Linux primitive</th>
+<th>macOS equivalent</th>
+<th>Action this cycle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/proc/&lt;pid&gt;/oom_score_adj</code> (test 08)</td>
+<td>macOS has NO OOM killer; rlimit wrapper bounds the session instead
+(tested by test 15)</td>
+<td>Test 08 keeps SKIP-with-kernel-citation on Darwin; verify-only
+output cites the §5.6 kernel gap doc</td>
+</tr>
+<tr>
+<td><code>systemd-run --user --scope</code> (test 09)</td>
+<td><code>scripts/tmx-rlimit-wrapper.sh</code> (POSIX rlimit)</td>
+<td><strong>NEW Darwin branch in test 09</strong>: prove rlimit wrapper
+invoked + RLIMIT_CPU + RLIMIT_NPROC applied + server isolated</td>
+</tr>
+<tr>
+<td>cgroup <code>MemoryMax</code> enforcement (test 12)</td>
+<td>XNU does NOT enforce RLIMIT_AS for unprivileged → kernel gap</td>
+<td>Test 12 keeps SKIP-with-kernel-citation; <strong>NEW test
+24</strong> exercises macOS <code>RLIMIT_CPU</code>+SIGXCPU which IS
+enforced</td>
+</tr>
+<tr>
+<td>cgroup <code>TasksMax</code> (test 13)</td>
+<td><code>RLIMIT_NPROC</code> (per-user, per-process)</td>
+<td><strong>NEW Darwin branch in test 13</strong>: spawn processes until
+RLIMIT_NPROC hit; assert next fork fails</td>
+</tr>
+<tr>
+<td>3-scope OOM independence (test 14)</td>
+<td>3 sessions, direct kill of server A, verify B+C servers + sessions
+survive</td>
+<td><strong>NEW Darwin branch in test 14</strong>: same operator-path;
+direct <code>kill -9</code> instead of OOM</td>
+</tr>
+<tr>
+<td><code>M4</code> strip <code>systemd-run</code> from wrapper</td>
+<td>Mutation correctly SKIP-with-topology-reason on Darwin (target
+unreachable on Darwin code path)</td>
+<td>Keep as-is — §11.4.3 honest dispatch</td>
+</tr>
+<tr>
+<td><code>M5</code> strip <code>MemoryMax</code> from wrapper</td>
+<td>Same as M4</td>
+<td>Keep as-is</td>
+</tr>
+<tr>
+<td><code>M7-M10</code> target <code>scripts/tmx-vm</code></td>
+<td><strong>DEAD CODE</strong> — VM path retired in Fixed.md A4-A8
+native dual-OS</td>
+<td><strong>RETIRE M7-M10</strong> + replace with Darwin-equivalent
+mutations against <code>tmx-rlimit-wrapper.sh</code></td>
+</tr>
+<tr>
+<td>New Darwin mutations</td>
+<td>—</td>
+<td><strong>M20</strong> strip <code>ulimit -t</code> from rlimit
+wrapper → test 15 T5 FAILs (CPU cap not enforced); <strong>M21</strong>
+strip <code>ulimit -u</code> from rlimit wrapper → test 15 T3 FAILs
+(NPROC not visible)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-phased-implementation">§3 Phased implementation</h2>
+<h3 id="phase-1--test-09-darwin-branch">Phase 1 — Test 09 Darwin
+branch</h3>
+<ul>
+<li>Add <code>case &quot;$(uname -s)&quot; in Darwin) … esac</code> block that:
+<ul>
+<li>Spawns 2 sessions via <code>tmx new -s isol1 -d</code> +
+<code>tmx new -s isol2 -d</code></li>
+<li>Reads back <code>ulimit -t</code> (CPU) + <code>ulimit -u</code>
+(NPROC) inside each session via
+<code>send-keys</code>/<code>capture-pane</code></li>
+<li>Asserts both values match the wrapper&#39;s defaults (86400s, 2666 procs
+derived from host)</li>
+<li>SIGKILL session-1&#39;s tmux server directly; verify session-2&#39;s server
+survives with original PID</li>
+<li>Captured evidence: ulimit readback per session + ps before/after
+kill</li>
+</ul></li>
+</ul>
+<h3 id="phase-2--test-13-darwin-branch">Phase 2 — Test 13 Darwin
+branch</h3>
+<ul>
+<li>Spawn a session, then a child shell with low
+<code>RLIMIT_NPROC</code> (e.g., 64)</li>
+<li>Fork until limit hit; assert <code>fork()</code> returns EAGAIN</li>
+<li>Captured evidence: actual fork count = NPROC - already-running pids
+(positive evidence per §11.4.5)</li>
+</ul>
+<h3 id="phase-3--test-14-darwin-branch">Phase 3 — Test 14 Darwin
+branch</h3>
+<ul>
+<li>3 sessions A/B/C via <code>tmx new</code></li>
+<li>Capture each server&#39;s PID (tmx-LABEL socket)</li>
+<li>Direct kill server A (SIGKILL)</li>
+<li>Assert B + C servers still running with ORIGINAL PIDs</li>
+<li>Assert tmx ls no longer shows A</li>
+</ul>
+<h3 id="phase-4--new-test-24-darwin-cpu-cap-enforcement-macos-only">Phase 4
+— NEW Test 24 (Darwin CPU-cap enforcement, macOS-only)</h3>
+<ul>
+<li>Spawn a session with <code>TMX_CPU_HARD_SEC=5</code></li>
+<li>Inside the session, run a CPU-bound loop</li>
+<li>Assert process is SIGXCPU&#39;d ≤ 7 seconds (5s soft + epsilon)</li>
+<li>Captured evidence: process exit signal + wall-clock duration</li>
+<li>§11.4.3 dispatch: SKIPs on Linux (test 12 covers Linux memory
+pressure; Linux CPU cap is via cgroup)</li>
+</ul>
+<h3 id="phase-5--retire-m7-m10-add-m20--m21-darwin-rlimit-mutations">Phase 5
+— Retire M7-M10; add M20 + M21 Darwin rlimit mutations</h3>
+<ul>
+<li>M7-M10 explicitly retired with comment block citing native-dual-OS
+dead-code rationale</li>
+<li>M20: strip <code>ulimit -t</code> line from
+<code>scripts/tmx-rlimit-wrapper.sh</code> → test 15 T5 FAILs
+(<code>TMX_CPU_HARD_SEC</code> override no longer visible)</li>
+<li>M21: strip <code>ulimit -u</code> line from
+<code>scripts/tmx-rlimit-wrapper.sh</code> → test 15 T3 FAILs
+(<code>TMXLIMITS:cpu=…:nproc=</code> no longer carries nproc)</li>
+</ul>
+<h3 id="phase-6--challenges--docs--continuation">Phase 6 — Challenges +
+docs + CONTINUATION</h3>
+<ul>
+<li><code>TMUX-CH-24</code> for the new CPU-cap test</li>
+<li><code>docs/guide/README.md</code> §5.6 — refresh isolation-strength
+matrix to reflect Darwin-branch test coverage</li>
+<li><code>docs/plans/v1.0.5.md</code> — this plan</li>
+<li><code>Fixed.md</code> A22-A26 entries</li>
+<li><code>CHANGELOG.md</code> v1.0.5 block</li>
+<li><code>CONTINUATION.md</code> §3.11 + §1 snapshot bump</li>
+<li><code>VERSION</code> 1.0.5 / 6</li>
+</ul>
+<h3 id="phase-7--verification--commit--push">Phase 7 — Verification +
+commit + push</h3>
+<ul>
+<li>Fresh suite + meta-test + e2e</li>
+<li>§11.4.71 fetch + integrate</li>
+<li><code>commit_all.sh</code></li>
+</ul>
+<h2 id="4-anti-bluff-invariants-verbatim-user-mandate-2026-05-21">§4
+Anti-bluff invariants (verbatim user mandate, 2026-05-21)</h2>
+<blockquote>
+<p>&quot;all existing tests and Challenges do work in anti-bluff manner —
+they MUST confirm that all tested codebase really works as expected! We
+had been in position that all tests do execute with success and all
+Challenges as well, but in reality the most of the features does not
+work and can&#39;t be used!&quot;</p>
+</blockquote>
+<p>Every Darwin branch added in this cycle MUST:</p>
+<ol type="1">
+<li>Read CONTENT (ulimit values, ps output, fork return codes), not file
+existence.</li>
+<li>Use the operator path (<code>tmx new -s NAME -d</code>) per
+§102.</li>
+<li>SKIP-with-reason where macOS genuinely can&#39;t (kernel gap), citing
+the exact rlimit + reproducer per §11.4.6 no-guessing.</li>
+<li>Have a paired §103 layer-4 mutation in the meta-test.</li>
+</ol>
+<h2 id="5-out-of-scope-logged-for-future-cycles">§5 Out-of-scope (logged
+for future cycles)</h2>
+<ul>
+<li>Linux remote-host runner — to actually exercise the Linux branches
+of tests 09/13/14 from a Darwin dev host, we&#39;d need a Linux test target.
+This cycle ensures both branches are CODED correctly; Linux-side
+validation lands when a Linux CI host is provisioned.</li>
+<li>macOS launchd job-based hard memory cap (would need root) — out of
+scope per §11.4.10 + §11.4.78 no-sudo philosophy.</li>
+</ul>
+</body>
+</html>

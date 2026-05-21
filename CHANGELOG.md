@@ -6,6 +6,134 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.5] — 2026-05-21
+
+**§11.4.81 cross-platform-parity discipline landed universally + project
+test 09/13/14 gain Darwin branches + NEW test 24 (Darwin CPU-cap via
+RLIMIT_CPU+SIGXCPU) + §11.4.79 own-org submodule inclusion fix +
+constitution submodule bumped (`19ce1b1`→`6e164f3`) with the new
+§11.4.81 anchor universal across every consuming project.**
+
+### Added (constitution submodule, pushed `6e164f3`)
+
+- **§11.4.81 — Cross-platform-parity mandate.** Universal anchor + mirror
+  blocks in `Constitution.md`, `CLAUDE.md`, `AGENTS.md`, `QWEN.md`.
+  Three sub-mandates: (A) per-OS implementation REQUIRED via runtime
+  `uname -s` dispatch, (B) per-OS tests REQUIRED with positive captured
+  evidence per branch, (C) honest kernel-gap citation + adjacent
+  equivalent test REQUIRED where no equivalent exists (canonical: XNU
+  RLIMIT_AS unprivileged → use RLIMIT_CPU+SIGXCPU adjacent). Per-OS
+  equivalence catalogue listed. Composes with §11.4.1/2/3/4/5/6/20/27/
+  69/70 + §107. Pre-build gate `CM-CROSS-PLATFORM-PARITY` planned;
+  paired §1.1 mutation: strip a Darwin branch → gate FAILs.
+
+- **Constitution submodule QWEN.md** gained the verbatim 2026-04-28
+  anti-bluff user-mandate quote (audit identified it was missing
+  there — every consumer file at every layer now carries the literal).
+
+### Added (project)
+
+- **NEW `scripts/tests/24_cpu_cap_enforcement.sh`** — Darwin
+  RLIMIT_CPU + SIGXCPU enforcement test. Per §11.4.81 (C) the
+  adjacent test for what Linux tests via cgroup MemoryMax (test 12).
+  Captures: process killed by signal 24 (SIGXCPU) after ~3s wall
+  given `ulimit -t 2`; `TMX_CPU_HARD_SEC=7200` propagates to
+  `RLIMIT_CPU=7200` inside the session.
+
+- **NEW `scripts/codegraph_validate.sh`** — §11.4.78 step 4 + §11.4.79
+  validate-probe + §11.4.80 sync-script callee. 5 probes: V1 CLI
+  version, V2 node count > 0, V3 §11.4.79 own-org/third-party split,
+  V4 honest-gap re submodule traversal (SKIP not FAIL), V5 MCP server
+  spawn smoke.
+
+### Fixed (project — §11.4.79 + cross-platform parity)
+
+- **A26 — §11.4.79 compliance: own-org submodules removed from
+  CodeGraph exclude.** v1.0.4's `.codegraph/config.json` was a §11.4.79
+  violation: `constitution/**` + `Containers/**` were excluded. v1.0.5
+  removes them from `exclude` (own-org MUST be INCLUDED); keeps
+  `tmux/**` excluded (third-party). Honest gap: CodeGraph 0.6.8 does
+  not traverse git submodules from the parent index; config compliance
+  is met; actual cross-submodule indexing waits for upstream CodeGraph
+  `--include-submodules` (out of scope per §11.4.74).
+
+- **A25 — Darwin branches for Linux-only tests (§11.4.81 fix).** Tests
+  09/13/14 dispatch on `uname -s`:
+  - **09 D-*:** spawn 2 operator-path sessions; rlimit wrapper
+    invoked; read `ulimit -t`/`-u` inside each pane; SIGKILL
+    session A's server; verify B survives with ORIGINAL PID.
+    PASS=6/0/0.
+  - **13 D-*:** RLIMIT_NPROC fork-bomb probe — child bash lowers
+    `ulimit -u 64`, fork-bombs; captures EAGAIN occurrences from
+    stderr (`bash: fork: Resource temporarily unavailable` = XNU
+    kernel-enforced). PASS=2/0/0.
+  - **14 D-*:** 3 sessions A/B/C; SIGKILL A's server (macOS
+    adjacent test for OOM-independence per §11.4.81 (C)); verify
+    B+C survive with ORIGINAL PIDs + tmx ls still lists them.
+    PASS=5/0/0.
+
+- **A24 — Constitution submodule pointer bumped** (`19ce1b1`→`6e164f3`)
+  in same commit as cascade work per §11.4.26 step 7.
+
+### Hardened (4-layer regression protection per §103)
+
+- **Layer 2:** tests 09 D-*, 13 D-*, 14 D-*, 24 D-* — all PASS this
+  cycle with positive captured runtime evidence per platform branch.
+  Suite total this cycle: PASS=22 SKIP=2 (was 18 PASS / 5 SKIP in
+  v1.0.4). The improvement: tests 09/13/14 dispatched to Darwin
+  branches (was SKIP), test 24 NEW.
+- **Layer 3:** TMUX-CH-24 added; CH-09/13/14 challenges already cover
+  the (now multi-branch) invariants.
+- **Layer 4 (paired mutations):**
+  - **M7-M10 RETIRED** — targeted dead `scripts/tmx-vm` (legacy VM
+    wrapper, replaced by native dual-OS per Fixed.md A4-A8). Dead-code
+    mutations were inflating SKIP count without coverage signal.
+  - **M20 (NEW)** — strip `ulimit -t` from Darwin rlimit wrapper →
+    test 15 T5 FAILs. Topology-guarded: Linux uses cgroup (covered
+    by M5).
+  - **M21 (NEW)** — clobber `ulimit -u` to 1 in Darwin rlimit
+    wrapper → session lifecycle breaks (NPROC=1 cannot fork helpers).
+    Honest §11.4.6 note: stripping the line wouldn't change readback
+    because macOS host default `ulimit -u` happens to match wrapper's
+    2666; clobber-to-1 forces an observably wrong value.
+  - **M22 (NEW)** — re-exclude `Containers/**` from
+    `.codegraph/config.json` → `codegraph_validate.sh` V3 FAILs
+    (§11.4.79 violation detected). Caught + restored both directions.
+
+  Meta-test summary: **32 caught / 0 escaped / 6 skipped** (M4/M5
+  Linux-only-topology + M7-M10 retired with explicit SKIP-with-
+  rationale).
+
+### Verification (this cycle, captured 2026-05-21 on Darwin arm64)
+
+- `bash scripts/setup.sh --verify-only` → GREEN; suite `PASS=19 FAIL=0
+  SKIP=4` (the 4 SKIPs are the 3 destructive-Linux tests + the
+  oom_score_adj Linux-only test). Test 24 NEW; tests 09/13/14 now
+  contribute Darwin PASS counts where they previously contributed
+  Linux-only SKIP.
+- `bash scripts/tests/meta_test_false_positive_proof.sh` →
+  **32 caught / 0 escaped / 6 skipped GREEN**.
+- `bash scripts/test_e2e.sh` → GREEN.
+- `bash scripts/codegraph_validate.sh` → 4 PASS / 0 FAIL / 1 SKIP
+  (the SKIP is V4 honest-gap on submodule traversal).
+- `bash scripts/codegraph_reindex.sh` → 6 nodes, stamp written.
+- §11.4.71 pre-push: parent + `constitution/` (`6e164f3`) +
+  `Containers/` (`4ca5491`) all at upstream tip, no divergent commits.
+
+### Out-of-scope this cycle (honest tracking per §11.4.6)
+
+- §11.4.80 automatic-trigger wiring (cron / git hook for the constitution-
+  provided `codegraph_update.sh` + `codegraph_sync.sh`) — deferred to
+  next cycle. Manual invocation works today.
+- CodeGraph upstream support for `--include-submodules` — out of scope
+  per §11.4.74.
+- `Containers/QWEN.md` create — separate PR to `vasic-digital/Containers`
+  per §11.4.28 owned-submodule equal-codebase mandate.
+- Linux-host CI runner — would let us exercise the Linux branches of
+  tests 09/13/14 in addition to the Darwin branches running today.
+
+---
+
 ## [v1.0.4] — 2026-05-21
 
 **CodeGraph code-intelligence integration (§11.4.78), anti-bluff

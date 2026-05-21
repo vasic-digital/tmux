@@ -145,8 +145,6 @@
     "**/.netrc",
     "**/secrets/**",
     "**/api_keys.sh",
-    "constitution/**",
-    "Containers/**",
     "tmux/**",
     "tmux/build*/**",
     ".codegraph/codegraph.db*",

@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-21T05:30Z
+**Last updated:** 2026-05-21T07:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,9 +15,9 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.4** (versionCode 5) — CodeGraph (§11.4.78) + verbatim covenant propagation + AUDIT-1/2 fixes + docs reorganisation, 2026-05-21 |
-| Verification (this cycle) | `bash scripts/setup.sh --verify-only` → GREEN; suite PASS=18 FAIL=0 SKIP=5 (Linux-only/destructive SKIPs — same profile as prior releases). NEW tests: 19 covenant propagation (PASS=7/0/0), 20 codegraph installed (PASS=5/0/0), 21 codegraph index present (PASS=4/0/0), 22 codegraph MCP wired (PASS=7/0/0), 23 tmx kill shorthand (PASS=5/0/0). Meta-test 26 caught / 0 escaped / 6 skipped (6 SKIPs §11.4.3 topology-correct — Linux-only mutations). e2e PASS=9/0/0. CodeGraph index 6 nodes (small per honest §11.4.6 gap — shell parser not in CodeGraph 0.6.8). All captured 2026-05-21 on Darwin arm64. |
-| Governance docs | `constitution/` submodule (HelixConstitution, pinned `7f738df`) — universal base; project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
+| Version | **1.0.5** (versionCode 6) — §11.4.81 cross-platform-parity universal + Darwin branches for tests 09/13/14 + NEW test 24 (RLIMIT_CPU+SIGXCPU) + §11.4.79 own-org submodule inclusion fix + constitution pointer bump, 2026-05-21 |
+| Verification (this cycle) | `bash scripts/setup.sh --verify-only` → GREEN; suite PASS=22 FAIL=0 SKIP=2 (tests 09/13/14 now PASS on Darwin via §11.4.81 branches; 2 remaining SKIPs are Linux-only tests 08 oom_score_adj + 12 memory_pressure_under_cap). Meta-test 32 caught / 0 escaped / 6 skipped (M7-M10 retired as dead VM-path code; M20+M21+M22 NEW for Darwin rlimit + §11.4.79 codegraph exclude). e2e PASS=9/0/0. codegraph_validate.sh 4/0/SKIP=1 (V4 honest-gap re submodule traversal). All captured 2026-05-21 on Darwin arm64. |
+| Governance docs | `constitution/` submodule (HelixConstitution, pinned `6e164f3` — bumped from `7f738df` after the §11.4.81 anchor pushed this cycle) — universal base; project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
 
@@ -208,6 +208,104 @@ The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque co
 - Updated `Issues.md`: A1 removed (→ Fixed.md A1). Issues.md now has
   **zero open items** — all originally seeded items are closed.
 - Cleaned up `CONTINUATION.md` §3.6: removed stale "remaining open" note.
+
+### §3.11 — §11.4.81 cross-platform-parity + Darwin branches + constitution §11.4.81 (2026-05-21)
+
+**Status:** COMPLETE (2026-05-21T07:30Z).
+
+Triggering events (in arrival order):
+
+- Operator (2026-05-21): "Any Linux-only blocker / issue we have MUST BE
+  created macOS and other supported platforms equivalent! So, depending
+  on platform proper implementation will be used for particular OS!
+  EVERYTHING MUST BE PROPERLY EXTENDED AND UPDATED!"
+- Operator (2026-05-21): "Add this OS / Platform details / rules /
+  mandatory constraints into our root (constitution Submodule)
+  Constitution.md, CLAUDE.md, AGENTS.md, QWEN.md and other constitution
+  Submodule relevant files so all projects who inherit these in the
+  future immidiately in such situations create proper missing
+  implementations for particular platform / OS! Make sure you first
+  fetch and pull the latest version of constitution Submodule. Once
+  all done and extended properly commit and push constitution Submodule
+  to all upstreams, then re-process and re-evaluate all rules and
+  mandatory constraints..."
+- (Power blackout mid-cycle — work resumed cleanly from working tree.)
+
+Plan + execution captured at `docs/plans/v1.0.5.md`. Seven phases all
+landed in one v1.0.5 commit per §11.4.42 iteration discipline.
+
+- **§11.4.26 step 1+:** constitution submodule fetched + ff-merged from
+  `7f738df` → `19ce1b1` (brought in §11.4.79 + §11.4.80 CodeGraph
+  anchors).
+
+- **§11.4.81 anchor LANDED in constitution submodule (pushed
+  `6e164f3` to `origin` HelixDevelopment).** Universal cross-platform-
+  parity mandate + mirror blocks in Constitution.md / CLAUDE.md /
+  AGENTS.md / QWEN.md. Three sub-mandates: (A) per-OS implementation
+  REQUIRED via runtime dispatch; (B) per-OS tests REQUIRED with
+  positive captured evidence per branch; (C) honest kernel-gap
+  citation + adjacent equivalent test REQUIRED where no equivalent
+  exists. constitution/QWEN.md ALSO gained the verbatim 2026-04-28
+  anti-bluff covenant quote (audit gap fix).
+
+- **A26 — §11.4.79 compliance fix.** Removed `constitution/**` and
+  `Containers/**` from `.codegraph/config.json` exclude (own-org MUST
+  be INCLUDED); kept `tmux/**` excluded (third-party).
+  `scripts/codegraph_validate.sh` NEW — 5 probes (V1 CLI version, V2
+  node count, V3 §11.4.79 split, V4 honest-gap re submodule traversal,
+  V5 MCP spawn). M22 paired mutation (re-exclude → V3 FAILs). Honest
+  gap: CodeGraph 0.6.8 doesn't traverse submodules; config compliance
+  met but practical cross-submodule indexing waits for upstream
+  CodeGraph support.
+
+- **A25 + A22 + A24 — Darwin branches for tests 09/13/14 + NEW test 24
+  (per §11.4.81 just landed).** All four exercise the macOS POSIX
+  rlimit primitives that are the kernel-enforced equivalents of the
+  Linux cgroup primitives:
+  - **Test 09 Darwin (PASS=6/0/0):** wrapper invokes `tmx-rlimit-
+    wrapper.sh`, two operator-path sessions, distinct server PIDs,
+    `ulimit -t`/`-u` readback inside each pane via send-keys +
+    capture-pane, SIGKILL session A's server, session B survives
+    with ORIGINAL PID (positive evidence per §11.4.5).
+  - **Test 13 Darwin (PASS=2/0/0):** child bash lowers `ulimit -u 64`
+    + fork-bombs; captures EAGAIN occurrences from stderr (`bash:
+    fork: Resource temporarily unavailable`) = XNU kernel-enforced
+    RLIMIT_NPROC.
+  - **Test 14 Darwin (PASS=5/0/0):** 3 operator-path sessions; SIGKILL
+    session A's server (macOS adjacent test for OOM-independence per
+    §11.4.81 (C) — Darwin has no OOM killer); verify B+C survive with
+    ORIGINAL PIDs + tmx ls still lists them.
+  - **NEW Test 24 Darwin (PASS=2/0/0):** child bash sets `ulimit -t 2`
+    + CPU-bound loop; verifies process killed by signal 24 (SIGXCPU)
+    after ~3s wall (exit rc=152 = 128+24); also verifies
+    `TMX_CPU_HARD_SEC=7200` propagates to `RLIMIT_CPU=7200` inside
+    session. §11.4.81 (C) adjacent test for the XNU RLIMIT_AS gap.
+
+- **A25 paired mutations refresh.** M7-M10 RETIRED (targeted dead
+  `scripts/tmx-vm` VM-wrapper path, replaced by native dual-OS per
+  Fixed.md A4-A8). M20 + M21 NEW for Darwin rlimit. M22 for §11.4.79
+  codegraph exclude. Meta-test on Darwin: 32 caught / 0 escaped /
+  6 skipped (M4/M5 topology-correct SKIP on Darwin; M7-M10
+  retired-with-rationale SKIPs).
+
+- **Constitution submodule pointer bumped** `19ce1b1` → `6e164f3` in
+  this same project commit per §11.4.26 step 7.
+
+Full gate this cycle (Darwin arm64, 2026-05-21): `setup.sh --verify-only`
+PASS=22/0/SKIP=2, meta-test 32/0/SKIP=6 (all SKIPs §11.4.3
+topology-correct or retired-with-rationale), e2e 9/0/0,
+codegraph_validate PASS=4/0/SKIP=1.
+
+Out-of-scope this cycle (honest tracking per §11.4.6):
+- §11.4.80 automatic-trigger wiring (cron / git hook for the
+  constitution-provided `codegraph_update.sh` + `codegraph_sync.sh`)
+  — deferred. Manual invocation works today.
+- CodeGraph upstream `--include-submodules` support — out of scope
+  per §11.4.74.
+- `Containers/QWEN.md` create — separate PR to
+  `vasic-digital/Containers` per §11.4.28.
+- Linux-host CI runner — would let us exercise the Linux branches of
+  tests 09/13/14 alongside the Darwin branches running today.
 
 ### §3.10 — CodeGraph (§11.4.78) + verbatim covenant + AUDIT fixes + docs reorg (2026-05-21)
 

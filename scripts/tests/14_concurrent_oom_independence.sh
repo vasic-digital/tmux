@@ -1,25 +1,117 @@
 #!/usr/bin/env bash
-# Test 14 — Concurrent OOM independence via the OPERATOR PATH.
+# Test 14 — Concurrent session-independence via the OPERATOR PATH
+# (per-platform per §11.4.81).
 #
-# Constitution §11.4.7 (operator-path coverage rule): this test creates
-# the three sessions via `tmx new -s X -d` — the exact entry point an
-# end-user invokes. The previous version hand-crafted `systemd-run
-# --user --scope` units and passed while the actual operator workflow
-# placed every session in ONE shared cgroup (Fixed.md A12). Rewriting
-# closes that gap.
+# Linux: 3 sessions A/B/C via `tmx new`. Each ends up in its OWN scope.
+# Trigger OOM inside A via stress-ng; verify B/C scopes + tmux servers
+# survive with original MainPIDs; user.slice survives.
 #
-# Test plan: create sessions A/B/C via `tmx new`. Each ends up in its
-# OWN scope `tmx-A.scope` / `tmx-B.scope` / `tmx-C.scope`. Trigger OOM
-# inside A by sending a stress-ng command via `tmx send-keys`. Verify
-# scopes B and C remain active with their original MainPIDs, the tmux
-# servers for B and C are still alive (`tmx ls` shows them), and
-# user.slice survived.
+# Darwin: macOS has no OOM killer (different memory model — XNU does
+# NOT enforce RLIMIT_AS for unprivileged processes per docs/guide/
+# README.md §5.6 honest gap). Per §11.4.81 (C): ADJACENT TEST exercises
+# the closest invariant Darwin CAN enforce — "session A's tmux server
+# direct-killed, sessions B+C survive with original PIDs". Same
+# operator-visible invariant ("rogue session can't take down others"),
+# different kill trigger.
 #
-# Destructive guard: only runs when TMX_TEST_DESTRUCTIVE=1 is set.
+# Constitution §11.4.7 (operator-path coverage rule): both branches
+# create sessions via `tmx new -s X -d` — the exact entry point.
 
 set -uo pipefail
 
-echo "── Test 14: concurrent OOM independence (operator-path) ──"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
+TMUX_BIN_OS="$(uname -s)"
+case "$TMUX_BIN_OS" in
+    Darwin) TMUX_BIN="${TMUX_BIN:-$REPO_ROOT/tmux/build-darwin/bin/tmux}" ;;
+    Linux)  TMUX_BIN="${TMUX_BIN:-$REPO_ROOT/tmux/build/bin/tmux}" ;;
+esac
+
+if [ "$TMUX_BIN_OS" = "Darwin" ]; then
+    echo "── Test 14: concurrent session-independence (Darwin branch per §11.4.81) ──"
+
+    if [ ! -x "$WRAPPER" ] || [ ! -x "$TMUX_BIN" ]; then
+        echo "SKIP: prerequisites not built ($WRAPPER / $TMUX_BIN)"
+        exit 0
+    fi
+
+    PASS=0; FAIL=0; SKIP=0
+    _pass() { echo "PASS: $*"; PASS=$((PASS+1)); }
+    _fail() { echo "FAIL: $*"; FAIL=$((FAIL+1)); }
+
+    SESS_A="t14_d_a_$$"
+    SESS_B="t14_d_b_$$"
+    SESS_C="t14_d_c_$$"
+    SOCK_A="tmx-${SESS_A}"
+    SOCK_B="tmx-${SESS_B}"
+    SOCK_C="tmx-${SESS_C}"
+
+    trap '
+        "$WRAPPER" kill-session -t "$SESS_B" >/dev/null 2>&1 || true
+        "$WRAPPER" kill-session -t "$SESS_C" >/dev/null 2>&1 || true
+        "$TMUX_BIN" -L "$SOCK_A" kill-server >/dev/null 2>&1 || true
+        "$TMUX_BIN" -L "$SOCK_B" kill-server >/dev/null 2>&1 || true
+        "$TMUX_BIN" -L "$SOCK_C" kill-server >/dev/null 2>&1 || true
+    ' EXIT
+
+    # D-T1: create 3 sessions via operator path.
+    "$WRAPPER" new -s "$SESS_A" -d >/dev/null 2>&1
+    "$WRAPPER" new -s "$SESS_B" -d >/dev/null 2>&1
+    "$WRAPPER" new -s "$SESS_C" -d >/dev/null 2>&1
+    sleep 0.5
+
+    PID_A="$("$TMUX_BIN" -L "$SOCK_A" display-message -p '#{pid}' 2>/dev/null)"
+    PID_B="$("$TMUX_BIN" -L "$SOCK_B" display-message -p '#{pid}' 2>/dev/null)"
+    PID_C="$("$TMUX_BIN" -L "$SOCK_C" display-message -p '#{pid}' 2>/dev/null)"
+
+    if [ -n "$PID_A" ] && [ -n "$PID_B" ] && [ -n "$PID_C" ] \
+       && [ "$PID_A" != "$PID_B" ] && [ "$PID_B" != "$PID_C" ] && [ "$PID_A" != "$PID_C" ]; then
+        _pass "D-T1: three distinct server PIDs A=$PID_A B=$PID_B C=$PID_C (positive evidence: independent server processes via operator path)"
+    else
+        _fail "D-T1: PIDs not distinct (A='$PID_A' B='$PID_B' C='$PID_C')"
+        echo "  Tests: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 1
+    fi
+
+    # D-T2: SIGKILL session A's server (macOS adjacent test per §11.4.81 (C)
+    # — Darwin has no OOM killer, so we exercise the closest invariant).
+    kill -KILL "$PID_A" 2>/dev/null
+    sleep 1
+
+    # D-T3: session A's server is gone.
+    if "$TMUX_BIN" -L "$SOCK_A" ls >/dev/null 2>&1; then
+        _fail "D-T3: session A's server still responding after SIGKILL"
+    else
+        _pass "D-T3: session A's server confirmed dead (positive evidence: tmux -L $SOCK_A ls fails)"
+    fi
+
+    # D-T4: sessions B and C survive with ORIGINAL PIDs.
+    PID_B_NOW="$("$TMUX_BIN" -L "$SOCK_B" display-message -p '#{pid}' 2>/dev/null)"
+    PID_C_NOW="$("$TMUX_BIN" -L "$SOCK_C" display-message -p '#{pid}' 2>/dev/null)"
+    if [ "$PID_B_NOW" = "$PID_B" ] && [ -n "$PID_B_NOW" ]; then
+        _pass "D-T4.B: session B survived with ORIGINAL PID $PID_B (positive evidence: independence — A's death did NOT cascade)"
+    else
+        _fail "D-T4.B: session B PID changed/died: was=$PID_B now='$PID_B_NOW'"
+    fi
+    if [ "$PID_C_NOW" = "$PID_C" ] && [ -n "$PID_C_NOW" ]; then
+        _pass "D-T4.C: session C survived with ORIGINAL PID $PID_C (positive evidence: independence — A's death did NOT cascade)"
+    else
+        _fail "D-T4.C: session C PID changed/died: was=$PID_C now='$PID_C_NOW'"
+    fi
+
+    # D-T5: tmx ls still shows B and C.
+    LS_OUT="$("$WRAPPER" ls 2>/dev/null)"
+    if echo "$LS_OUT" | grep -q "$SESS_B" && echo "$LS_OUT" | grep -q "$SESS_C"; then
+        _pass "D-T5: tmx ls shows both surviving sessions B and C (positive evidence: operator-visible list)"
+    else
+        _fail "D-T5: tmx ls missing B or C after A's death: '$LS_OUT'"
+    fi
+
+    echo ""
+    echo "  Tests: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"
+    [ "$FAIL" -gt 0 ] && exit 1 || exit 0
+fi
+
+echo "── Test 14: concurrent OOM independence (Linux branch, operator-path) ──"
 
 if [ "${TMX_TEST_DESTRUCTIVE:-0}" != "1" ]; then
     echo "SKIP: TMX_TEST_DESTRUCTIVE=1 not set — this test OOM-kills processes"

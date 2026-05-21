@@ -49,33 +49,47 @@ else
     _pass "T2: $CG_CFG present and valid JSON (positive evidence: python3 json.load)"
 fi
 
-# T3 — §11.4.10 secret-exclusion patterns present in config.
-# Every required secret pattern + every owned-submodule path must be
-# in the exclude list. We grep for EACH literal — a partial subset
-# of secrets being present is a §11.4 PASS-bluff at the credentials layer.
+# T3 — §11.4.10 secret exclusion + §11.4.79 own-org-INCLUSION audit.
+#   - secret patterns + third-party submodule (tmux/**) MUST be excluded
+#   - own-org submodules (constitution/**, Containers/**) MUST NOT be
+#     excluded (§11.4.79). This was a v1.0.4 violation fixed in v1.0.5.
 T3_MISSING=()
-T3_REQUIRED=(
-    '**/.env'           '**/.env.*'         '**/*.env'
-    '**/*.pem'          '**/*.key'          '**/*.crt'
-    '**/id_rsa*'        '**/id_ed25519*'    '**/secrets/**'
-    'constitution/**'   'Containers/**'     'tmux/**'
+T3_WRONGLY_EXCLUDED=()
+T3_REQUIRED_EXCLUDED=(
+    '**/.env'        '**/.env.*'       '**/*.env'
+    '**/*.pem'       '**/*.key'        '**/*.crt'
+    '**/id_rsa*'     '**/id_ed25519*'  '**/secrets/**'
+    'tmux/**'
+)
+T3_REQUIRED_INCLUDED=(
+    'constitution/**'   'Containers/**'
 )
 if [ -f "$CG_CFG" ]; then
-    for pat in "${T3_REQUIRED[@]}"; do
-        # Use python to safely check; bash grep would have false negatives on glob
+    for pat in "${T3_REQUIRED_EXCLUDED[@]}"; do
         if ! python3 -c "
 import json, sys
 c = json.load(open('$CG_CFG'))
-ex = c.get('exclude', [])
-sys.exit(0 if '$pat' in ex else 1)
+sys.exit(0 if '$pat' in c.get('exclude', []) else 1)
 " 2>/dev/null; then
             T3_MISSING+=("$pat")
         fi
     done
-    if [ ${#T3_MISSING[@]} -eq 0 ]; then
-        _pass "T3: all 12 required secret/submodule exclude patterns present in config.exclude (positive evidence: each pattern verified by python json parse)"
+    for pat in "${T3_REQUIRED_INCLUDED[@]}"; do
+        if python3 -c "
+import json, sys
+c = json.load(open('$CG_CFG'))
+sys.exit(0 if '$pat' in c.get('exclude', []) else 1)
+" 2>/dev/null; then
+            T3_WRONGLY_EXCLUDED+=("$pat")
+        fi
+    done
+    if [ ${#T3_MISSING[@]} -eq 0 ] && [ ${#T3_WRONGLY_EXCLUDED[@]} -eq 0 ]; then
+        _pass "T3: §11.4.10 secret/third-party patterns excluded; §11.4.79 own-org submodules NOT excluded (positive evidence: 12 must-exclude + 2 must-include patterns verified via python json parse)"
     else
-        _fail "T3: missing exclude patterns: ${T3_MISSING[*]}"
+        msg=""
+        [ ${#T3_MISSING[@]} -gt 0 ] && msg="$msg missing-from-exclude: ${T3_MISSING[*]};"
+        [ ${#T3_WRONGLY_EXCLUDED[@]} -gt 0 ] && msg="$msg own-org wrongly-excluded (§11.4.79 violation): ${T3_WRONGLY_EXCLUDED[*]};"
+        _fail "T3:$msg"
     fi
 else
     _skip "T3: config.json absent (covered by T2 FAIL)"
