@@ -282,14 +282,7 @@ fi
 if [ -n "$victim_pid" ] && [ "$victim_pid" != "0" ]; then
     if kill -0 "$victim_pid" 2>/dev/null; then
         _pass "T4.1: scope ${TEST_NAME_T4}.scope MainPID=$victim_pid alive"
-        # SIGKILL ALL PIDs in the scope's cgroup, not just the first one
-        # in cgroup.procs. Nezha fix 2026-05-21 round-3: a scope created
-        # via `systemd-run --user --scope bash -c "exec sleep 120"` can
-        # leave 2 PIDs in cgroup.procs (the transient wrapper + the
-        # child sleep) on systemd 258 / ALT 11 / kernel 6.12. Killing
-        # only the first PID leaves the second running, scope stays
-        # active. Reading cgroup.procs and SIGKILLing each PID models
-        # the OOM-kill-the-cgroup invariant correctly.
+        # SIGKILL the scope's MainPID (and any other PIDs in cgroup.procs).
         T4_CGROUP_PATH="/sys/fs/cgroup${t4_cgroup_path}"
         if [ -f "$T4_CGROUP_PATH/cgroup.procs" ]; then
             while read -r p; do
@@ -299,31 +292,52 @@ if [ -n "$victim_pid" ] && [ "$victim_pid" != "0" ]; then
             kill -KILL "$victim_pid" 2>/dev/null
         fi
 
-        # Poll for scope-inactive transition. systemd 258 on ALT Linux 11
-        # (kernel 6.12) takes longer than older systemd versions to mark
-        # a scope inactive after its processes die — cgroup cleanup
-        # ordering changed in systemd 258+. §11.4.6: this is observed
-        # live, not guessed — Nezha reproducer captured 2026-05-21.
+        # Poll for the REAL containment invariant: scope's cgroup.procs
+        # drained. This is what operators care about — "OOM-kill killed
+        # the runaway, no leftover processes in the scope". The OLDER
+        # check (`systemctl --user is-active --quiet`) was correct on
+        # older systemd but WRONG on systemd 258 / ALT Linux 11 /
+        # kernel 6.12: transient `--scope` units now stay
+        # ActiveState=active running EVEN AFTER their cgroup.procs is
+        # empty, until explicitly `systemctl --user stop`'d. Forensic
+        # evidence captured live on Nezha 2026-05-21 (probe4-89401):
+        #   cgroup.procs:   <empty>
+        #   ls cgroup dir:  exists
+        #   ActiveState=active  SubState=running
+        #   even 60s+ post-kill
+        # The cgroup-empty check is the platform-neutral invariant —
+        # it's what `MemoryMax`-driven OOM-kill leaves behind on any
+        # systemd version. §11.4.81 cross-platform-parity (B): pick the
+        # invariant that the kernel ACTUALLY enforces.
         #
-        # Iteration counter is INTEGER (bash `-lt` is integer-only). 60
-        # ticks × 0.5s = 30s budget — generous enough for systemd 258
-        # cgroup-cleanup on slower hosts; still bounded.
+        # Bounded poll: 60 ticks × 0.5s = 30s. cgroup.procs typically
+        # drains within ~1s of SIGKILL on a healthy host.
         T4_TIMEOUT_TICKS=60
         T4_TICK=0
+        T4_PROCS_LEFT=""
         while [ "$T4_TICK" -lt "$T4_TIMEOUT_TICKS" ]; do
-            if ! systemctl --user is-active --quiet "${TEST_NAME_T4}.scope" 2>/dev/null; then
+            if [ ! -f "$T4_CGROUP_PATH/cgroup.procs" ]; then
+                # cgroup directory gone (e.g., --collect already
+                # reclaimed it) = trivially drained.
+                T4_PROCS_LEFT=""
+                break
+            fi
+            T4_PROCS_LEFT="$(cat "$T4_CGROUP_PATH/cgroup.procs" 2>/dev/null | tr -d ' \n\r')"
+            if [ -z "$T4_PROCS_LEFT" ]; then
                 break
             fi
             sleep 0.5
             T4_TICK=$((T4_TICK + 1))
         done
         T4_ELAPSED_S=$(awk -v t="$T4_TICK" 'BEGIN{printf "%.1f", t * 0.5}')
-        # Final verdict (after either early-exit or full timeout).
-        if systemctl --user is-active --quiet "${TEST_NAME_T4}.scope" 2>/dev/null; then
-            _fail "T4.2: scope ${TEST_NAME_T4}.scope still active 30s after SIGKILL of all cgroup.procs (systemd cgroup-cleanup not progressing)"
+        if [ -n "$T4_PROCS_LEFT" ]; then
+            _fail "T4.2: scope ${TEST_NAME_T4}.scope cgroup.procs still has pids 30s after SIGKILL (containment not achieved): $T4_PROCS_LEFT"
         else
-            _pass "T4.2: scope ${TEST_NAME_T4}.scope inactive after SIGKILL of all cgroup.procs (positive evidence: systemctl --user is-active = inactive after ${T4_ELAPSED_S}s poll)"
+            _pass "T4.2: scope ${TEST_NAME_T4}.scope cgroup.procs drained after SIGKILL — containment achieved (positive evidence per §11.4.81: cgroup.procs empty/removed after ${T4_ELAPSED_S}s poll; OOM-kill semantics verified on this kernel without depending on systemd's unit-state transition timing)"
         fi
+        # Explicit stop to release the unit (clean teardown — independent
+        # of the containment invariant we just verified).
+        systemctl --user stop "${TEST_NAME_T4}.scope" >/dev/null 2>&1 || true
         # Verify user@<uid>.service still alive (the critical invariant)
         USER_SVC_AFTER=$(systemctl --user is-active default.target 2>/dev/null || echo "unknown")
         if [ "$USER_SVC_AFTER" = "$USER_SVC_BEFORE" ] && [ "$USER_SVC_AFTER" = "active" ]; then
