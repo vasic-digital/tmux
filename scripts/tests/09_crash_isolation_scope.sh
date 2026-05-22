@@ -71,14 +71,24 @@ if [ "$HOST_OS" = "Darwin" ]; then
     SESS_B="t09_d_b_$$"
     "$WRAPPER" new -s "$SESS_A" -d >/dev/null 2>&1 || { _fail "D-T3.0: $WRAPPER new -s $SESS_A -d failed"; }
     "$WRAPPER" new -s "$SESS_B" -d >/dev/null 2>&1 || { _fail "D-T3.0: $WRAPPER new -s $SESS_B -d failed"; }
-    sleep 0.5
 
     TMUX_BIN_DARWIN="${TMUX_BIN:-$REPO_ROOT/tmux/build-darwin/bin/tmux}"
     SOCK_A="tmx-${SESS_A}"
     SOCK_B="tmx-${SESS_B}"
 
-    PID_A="$("$TMUX_BIN_DARWIN" -L "$SOCK_A" display-message -p '#{pid}' 2>/dev/null)"
-    PID_B="$("$TMUX_BIN_DARWIN" -L "$SOCK_B" display-message -p '#{pid}' 2>/dev/null)"
+    # §11.4.50 deterministic-consistency: poll for server-ready instead of
+    # a fixed sleep. Under load (e.g. running test 09 inside the 41-test
+    # full-suite sweep), the previous `sleep 0.5` could be shorter than
+    # the actual session-spawn latency, leaving `display-message -p
+    # '#{pid}'` returning empty → flake. Poll up to 30 × 0.2s = 6 s.
+    PID_A=""
+    PID_B=""
+    for _i in $(seq 1 30); do
+        PID_A="$("$TMUX_BIN_DARWIN" -L "$SOCK_A" display-message -p '#{pid}' 2>/dev/null)"
+        PID_B="$("$TMUX_BIN_DARWIN" -L "$SOCK_B" display-message -p '#{pid}' 2>/dev/null)"
+        [ -n "$PID_A" ] && [ -n "$PID_B" ] && break
+        sleep 0.2
+    done
     if [ -n "$PID_A" ] && [ -n "$PID_B" ] && [ "$PID_A" != "$PID_B" ]; then
         _pass "D-T3: distinct tmux server PIDs A=$PID_A B=$PID_B (positive evidence: independent server processes per session)"
     else
@@ -89,8 +99,15 @@ if [ "$HOST_OS" = "Darwin" ]; then
     # session. Per §11.4.81 (B): captured runtime evidence per platform
     # via send-keys + capture-pane.
     "$TMUX_BIN_DARWIN" -L "$SOCK_A" send-keys "echo TMXLIMITS:cpu=\$(ulimit -t):nproc=\$(ulimit -u)" Enter 2>/dev/null
-    sleep 0.4
-    READBACK_A="$("$TMUX_BIN_DARWIN" -L "$SOCK_A" capture-pane -p 2>/dev/null | grep -oE 'TMXLIMITS:cpu=[0-9unlimited]+:nproc=[0-9unlimited]+' | head -1)"
+    # §11.4.50: poll for the marker line instead of a fixed sleep. Under
+    # load the shell may take >0.4 s to render the echo output to the
+    # pane buffer; previous fixed-sleep produced flakes.
+    READBACK_A=""
+    for _i in $(seq 1 25); do
+        READBACK_A="$("$TMUX_BIN_DARWIN" -L "$SOCK_A" capture-pane -p 2>/dev/null | grep -oE 'TMXLIMITS:cpu=[0-9unlimited]+:nproc=[0-9unlimited]+' | head -1)"
+        echo "$READBACK_A" | grep -qE '^TMXLIMITS:cpu=[0-9]+:nproc=[0-9]+$' && break
+        sleep 0.2
+    done
     if echo "$READBACK_A" | grep -qE '^TMXLIMITS:cpu=[0-9]+:nproc=[0-9]+$'; then
         _pass "D-T4: session A rlimits applied — $READBACK_A (positive evidence: ulimit -t/-u captured inside session)"
     else

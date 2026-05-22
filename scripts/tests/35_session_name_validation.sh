@@ -23,8 +23,10 @@ DISPATCH_FILE="/tmp/tmx-ssh-dispatch-26-$$.sh"
 INIT_STRIPPED="/tmp/tmx-shell-init-26-stripped-$$.sh"
 export TMX_STATE_FILE="/tmp/tmx-test-26-$$.json"
 
+FAKE_PATH_DIR="/tmp/tmx-test-26-fakepath-$$"
 _cleanup() {
     rm -f "$INIT_FILE" "$DISPATCH_FILE" "$INIT_STRIPPED" "$TMX_STATE_FILE" 2>/dev/null || true
+    rm -rf "$FAKE_PATH_DIR" 2>/dev/null || true
 }
 trap '_cleanup' EXIT
 
@@ -36,6 +38,20 @@ sed "s|__PROJECT__|$REPO_ROOT|g; s|__DATE__|test-26|g" "$DISPATCH_TEMPLATE" > "$
 chmod 755 "$INIT_FILE" "$DISPATCH_FILE"
 # Strip the [ -t 0 ] guard from init so we can drive it without a TTY.
 sed '/if \[ ! -t 0 \] || \[ ! -t 1 \]; then/,/^fi$/d' "$INIT_FILE" > "$INIT_STRIPPED"
+
+# Install a fake `tmx` on PATH so the init's `command -v tmx` check
+# passes and the script reaches validation. Without this, on hosts where
+# tmx isn't installed (CI, fresh checkout, setup-RED state), the init
+# script bails early before validation — masking real validation bugs.
+# The fake tmx logs invocations and exits 0; for the validation test we
+# only care that the script RUNS THE VALIDATION, not what tmx does.
+mkdir -p "$FAKE_PATH_DIR"
+cat > "$FAKE_PATH_DIR/tmx" <<'FAKETMX'
+#!/bin/sh
+exit 0
+FAKETMX
+chmod 755 "$FAKE_PATH_DIR/tmx"
+export PATH="$FAKE_PATH_DIR:$PATH"
 
 # Build the 65-char string in pure bash for portability.
 LONG65="$(printf '%65s' '' | tr ' ' 'a')"

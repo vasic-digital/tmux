@@ -4,7 +4,7 @@
 # CONTRACT (spec §4.C, §5.2): SSH_ORIGINAL_COMMAND=<valid-name>
 # bash tmx-ssh-dispatch.sh MUST result in `tmx attach -t NAME ||
 # tmx new -s NAME -c <last-pwd>`. POSITIVE evidence per §11.4.5:
-# `tmx ls | grep <NAME>` line.
+# `"$WRAPPER" ls | grep <NAME>` line.
 #
 # Paired meta-test mutation P5-M22 strips the `command=` prefix from
 # tmx-ssh-install.sh's authorized_keys line. This test exercises the
@@ -88,12 +88,12 @@ run_iteration() {
         # but we sleep 0.5s for the new-session to land then kill it.
     " >/dev/null 2>&1 || true
     sleep 0.5
-    # Check tmx ls for the session.
+    # Check "$WRAPPER" ls for the session.
     local listed
-    listed="$(tmx ls 2>/dev/null | grep -E "^${SESS}:" || true)"
+    listed="$("$WRAPPER" ls 2>/dev/null | grep -E "^${SESS}:" || true)"
     if [ -z "$listed" ]; then
-        echo "FAIL 22 iter=$iter: tmx ls missing session '$SESS' after dispatch; tmx ls output:"
-        tmx ls 2>&1 | sed 's/^/    /'
+        echo "FAIL 22 iter=$iter: "$WRAPPER" ls missing session '$SESS' after dispatch; "$WRAPPER" ls output:"
+        "$WRAPPER" ls 2>&1 | sed 's/^/    /'
         return 1
     fi
     # Also assert P5-M22 mutation surface: the install script's AK_LINE

@@ -63,7 +63,37 @@ done
 _strip_bashrc_snippet() {
     local file="$1"
     [ -f "$file" ] || return 0
+    # Strip the FENCED block (the standard install).
     perl -i -ne 'print unless /^# ─── vasic-digital optimized tmux/ .. /^# ─── end vasic-digital optimized tmux/' "$file"
+    # §11.4 anti-bluff cleanup (User mandate 2026-05-22): also strip the
+    # LEGACY UNFENCED pre-v1.0.9 inline snippet. Operators who hand-pasted
+    # the original snippet into their rc files keep it OUTSIDE our fenced
+    # block; a subsequent setup.sh install would leave BOTH in place,
+    # causing tmx to fire TWICE on every interactive login (one from the
+    # legacy snippet, one from `tmx-shell-init.sh` sourced by the new
+    # snippet). The block's well-known shape: an `if command -v tmx ...
+    # [ -z "$TMUX" ]` open, an `Enter session name` prompt + read, and a
+    # `tmx attach ... || tmx new ...` close. We match the entire block
+    # as a multi-line literal to avoid stripping unrelated `tmx`
+    # references operators may have written for their own reasons.
+    python3 - "$file" <<'PYEOF'
+import re, sys
+p = sys.argv[1]
+src = open(p).read()
+# Pattern: opening if-line through `fi` closing after `tmx attach ...
+# || tmx new ...`. DOTALL to span newlines; non-greedy to stop at the
+# FIRST matching `fi`. Allows blank-line padding around the block.
+pat = re.compile(
+    r'\n?if command -v tmx (?:&> /dev/null|>/dev/null 2>&1) && \[ -z "\$TMUX" \]; then\n'
+    r'(?:.*?\n){1,12}?'
+    r'    tmx attach -t "\$session_name" 2>/dev/null \|\| tmx new -s "\$session_name"\n'
+    r'fi\n',
+    re.DOTALL,
+)
+new = pat.sub('\n', src, count=1)
+if new != src:
+    open(p, 'w').write(new)
+PYEOF
 }
 
 # ── uninstall path ──────────────────────────────────────────────────────────
@@ -206,6 +236,27 @@ if [ "$HOST_OS" = "Linux" ] && [ -f scripts/oom_set.c ] && [ -x scripts/build_oo
         echo "  ⓘ helper compiled but not installed system-wide. To enable Test 08 PASS:"
         echo "       sudo bash scripts/build_oom_set.sh --install"
     fi
+fi
+
+# Step 3d — build tmx-state Go binary for the HOST OS (v1.0.9+).
+# §11.4.30: build artefacts MUST NOT be versioned. The Go binary is a
+# per-OS native artifact (Mach-O on Darwin, ELF on Linux) — committing
+# one OS's binary breaks the other. Build at setup time on the host.
+# §11.4.77 (regeneration mechanism): scripts/tmx-state/ source is
+# tracked; this step IS the regeneration mechanism.
+echo ""
+echo "[setup] step 3d — building tmx-state Go binary (v1.0.9 cwd persistence)"
+if [ -f scripts/tmx-state/go.mod ]; then
+    if command -v go >/dev/null 2>&1; then
+        ( cd scripts/tmx-state && go build -o "$REPO_ROOT/scripts/tmx-state-bin" . ) && \
+            echo "  ✓ scripts/tmx-state-bin built for $HOST_OS ($(scripts/tmx-state-bin version 2>/dev/null || echo 'no version'))" || \
+            echo "  ⚠ scripts/tmx-state-bin build FAILED — v1.0.9 cwd persistence will not work"
+    else
+        echo "  ⚠ 'go' not on PATH — install Go ≥ 1.21 to build scripts/tmx-state-bin"
+        echo "       macOS: brew install go    Linux: distro package or https://go.dev/dl/"
+    fi
+else
+    echo "  ⓘ scripts/tmx-state/ not present (pre-v1.0.9 tree); skip"
 fi
 
 # Step 3c — CodeGraph auto-update + index bootstrap (per §11.4.77/.78/.80).

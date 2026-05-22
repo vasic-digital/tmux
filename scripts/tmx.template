@@ -315,6 +315,7 @@ case "$SUBCMD" in
                     NEW_ARGS+=("-f" "$TMUX_CONF")
                 fi
                 SAW_NEW=0
+                SAW_C=0
                 for a in "$@"; do
                     case "$a" in -L) continue ;; esac
                     NEW_ARGS+=("$a")
@@ -323,13 +324,25 @@ case "$SUBCMD" in
                             if [ "$INTERACTIVE" -eq 1 ] && [ "$SAW_NEW" -eq 0 ]; then
                                 NEW_ARGS+=("-d")
                                 SAW_NEW=1
+                            elif [ "$SAW_NEW" -eq 0 ]; then
+                                # Operator passed -d explicitly; mark
+                                # SAW_NEW so we don't re-synthesise.
+                                SAW_NEW=1
                             fi
                             ;;
+                        -c) SAW_C=1 ;;
                     esac
                 done
+                # §11.4 cwd restore (Linux): if `new` was passed but no
+                # explicit `-c <path>`, inject `-c $START_DIR` so the
+                # spawned pane starts in the recalled last-pwd. Honours
+                # operator-passed `-c` (SAW_C=1) by leaving NEW_ARGS as-is.
+                if [ "$SAW_NEW" -eq 1 ] && [ "$SAW_C" -eq 0 ]; then
+                    NEW_ARGS+=("-c" "$START_DIR")
+                fi
+                # Fallback synthesise when no `new` token at all (operator
+                # invoked `tmx -s NAME` style); same shape as before.
                 if [ "$SAW_NEW" -eq 0 ] && [ "$INTERACTIVE" -eq 1 ]; then
-                    # §11.4 cwd restore: -c $START_DIR makes tmux spawn
-                    # the new session's initial pane in the recalled cwd.
                     NEW_ARGS=("-L" "$SOCK_LABEL" "-f" "$TMUX_CONF" "new-session" "-d" "-s" "$NAME" "-c" "$START_DIR")
                     SAW_NEW=1
                 fi

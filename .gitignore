@@ -22,8 +22,24 @@ scripts/oom_set
 scripts/tmx
 scripts/tmx-vm
 
+# §11.4.30 + §11.4.77 — Go-built per-OS binary. Source under scripts/tmx-state/
+# is tracked; the binary is rebuilt by setup.sh step 3d on each host.
+scripts/tmx-state-bin
+
 # §11.4.78 CodeGraph — local SQLite knowledge graph (per-machine, regenerated via scripts/codegraph_reindex.sh per §11.4.77)
 .codegraph/codegraph.db
 .codegraph/codegraph.db-*
 .codegraph/cache/
 .codegraph/.dirty
+
+# §11.4.30 + §11.4.77 — per-host regeneration stamps. The `.yaml`
+# manifests under .gitignore-meta/ ARE tracked (they declare the
+# regen mechanism per §11.4.77); the per-run timestamp markers
+# under .regenerated/ are LOCAL runtime state and MUST NOT be
+# versioned (they change on every setup.sh run, causing constant
+# `M` in `git status`). The gates that consume them resolve from
+# host state, not from git.
+.gitignore-meta/.regenerated/
+
+# Local-only Claude Code session/setting files (per-operator)
+.claude/
