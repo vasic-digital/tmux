@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="uninstallsh">uninstall.sh</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T15:15:00Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+v1.0.11 operator-facing uninstall entry point per §11.4.18</p>
+<h2 id="purpose">Purpose</h2>
+<p>Operator-facing thin wrapper that delegates to
+<code>scripts/setup.sh --uninstall</code>. Single source of truth for
+what &quot;uninstall&quot; means lives in <code>setup.sh</code>&#39;s
+<code>_do_uninstall</code> function; <code>uninstall.sh</code> only
+exists so operators have a discoverable verb
+(<code>bash scripts/uninstall.sh</code>) that mirrors
+<code>bash scripts/setup.sh</code>.</p>
+<h2 id="usage">Usage</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Standard uninstall — preserves operator data under ~/.tmx/</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Also remove per-session last-pwd state in ~/.tmx/</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh <span class="at">--purge-state</span></span></code></pre></div>
+<h2 id="inputs">Inputs</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--purge-state</code> flag</td>
+<td>When set, also remove <code>~/.tmx/</code> (per-session last-pwd
+state). Default: preserve.</td>
+</tr>
+<tr>
+<td><code>--help</code> / <code>-h</code></td>
+<td>Show this guide&#39;s header.</td>
+</tr>
+<tr>
+<td><code>PURGE_STATE=1</code> env var</td>
+<td>Same effect as <code>--purge-state</code> (used by tests).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="outputs">Outputs</h2>
+<p>Side-effecting only. No stdout JSON / structured output. Per-step
+progress lines printed to stderr by the underlying
+<code>_do_uninstall</code> function.</p>
+<h2 id="what-is-removed">What is removed</h2>
+<table>
+<thead>
+<tr>
+<th>Artefact</th>
+<th>Removed?</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>─── vasic-digital optimized tmux ───</code> fenced block in
+<code>~/.bashrc</code> + <code>~/.zshrc</code></td>
+<td>YES</td>
+<td>Generated by setup.sh; nothing else should reference it.</td>
+</tr>
+<tr>
+<td>Legacy pre-v1.0.9 unfenced
+<code>if command -v tmx ...; then ...; fi</code> snippet</td>
+<td>YES</td>
+<td>Pre-v1.0.9 hand-pasted snippets that would otherwise
+double-trigger.</td>
+</tr>
+<tr>
+<td><code>~/.tmux.conf</code> (only if it contains
+<code>vasic-digital optimized tmux configuration</code>)</td>
+<td>YES</td>
+<td>Setup.sh generated; operator&#39;s pre-existing file preserved via
+backup <code>~/.tmux.conf.pre-vasic-digital</code>.</td>
+</tr>
+<tr>
+<td><code>scripts/tmx</code> (wrapper)</td>
+<td>YES</td>
+<td>Generated from <code>scripts/tmx.template</code> at install
+time.</td>
+</tr>
+<tr>
+<td><code>scripts/tmx-shell-init.sh</code> (shell init — v1.0.9+)</td>
+<td>YES</td>
+<td>Generated from <code>scripts/tmx-shell-init.sh.template</code> at
+install time.</td>
+</tr>
+<tr>
+<td><code>scripts/tmx-state-bin</code> (Go binary — v1.0.9+)</td>
+<td>YES</td>
+<td>Built from <code>scripts/tmx-state/</code> Go source at install
+time.</td>
+</tr>
+<tr>
+<td><code>~/.tmx/state.json</code> (per-session last-pwd)</td>
+<td>NO (unless <code>--purge-state</code>)</td>
+<td>§9 zero-risk-data-safety — operator data.</td>
+</tr>
+<tr>
+<td><code>tmux/build*/</code> (compiled tmux binary)</td>
+<td>NO</td>
+<td>Rebuild costs minutes; manual <code>rm -rf tmux/build*</code> if
+desired.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="side-effects">Side-effects</h2>
+<ul>
+<li>Touches the operator&#39;s <code>~/.bashrc</code>,
+<code>~/.zshrc</code>, <code>~/.tmux.conf</code> (only to remove our
+content).</li>
+<li>Removes generated files inside the project&#39;s <code>scripts/</code>
+directory.</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li><code>scripts/setup.sh</code> (the underlying implementation).</li>
+<li><code>perl</code> and <code>python3</code> (used by
+<code>_strip_bashrc_snippet</code>).</li>
+</ul>
+<h2 id="cross-references">Cross-references</h2>
+<ul>
+<li><a href="../guides/tmx-shell-integration.md">docs/guides/tmx-shell-integration.md</a>
+§uninstall</li>
+<li><a href="tmx-shell-init.md">docs/scripts/tmx-shell-init.md</a></li>
+<li><a href="tmx-state.md">docs/scripts/tmx-state.md</a></li>
+<li>Tests:
+<code>scripts/tests/42_setup_install_uninstall_e2e.sh</code></li>
+</ul>
+<h2 id="114-anti-bluff">§11.4 anti-bluff</h2>
+<p>Uninstall is verified by test 42&#39;s Phase B (3 iterations, identical
+hash). Removing the rc snippet, the init.sh file, the wrapper, AND
+asserting they are all gone is captured-evidence per §11.4.5.</p>
+<h2 id="last-verified">Last verified</h2>
+<p>2026-05-22 (test 42 PASSes on macOS + nezha-Linux).</p>
+</body>
+</html>

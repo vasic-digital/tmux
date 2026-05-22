@@ -18,9 +18,10 @@ scripts/oom_set
 /tmp/__*.log
 /tmp/.*tmux*
 
-# Generated wrappers (installed via setup.sh / test_vm.sh; never committed)
+# Generated wrappers + shell-init (installed via setup.sh; never committed)
 scripts/tmx
 scripts/tmx-vm
+scripts/tmx-shell-init.sh
 
 # §11.4.30 + §11.4.77 — Go-built per-OS binary. Source under scripts/tmx-state/
 # is tracked; the binary is rebuilt by setup.sh step 3d on each host.

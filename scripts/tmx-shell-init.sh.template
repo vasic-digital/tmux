@@ -1,6 +1,6 @@
 #!/bin/sh
 # tmx-shell-init — sourced from .bashrc/.zshrc to drive interactive tmx session selection
-# Project: vasic-digital tmux (https://github.com/vasic-digital/twork-tmux)
+# Project: vasic-digital tmux (https://github.com/vasic-digital/tmux)
 # Generated from scripts/tmx-shell-init.sh.template by scripts/setup.sh on __DATE__
 # Documentation: docs/guides/tmx-shell-integration.md
 # §11.4.67 — POSIX-parseable (sh -n clean), works under bash 3.2/5+, zsh, dash

@@ -6,6 +6,131 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.11] — 2026-05-22
+
+**Critical UX fix.** v1.0.9 + v1.0.10 quietly never generated
+`scripts/tmx-shell-init.sh` from its template — setup.sh wrote the rc
+snippet (`[ -r ".../tmx-shell-init.sh" ] && . "..."`) but the file the
+snippet sources never existed on disk. The `[ -r ]` guard silently
+no-oped → no operator prompt, no tmx session creation, just a normal
+shell. User report (2026-05-22): "we have not been asked anything
+regarding the naming the session! Terminal just opened without tmux
+session being created!".
+
+This release: (a) generates the file, (b) ships a proper uninstall
+entry point, (c) makes setup self-cleaning, (d) adds a regression
+test that would have caught the original bug.
+
+### Added
+
+- **`scripts/setup.sh` step 3a** — generates `scripts/tmx-shell-init.sh`
+  from `scripts/tmx-shell-init.sh.template` (sed-substitutes
+  `__PROJECT__` + `__DATE__`). The missing step caught by the user
+  report; existing tests substituted the template inline and never
+  exercised the disk → rc → init flow.
+- **`scripts/uninstall.sh`** — operator-facing uninstall entry point.
+  Delegates to `setup.sh --uninstall` (single source of truth).
+  Supports `--purge-state` to also remove `~/.tmx/`.
+- **`scripts/setup.sh` step 0 (clean slate)** — install path now calls
+  `_do_uninstall quiet` as its first action so stale generated
+  artefacts (old wrapper, missing init.sh, half-installed bashrc
+  block) cannot poison a reinstall. Preserves operator data under
+  `~/.tmx/` per §9.
+- **`scripts/setup.sh` `_do_uninstall` function** — extracted the
+  uninstall logic into a callable function reused by `--uninstall`,
+  by the install path (clean-slate pre-step), and by external scripts
+  (`uninstall.sh` shim). Now also removes `scripts/tmx-shell-init.sh`
+  and `scripts/tmx-state-bin` (v1.0.9 generated artefacts) in addition
+  to the v1.0.8 set.
+- **`scripts/tests/42_setup_install_uninstall_e2e.sh`** — new
+  end-to-end test that exercises the FULL install/uninstall flow in
+  a sandbox (no operator-rc-file touching). Verifies init.sh on
+  disk + rc snippet single-source + reach-through to tmx via fake-tmx
+  on PATH (positive captured evidence per §11.4.5). 3 deterministic
+  iterations per §11.4.50; recursion-safe (the test does NOT invoke
+  `setup.sh` — that would re-enter run_all → test 42 → setup.sh
+  forever; the previous draft observed this exact loop with 3
+  concurrent test-42s + an orphaned setup-verify).
+- **`docs/scripts/uninstall.md`** — §11.4.18 companion doc for the
+  uninstall script.
+
+### Changed
+
+- **`scripts/tmx-shell-init.sh.template`** — header typo fixed
+  (`twork-tmux` → `vasic-digital/tmux`).
+- **`docs/guides/tmx-shell-integration.md`** — section 7 rewritten:
+  documents the v1.0.11 uninstall entry point, the `--purge-state`
+  flag, the auto-clean-slate behaviour, and the equivalent
+  `setup.sh --uninstall` invocation. HTML + PDF siblings refreshed
+  per §11.4.65.
+- **`.gitignore`** — `scripts/tmx-shell-init.sh` added (now generated
+  per §11.4.30).
+- **`scripts/setup.sh` `_echo` helper** — explicit `return 0` so
+  `set -e` does not kill the script when quiet mode short-circuits
+  the `[ -z "$quiet" ]` test.
+
+### Fixed
+
+- Operator opens new terminal → no prompt fires → no session created
+  (the user-visible bug). Root cause: missing on-disk file. Step 3a
+  now generates it.
+- A repeat `bash scripts/setup.sh` no longer leaves stale generated
+  artefacts; step 0 cleans them first.
+
+### §11.4 covenant
+
+The original bug class — "rc snippet sourced a file that did not
+exist on disk" — was invisible to every existing test because each
+test SUBSTITUTED the template inline (test 19, 20, 26, 28, 29, 35,
+38) rather than exercising the on-disk generator → file → rc → init
+chain that operators actually use. Test 42 closes that gap with
+positive captured-evidence at each phase:
+
+| Phase | Evidence captured |
+|---|---|
+| A1 | `tmx-shell-init.sh` exists, executable, no `__PROJECT__` / `__DATE__` |
+| A2 | rc has exactly 1 source line matching the strict pattern |
+| A3 | rc has exactly 1 open marker + 1 close marker (1 fenced block) |
+| A4 | fake-tmx PATH-injected, init script invokes it, log captures argv |
+| B1 | rc open/close markers both 0 after uninstall |
+| B2 | legacy unfenced `if command -v tmx` block also removed |
+| B3 | `tmx-shell-init.sh` removed from disk |
+
+§11.4.50: 21/21 PASS over 3 iterations with identical reliability
+hash. Anti-bluff: test 42 caught a real bug in itself during this
+work — initial draft recursed (called `bash scripts/setup.sh` which
+re-entered run_all which re-ran test 42, etc.). Observed: 3
+concurrent test-42 processes + orphan setup-verify, all hung for
+18 minutes before manual SIGKILL. Refactored to NOT invoke
+`setup.sh` — instead reproduce the install steps deterministically
+inline against the sandbox.
+
+### §11.4.81 cross-platform parity
+
+Test 42 works identically on Linux + macOS — uses a sandboxed rc
+file (not `~/.bashrc` / `~/.zshrc`) so no platform-specific shell
+detection is required.
+
+### Verification
+
+- macOS full setup.sh --verify-only: PASS=39 FAIL=0 SKIP=3 → GREEN
+- Test 42 standalone: PASS=21 FAIL=0, 3/3 deterministic iterations
+
+### Files modified
+
+- `VERSION` — 1.0.10 → 1.0.11 (versionCode 11 → 12)
+- `CHANGELOG.md` — this entry
+- `.gitignore`
+- `scripts/setup.sh`
+- `scripts/tmx-shell-init.sh.template`
+- `scripts/tests/42_setup_install_uninstall_e2e.sh` (NEW)
+- `scripts/uninstall.sh` (NEW)
+- `docs/guides/tmx-shell-integration.md` (rewritten §7)
+- `docs/scripts/uninstall.md` (NEW)
+- HTML + PDF exports for changed docs
+
+---
+
 ## [v1.0.10] — 2026-05-22
 
 **Linux + macOS GREEN follow-up to v1.0.9.** Six concrete defects surfaced
