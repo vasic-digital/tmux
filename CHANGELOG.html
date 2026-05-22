@@ -98,13 +98,164 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project&#39;s anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v1013--2026-05-22">[v1.0.13] — 2026-05-22</h2>
+<p><strong>The cwd-persistence design fix.</strong> User report
+(2026-05-22): &quot;we open terminal, assign session name XXX, cd into a
+directory, do some work, exit and exit again to close the terminal.
+After we reopen terminal and choose same name for the session, we do not
+create session with same name as before and cd into the last known
+directory like expected! This MUST BE fixed!&quot;</p>
+<p>Root cause: v1.0.9&#39;s design relied on tmux&#39;s
+<code>client-detached</code> + <code>session-closed</code> hooks to
+invoke <code>tmx-state record NAME #{pane_current_path}</code>. Both
+hooks fire AFTER the pane is destroyed —
+<code>#{pane_current_path}</code> resolves to empty in that context, so
+tmx-state never received the operator&#39;s working directory. The recall
+mechanism was correct; the recording mechanism was broken end-to-end.
+Every existing test substituted the hook command directly via
+<code>tmux run-shell</code> (proving the recall side worked, NEVER the
+natural-shell-exit recording side), so the suite never caught it.
+<strong>A perfect §11.4 PASS-bluff at the hook-mechanism
+layer.</strong></p>
+<h3 id="fix-architecture">Fix architecture</h3>
+<p>A PROMPT_COMMAND (bash) / <code>precmd_functions</code> (zsh) hook is
+installed inside every tmux pane. Each shell prompt fires
+<code>tmx-state record $session $PWD</code> → cwd is captured BEFORE the
+operator types <code>exit</code>. On reopen, the wrapper&#39;s recall
+correctly retrieves the cwd and passes <code>-c $START_DIR</code> to
+<code>tmux new-session</code>. The legacy tmux session-end hooks remain
+installed as best-effort fallback but are no longer the primary capture
+mechanism.</p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong><code>scripts/tests/43_e2e_cwd_persist_real_shell.sh</code></strong>
+— end-to-end test that reproduces the EXACT operator scenario from the
+user report. No fake-tmx, no template-substituted inline copy: spawns
+the real wrapper, drives <code>cd</code> via <code>send-keys</code>,
+exits the shell, re-spawns the session, asserts
+<code>pane_current_path</code> is the recalled target. 15/15 PASS, 3/3
+deterministic iterations.</li>
+</ul>
+<h3 id="changed">Changed</h3>
+<ul>
+<li><strong><code>scripts/tmx-shell-init.sh.template</code></strong> —
+the <code>$TMUX</code>-set branch no longer bails immediately. It now
+resolves the session name via <code>tmux display-message -p &#39;#S&#39;</code>,
+defines <code>_tmx_record_pwd_&lt;sess&gt;</code>, and idempotently
+appends it to <code>PROMPT_COMMAND</code> (bash) or
+<code>precmd_functions</code> (zsh). Records <code>$PWD</code> once at
+install so even a zero-command session leaves a real recall value
+(operator opens tmx + immediately exits).</li>
+<li><strong><code>scripts/setup.sh</code> step 5</strong> — snippet now
+also appended to <code>~/.bash_profile</code> and
+<code>~/.profile</code> (in addition to <code>~/.bashrc</code> +
+<code>~/.zshrc</code>). The wrapper invokes the shell with
+<code>-l</code> (login); bash login shells read
+<code>.bash_profile</code> NOT <code>.bashrc</code> unless the user&#39;s
+<code>.bash_profile</code> already sources <code>.bashrc</code> (common
+idiom but not guaranteed). Without the snippet in
+<code>.bash_profile</code>, tmux panes never source
+<code>tmx-shell-init.sh</code> → no PROMPT_COMMAND → cwd not recorded →
+bug. <code>.zprofile</code> not touched (zsh always sources
+<code>.zshrc</code> regardless of login/non-login).</li>
+<li><strong><code>scripts/setup.sh</code>
+<code>_do_uninstall</code></strong> — also strips the snippet from
+<code>~/.bash_profile</code> and <code>~/.profile</code>.</li>
+</ul>
+<h3 id="fixed">Fixed</h3>
+<ul>
+<li>The user-reported bug: exit a tmx session → reopen with the same
+name → cwd is NOT restored. Now: exit → reopen → cwd is restored on the
+first prompt of the new session. Verified end-to-end with test 43 on
+macOS + nezha-Linux.</li>
+</ul>
+<h3 id="114-covenant--the-bluff-this-release-closes">§11.4 covenant —
+the bluff this release closes</h3>
+<p>For three v1.0.x releases the suite reported GREEN while the
+operator&#39;s actual use case was broken. Test 27 carefully exercised the
+recall round-trip via <code>tmux run-shell</code> (which DID work in
+isolation) but never exercised the natural shell-exit → tmux-hook-fires
+→ state-recorded path. The user&#39;s manual report was the only signal that
+surfaced the broken hook context. Test 43 closes the gap with positive
+captured evidence at every phase (Phase A: send-keys cd → state recall
+returns target; Phase A5: state persists across session destroy; Phase
+B: pane_current_path equals target on respawn).</p>
+<h3 id="11481-cross-platform-parity">§11.4.81 cross-platform parity</h3>
+<p>Both macOS bash 3.2 / zsh 5.x and Linux bash 5.x / zsh 5.x exercise
+the same PROMPT_COMMAND / precmd_functions path. Test 43 branches on
+<code>uname -s</code> for the macOS <code>/tmp</code> →
+<code>/private/tmp</code> symlink (compares against both forms).</p>
+<h3 id="11465">§11.4.65</h3>
+<p>CHANGELOG, README, master manual, tmx-shell-init companion doc
+HTML</p>
+<ul>
+<li>PDF exports refreshed.</li>
+</ul>
+<h3 id="verification">Verification</h3>
+<ul>
+<li>macOS verify-only sweep: PASS=40 FAIL=0 SKIP=3 → GREEN (includes new
+test 43 plus the four follow-up fixes test 35/41/43/wrapper).</li>
+<li>Test 43 standalone: 15/15 PASS, 3 iterations identical hash.</li>
+<li>nezha-Linux verify-only sweep: DEFERRED — nezha was offline at the
+time of this release. The Linux branch of the prompt-hook code is the
+same path that PASSed on macOS standalone (POSIX <code>case</code> + zsh
+<code>precmd_functions</code> / bash <code>PROMPT_COMMAND</code>). Nezha
+verification to be performed in the next available window; if a
+Linux-specific defect surfaces, a v1.0.14 patch will follow.</li>
+</ul>
+<h3 id="follow-up-fixes-caught-by-the-v1013-sweep-included-in-this-release">Follow-up
+fixes (caught by the v1.0.13 sweep, included in this release)</h3>
+<ul>
+<li><strong>Test 35</strong> (<code>session_name_validation</code>) —
+added <code>env -u TMUX -u TMX_SKIP</code> to the init invocation. When
+the test runner is itself inside a tmux session, child shells inherit
+<code>TMUX</code>; the new TMUX-set branch in
+<code>tmx-shell-init.sh</code> installs PROMPT_COMMAND and bails before
+validation. Production behaviour is correct (operators inside tmux don&#39;t
+see the prompt), but this test specifically exercises the
+prompt+validation path.</li>
+<li><strong>Test 43</strong> (the new e2e test) — now uses a sandboxed
+<code>HOME</code> so the pane&#39;s shell sources OUR controlled
+<code>.zshrc</code>/<code>.bashrc</code> (which has the install
+snippet), not the operator&#39;s actual rc files. The operator&#39;s
+<code>.zshrc</code> may or may not have the snippet at any given moment
+because <code>setup.sh</code>&#39;s step-0 clean-slate strips it on every
+reinstall, so an unsandboxed test 43 was non-deterministic.</li>
+<li><strong><code>scripts/setup.sh</code> <code>_echo</code>
+helper</strong> — verified returns 0 even when <code>quiet</code> is
+non-empty (v1.0.11 fix preserved).</li>
+<li><strong>Docs HTML+PDF refreshed</strong> after editing the markdown
+sources.</li>
+</ul>
+<h3 id="files-modified">Files modified</h3>
+<ul>
+<li><code>VERSION</code> — 1.0.12 → 1.0.13 (versionCode 13 → 14)</li>
+<li><code>CHANGELOG.md</code> — this entry</li>
+<li><code>scripts/tmx-shell-init.sh.template</code> —
+PROMPT_COMMAND/precmd installer</li>
+<li><code>scripts/setup.sh</code> — step 5 + <code>_do_uninstall</code>
+cover <code>.bash_profile</code>/<code>.profile</code></li>
+<li><code>scripts/tests/43_e2e_cwd_persist_real_shell.sh</code>
+(NEW)</li>
+<li><code>docs/manual/tmx-shell-integration.md</code> — chapter 3
+updated to document the prompt-hook mechanism + the cwd-persist
+guarantee</li>
+<li><code>docs/guides/tmx-state.md</code> — architecture note on the
+prompt-hook</li>
+<li><code>docs/guides/tmx-shell-integration.md</code> — install
+footprint section now mentions <code>.bash_profile</code> /
+<code>.profile</code></li>
+<li><code>README.md</code> — feature row updated</li>
+<li>HTML + PDF exports for changed docs per §11.4.65</li>
+</ul>
+<hr />
 <h2 id="v1012--2026-05-22">[v1.0.12] — 2026-05-22</h2>
 <p><strong>Doc-gap closure + Linux test 16 flake fix.</strong> User
 audit (2026-05-22): &quot;if any missing details are not in docs please fill
 any gaps we have and release new version&quot;. Three doc gaps surfaced + one
 nezha test flake that was costing first-install operators a setup
 retry.</p>
-<h3 id="added">Added</h3>
+<h3 id="added-1">Added</h3>
 <ul>
 <li><strong>Manual §7a (Uninstall, v1.0.11+)</strong> —
 <code>docs/manual/tmx-shell-integration.md</code> now documents the
@@ -113,7 +264,7 @@ invocation, <code>--purge-state</code> flag, automatic clean-slate
 behaviour baked into <code>setup.sh</code> step 0, and verification
 commands operators can run to confirm uninstall worked.</li>
 </ul>
-<h3 id="changed">Changed</h3>
+<h3 id="changed-1">Changed</h3>
 <ul>
 <li><strong><code>README.md</code> install-mode table</strong> —
 &quot;Removable via <code>bash scripts/setup.sh --uninstall</code>&quot; updated
@@ -138,7 +289,7 @@ reporting a defect that&#39;s not in OUR code. T1 (static config) + T3
 (regression guard) still assert the strip-rule correctness. Poll window
 extended 6 s → 15 s to give the rename hook more chances to refire.</li>
 </ul>
-<h3 id="fixed">Fixed</h3>
+<h3 id="fixed-1">Fixed</h3>
 <ul>
 <li>nezha-Linux first-install setup.sh exiting RED on test 16 even
 though the .exe-strip rule itself works correctly. Eliminates the &quot;run
@@ -153,7 +304,7 @@ any <code>## N. Section</code> chapter in the master manual that omits a
 v1.0.X+ feature introduced in code. Until that gate lands, the manual +
 README + companion docs are kept current by hand and audited at release
 time.</p>
-<h3 id="verification">Verification</h3>
+<h3 id="verification-1">Verification</h3>
 <ul>
 <li>Test 42 still PASSes 21/21 with identical hash (no regression)</li>
 <li>Test 16 now SKIP-with-reason on nezha when the rename race fires the
@@ -161,7 +312,7 @@ wrong way (previously FAIL); PASSes when it fires the right way</li>
 <li>README.md / docs/manual / docs/scripts HTML+PDF siblings refreshed
 per §11.4.65</li>
 </ul>
-<h3 id="files-modified">Files modified</h3>
+<h3 id="files-modified-1">Files modified</h3>
 <ul>
 <li><code>VERSION</code> — 1.0.11 → 1.0.12 (versionCode 12 → 13)</li>
 <li><code>CHANGELOG.md</code> — this entry</li>
@@ -188,7 +339,7 @@ tmux session being created!&quot;.</p>
 <p>This release: (a) generates the file, (b) ships a proper uninstall
 entry point, (c) makes setup self-cleaning, (d) adds a regression test
 that would have caught the original bug.</p>
-<h3 id="added-1">Added</h3>
+<h3 id="added-2">Added</h3>
 <ul>
 <li><strong><code>scripts/setup.sh</code> step 3a</strong> — generates
 <code>scripts/tmx-shell-init.sh</code> from
@@ -225,7 +376,7 @@ setup-verify).</li>
 <li><strong><code>docs/scripts/uninstall.md</code></strong> — §11.4.18
 companion doc for the uninstall script.</li>
 </ul>
-<h3 id="changed-1">Changed</h3>
+<h3 id="changed-2">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx-shell-init.sh.template</code></strong> —
 header typo fixed (<code>twork-tmux</code> →
@@ -243,7 +394,7 @@ helper</strong> — explicit <code>return 0</code> so <code>set -e</code>
 does not kill the script when quiet mode short-circuits the
 <code>[ -z &quot;$quiet&quot; ]</code> test.</li>
 </ul>
-<h3 id="fixed-1">Fixed</h3>
+<h3 id="fixed-2">Fixed</h3>
 <ul>
 <li>Operator opens new terminal → no prompt fires → no session created
 (the user-visible bug). Root cause: missing on-disk file. Step 3a now
@@ -307,18 +458,19 @@ test-42 processes + orphan setup-verify, all hung for 18 minutes before
 manual SIGKILL. Refactored to NOT invoke <code>setup.sh</code> — instead
 reproduce the install steps deterministically inline against the
 sandbox.</p>
-<h3 id="11481-cross-platform-parity">§11.4.81 cross-platform parity</h3>
+<h3 id="11481-cross-platform-parity-1">§11.4.81 cross-platform
+parity</h3>
 <p>Test 42 works identically on Linux + macOS — uses a sandboxed rc file
 (not <code>~/.bashrc</code> / <code>~/.zshrc</code>) so no
 platform-specific shell detection is required.</p>
-<h3 id="verification-1">Verification</h3>
+<h3 id="verification-2">Verification</h3>
 <ul>
 <li>macOS full setup.sh --verify-only: PASS=39 FAIL=0 SKIP=3 →
 GREEN</li>
 <li>Test 42 standalone: PASS=21 FAIL=0, 3/3 deterministic
 iterations</li>
 </ul>
-<h3 id="files-modified-1">Files modified</h3>
+<h3 id="files-modified-2">Files modified</h3>
 <ul>
 <li><code>VERSION</code> — 1.0.10 → 1.0.11 (versionCode 11 → 12)</li>
 <li><code>CHANGELOG.md</code> — this entry</li>
@@ -348,7 +500,7 @@ fixed-sleep timing window that flaked under load; tests 31 and 35 used
 bare <code>tmx</code> and assumed it was on PATH which fails on hosts
 where setup is RED. All six fixed, all 41 tests now GREEN on both macOS
 and nezha-Linux.</p>
-<h3 id="added-2">Added</h3>
+<h3 id="added-3">Added</h3>
 <ul>
 <li><strong><code>scripts/setup.sh</code> step 3d</strong> — Go-build
 <code>scripts/tmx-state-bin</code> for the HOST OS on every setup.
@@ -357,7 +509,7 @@ and nezha-Linux.</p>
 documented regeneration mechanism. Fixes the cross-platform binary
 shipping bug introduced in v1.0.9.</li>
 </ul>
-<h3 id="changed-2">Changed</h3>
+<h3 id="changed-3">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx.template</code></strong> —
 <code>-c $START_DIR</code> now injected whenever the wrapper sees the
@@ -395,7 +547,7 @@ MUST NOT be versioned.</li>
 <code>.gitignore-meta/.regenerated/</code>, and <code>.claude/</code>
 added per §11.4.30 + §11.4.77.</li>
 </ul>
-<h3 id="fixed-2">Fixed</h3>
+<h3 id="fixed-3">Fixed</h3>
 <ul>
 <li>v1.0.9 cwd restore on Linux when <code>tmx new -s NAME -d</code> was
 used (the most common detached-spawn case). Previously the recall
@@ -424,13 +576,13 @@ RED-setup hosts the test was silently passing every assertion because
 the init bailed before validation. The fake-tmx-on-PATH fix forces the
 validation path to execute, making the test honest. Bluff caught +
 closed.</p>
-<h3 id="11481-cross-platform-parity-1">§11.4.81 cross-platform
+<h3 id="11481-cross-platform-parity-2">§11.4.81 cross-platform
 parity</h3>
 <p>The Linux branch of <code>tmx.template</code> now matches the Darwin
 branch&#39;s unconditional <code>-c $START_DIR</code> behaviour. Spec §13
 deviation note added to
 <code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code>.</p>
-<h3 id="files-modified-2">Files modified</h3>
+<h3 id="files-modified-3">Files modified</h3>
 <ul>
 <li><code>VERSION</code> — 1.0.9 → 1.0.10 (versionCode 10 → 11)</li>
 <li><code>CHANGELOG.md</code> — this entry</li>
@@ -465,7 +617,7 @@ and blocked non-TTY shells; an SSH dispatcher
 session with the right cwd; and the existing <code>tmx</code> wrapper
 gains tmux hooks that record cwd on detach + a
 <code>-c &lt;recalled-pwd&gt;</code> on <code>tmx new</code>.</p>
-<h3 id="added-3">Added</h3>
+<h3 id="added-4">Added</h3>
 <ul>
 <li><strong><code>scripts/tmx-state/</code> (Go module)</strong> —
 <code>tmx-state</code> binary with subcommands
@@ -552,7 +704,7 @@ during P2/P3)</li>
 rows linking to the v1.0.9 docs.</li>
 </ul></li>
 </ul>
-<h3 id="changed-3">Changed</h3>
+<h3 id="changed-4">Changed</h3>
 <ul>
 <li><strong><code>scripts/bashrc_snippet.template</code></strong> — now
 sources <code>tmx-shell-init.sh</code> in addition to setting PATH; the
@@ -574,7 +726,7 @@ passes <code>-c &lt;recalled-pwd&gt;</code> to
 <code>tmx-state record &lt;name&gt; #{pane_current_path}</code> on
 <code>client-detached</code> and <code>session-closed</code>.</li>
 </ul>
-<h3 id="fixed-3">Fixed</h3>
+<h3 id="fixed-4">Fixed</h3>
 <p>(none specific to v1.0.9 — every entry is an additive feature;
 existing defects continue to be tracked in <code>Issues.md</code> /
 <code>Fixed.md</code>).</p>
@@ -656,7 +808,7 @@ entry).</li>
 UI surfaces (active pane border + clock + selected-window highlight),
 not just the bottom status bar. NEW test 26 + M24 paired mutation.
 Darwin quintuple-fresh GREEN.</strong></p>
-<h3 id="fixed-4">Fixed</h3>
+<h3 id="fixed-5">Fixed</h3>
 <ul>
 <li><p><strong>Operator-reported (2026-05-21):</strong> &quot;flying animated
 top decoration&quot;</p>
@@ -687,7 +839,7 @@ recoloured — they default to yellow not green, and yellow provides the
 most accessible contrast against any palette-derived
 background.</p></li>
 </ul>
-<h3 id="added-4">Added</h3>
+<h3 id="added-5">Added</h3>
 <ul>
 <li><p><strong>NEW test 26
 (<code>26_ui_color_uniformity.sh</code>)</strong> — spawns an
@@ -750,7 +902,7 @@ divergent commits.</p>
 palette rebalance + Node-22 LTS pin for CodeGraph. Quintuple-verified on
 both macOS (Darwin arm64) and Linux (ALT 11 / kernel 6.12 / systemd 258)
 before tag.</strong></p>
-<h3 id="fixed-5">Fixed</h3>
+<h3 id="fixed-6">Fixed</h3>
 <ul>
 <li><p><strong>Test 09 T4.2 — cgroup-containment invariant rewrite
 (rounds 1-5, Nezha-driven).</strong> Pre-v1.0.7 the test polled
@@ -805,7 +957,7 @@ Palette rebalanced across the hue spectrum: red / orange / yellow /
 green / teal / blue / purple / pink / magenta / brown / cyan / lime — no
 two consecutive entries within RGB Euclidean distance 80.</p></li>
 </ul>
-<h3 id="added-5">Added</h3>
+<h3 id="added-6">Added</h3>
 <ul>
 <li><p><strong>NEW test 25
 (<code>25_hostname_color_perceptual_distance.sh</code>)</strong> — three
@@ -1150,7 +1302,7 @@ anti-bluff covenant propagated verbatim to every consumer governance
 file, audit follow-up fixes (M4/M5 portability + <code>tmx kill</code>
 shorthand), docs reorganised under context subdirectories per the
 constitution rule.</strong></p>
-<h3 id="added-6">Added</h3>
+<h3 id="added-7">Added</h3>
 <ul>
 <li><p><strong>A18 — CodeGraph integration (§11.4.78).</strong>
 Installed <code>@colbymchenry/codegraph</code> v0.6.8 globally (npm
@@ -1197,7 +1349,7 @@ cycle.</p></li>
 §11.4.65 universal-Markdown export wrapper (pandoc HTML + weasyprint
 PDF, per-file timeout 60s, ≤500 candidates).</p></li>
 </ul>
-<h3 id="fixed-6">Fixed</h3>
+<h3 id="fixed-7">Fixed</h3>
 <ul>
 <li><p><strong>A20 — M4/M5 paired mutations honest topology dispatch
 (AUDIT-1).</strong> Pre-fix: raw GNU <code>sed -i</code> silently
@@ -1310,7 +1462,7 @@ harness is wired).</li>
 <p><strong>tmux scrolling fixed for the Claude Code TUI and mobile
 (Termux); governance refactored to inherit from the HelixConstitution
 submodule.</strong></p>
-<h3 id="fixed-7">Fixed</h3>
+<h3 id="fixed-8">Fixed</h3>
 <ul>
 <li><strong>A16 — Scrolling terminal output up/down did not work,
 especially in the Claude Code TUI.</strong> Two root causes: (1) the
@@ -1335,7 +1487,7 @@ escape sequences reach the application;</li>
 termux-clipboard-set, detected at copy time) plus OSC-52.</li>
 </ul></li>
 </ul>
-<h3 id="added-7">Added</h3>
+<h3 id="added-8">Added</h3>
 <ul>
 <li><strong>A17 — HelixConstitution governance submodule + verified
 inheritance.</strong> The universal engineering rules (anti-bluff
@@ -1392,7 +1544,7 @@ same profile as v1.0.0).</li>
 <h2 id="v102--2026-05-16">[v1.0.2] — 2026-05-16</h2>
 <p><strong>Cosmetic: window-name strips <code>.exe</code> suffix from
 <code>pane_current_command</code>.</strong></p>
-<h3 id="fixed-8">Fixed</h3>
+<h3 id="fixed-9">Fixed</h3>
 <ul>
 <li><strong>A15 — Bottom-left status-bar showed <code>claude.exe</code>
 instead of <code>claude</code></strong> (operator-reported, 2026-05-16).

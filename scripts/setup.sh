@@ -117,7 +117,9 @@ _do_uninstall() {
 
     # 1. Strip the FENCED v1.0.9+ block + any LEGACY pre-v1.0.9 inline
     #    snippet from .bashrc / .zshrc (whichever exist).
-    for rc in ~/.bashrc ~/.zshrc; do
+    # v1.0.13 — also clean .bash_profile / .profile in case prior install
+    # added the snippet there (bash login shells read those, not .bashrc).
+    for rc in ~/.bashrc ~/.bash_profile ~/.profile ~/.zshrc; do
         if [ -f "$rc" ] && grep -q '─── vasic-digital optimized tmux\|if command -v tmx' "$rc" 2>/dev/null; then
             _strip_bashrc_snippet "$rc"
             _echo "  ✓ removed snippet from $rc"
@@ -435,9 +437,28 @@ SNIPPET=$(sed \
 # to ~/.bashrc would silently fail to put `tmx` on the operator's PATH
 # (§1 bluff: install claims tmx is reachable, but in the user's actual
 # shell it isn't). Handle both shells; the snippet is bash/zsh-portable.
-for rc in ~/.bashrc ~/.zshrc; do
-    [ -e "$rc" ] || [ "$rc" = ~/.zshrc -a "$HOST_OS" = "Darwin" ] || continue
-    if grep -q '─── vasic-digital optimized tmux' "$rc" 2>/dev/null; then
+# v1.0.13 — also append to .bash_profile. The wrapper invokes the shell
+# with `-l` (login) on both OSes; bash login shells read .bash_profile
+# but NOT .bashrc unless .bash_profile sources .bashrc explicitly (the
+# common idiom but not guaranteed). Without the snippet in .bash_profile,
+# tmux panes spawned by our wrapper never see PROMPT_COMMAND, so cwd
+# never gets recorded on the prompt-hook path → exit+reopen loses the
+# cwd. Adding .bash_profile + .profile to the install list closes that
+# gap. .zprofile NOT touched because zsh always sources .zshrc regardless
+# of login/non-login (per the zsh startup-file table).
+for rc in ~/.bashrc ~/.bash_profile ~/.profile ~/.zshrc; do
+    # Append to .bashrc + .zshrc unconditionally (creating if missing on
+    # Darwin where .zshrc may not exist). For .bash_profile and .profile,
+    # only touch if they already exist OR if the user's default shell is
+    # bash (the conventional case to install in).
+    case "$rc" in
+        ~/.bashrc|~/.zshrc) ;;
+        ~/.bash_profile|~/.profile)
+            # Only touch these if they already exist OR if $SHELL is bash.
+            [ -e "$rc" ] || case "${SHELL:-}" in *bash) ;; *) continue ;; esac
+            ;;
+    esac
+    if [ -e "$rc" ] && grep -q '─── vasic-digital optimized tmux' "$rc" 2>/dev/null; then
         _strip_bashrc_snippet "$rc"
     fi
     printf '%s\n' "$SNIPPET" >> "$rc"

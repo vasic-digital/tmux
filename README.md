@@ -84,6 +84,7 @@ Both OS paths deliver the **same operator UX**: plain-vanilla tmux behaviour, th
 | **Runtime `LD_PRELOAD=libjemalloc.so`** | Wrapper preloads jemalloc even on hosts where the linker resolved a different malloc |
 | **OOM-score protection** | Optional setcap-enabled helper (`tmx-oom-set`) sets `oom_score_adj=-500` on the spawned server, making tmux survive most OOM cascades |
 | **Bounded `history-limit`** | Explicit `2000` (the default — explicit so future bumps are intentional) |
+| **Per-session cwd memory (v1.0.13+)** | `tmx-shell-init.sh` installs a `PROMPT_COMMAND` / `precmd` hook inside every pane; every command's cwd is recorded to `~/.tmx/state.json`. Reopen the same session name → wrapper passes `-c <last-pwd>` to `tmux new-session`; the pane materialises where you left off. End-to-end guarantee verified by `scripts/tests/43_e2e_cwd_persist_real_shell.sh`. |
 | **Hermetic install** | Built artifact lives in `tmux/build/`. PATH export points there; system tmux untouched. Removable via `bash scripts/uninstall.sh` (or `bash scripts/setup.sh --uninstall` — both delegate to the same single source of truth). |
 
 ## Verification gate

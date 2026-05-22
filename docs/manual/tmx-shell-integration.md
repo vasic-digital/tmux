@@ -147,9 +147,33 @@ $ pwd
 /Users/milosvasic/Projects/tmux/scripts/tmx-state   ← still right where you stopped.
 ```
 
-The state file records the deepest pane's cwd at detach time. If you
-had two panes open with different cwds, the LAST detach wins (the tmux
-hook fires per-pane on close as well).
+### 3.2.1 How the cwd capture actually works (v1.0.13+)
+
+A `PROMPT_COMMAND` (bash) or `precmd_functions` entry (zsh) is
+installed inside every tmux pane by `tmx-shell-init.sh` (sourced from
+your `.bashrc` / `.zshrc` / `.bash_profile`). After every command the
+operator runs in the pane, the shell fires that hook, which calls
+`tmx-state-bin record <session> $PWD`. The state file therefore
+always reflects the PWD at the LAST shell prompt before `exit`.
+
+This replaces v1.0.9's flawed design that relied on tmux's
+`client-detached` and `session-closed` hooks alone — those hooks
+fire AFTER the pane is destroyed, when `#{pane_current_path}`
+resolves to empty. v1.0.13 keeps the tmux hooks as best-effort
+fallback but the prompt-hook is the primary recording mechanism.
+
+**End-to-end guarantee:** the user-visible behaviour ("open terminal,
+choose session XXX, cd somewhere, exit, exit, reopen, choose XXX
+again → pane is in the same dir") is exercised by test
+`scripts/tests/43_e2e_cwd_persist_real_shell.sh` with positive
+captured evidence at each phase, 3 deterministic iterations.
+
+### 3.2.2 Edge cases
+
+The state file records the cwd of the pane whose prompt last fired.
+If you had two panes open with different cwds and `exit` only one,
+the surviving pane's prompt-hook continues to record until its own
+exit — the LAST recorded value wins.
 
 ### 3.3 Scenario C — SSH straight into a remote session
 

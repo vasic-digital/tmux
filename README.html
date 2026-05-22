@@ -229,6 +229,16 @@ survive most OOM cascades</td>
 are intentional)</td>
 </tr>
 <tr>
+<td><strong>Per-session cwd memory (v1.0.13+)</strong></td>
+<td><code>tmx-shell-init.sh</code> installs a
+<code>PROMPT_COMMAND</code> / <code>precmd</code> hook inside every
+pane; every command&#39;s cwd is recorded to <code>~/.tmx/state.json</code>.
+Reopen the same session name → wrapper passes
+<code>-c &lt;last-pwd&gt;</code> to <code>tmux new-session</code>; the
+pane materialises where you left off. End-to-end guarantee verified by
+<code>scripts/tests/43_e2e_cwd_persist_real_shell.sh</code>.</td>
+</tr>
+<tr>
 <td><strong>Hermetic install</strong></td>
 <td>Built artifact lives in <code>tmux/build/</code>. PATH export points
 there; system tmux untouched. Removable via

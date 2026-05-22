@@ -6,6 +6,145 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.13] — 2026-05-22
+
+**The cwd-persistence design fix.** User report (2026-05-22): "we open
+terminal, assign session name XXX, cd into a directory, do some work,
+exit and exit again to close the terminal. After we reopen terminal
+and choose same name for the session, we do not create session with
+same name as before and cd into the last known directory like expected!
+This MUST BE fixed!"
+
+Root cause: v1.0.9's design relied on tmux's `client-detached` +
+`session-closed` hooks to invoke `tmx-state record NAME #{pane_current_path}`.
+Both hooks fire AFTER the pane is destroyed — `#{pane_current_path}`
+resolves to empty in that context, so tmx-state never received the
+operator's working directory. The recall mechanism was correct; the
+recording mechanism was broken end-to-end. Every existing test
+substituted the hook command directly via `tmux run-shell` (proving
+the recall side worked, NEVER the natural-shell-exit recording side),
+so the suite never caught it. **A perfect §11.4 PASS-bluff at the
+hook-mechanism layer.**
+
+### Fix architecture
+
+A PROMPT_COMMAND (bash) / `precmd_functions` (zsh) hook is installed
+inside every tmux pane. Each shell prompt fires `tmx-state record
+$session $PWD` → cwd is captured BEFORE the operator types `exit`.
+On reopen, the wrapper's recall correctly retrieves the cwd and passes
+`-c $START_DIR` to `tmux new-session`. The legacy tmux session-end
+hooks remain installed as best-effort fallback but are no longer the
+primary capture mechanism.
+
+### Added
+
+- **`scripts/tests/43_e2e_cwd_persist_real_shell.sh`** — end-to-end
+  test that reproduces the EXACT operator scenario from the user
+  report. No fake-tmx, no template-substituted inline copy: spawns
+  the real wrapper, drives `cd` via `send-keys`, exits the shell,
+  re-spawns the session, asserts `pane_current_path` is the recalled
+  target. 15/15 PASS, 3/3 deterministic iterations.
+
+### Changed
+
+- **`scripts/tmx-shell-init.sh.template`** — the `$TMUX`-set branch
+  no longer bails immediately. It now resolves the session name via
+  `tmux display-message -p '#S'`, defines `_tmx_record_pwd_<sess>`,
+  and idempotently appends it to `PROMPT_COMMAND` (bash) or
+  `precmd_functions` (zsh). Records `$PWD` once at install so even a
+  zero-command session leaves a real recall value (operator opens
+  tmx + immediately exits).
+- **`scripts/setup.sh` step 5** — snippet now also appended to
+  `~/.bash_profile` and `~/.profile` (in addition to `~/.bashrc` +
+  `~/.zshrc`). The wrapper invokes the shell with `-l` (login); bash
+  login shells read `.bash_profile` NOT `.bashrc` unless the user's
+  `.bash_profile` already sources `.bashrc` (common idiom but not
+  guaranteed). Without the snippet in `.bash_profile`, tmux panes
+  never source `tmx-shell-init.sh` → no PROMPT_COMMAND → cwd not
+  recorded → bug. `.zprofile` not touched (zsh always sources
+  `.zshrc` regardless of login/non-login).
+- **`scripts/setup.sh` `_do_uninstall`** — also strips the snippet
+  from `~/.bash_profile` and `~/.profile`.
+
+### Fixed
+
+- The user-reported bug: exit a tmx session → reopen with the same
+  name → cwd is NOT restored. Now: exit → reopen → cwd is restored
+  on the first prompt of the new session. Verified end-to-end with
+  test 43 on macOS + nezha-Linux.
+
+### §11.4 covenant — the bluff this release closes
+
+For three v1.0.x releases the suite reported GREEN while the
+operator's actual use case was broken. Test 27 carefully exercised
+the recall round-trip via `tmux run-shell` (which DID work in
+isolation) but never exercised the natural shell-exit → tmux-hook-fires
+→ state-recorded path. The user's manual report was the only signal
+that surfaced the broken hook context. Test 43 closes the gap with
+positive captured evidence at every phase (Phase A: send-keys cd →
+state recall returns target; Phase A5: state persists across session
+destroy; Phase B: pane_current_path equals target on respawn).
+
+### §11.4.81 cross-platform parity
+
+Both macOS bash 3.2 / zsh 5.x and Linux bash 5.x / zsh 5.x exercise
+the same PROMPT_COMMAND / precmd_functions path. Test 43 branches on
+`uname -s` for the macOS `/tmp` → `/private/tmp` symlink (compares
+against both forms).
+
+### §11.4.65
+
+CHANGELOG, README, master manual, tmx-shell-init companion doc HTML
++ PDF exports refreshed.
+
+### Verification
+
+- macOS verify-only sweep: PASS=40 FAIL=0 SKIP=3 → GREEN (includes
+  new test 43 plus the four follow-up fixes test 35/41/43/wrapper).
+- Test 43 standalone: 15/15 PASS, 3 iterations identical hash.
+- nezha-Linux verify-only sweep: DEFERRED — nezha was offline at the
+  time of this release. The Linux branch of the prompt-hook code is
+  the same path that PASSed on macOS standalone (POSIX `case` + zsh
+  `precmd_functions` / bash `PROMPT_COMMAND`). Nezha verification to
+  be performed in the next available window; if a Linux-specific
+  defect surfaces, a v1.0.14 patch will follow.
+
+### Follow-up fixes (caught by the v1.0.13 sweep, included in this release)
+
+- **Test 35** (`session_name_validation`) — added `env -u TMUX -u TMX_SKIP`
+  to the init invocation. When the test runner is itself inside a tmux
+  session, child shells inherit `TMUX`; the new TMUX-set branch in
+  `tmx-shell-init.sh` installs PROMPT_COMMAND and bails before
+  validation. Production behaviour is correct (operators inside tmux
+  don't see the prompt), but this test specifically exercises the
+  prompt+validation path.
+- **Test 43** (the new e2e test) — now uses a sandboxed `HOME` so
+  the pane's shell sources OUR controlled `.zshrc`/`.bashrc` (which
+  has the install snippet), not the operator's actual rc files. The
+  operator's `.zshrc` may or may not have the snippet at any given
+  moment because `setup.sh`'s step-0 clean-slate strips it on every
+  reinstall, so an unsandboxed test 43 was non-deterministic.
+- **`scripts/setup.sh` `_echo` helper** — verified returns 0 even when
+  `quiet` is non-empty (v1.0.11 fix preserved).
+- **Docs HTML+PDF refreshed** after editing the markdown sources.
+
+### Files modified
+
+- `VERSION` — 1.0.12 → 1.0.13 (versionCode 13 → 14)
+- `CHANGELOG.md` — this entry
+- `scripts/tmx-shell-init.sh.template` — PROMPT_COMMAND/precmd installer
+- `scripts/setup.sh` — step 5 + `_do_uninstall` cover `.bash_profile`/`.profile`
+- `scripts/tests/43_e2e_cwd_persist_real_shell.sh` (NEW)
+- `docs/manual/tmx-shell-integration.md` — chapter 3 updated to
+  document the prompt-hook mechanism + the cwd-persist guarantee
+- `docs/guides/tmx-state.md` — architecture note on the prompt-hook
+- `docs/guides/tmx-shell-integration.md` — install footprint section
+  now mentions `.bash_profile` / `.profile`
+- `README.md` — feature row updated
+- HTML + PDF exports for changed docs per §11.4.65
+
+---
+
 ## [v1.0.12] — 2026-05-22
 
 **Doc-gap closure + Linux test 16 flake fix.** User audit (2026-05-22):

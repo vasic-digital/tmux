@@ -13,8 +13,17 @@
 `tmx-state` is a small Go binary (single static executable, no runtime
 dependencies) that stores one record per tmx session in
 `~/.tmx/state.json`. The wrapper `scripts/tmx` queries it on `tmx new`
-to restore the session's last cwd; the same wrapper writes a fresh
-record from a tmux hook fired on detach / session-closed.
+to restore the session's last cwd.
+
+**Recording mechanism (v1.0.13+):** the cwd is recorded by a
+`PROMPT_COMMAND` (bash) / `precmd_functions` (zsh) hook installed by
+`tmx-shell-init.sh` inside every tmux pane. Every shell prompt fires
+`tmx-state record <session> $PWD`. The state file therefore reflects
+the cwd at the LAST prompt before `exit`. v1.0.9–v1.0.12 relied on
+tmux's `client-detached` + `session-closed` hooks alone; those hooks
+fire AFTER the pane is destroyed and `#{pane_current_path}` resolves
+to empty in that context. v1.0.13 keeps the session-end hooks as
+best-effort fallback but the prompt-hook is the primary mechanism.
 
 Why a Go binary instead of a shell helper:
 

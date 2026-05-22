@@ -104,8 +104,18 @@ file used by the v1.0.9 <code>tmx-shell-init.sh</code> and
 executable, no runtime dependencies) that stores one record per tmx
 session in <code>~/.tmx/state.json</code>. The wrapper
 <code>scripts/tmx</code> queries it on <code>tmx new</code> to restore
-the session&#39;s last cwd; the same wrapper writes a fresh record from a
-tmux hook fired on detach / session-closed.</p>
+the session&#39;s last cwd.</p>
+<p><strong>Recording mechanism (v1.0.13+):</strong> the cwd is recorded
+by a <code>PROMPT_COMMAND</code> (bash) / <code>precmd_functions</code>
+(zsh) hook installed by <code>tmx-shell-init.sh</code> inside every tmux
+pane. Every shell prompt fires
+<code>tmx-state record &lt;session&gt; $PWD</code>. The state file
+therefore reflects the cwd at the LAST prompt before <code>exit</code>.
+v1.0.9–v1.0.12 relied on tmux&#39;s <code>client-detached</code> +
+<code>session-closed</code> hooks alone; those hooks fire AFTER the pane
+is destroyed and <code>#{pane_current_path}</code> resolves to empty in
+that context. v1.0.13 keeps the session-end hooks as best-effort
+fallback but the prompt-hook is the primary mechanism.</p>
 <p>Why a Go binary instead of a shell helper:</p>
 <ul>
 <li><strong>Atomic writes.</strong> A temp-file write +

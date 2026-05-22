@@ -137,9 +137,24 @@ path (use the generated snippet)</h3>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux                  <span class="co"># or wherever you cloned this repo</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># setup.sh GREEN summary prints the exact line to copy.</span></span></code></pre></div>
-<p><code>setup.sh</code> writes the snippet into <code>~/.bashrc</code>
-AND <code>~/.zshrc</code> automatically on a fresh install. Open a new
-terminal — that&#39;s it.</p>
+<p><code>setup.sh</code> writes the snippet into the operator&#39;s rc files
+automatically:</p>
+<ul>
+<li><strong>Always:</strong> <code>~/.bashrc</code> and
+<code>~/.zshrc</code> (created on Darwin if missing).</li>
+<li><strong>v1.0.13+:</strong> also <code>~/.bash_profile</code> and
+<code>~/.profile</code> (when present or when <code>$SHELL</code> is
+bash). The wrapper invokes the spawned shell with <code>-l</code>
+(login); bash login shells read <code>.bash_profile</code> NOT
+<code>.bashrc</code> unless <code>.bash_profile</code> already sources
+<code>.bashrc</code> (common but not guaranteed). Touching
+<code>.bash_profile</code> ensures the per-pane
+<code>PROMPT_COMMAND</code> hook installs reliably — without it, the cwd
+persist-across-exit feature silently fails.</li>
+<li><strong>Never:</strong> <code>~/.zprofile</code> (zsh always sources
+<code>~/.zshrc</code> regardless of login vs interactive).</li>
+</ul>
+<p>Open a new terminal — that&#39;s it.</p>
 <h3 id="32-manual-path-if-you-maintain-your-own-rc">3.2 Manual path (if
 you maintain your own rc)</h3>
 <p>Append the following block to <strong>both</strong>

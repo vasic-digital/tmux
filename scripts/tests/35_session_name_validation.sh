@@ -73,7 +73,14 @@ run_iteration() {
     for name in "${BAD_NAMES[@]}"; do
         # Test init path — must reject (non-zero exit).
         local init_out init_rc
-        init_out="$(printf '%s\n' "$name" | bash "$INIT_STRIPPED" 2>&1)" && init_rc=0 || init_rc=$?
+        # v1.0.13: explicitly unset TMUX so the init script reaches the
+        # validation path. When the test runner itself is inside a tmux
+        # session, child shells inherit TMUX; the TMUX-set branch in
+        # tmx-shell-init.sh installs the PROMPT_COMMAND hook and bails,
+        # never reaching validation. This is correct production
+        # behaviour (operators inside tmux don't see the prompt) but
+        # this test specifically exercises the prompt+validation path.
+        init_out="$(printf '%s\n' "$name" | env -u TMUX -u TMX_SKIP bash "$INIT_STRIPPED" 2>&1)" && init_rc=0 || init_rc=$?
         if [ "$init_rc" -eq 0 ]; then
             echo "  init iter=$iter: name='$name' was ACCEPTED (expected rejection); out=$init_out"
             failures=$((failures + 1))

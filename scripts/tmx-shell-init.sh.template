@@ -16,8 +16,68 @@
 #
 # Project: __PROJECT__
 
-# Already inside a tmux session — do nothing.
+# Already inside a tmux session: install a PROMPT_COMMAND / precmd hook that
+# records the current pane's $PWD to tmx-state on every shell prompt. This
+# is the SOLE reliable mechanism for cwd persistence — tmux's session-end
+# hooks (client-detached, session-closed) fire AFTER the pane is destroyed
+# and `#{pane_current_path}` resolves to empty at that point (forensic
+# anchor: user report 2026-05-22, fix landed v1.0.13). With this hook,
+# every command the operator runs leaves the cwd recorded; the LAST
+# recorded value before `exit` is the state that the NEXT `tmx new -s
+# NAME` recalls via the wrapper's `-c $START_DIR` injection.
 if [ -n "${TMUX:-}" ]; then
+    # Where the wrapper + Go binary live.
+    _tmx_dir="${VDIGITAL_TMUX_DIR:-__PROJECT__/scripts}"
+    _tmx_state_bin="$_tmx_dir/tmx-state-bin"
+    if [ -x "$_tmx_state_bin" ]; then
+        # Resolve session name via tmux (#S = active session). More
+        # reliable than env-var propagation — works even if the wrapper
+        # didn't `set-environment` for any reason.
+        _tmx_sess="$(tmux display-message -p '#S' 2>/dev/null)" || _tmx_sess=""
+        # Reject names with shell-meta chars (defense in depth — tmx
+        # wrapper already sanitises, but tmux's session list could in
+        # theory contain hand-renamed names).
+        case "$_tmx_sess" in
+            ''|*[!A-Za-z0-9_.-]*) _tmx_sess="" ;;
+        esac
+        if [ -n "$_tmx_sess" ]; then
+            # Bash: idempotent append to PROMPT_COMMAND.
+            if [ -n "${BASH_VERSION:-}" ]; then
+                # The recorder runs once per prompt. Errors swallowed so
+                # a broken state-file never breaks the operator's prompt.
+                # Eval is used because we need to inject the session name
+                # literal AT INSTALL TIME (the env var is local to this
+                # source, not persisted to PROMPT_COMMAND's run context).
+                _tmx_marker="_tmx_record_pwd_${_tmx_sess}"
+                if ! type "$_tmx_marker" >/dev/null 2>&1; then
+                    eval "${_tmx_marker}() { \"$_tmx_state_bin\" record \"$_tmx_sess\" \"\$PWD\" >/dev/null 2>&1 || true; }"
+                fi
+                case ";${PROMPT_COMMAND:-};" in
+                    *";${_tmx_marker};"*) ;;
+                    *) PROMPT_COMMAND="${_tmx_marker}${PROMPT_COMMAND:+;$PROMPT_COMMAND}" ;;
+                esac
+                export PROMPT_COMMAND
+            # Zsh: append to precmd_functions array.
+            elif [ -n "${ZSH_VERSION:-}" ]; then
+                TMX_PROMPT_SESS="$_tmx_sess"
+                export TMX_PROMPT_SESS
+                _tmx_zsh_precmd() {
+                    "$_tmx_state_bin" record "$TMX_PROMPT_SESS" "$PWD" >/dev/null 2>&1 || true
+                }
+                # Idempotent registration in zsh's hook array.
+                # shellcheck disable=SC2154
+                typeset -ga precmd_functions 2>/dev/null
+                # Remove any prior _tmx_zsh_precmd, then re-add.
+                # zsh-only array filter syntax — guarded by ZSH_VERSION above.
+                eval 'precmd_functions=(${precmd_functions:#_tmx_zsh_precmd})'
+                eval 'precmd_functions+=(_tmx_zsh_precmd)'
+            fi
+            # Capture cwd ONCE right now so even a zero-command session
+            # (operator opens tmx + immediately exits) records a real
+            # path instead of leaving stale recall state.
+            "$_tmx_state_bin" record "$_tmx_sess" "$PWD" >/dev/null 2>&1 || true
+        fi
+    fi
     return 0 2>/dev/null || exit 0
 fi
 

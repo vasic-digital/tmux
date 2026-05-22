@@ -240,9 +240,33 @@ times.</p>
 <span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Enter session name ...: investigate</span>
 <span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> pwd</span>
 <span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="ex">/Users/milosvasic/Projects/tmux/scripts/tmx-state</span>   ← still right where you stopped.</span></code></pre></div>
-<p>The state file records the deepest pane&#39;s cwd at detach time. If you
-had two panes open with different cwds, the LAST detach wins (the tmux
-hook fires per-pane on close as well).</p>
+<h3 id="321-how-the-cwd-capture-actually-works-v1013">3.2.1 How the cwd
+capture actually works (v1.0.13+)</h3>
+<p>A <code>PROMPT_COMMAND</code> (bash) or <code>precmd_functions</code>
+entry (zsh) is installed inside every tmux pane by
+<code>tmx-shell-init.sh</code> (sourced from your <code>.bashrc</code> /
+<code>.zshrc</code> / <code>.bash_profile</code>). After every command
+the operator runs in the pane, the shell fires that hook, which calls
+<code>tmx-state-bin record &lt;session&gt; $PWD</code>. The state file
+therefore always reflects the PWD at the LAST shell prompt before
+<code>exit</code>.</p>
+<p>This replaces v1.0.9&#39;s flawed design that relied on tmux&#39;s
+<code>client-detached</code> and <code>session-closed</code> hooks alone
+— those hooks fire AFTER the pane is destroyed, when
+<code>#{pane_current_path}</code> resolves to empty. v1.0.13 keeps the
+tmux hooks as best-effort fallback but the prompt-hook is the primary
+recording mechanism.</p>
+<p><strong>End-to-end guarantee:</strong> the user-visible behaviour
+(&quot;open terminal, choose session XXX, cd somewhere, exit, exit, reopen,
+choose XXX again → pane is in the same dir&quot;) is exercised by test
+<code>scripts/tests/43_e2e_cwd_persist_real_shell.sh</code> with
+positive captured evidence at each phase, 3 deterministic
+iterations.</p>
+<h3 id="322-edge-cases">3.2.2 Edge cases</h3>
+<p>The state file records the cwd of the pane whose prompt last fired.
+If you had two panes open with different cwds and <code>exit</code> only
+one, the surviving pane&#39;s prompt-hook continues to record until its own
+exit — the LAST recorded value wins.</p>
 <h3 id="33-scenario-c--ssh-straight-into-a-remote-session">3.3 Scenario
 C — SSH straight into a remote session</h3>
 <p>Setting it up once:</p>

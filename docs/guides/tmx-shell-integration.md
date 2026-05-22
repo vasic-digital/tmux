@@ -49,8 +49,20 @@ bash scripts/setup.sh
 # setup.sh GREEN summary prints the exact line to copy.
 ```
 
-`setup.sh` writes the snippet into `~/.bashrc` AND `~/.zshrc` automatically
-on a fresh install. Open a new terminal — that's it.
+`setup.sh` writes the snippet into the operator's rc files automatically:
+
+- **Always:** `~/.bashrc` and `~/.zshrc` (created on Darwin if missing).
+- **v1.0.13+:** also `~/.bash_profile` and `~/.profile` (when present
+  or when `$SHELL` is bash). The wrapper invokes the spawned shell with
+  `-l` (login); bash login shells read `.bash_profile` NOT `.bashrc`
+  unless `.bash_profile` already sources `.bashrc` (common but not
+  guaranteed). Touching `.bash_profile` ensures the per-pane
+  `PROMPT_COMMAND` hook installs reliably — without it, the cwd
+  persist-across-exit feature silently fails.
+- **Never:** `~/.zprofile` (zsh always sources `~/.zshrc` regardless
+  of login vs interactive).
+
+Open a new terminal — that's it.
 
 ### 3.2 Manual path (if you maintain your own rc)
 
