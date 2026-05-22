@@ -98,12 +98,220 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project&#39;s anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v109--2026-05-22">[v1.0.9] — 2026-05-22</h2>
+<p><strong>Shell-session resume + SSH-argument dispatch + Go state
+daemon. Ten-PWU parallel-development cycle (§11.4.58 + §11.4.70). Every
+<code>tmx new -s NAME</code> now restores the session&#39;s last cwd from
+<code>~/.tmx/state.json</code>;
+<code>ssh &lt;host&gt;-tmx &lt;session&gt;</code> lands directly inside
+that session over a one-purpose dispatch key; the rc-side prompt is
+extracted into one project-owned POSIX script that is safe on SCP /
+rsync / IDE pipes.</strong></p>
+<h3 id="summary">Summary</h3>
+<p>Four artefacts work together: a Go binary
+(<code>scripts/tmx-state-bin</code>) with atomic-write +
+<code>fcntl(F_SETLKW)</code> per-session cwd persistence; a sourced
+POSIX shell init (<code>scripts/tmx-shell-init.sh</code>) replacing the
+hand-pasted snippet that previously drifted across operators&#39; rc files
+and blocked non-TTY shells; an SSH dispatcher
+(<code>scripts/tmx-ssh-dispatch.sh</code>) wired into
+<code>authorized_keys</code> via <code>command=</code> so
+<code>ssh host-tmx &lt;name&gt;</code> attaches/creates the named
+session with the right cwd; and the existing <code>tmx</code> wrapper
+gains tmux hooks that record cwd on detach + a
+<code>-c &lt;recalled-pwd&gt;</code> on <code>tmx new</code>.</p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong><code>scripts/tmx-state/</code> (Go module)</strong> —
+<code>tmx-state</code> binary with subcommands
+<code>record / recall / list / forget / version</code>. Atomic temp-file
++ rename, <code>fcntl(F_SETLKW)</code> locking, JSON schema v1 stored at
+<code>~/.tmx/state.json</code> (mode 0600, parent dir 0700).
+<code>$TMX_STATE_FILE</code> override for tests + sandboxes. Honest
+exit-code split for <code>recall</code>: 0 = found, 1 = not found, 2 =
+unreadable (lets the wrapper fall back to <code>$HOME</code> without
+ambiguity).</li>
+<li><strong><code>scripts/tmx-shell-init.sh.template</code></strong> —
+POSIX-parseable (<code>sh -n</code> clean per §11.4.67) shell init
+sourced from <code>.bashrc</code> / <code>.zshrc</code>. Five-guard
+contract: <code>$TMUX</code> set → silent; non-TTY → silent;
+<code>$TMX_SKIP</code> non-empty → silent; <code>tmx</code> not on PATH
+→ silent; blank / literal <code>default</code> → bare shell. Valid name
+→ <code>exec sh -c &#39;tmx attach -t … || exec tmx new -s …&#39;</code>.
+Character-class validation via POSIX <code>case</code> glob (not bash
+<code>[[ =~ ]]</code>).</li>
+<li><strong><code>scripts/tmx-ssh-dispatch.sh.template</code></strong> —
+<code>authorized_keys</code> <code>command=</code> dispatcher. Same
+regex + length guard as shell-init. Empty
+<code>SSH_ORIGINAL_COMMAND</code> → <code>bash -l</code>. Valid name →
+recalls last cwd, exec&#39;s
+<code>tmx attach || exec tmx new -s NAME -c &lt;cwd&gt;</code>. Test
+mode via <code>$TMX_DISPATCH_TEST</code> so anti-bluff tests prove which
+branch was taken.</li>
+<li><strong><code>scripts/tmx-ssh-install.sh</code></strong> —
+client-side bootstrapper. Generates
+<code>~/.ssh/id_tmx_&lt;sanitized-host&gt;</code> (ed25519,
+BatchMode-friendly), probes remote reachability via existing auth path,
+scp&#39;s the dispatcher template, substitutes <code>__PROJECT__</code> /
+<code>__DATE__</code> on the remote, appends the
+<code>authorized_keys</code> line (idempotent by fingerprint), writes a
+<code>Host &lt;host&gt;-tmx</code> block to local
+<code>~/.ssh/config</code> (idempotent by Host heading), runs a
+verification probe (token deliberately fails the dispatcher regex).
+<code>--dry-run</code>, <code>--force</code>, <code>--uninstall</code>,
+<code>--purge-key</code>, <code>--remote-project-path</code> all
+supported.</li>
+<li><strong>NEW tests 27–40</strong> covering: state persistence (27),
+default-skip (28), default-skip blank (29), non-TTY skip (30), local SSH
+dispatch (31), remote SSH dispatch against nezha (32, §11.4.3 SKIPs if
+unreachable), state concurrency (33, 10 parallel records), installer
+idempotency (34), session-name validation (35), dispatcher rejects
+multiword (36), nested-tmux skip (37), stale-pwd fallback (38),
+state-file unwritable (39), <code>case &quot;$(uname -s)&quot;</code>
+cross-platform parity (40 per §11.4.81). §11.4.50 reliability: each test
+loops 3 iterations with identical evidence-hash required.</li>
+<li><strong>NEW test 41
+<code>41_docs_user_guides_render.sh</code></strong> — drives the
+TMUX-CH-28 Challenge: renders every v1.0.9 guide + the master manual to
+HTML+PDF (mtime parity per §11.4.65), asserts non-empty output, captures
+<code>[evidence]</code> lines per file.</li>
+<li><strong>NEW paired §1.1 mutations M20–M24</strong> — strip the
+<code>-t 0</code> guard (test 30 FAILs), strip the cwd-capture tmux hook
+(test 27 FAILs), strip the <code>command=</code> from
+<code>authorized_keys</code> (test 31 FAILs), strip the regex validation
+(test 35 FAILs), strip a <code>case &quot;$(uname -s)&quot;</code> branch (test 40
+FAILs).</li>
+<li><strong>NEW HelixQA Challenges</strong> in
+<code>scripts/challenges/tmux.yaml</code>:
+<code>tmx_session_resume_cwd</code>,
+<code>tmx_ssh_dispatch_nezha</code>, <code>tmx_non_tty_safety</code>,
+<code>tmx_docs_user_guides_render</code>. All autonomous per §11.4.52;
+the nezha challenge OPERATOR-BLOCKs when unreachable.</li>
+<li><strong>NEW documentation set</strong> (every doc carries the
+§11.4.44 revision header + HTML + PDF siblings per §11.4.65):
+<ul>
+<li><code>docs/guides/tmx-shell-integration.md</code> (operator
+install/uninstall)</li>
+<li><code>docs/guides/tmx-state.md</code> (state daemon CLI
+reference)</li>
+<li><code>docs/guides/tmx-ssh-dispatch.md</code> (SSH dispatch
+architecture + setup + security notes)</li>
+<li><code>docs/manual/tmx-shell-integration.md</code> (end-user
+<strong>master manual</strong> with copy-paste-runnable worked examples
+— the marquee document)</li>
+<li><code>docs/scripts/tmx-shell-init.md</code>,
+<code>tmx-state.md</code>, <code>tmx-ssh-install.md</code>,
+<code>tmx-ssh-dispatch.md</code> (§11.4.18 script companions, landed
+during P2/P3)</li>
+<li>README &quot;Documentation map&quot; section updated per §11.4.57 with 4 new
+rows linking to the v1.0.9 docs.</li>
+</ul></li>
+</ul>
+<h3 id="changed">Changed</h3>
+<ul>
+<li><strong><code>scripts/bashrc_snippet.template</code></strong> — now
+sources <code>tmx-shell-init.sh</code> in addition to setting PATH; the
+legacy in-line <code>read -r</code> block is removed. Setup.sh writes
+the new block on every install (idempotent).</li>
+<li><strong><code>scripts/setup.sh</code></strong> — adds three
+sub-tasks: generate <code>tmx-shell-init.sh</code> from
+<code>.template</code>,
+<code>go build -o scripts/tmx-state-bin ./scripts/tmx-state/...</code>,
+print the one-line <code>source</code> directive operators paste.
+<code>scripts/install_deps.sh</code> adds Go toolchain
+(<code>brew install go</code> macOS, distro package Linux; Go ≥ 1.21
+accepted).</li>
+<li><strong><code>scripts/tmx.template</code> and
+<code>scripts/tmx-mac.template</code></strong> — <code>tmx new</code>
+consults <code>scripts/tmx-state-bin recall &lt;name&gt;</code> and
+passes <code>-c &lt;recalled-pwd&gt;</code> to
+<code>tmux new-session</code> when present; tmux hooks fire
+<code>tmx-state record &lt;name&gt; #{pane_current_path}</code> on
+<code>client-detached</code> and <code>session-closed</code>.</li>
+</ul>
+<h3 id="fixed">Fixed</h3>
+<p>(none specific to v1.0.9 — every entry is an additive feature;
+existing defects continue to be tracked in <code>Issues.md</code> /
+<code>Fixed.md</code>).</p>
+<h3 id="114-covenant--explicit-anti-bluff-statement">§11.4 covenant —
+explicit anti-bluff statement</h3>
+<p>Every new test (27–41) captures positive runtime evidence and ships
+with a paired §1.1 mutation that proves the gate is not itself a bluff.
+PASS lines include <code>[evidence]</code> markers per §11.4.5; no
+metadata-only, configuration-only, or absence-of-error PASS exists in
+the v1.0.9 set. The doc-render challenge
+<code>tmx_docs_user_guides_render</code> captures per-file
+<code>[evidence] md_mtime=... html_mtime=... pdf_mtime=... sizes=...</code>
+lines so a future reader can re-derive the assertion.</p>
+<h3 id="11465--universal-markdown-export">§11.4.65 — universal Markdown
+export</h3>
+<p>Every new <code>docs/guides/*.md</code> and
+<code>docs/manual/*.md</code> has matching <code>.html</code> +
+<code>.pdf</code> siblings generated by
+<code>bash scripts/export_docs.sh</code> in the same commit batch as the
+markdown.</p>
+<h3 id="11458--parallel-development-pwu-pipeline">§11.4.58 —
+parallel-development PWU pipeline</h3>
+<p>This release was built via the §11.4.58 PWU pipeline:</p>
+<ul>
+<li><strong>P1</strong> Go state daemon
+(<code>scripts/tmx-state/**</code>)</li>
+<li><strong>P2</strong> Shell init script + bashrc-snippet template</li>
+<li><strong>P3</strong> SSH dispatch + installer</li>
+<li><strong>P4</strong> Wrapper integration (cwd hook + <code>-c</code>
+arg)</li>
+<li><strong>P5</strong> Pre-build gates + paired mutations (verify.sh +
+meta-test)</li>
+<li><strong>P6</strong> Runtime tests 27–40</li>
+<li><strong>P7</strong> HelixQA Challenges</li>
+<li><strong>P8</strong> Documentation + HTML/PDF exports (this
+entry)</li>
+<li><strong>P9</strong> Release pipeline (VERSION + CHANGELOG + tag
+push)</li>
+<li><strong>R1</strong> Termux/Android compatibility research
+(concluded; no additional code change needed for v1.0.9 — shell-init.sh
+is already POSIX and Termux-compatible)</li>
+</ul>
+<p>P1, P2 parallel; then P3, P4 parallel; then P5, P6 parallel; then P7,
+P8 parallel; finally P9 serial. Merge-queue discipline per §11.4.58
+Stage 2; anti-bluff coverage per §11.4.58 C1–C4 at merge time.</p>
+<h3 id="11470--subagent-driven-execution">§11.4.70 — subagent-driven
+execution</h3>
+<p>PWUs P1–P8 were executed by subagents per the
+<code>superpowers:subagent-driven-development</code> skill, with the
+parent conductor reviewing each subagent&#39;s output against the spec&#39;s §8
+contract before staging. Inline execution was reserved for the
+merge-queue conductor (P9) per §11.4.70 carve-out for critical-state
+sequencing.</p>
+<h3 id="files-added--modified-terse">Files added / modified (terse)</h3>
+<ul>
+<li>Added:
+<code>scripts/tmx-state/{main.go,state.go,go.mod,go.sum}</code>,
+<code>scripts/tmx-shell-init.sh.template</code>,
+<code>scripts/tmx-ssh-dispatch.sh.template</code>,
+<code>scripts/tmx-ssh-install.sh</code>,
+<code>scripts/tests/27_*.sh</code> … <code>scripts/tests/41_*.sh</code>,
+<code>docs/guides/tmx-{shell-integration,state,ssh-dispatch}.{md,html,pdf}</code>,
+<code>docs/manual/tmx-shell-integration.{md,html,pdf}</code>,
+<code>docs/scripts/tmx-{shell-init,state,ssh-install,ssh-dispatch}.{md,html,pdf}</code>.</li>
+<li>Modified: <code>scripts/setup.sh</code>,
+<code>scripts/install_deps.sh</code>,
+<code>scripts/bashrc_snippet.template</code>,
+<code>scripts/tmx.template</code>,
+<code>scripts/tmx-mac.template</code>, <code>scripts/verify.sh</code>,
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>,
+<code>scripts/challenges/tmux.yaml</code>, <code>README.md</code>,
+<code>VERSION</code> (<code>1.0.8</code>/<code>9</code> →
+<code>1.0.9</code>/<code>10</code>), <code>CHANGELOG.md</code> (this
+entry).</li>
+</ul>
+<hr />
 <h2 id="v108--2026-05-21">[v1.0.8] — 2026-05-21</h2>
 <p><strong>Hostname-derived colour now applies to ALL default-green tmux
 UI surfaces (active pane border + clock + selected-window highlight),
 not just the bottom status bar. NEW test 26 + M24 paired mutation.
 Darwin quintuple-fresh GREEN.</strong></p>
-<h3 id="fixed">Fixed</h3>
+<h3 id="fixed-1">Fixed</h3>
 <ul>
 <li><p><strong>Operator-reported (2026-05-21):</strong> &quot;flying animated
 top decoration&quot;</p>
@@ -134,7 +342,7 @@ recoloured — they default to yellow not green, and yellow provides the
 most accessible contrast against any palette-derived
 background.</p></li>
 </ul>
-<h3 id="added">Added</h3>
+<h3 id="added-1">Added</h3>
 <ul>
 <li><p><strong>NEW test 26
 (<code>26_ui_color_uniformity.sh</code>)</strong> — spawns an
@@ -197,7 +405,7 @@ divergent commits.</p>
 palette rebalance + Node-22 LTS pin for CodeGraph. Quintuple-verified on
 both macOS (Darwin arm64) and Linux (ALT 11 / kernel 6.12 / systemd 258)
 before tag.</strong></p>
-<h3 id="fixed-1">Fixed</h3>
+<h3 id="fixed-2">Fixed</h3>
 <ul>
 <li><p><strong>Test 09 T4.2 — cgroup-containment invariant rewrite
 (rounds 1-5, Nezha-driven).</strong> Pre-v1.0.7 the test polled
@@ -252,7 +460,7 @@ Palette rebalanced across the hue spectrum: red / orange / yellow /
 green / teal / blue / purple / pink / magenta / brown / cyan / lime — no
 two consecutive entries within RGB Euclidean distance 80.</p></li>
 </ul>
-<h3 id="added-1">Added</h3>
+<h3 id="added-2">Added</h3>
 <ul>
 <li><p><strong>NEW test 25
 (<code>25_hostname_color_perceptual_distance.sh</code>)</strong> — three
@@ -597,7 +805,7 @@ anti-bluff covenant propagated verbatim to every consumer governance
 file, audit follow-up fixes (M4/M5 portability + <code>tmx kill</code>
 shorthand), docs reorganised under context subdirectories per the
 constitution rule.</strong></p>
-<h3 id="added-2">Added</h3>
+<h3 id="added-3">Added</h3>
 <ul>
 <li><p><strong>A18 — CodeGraph integration (§11.4.78).</strong>
 Installed <code>@colbymchenry/codegraph</code> v0.6.8 globally (npm
@@ -644,7 +852,7 @@ cycle.</p></li>
 §11.4.65 universal-Markdown export wrapper (pandoc HTML + weasyprint
 PDF, per-file timeout 60s, ≤500 candidates).</p></li>
 </ul>
-<h3 id="fixed-2">Fixed</h3>
+<h3 id="fixed-3">Fixed</h3>
 <ul>
 <li><p><strong>A20 — M4/M5 paired mutations honest topology dispatch
 (AUDIT-1).</strong> Pre-fix: raw GNU <code>sed -i</code> silently
@@ -757,7 +965,7 @@ harness is wired).</li>
 <p><strong>tmux scrolling fixed for the Claude Code TUI and mobile
 (Termux); governance refactored to inherit from the HelixConstitution
 submodule.</strong></p>
-<h3 id="fixed-3">Fixed</h3>
+<h3 id="fixed-4">Fixed</h3>
 <ul>
 <li><strong>A16 — Scrolling terminal output up/down did not work,
 especially in the Claude Code TUI.</strong> Two root causes: (1) the
@@ -782,7 +990,7 @@ escape sequences reach the application;</li>
 termux-clipboard-set, detected at copy time) plus OSC-52.</li>
 </ul></li>
 </ul>
-<h3 id="added-3">Added</h3>
+<h3 id="added-4">Added</h3>
 <ul>
 <li><strong>A17 — HelixConstitution governance submodule + verified
 inheritance.</strong> The universal engineering rules (anti-bluff
@@ -839,7 +1047,7 @@ same profile as v1.0.0).</li>
 <h2 id="v102--2026-05-16">[v1.0.2] — 2026-05-16</h2>
 <p><strong>Cosmetic: window-name strips <code>.exe</code> suffix from
 <code>pane_current_command</code>.</strong></p>
-<h3 id="fixed-4">Fixed</h3>
+<h3 id="fixed-5">Fixed</h3>
 <ul>
 <li><strong>A15 — Bottom-left status-bar showed <code>claude.exe</code>
 instead of <code>claude</code></strong> (operator-reported, 2026-05-16).

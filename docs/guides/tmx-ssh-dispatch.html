@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="tmx-ssh-dispatch--operator-guide">tmx SSH Dispatch — Operator
+Guide</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T14:30:00Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+Operator setup / verification / uninstall guide for
+<code>ssh &lt;host&gt;-tmx &lt;session-name&gt;</code> dispatch</p>
+<hr />
+<h2 id="1-overview">1. Overview</h2>
+<p><code>tmx-ssh-dispatch.sh</code> is the remote-side script that is
+wired into <code>~/.ssh/authorized_keys</code> via a
+<code>command=&quot;...&quot;</code> directive. When you run</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> nezha-tmx work</span></code></pre></div>
+<p>from your workstation, sshd on <code>nezha.local</code> authenticates
+your dispatch key, reads the <code>command=</code> directive, and exec&#39;s
+<code>tmx-ssh-dispatch.sh</code> with
+<code>SSH_ORIGINAL_COMMAND=work</code>. The dispatcher then:</p>
+<ol type="1">
+<li>validates <code>work</code> against
+<code>^[A-Za-z0-9_.-]{1,64}$</code>;</li>
+<li>queries <code>tmx-state recall work</code> for the session&#39;s last
+cwd;</li>
+<li>tries <code>tmx attach -t work</code>, falling back to
+<code>tmx new -s work -c &lt;last-pwd&gt;</code>;</li>
+<li>lands you directly inside that session.</li>
+</ol>
+<p><code>ssh nezha-tmx</code> (no second argument) instead exec&#39;s
+<code>bash -l</code>, giving you a normal interactive login — same as a
+plain <code>ssh nezha</code>.</p>
+<p><code>tmx-ssh-install.sh</code> is the <strong>client-side</strong>
+bootstrapper that generates the dispatch key, copies the script to the
+remote, appends the <code>authorized_keys</code> entry, and writes a
+<code>Host nezha-tmx</code> alias to your local
+<code>~/.ssh/config</code>. It is idempotent: re-running it is a safe
+no-op.</p>
+<p>Design authority:
+<code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code>
+§4.C + §4.D + §5.2.</p>
+<h2 id="2-architecture">2. Architecture</h2>
+<pre class="text"><code>   client (your workstation, e.g. mistborn.local)
+   ─────────────────────────────────────────────
+   $ ssh nezha-tmx work
+        │
+        │  ~/.ssh/config:
+        │    Host nezha-tmx
+        │      HostName       nezha.local
+        │      User           milosvasic
+        │      IdentityFile   ~/.ssh/id_tmx_nezha_local
+        │      IdentitiesOnly yes
+        ▼
+                       ssh tunnel (port 22, ed25519 dispatch key)
+                       ─────────────────────────────────────────
+                                                                ▼
+   remote (nezha.local)
+   ─────────────────────
+   sshd
+     │  authorized_keys line:
+     │    command=&quot;/home/milosvasic/Projects/tmux/scripts/tmx-ssh-dispatch.sh&quot;,
+     │      no-port-forwarding,no-X11-forwarding,no-agent-forwarding
+     │      ssh-ed25519 AAAA... tmx-dispatch-nezha_local
+     │  → execs tmx-ssh-dispatch.sh with SSH_ORIGINAL_COMMAND=&quot;work&quot;
+     ▼
+   tmx-ssh-dispatch.sh
+     │  validate &quot;work&quot; against ^[A-Za-z0-9_.-]{1,64}$
+     │  last_pwd = tmx-state recall work    →  &quot;/home/milosvasic/code&quot;
+     │  exec sh -c &#39;&quot;$1&quot; attach -t &quot;$2&quot; 2&gt;/dev/null \
+     │             || exec &quot;$1&quot; new -s &quot;$2&quot; -c &quot;$3&quot;&#39; \
+     │       tmx-ssh-dispatch  /usr/local/bin/tmx  work  /home/milosvasic/code
+     ▼
+   inside the tmux session &#39;work&#39;, pane cwd = /home/milosvasic/code</code></pre>
+<h2 id="3-prerequisites">3. Prerequisites</h2>
+<ul>
+<li>A <strong>working SSH login</strong> to the target host already. The
+installer piggy-backs on whatever auth path you already use (key,
+password, ssh-agent, gpg-agent). Run
+<code>ssh milosvasic@nezha.local exit 0</code> to prove the channel
+works BEFORE invoking the installer.</li>
+<li>The project cloned + built on <strong>both</strong> the client and
+the target host. The client only needs the
+<code>scripts/tmx-ssh-install.sh</code> and the
+<code>tmx-ssh-dispatch.sh.template</code>; the target needs the full
+repo with <code>bash scripts/setup.sh</code> GREEN.</li>
+<li>A modern <code>ssh-keygen</code> (any OpenSSH ≥ 8.0 — Apple ships
+this; on Linux any current distro).</li>
+</ul>
+<h2 id="4-installation">4. Installation</h2>
+<h3 id="41-one-line-install-no-remote-project-path-override">4.1
+One-line install (no remote project-path override)</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tmx-ssh-install.sh milosvasic@nezha.local</span></code></pre></div>
+<p>What it does, step by step (announced on stderr):</p>
+<pre class="text"><code>[tmx-ssh-install] step 1: validate target (milosvasic@nezha.local) and remote project path (~/Projects/tmux)
+[tmx-ssh-install] step 2: ensure local key /Users/milosvasic/.ssh/id_tmx_nezha_local (ed25519, BatchMode-friendly)
+[tmx-ssh-install] step 3: probe remote reachability via existing auth path (BatchMode)
+[tmx-ssh-install] reachable
+[tmx-ssh-install] step 4: stage dispatcher template + substitute on remote
+[tmx-ssh-install] step 5: install authorized_keys entry (idempotent by fingerprint)
+[remote] appended authorized_keys entry
+[tmx-ssh-install] step 6: install Host alias &#39;nezha.local-tmx&#39; in local ~/.ssh/config (idempotent)
+[tmx-ssh-install] step 7: verification probe (token deliberately fails dispatcher regex)
+[tmx-ssh-install] verification PASS: dispatcher rejected the probe token as designed
+[tmx-ssh-install] step 8: summary</code></pre>
+<h3 id="42-custom-remote-project-path">4.2 Custom remote project
+path</h3>
+<p>If you cloned the repo somewhere other than
+<code>~/Projects/tmux</code> on the target:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tmx-ssh-install.sh milosvasic@nezha.local <span class="dt">\</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">--remote-project-path</span> /opt/tmux</span></code></pre></div>
+<h3 id="43-dry-run-preview-changes-nothing">4.3 Dry-run preview (changes
+nothing)</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tmx-ssh-install.sh <span class="at">--dry-run</span> milosvasic@nezha.local</span></code></pre></div>
+<p>Every mutating call (<code>ssh-keygen</code>, <code>scp</code>,
+<code>ssh &quot;$AK_SCRIPT&quot;</code>, <code>&gt;&gt; ~/.ssh/config</code>)
+prints <code>DRY-RUN would …</code> to stderr instead of running.</p>
+<h3 id="44-force-overwrite-a-clobbered-key">4.4 Force-overwrite a
+clobbered key</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tmx-ssh-install.sh <span class="at">--force</span> milosvasic@nezha.local</span></code></pre></div>
+<p>Use only if you know <code>~/.ssh/id_tmx_nezha_local</code> is wrong;
+the installer defaults to <strong>never</strong> overwriting an existing
+key.</p>
+<h2 id="5-verification">5. Verification</h2>
+<p>After install, the Host alias is <code>&lt;host&gt;-tmx</code>, where
+<code>&lt;host&gt;</code> is the exact hostname you passed. For
+<code>milosvasic@nezha.local</code>, that&#39;s
+<code>nezha.local-tmx</code>. If your <code>~/.ssh/config</code> has
+shorter <code>Host nezha</code> aliases for the same machine, the
+dispatch alias lives side-by-side and does <strong>not</strong> affect
+them.</p>
+<h3 id="51-login-shell-no-session-arg">5.1 Login shell (no session
+arg)</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh nezha.local-tmx</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Linux</span> nezha 6.12.x <span class="co">#1 SMP ...</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Last</span> login: Mon May 22 14:00:00 2026</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> <span class="co"># ← you are in a plain interactive bash login.</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> exit</span></code></pre></div>
+<p>The dispatcher saw empty <code>$SSH_ORIGINAL_COMMAND</code> and
+exec&#39;d <code>bash -l</code>. Your <code>~/.bashrc</code> runs (including
+<code>tmx-shell-init.sh</code>), so you&#39;ll see the usual
+<code>[tmx] Enter session name …</code> prompt.</p>
+<h3 id="52-attach-to-or-create-a-named-session">5.2 Attach to or create
+a named session</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh nezha.local-tmx work</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># → you are now inside tmx session &#39;work&#39; on nezha.</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># If &#39;work&#39; existed, you attached to it (cwd is whatever its pane</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># currently has). If it didn&#39;t, it was created with -c &lt;recalled-pwd&gt;.</span></span></code></pre></div>
+<h3 id="53-invalid-name-positive-test-that-the-regex-bites">5.3 Invalid
+name (positive test that the regex bites)</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh nezha.local-tmx <span class="st">&quot;echo hi&quot;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx-ssh-dispatch]</span> this key accepts only a tmx session name <span class="er">(</span><span class="ex">1-64</span> chars, <span class="pp">[</span><span class="ss">A</span><span class="pp">-</span><span class="ss">Za</span><span class="pp">-</span><span class="ss">z0</span><span class="pp">-</span><span class="ss">9_.</span><span class="pp">-]</span><span class="kw">)</span><span class="bu">.</span> Use your normal SSH key for shell commands. Got: <span class="st">&#39;echo hi&#39;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> echo <span class="va">$?</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span></span></code></pre></div>
+<p>Exactly what test <code>36_dispatcher_rejects_multiword.sh</code>
+asserts.</p>
+<h2 id="6-uninstall">6. Uninstall</h2>
+<h3 id="61-just-remove-the-wiring-keep-the-key">6.1 Just remove the
+wiring (keep the key)</h3>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tmx-ssh-install.sh <span class="at">--uninstall</span> milosvasic@nezha.local</span></code></pre></div>
+<p>This deletes the <code>authorized_keys</code> line on the remote
+(matched by key fingerprint) and removes the
+<code>Host nezha.local-tmx</code> block from your local
+<code>~/.ssh/config</code>. The key files at
+<code>~/.ssh/id_tmx_nezha_local{,.pub}</code> are kept in case you want
+to re-wire later.</p>
+<h3 id="62-remove-key-files-too">6.2 Remove key files too</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tmx-ssh-install.sh <span class="at">--uninstall</span> milosvasic@nezha.local <span class="at">--purge-key</span></span></code></pre></div>
+<h2 id="7-security-notes">7. Security notes</h2>
+<ul>
+<li>The dispatch key is <strong>single-purpose</strong> —
+<code>command=</code> in <code>authorized_keys</code> restricts the key
+to running the dispatcher only. An attacker with the private key cannot
+get a shell, run arbitrary commands, port-forward, X11-forward, or
+agent-forward (all three are explicitly denied in the
+<code>authorized_keys</code> options).</li>
+<li>The dispatcher itself accepts only <code>[A-Za-z0-9_.-]{1,64}</code>
+as <code>SSH_ORIGINAL_COMMAND</code>; everything else is rejected with
+stderr + exit 1. There is no <code>eval</code>, no command substitution,
+no expansion of <code>$session</code> in any context where a shell
+metachar could escape.</li>
+<li>The local key file is <code>0600</code>; <code>~/.ssh</code> is
+<code>0700</code>. The installer enforces these modes on every run
+(<code>chmod</code> is idempotent).</li>
+<li>§11.4.10 forbids tracking credentials in git. The key files live in
+<code>~/.ssh/</code>, NOT in the repo. The dispatch script template
+lives in the repo (it&#39;s a public POSIX shell snippet); the deployed copy
+on the remote is mode 0755.</li>
+</ul>
+<h2 id="8-worked-example--end-to-end-against-milosvasicnezhalocal">8.
+Worked example — end-to-end against
+<code>milosvasic@nezha.local</code></h2>
+<p>Assume:</p>
+<ul>
+<li>You&#39;re on macOS, project cloned at
+<code>/Users/milosvasic/Projects/tmux</code>.</li>
+<li>Nezha runs Linux, project cloned at
+<code>/home/milosvasic/Projects/tmux</code>,
+<code>bash scripts/setup.sh</code> GREEN.</li>
+<li>Your existing <code>ssh milosvasic@nezha.local</code> works (any
+auth path).</li>
+</ul>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. From your mac, run the installer.</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> cd /Users/milosvasic/Projects/tmux</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> bash scripts/tmx-ssh-install.sh milosvasic@nezha.local</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ex">...</span> <span class="er">(</span><span class="ex">output</span> as in §4.1<span class="kw">)</span> <span class="ex">...</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx-ssh-install]</span> verification PASS: dispatcher rejected the probe token as designed</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx-ssh-install]</span> step 8: summary</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx-ssh-install]</span> install complete.</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  <span class="bu">local</span> <span class="va">key</span>:        /Users/milosvasic/.ssh/id_tmx_nezha_local <span class="va">(</span>+ .pub<span class="va">)</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="bu">local</span> <span class="va">alias</span>:      <span class="va">Host</span> <span class="va">nezha</span>.local-tmx <span class="va">in</span> ~/.ssh/config</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="ex">remote</span> dispatch:  /home/milosvasic/Projects/tmux/scripts/tmx-ssh-dispatch.sh</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>  <span class="ex">remote</span> authkey:   ~/.ssh/authorized_keys <span class="er">(</span><span class="ex">one</span> entry, marked tmx-dispatch-nezha_local<span class="kw">)</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="ex">Usage:</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ssh</span> nezha.local-tmx           <span class="co"># empty command -&gt; interactive login shell</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ssh</span> nezha.local-tmx work      <span class="co"># attaches/creates tmx session &#39;work&#39; with restored cwd</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="ex">Uninstall:</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>  <span class="ex">/Users/milosvasic/Projects/tmux/scripts/tmx-ssh-install.sh</span> <span class="at">--uninstall</span> milosvasic@nezha.local <span class="pp">[--</span><span class="ss">purge</span><span class="pp">-</span><span class="ss">key</span><span class="pp">]</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Verify the no-arg path: plain login.</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh nezha.local-tmx</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Enter session name <span class="er">(</span><span class="ex">blank</span> or <span class="st">&quot;default&quot;</span> = bare shell<span class="kw">)</span><span class="bu">:</span>     ← .bashrc ran on the far side</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a><span class="ex">default</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> exit</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Verify the session path: open / create / attach.</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh nezha.local-tmx work</span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a><span class="ex">[milosvasic@nezha</span> ~]$ pwd</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a><span class="ex">/home/milosvasic</span>            ← first time → recall returned empty → <span class="va">$HOME</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a><span class="ex">[milosvasic@nezha</span> ~]$ cd /tmp</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a><span class="ex">[milosvasic@nezha</span> /tmp]$ <span class="co"># Press Ctrl-b d to detach.</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a><span class="ex">[detached</span> <span class="er">(</span><span class="ex">from</span> session work<span class="kw">)</span><span class="ex">]</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Detach fired the cwd-capture hook. Reconnect and observe restored cwd.</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh nezha.local-tmx work</span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a><span class="ex">[milosvasic@nezha</span> /tmp]$ pwd</span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a><span class="ex">/tmp</span>                        ← restored from ~/.tmx/state.json</span></code></pre></div>
+<h2 id="9-troubleshooting">9. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Diagnosis</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cannot reach milosvasic@nezha.local non-interactively</code></td>
+<td>Step 3 reachability probe failed</td>
+<td>Run <code>ssh-copy-id milosvasic@nezha.local</code>, retry; ensure
+ssh-agent has your normal key</td>
+</tr>
+<tr>
+<td><code>remote project dir not found at ~/Projects/tmux/scripts</code></td>
+<td>Repo not cloned on remote, or different path</td>
+<td>Clone there OR pass
+<code>--remote-project-path /actual/path</code></td>
+</tr>
+<tr>
+<td><code>verification FAIL: probe did not produce expected [tmx-ssh-dispatch] stderr</code></td>
+<td>Remote sshd refused the dispatch key OR the script wasn&#39;t installed
+mode 0755</td>
+<td>Check remote <code>ls -la ~/.ssh/authorized_keys</code> (mode 600);
+<code>journalctl -u sshd | tail -50</code> for sshd&#39;s reason</td>
+</tr>
+<tr>
+<td><code>ssh nezha.local-tmx work</code> hangs</td>
+<td>Network blocked, or sshd config restricts <code>command=</code>
+keys</td>
+<td><code>ssh -v nezha.local-tmx work 2&gt;&amp;1 | head -50</code>;
+also <code>journalctl -u sshd</code> on the remote</td>
+</tr>
+<tr>
+<td><code>ssh nezha.local-tmx work</code> runs but lands in
+<code>$HOME</code> not the recorded cwd</td>
+<td><code>tmx-state</code> not on remote PATH under non-interactive
+sshd</td>
+<td>The dispatcher already falls back to
+<code>$PROJECT/scripts/tmx-state-bin</code>; check it exists + is +x on
+the remote</td>
+</tr>
+<tr>
+<td><code>ssh nezha.local-tmx work</code> reports
+<code>tmx wrapper not found</code></td>
+<td><code>tmx</code> not on remote PATH AND <code>scripts/tmx</code> not
+present</td>
+<td>Re-run <code>bash scripts/setup.sh</code> on the remote to
+regenerate <code>scripts/tmx</code></td>
+</tr>
+<tr>
+<td>Re-running the installer prints &quot;already present; skipping&quot; for
+every step</td>
+<td>Idempotent — this is correct</td>
+<td>No action; this is the design</td>
+</tr>
+<tr>
+<td><code>~/.ssh/config</code> ends up with two
+<code>Host nezha.local-tmx</code> blocks</td>
+<td>A previous half-uninstall left a stray block, then a fresh install
+added more</td>
+<td>Hand-edit <code>~/.ssh/config</code> to keep one block; the
+installer&#39;s grep-by-<code>^Host</code> is fingerprint-equivalent</td>
+</tr>
+</tbody>
+</table>
+<h3 id="91-server-side-debug">9.1 Server-side debug</h3>
+<div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># On nezha — watch sshd while you connect from the client.</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> sudo journalctl <span class="at">-u</span> sshd <span class="at">-f</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># In a second terminal on the client:</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh <span class="at">-v</span> nezha.local-tmx work <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span> <span class="kw">|</span> <span class="fu">tee</span> /tmp/ssh-verbose.log</span></code></pre></div>
+<p>Common sshd lines:</p>
+<ul>
+<li><code>Accepted publickey for milosvasic from &lt;ip&gt; port &lt;port&gt; ssh2: ED25519 SHA256:...</code>
+— dispatch key was accepted.</li>
+<li><code>error: PAM: …</code> — your sshd is using PAM, and PAM denies
+non-interactive sessions; this is rare but happens on some Linux
+configs. Either fix PAM or use a non-PAM auth path.</li>
+</ul>
+<h3 id="92-client-side-debug">9.2 Client-side debug</h3>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh <span class="at">-vv</span> nezha.local-tmx work <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">&#39;debug2: pubkey|Authenticated|Sending command&#39;</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="ex">debug2:</span> pubkey: /Users/milosvasic/.ssh/id_tmx_nezha_local</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Authenticated</span> to nezha.local <span class="er">(</span><span class="ex">[198.51.100.42]:22</span><span class="kw">)</span> <span class="ex">using</span> <span class="st">&quot;publickey&quot;</span>.</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Sending</span> command: work</span></code></pre></div>
+<p>If <code>pubkey</code> shows the wrong file, your
+<code>~/.ssh/config</code> Host block was not loaded — check syntax with
+<code>ssh -G nezha.local-tmx | grep -i identityfile</code>.</p>
+<h2 id="10-cross-references">10. Cross-references</h2>
+<ul>
+<li><a href="tmx-shell-integration.md">docs/guides/tmx-shell-integration.md</a>
+— the rc-side prompt</li>
+<li><a href="tmx-state.md">docs/guides/tmx-state.md</a> — the Go state
+daemon</li>
+<li><a href="../manual/tmx-shell-integration.md">docs/manual/tmx-shell-integration.md</a>
+— end-user master manual</li>
+<li><a href="../scripts/tmx-ssh-install.md">docs/scripts/tmx-ssh-install.md</a>
+— §11.4.18 companion (installer internals)</li>
+<li><a href="../scripts/tmx-ssh-dispatch.md">docs/scripts/tmx-ssh-dispatch.md</a>
+— §11.4.18 companion (dispatcher internals)</li>
+<li>Spec:
+<code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code>
+§4.C + §4.D + §5.2</li>
+</ul>
+<h2 id="11-anti-bluff-114">11. Anti-bluff (§11.4)</h2>
+<ul>
+<li>Test 31 <code>ssh_dispatch_local.sh</code> — drives the dispatcher
+with <code>SSH_ORIGINAL_COMMAND=work</code>; positive evidence:
+<code>tmux ls | grep work</code> shows the created session.</li>
+<li>Test 32 <code>ssh_dispatch_remote_nezha.sh</code> — real SSH against
+<code>nezha.local</code>; SKIPs per §11.4.3 if the host is unreachable;
+otherwise asserts session created AND cwd restored from a pre-positioned
+state-file entry.</li>
+<li>Test 34 <code>ssh_install_idempotent.sh</code> — runs the installer
+twice; <code>grep -c &quot;Host nezha.local-tmx&quot; ~/.ssh/config</code> and the
+remote <code>authorized_keys</code> dup-count MUST both be 1, not
+2.</li>
+<li>Test 36 <code>dispatcher_rejects_multiword.sh</code> —
+<code>SSH_ORIGINAL_COMMAND=&quot;echo hi&quot;</code> produces stderr + exit 1, no
+tmux process spawned.</li>
+<li>Layer-4 paired mutations M22 (strip <code>command=</code> from the
+authorized_keys template → test 31 FAILs) and M23 (strip the regex
+validation → test 35 FAILs).</li>
+</ul>
+<h2 id="12-last-verified">12. Last verified</h2>
+<p>2026-05-22 against Darwin arm64 client + Linux ALT 11 remote
+(<code>milosvasic@nezha.local</code>, kernel 6.12, systemd 258, OpenSSH
+9.6), both running tmx 1.0.9.</p>
+</body>
+</html>

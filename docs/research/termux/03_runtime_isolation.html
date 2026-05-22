@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="03--runtime-isolation-on-termux">§03 — Runtime Isolation on
+Termux</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T07:20:02Z <strong>Authority:</strong> vasic-digital tmux
+project (research-only) <strong>Maintainer:</strong> milosvasic
+<strong>Scope:</strong> What replaces
+<code>systemd-run --user --scope</code> on Termux — the central
+engineering question for the port</p>
+<hr />
+<h2 id="1-the-problem">1. The problem</h2>
+<p>Today the <code>tmx</code> wrapper enforces per-session resource
+isolation with two backends, dispatched on <code>uname -s</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>Mechanism</th>
+<th>Caps enforced</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linux</td>
+<td><code>systemd-run --user --scope --unit=tmx-NAME.scope -p MemoryMax=… -p CPUQuota=… -p TasksMax=…</code></td>
+<td>RAM (MemoryMax), CPU% (CPUQuota), task count (TasksMax),
+kernel-enforced via cgroup-v2 controllers</td>
+</tr>
+<tr>
+<td>macOS</td>
+<td><code>tmx-rlimit-wrapper.sh</code> setting <code>RLIMIT_CPU</code> +
+<code>RLIMIT_NPROC</code></td>
+<td>CPU seconds + per-user process count, kernel-enforced via XNU&#39;s
+POSIX setrlimit. <strong>Honest gap:</strong> <code>RLIMIT_AS</code> is
+NOT enforced for unprivileged processes on XNU.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Neither mechanism is available on Termux.</strong></p>
+<ul>
+<li><code>systemd-run</code>: there is no systemd on Android. There is
+no <code>--user</code> instance. The user installs Termux, gets bash,
+gets no init manager. (Sources: Termux discussion #17585; LWN Termux
+article — see §01 sources.)</li>
+<li>macOS branch: relies on <code>tmx-rlimit-wrapper.sh</code> which is
+a Mach-O binary. We can rebuild it for Android-arm64; the rlimit
+syscalls themselves work (see §2). But the WRAPPER as compiled is
+macOS-only.</li>
+</ul>
+<h2 id="2-what-can-we-use-on-termux">2. What CAN we use on Termux</h2>
+<p>Four candidates, in order of likely viability:</p>
+<h3 id="21-setrlimit2-directly--recommended-primary">2.1
+<code>setrlimit(2)</code> directly — RECOMMENDED PRIMARY</h3>
+<p>The kernel under Android is Linux. The bionic libc exposes
+<code>setrlimit</code> / <code>getrlimit</code> and <code>prlimit</code>
+(the latter on 64-bit only — see Termux&#39;s
+<code>util-linux/build.sh</code> which gates the prlimit feature on
+64-bit). Source: <a href="https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md">https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md</a>
++ <a href="https://github.com/termux/termux-packages/blob/master/packages/util-linux/build.sh">https://github.com/termux/termux-packages/blob/master/packages/util-linux/build.sh</a>.</p>
+<p>The bionic source tree carries architecture-specific shim files
+(<code>libc/arch-arm/syscalls/setrlimit.S</code>,
+<code>libc/arch-mips/syscalls/setrlimit.S</code>, etc.) confirming
+first-class support since the earliest Android revisions.</p>
+<p>Confirmed-portable resource limits on Termux:</p>
+<table>
+<thead>
+<tr>
+<th>Limit</th>
+<th>Linux semantics</th>
+<th>Termux availability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RLIMIT_AS</code> (max virtual address space)</td>
+<td>enforced by kernel</td>
+<td><strong>enforced</strong> — Linux kernel underneath, same
+<code>do_anonymous_page</code> / <code>mmap</code> checks</td>
+</tr>
+<tr>
+<td><code>RLIMIT_CPU</code> (CPU seconds; <code>SIGXCPU</code> →
+<code>SIGKILL</code>)</td>
+<td>enforced by kernel</td>
+<td><strong>enforced</strong> — kernel timer interrupt path is
+identical</td>
+</tr>
+<tr>
+<td><code>RLIMIT_NPROC</code> (per-real-UID process count)</td>
+<td>enforced by kernel at <code>fork(2)</code></td>
+<td><strong>enforced</strong> for the Termux UID — but see §4 caveat
+below</td>
+</tr>
+<tr>
+<td><code>RLIMIT_NOFILE</code> (open file descriptors)</td>
+<td>enforced</td>
+<td><strong>enforced</strong></td>
+</tr>
+<tr>
+<td><code>RLIMIT_CORE</code> (core file size)</td>
+<td>enforced</td>
+<td>enforced but core dumps usually disabled on Android</td>
+</tr>
+<tr>
+<td><code>RLIMIT_FSIZE</code> (max file size)</td>
+<td>enforced</td>
+<td>enforced</td>
+</tr>
+<tr>
+<td><code>RLIMIT_STACK</code> (stack size)</td>
+<td>enforced</td>
+<td>enforced</td>
+</tr>
+</tbody>
+</table>
+<p>Compared to macOS&#39;s gap (<code>RLIMIT_AS</code> not honoured by XNU),
+Termux is STRICTLY BETTER for our needs: we actually get memory
+address-space ceilings the kernel enforces. This is a small win for the
+port.</p>
+<p>The macOS <code>tmx-rlimit-wrapper.sh</code> design ports directly:
+the script calls
+<code>ulimit -v $MEM_KB; ulimit -t $CPU_SEC; ulimit -u $PROC_MAX; exec &quot;$@&quot;</code>.
+Termux&#39;s bash supports <code>ulimit -v</code> (<code>RLIMIT_AS</code>),
+<code>-t</code> (<code>RLIMIT_CPU</code>), <code>-u</code>
+(<code>RLIMIT_NPROC</code>). No code changes beyond the OS
+detection.</p>
+<h3 id="22-prlimit1-via-the-util-linux-package">2.2
+<code>prlimit(1)</code> via the <code>util-linux</code> package</h3>
+<p>From <code>pkg install util-linux</code> (on 64-bit Termux).
+<code>prlimit</code> lets us SET limits on an already-running process —
+useful if we want to defer cap application until after the tmux server
+forks. The macOS wrapper sets limits BEFORE exec so we don&#39;t need this,
+but it&#39;s good to know <code>prlimit</code> is on the table.</p>
+<p>Source: <a href="https://github.com/termux/termux-packages/blob/master/packages/util-linux/build.sh">https://github.com/termux/termux-packages/blob/master/packages/util-linux/build.sh</a>
+— line: <code>ac_cv_func_prlimit=yes</code> set in 64-bit builds.</p>
+<h3 id="23-cgroup-v2-rooted-devices-only--optional-power-user-path">2.3
+cgroup-v2 (rooted devices only) — OPTIONAL POWER-USER PATH</h3>
+<p>If the operator has a rooted device (Magisk / KernelSU), they can run
+<code>su -c &#39;mkdir /sys/fs/cgroup/tmx-NAME; echo $PID &gt; /sys/fs/cgroup/tmx-NAME/cgroup.procs&#39;</code>
+from within Termux. Some custom kernels also expose a writable cgroup
+hierarchy without root.</p>
+<p>This path is NOT recommended as a default because:</p>
+<ul>
+<li>Most Termux users are unrooted by design (security posture).</li>
+<li>Rooting voids warranty and many SafetyNet-protected apps refuse to
+run.</li>
+<li>Kernel cgroup-v2 support is patchy on older Android versions (see <a href="https://github.com/ravindu644/Droidspaces-OSS">https://github.com/ravindu644/Droidspaces-OSS</a>:
+&quot;kernel namespaces (PID, mount, network, IPC, UTS) and cgroups to create
+fully isolated environments&quot; — works on Linux kernel 3.18+ but
+availability depends on which controllers the OEM compiled in).</li>
+</ul>
+<p>If we add a Termux branch to <code>tmx.template</code>, detecting
+&quot;rooted + cgroup-v2 writable&quot; and using it would give us feature parity
+with the Linux branch. The detector is
+<code>[ -w /sys/fs/cgroup/cgroup.controllers ]</code>.</p>
+<h3 id="24-selinux-deny--android-lmkd">2.4 SELinux deny + Android
+lmkd</h3>
+<p>Not a replacement — these are constraints we must respect:</p>
+<ul>
+<li>SELinux blocks unprivileged Termux from setting OOM scores below 0
+on most policy variants. <code>/proc/$pid/oom_score_adj</code> is
+writable but lmkd (Android&#39;s userspace low-memory killer) maintains its
+own table indexed by Android UID. If lmkd decides Termux is &quot;background,
+low priority&quot; because the screen is off, it can <code>SIGKILL</code> the
+tmux server regardless of our <code>oom_score_adj=-500</code>
+write.</li>
+<li><strong>Phantom Process Killer (Android 12+).</strong> Limits
+child-process count per app to 32 by default. tmux spawning many panes
+can trip this. Disabling via developer-options ADB toggle is the
+documented workaround. See <a href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a>
+and the upstream Termux issue <a href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>.</li>
+</ul>
+<p>We CANNOT defeat lmkd or the phantom killer from userspace. The
+honest answer is: SKIP-with-reason in any test that asserts &quot;the server
+survives N hours of background time,&quot; and document the wake-lock +
+battery-optimization workaround for operators (see §05).</p>
+<h2 id="3-honest-gap-citation-table-11481">3. Honest-gap citation table
+(§11.4.81)</h2>
+<p>Per §11.4.81 (cross-platform-parity mandate), every isolation
+primitive used in the wrapper needs an explicit per-OS row. Here is the
+proposed table for <code>docs/guide/README.md</code> §5.6 when Termux
+lands:</p>
+<table>
+<thead>
+<tr>
+<th>Primitive</th>
+<th>Linux</th>
+<th>macOS (Darwin)</th>
+<th>Termux (Android, unrooted)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Memory cap</td>
+<td>cgroup-v2 <code>MemoryMax</code> (hard, kernel-enforced)</td>
+<td>XNU does NOT enforce <code>RLIMIT_AS</code> for unprivileged
+processes — <strong>honest gap, no fallback</strong></td>
+<td><code>RLIMIT_AS</code> via <code>ulimit -v</code> — <strong>enforced
+by Linux kernel underneath Android</strong></td>
+</tr>
+<tr>
+<td>CPU cap</td>
+<td>cgroup-v2 <code>CPUQuota</code> (e.g. 200% = 2 cores)</td>
+<td><code>RLIMIT_CPU</code> (cumulative CPU seconds →
+<code>SIGXCPU</code> then <code>SIGKILL</code>)</td>
+<td><code>RLIMIT_CPU</code> (same as macOS)</td>
+</tr>
+<tr>
+<td>Task cap</td>
+<td>cgroup-v2 <code>TasksMax</code> (per-cgroup process count)</td>
+<td><code>RLIMIT_NPROC</code> (per-real-UID, applies across the whole
+user session)</td>
+<td><code>RLIMIT_NPROC</code> (same as macOS) + 32-child cap from
+Android 12 Phantom Process Killer <strong>unless user disables it via
+ADB</strong></td>
+</tr>
+<tr>
+<td>OOM priority</td>
+<td><code>oom_score_adj</code> + cgroup-controlled OOM</td>
+<td>no equivalent (XNU has no OOM killer at all)</td>
+<td><code>oom_score_adj</code> writable but lmkd may override based on
+app priority</td>
+</tr>
+<tr>
+<td>Background survival</td>
+<td>systemd keeps service running</td>
+<td>macOS keeps the tmux server running until logout</td>
+<td><strong>Doze + Phantom Process Killer may freeze/kill</strong>
+unless <code>termux-wake-lock</code> held AND battery optimization
+disabled</td>
+</tr>
+</tbody>
+</table>
+<p>The honest-gap row vs macOS: Termux is <strong>strictly
+better</strong> on memory (we get a cap; macOS gets none) and
+<strong>strictly worse</strong> on background survival (macOS doesn&#39;t
+freeze; Termux does). CPU and task caps are functionally tied.</p>
+<h2 id="4-rlimit_nproc-sharing--important-caveat">4. RLIMIT_NPROC
+sharing — important caveat</h2>
+<p><code>RLIMIT_NPROC</code> is per-real-UID on Linux. On Termux, the
+real UID is the Termux app&#39;s UID. Every <code>tmx</code> session shares
+the same UID — they ALL count against the same
+<code>RLIMIT_NPROC</code>. Setting <code>RLIMIT_NPROC=4096</code> in one
+wrapper doesn&#39;t isolate session A from session B; it caps the total
+count of processes the Termux app can spawn.</p>
+<p>On Linux&#39;s cgroup-based approach, <code>TasksMax</code> is per-cgroup
+— true per-session isolation. We lose that on Termux.</p>
+<p>Practical impact: if a session goes fork-bomby, OTHER sessions also
+start failing <code>fork()</code> with <code>EAGAIN</code>. The tmux
+servers themselves shouldn&#39;t crash (they just see fewer fork-able
+resources) but the user experience for the other sessions degrades.
+Document in operator guide.</p>
+<p>Same caveat applies to macOS today — <code>RLIMIT_NPROC</code> is
+also per-real-UID on Darwin. So Termux inherits the existing macOS
+limitation rather than introducing a new one. Honest framing per
+§11.4.6.</p>
+<h2 id="5-the-proposed-termux-branch-in-tmxtemplate">5. The proposed
+Termux branch in <code>tmx.template</code></h2>
+<p>Sketch (NOT to be implemented in this research mission — just for
+design clarity):</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">case</span> <span class="st">&quot;</span><span class="va">$HOST_OS</span><span class="st">&quot;</span> <span class="kw">in</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="ss">Linux</span><span class="kw">)</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">[</span> <span class="ot">-n</span> <span class="st">&quot;</span><span class="va">${TERMUX_VERSION</span><span class="op">:-</span><span class="va">}</span><span class="st">&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Termux on Android — Linux uname but no systemd, no cgroups.</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Use rlimit wrapper, same as macOS.</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;</span><span class="va">$RLIMIT_WRAPPER</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$MEM_KB</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$CPU_SEC</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$PROC_MAX</span><span class="st">&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;</span><span class="va">$TMUX_BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$SOCK_LABEL</span><span class="st">&quot;</span> <span class="at">-f</span> <span class="st">&quot;</span><span class="va">$TMUX_CONF</span><span class="st">&quot;</span> new-session ...</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>            <span class="va">TMX_CLASSIFICATION</span><span class="op">=</span><span class="st">&quot;tmx-supported-termux&quot;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> <span class="bu">[</span> <span class="st">&quot;</span><span class="va">$_scope_ok</span><span class="st">&quot;</span> <span class="ot">-eq</span> 1 <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Real Linux with systemd-user — existing path.</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>            <span class="ex">systemd-run</span> <span class="at">--user</span> <span class="at">--scope</span> ...</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>            <span class="va">TMX_CLASSIFICATION</span><span class="op">=</span><span class="st">&quot;tmx-supported&quot;</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>            <span class="va">TMX_CLASSIFICATION</span><span class="op">=</span><span class="st">&quot;tmx-degraded&quot;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>            <span class="co"># ...</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">fi</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">;;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="ss">Darwin</span><span class="kw">)</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Existing macOS path.</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;</span><span class="va">$RLIMIT_WRAPPER</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$MEM_KB</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$CPU_SEC</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$PROC_MAX</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$TMUX_BIN</span><span class="st">&quot;</span> ...</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">;;</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="cf">esac</span></span></code></pre></div>
+<p>The <code>$TERMUX_VERSION</code> env var is exported by Termux&#39;s
+login script (sourced in <code>~/.bashrc</code>-equivalent at session
+start) and is the canonical &quot;am I running inside Termux?&quot; detector.
+Source: <a href="https://github.com/termux/termux-packages/wiki/Termux-environment-variables">https://github.com/termux/termux-packages/wiki/Termux-environment-variables</a>.</p>
+<h2 id="6-the-wake-lock-requirement">6. The wake-lock requirement</h2>
+<p>Setting rlimit and starting tmux is not enough. For long-running
+sessions (the whole point of tmux) Android&#39;s Doze mode WILL throttle CPU
+and network when the screen is off. Source: <a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>.</p>
+<p>The standard mitigation is <code>termux-wake-lock</code>, a command
+shipped by Termux that acquires an Android partial wake lock for the
+Termux process group. This keeps the CPU available even with screen
+off.</p>
+<p>Two design options for the wrapper:</p>
+<ol type="1">
+<li><strong>Always-on:</strong> <code>tmx new</code> calls
+<code>termux-wake-lock</code> first, <code>tmx kill-server</code> calls
+<code>termux-wake-unlock</code>. Simple, predictable, costs
+battery.</li>
+<li><strong>Opt-in:</strong> wrapper detects Termux and PRINTS a notice
+&quot;to keep this session alive in background, run
+<code>termux-wake-lock</code>&quot;. Operator chooses.</li>
+</ol>
+<p>Recommend option 2 for default behaviour with a
+<code>--background</code> flag that triggers option 1 explicitly. This
+respects user intent (some operators DO want the session to suspend with
+the device).</p>
+<h2 id="7-summary">7. Summary</h2>
+<p>We can build a viable Termux isolation layer using
+<code>setrlimit</code> + <code>ulimit</code>. The result has the same
+shape as our macOS branch with two additions:</p>
+<ul>
+<li>Memory address-space cap actually works (better than macOS).</li>
+<li>Background survival is fragile (worse than macOS).</li>
+</ul>
+<p>A rooted-cgroup-v2 sub-path is feasible as an opt-in for power users,
+but not the default.</p>
+<p>The §11.4.81 honest-gap citation has THREE rows now, and Termux gets
+its own column.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md">https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md</a>
+— bionic API support (setrlimit, prlimit, fork, signals)</li>
+<li><a href="https://github.com/termux/termux-packages/blob/master/packages/util-linux/build.sh">https://github.com/termux/termux-packages/blob/master/packages/util-linux/build.sh</a>
+— prlimit gate on 64-bit</li>
+<li><a href="https://man7.org/linux/man-pages/man2/getrlimit.2.html">https://man7.org/linux/man-pages/man2/getrlimit.2.html</a>
+— Linux rlimit semantics (kernel-enforced under Android too)</li>
+<li><a href="https://source.android.com/docs/core/perf/lmkd">https://source.android.com/docs/core/perf/lmkd</a>
+— Android low-memory killer daemon</li>
+<li><a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>
+— Doze affects tmux in Termux</li>
+<li><a href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>
+— Phantom Process Killer signal-9 kills since Android 12</li>
+<li><a href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a>
+— ADB-driven workaround</li>
+<li><a href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a>
+— confirmation cgroups not writable from unprivileged userspace</li>
+<li><a href="https://github.com/ravindu644/Droidspaces-OSS">https://github.com/ravindu644/Droidspaces-OSS</a>
+— example of rooted-kernel cgroup approach</li>
+</ul>
+</body>
+</html>

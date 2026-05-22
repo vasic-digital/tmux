@@ -6,8 +6,13 @@
 # tmux 3.6a build at __PROJECT__/tmux/build/bin/tmux). The system `tmux`
 # command stays reachable as-is — `tmx` and `tmux` coexist side-by-side.
 #
+# Also sources tmx-shell-init.sh — the interactive per-shell session prompt
+# (skipped on non-TTY shells like scp/rsync/IDE pipes; opt-out via TMX_SKIP=1).
+# See docs/guides/tmx-shell-integration.md for the full contract.
+#
 # Source: __PROJECT__/tmux/build/bin/tmux  (Linux ELF, built containerized)
 #         __PROJECT__/scripts/tmx          (wrapper: jemalloc + OOM + cgroup scope + colour)
+#         __PROJECT__/scripts/tmx-shell-init.sh  (POSIX, sourced on interactive login)
 VDIGITAL_TMUX_DIR="__PROJECT__/scripts"
 if [ -x "$VDIGITAL_TMUX_DIR/tmx" ]; then
     export PATH="$VDIGITAL_TMUX_DIR:$PATH"
@@ -15,4 +20,5 @@ if [ -x "$VDIGITAL_TMUX_DIR/tmx" ]; then
     # binary and break the side-by-side coexistence requirement. Operators
     # invoke our verified build explicitly as `tmx new|attach|ls|kill`.
 fi
+[ -r "$VDIGITAL_TMUX_DIR/tmx-shell-init.sh" ] && . "$VDIGITAL_TMUX_DIR/tmx-shell-init.sh"
 # ─── end vasic-digital optimized tmux ─────────────────────────────────────────

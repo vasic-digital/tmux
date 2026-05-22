@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="tmx-ssh-install">tmx-ssh-install</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T00:00:00Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+§11.4.18 script companion doc for
+<code>scripts/tmx-ssh-install.sh</code></p>
+<h2 id="purpose">Purpose</h2>
+<p>Client-side, idempotent bootstrapper for the
+<code>ssh &lt;host&gt;-tmx &lt;session&gt;</code> ergonomics described
+in design spec
+<code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code>
+§4.D and §5.2. It generates a per-host ed25519 key, installs the
+matching <code>command=&quot;…/tmx-ssh-dispatch.sh&quot;</code> entry in the
+remote <code>~/.ssh/authorized_keys</code>, writes a local
+<code>Host &lt;host&gt;-tmx</code> alias to <code>~/.ssh/config</code>,
+and verifies the dispatcher rejects unknown commands as designed. Every
+step is a no-op on re-run, so the script is safe to use as part of an
+automated setup loop.</p>
+<h2 id="usage">Usage</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tmx-ssh-install.sh <span class="op">&lt;</span>user<span class="op">&gt;</span>@<span class="op">&lt;</span>host<span class="op">&gt;</span> [--remote-project-path /path]</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tmx-ssh-install.sh <span class="at">--uninstall</span> <span class="op">&lt;</span>user<span class="op">&gt;</span>@<span class="op">&lt;</span>host<span class="op">&gt;</span> <span class="pp">[--</span><span class="ss">purge</span><span class="pp">-</span><span class="ss">key</span><span class="pp">]</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tmx-ssh-install.sh <span class="at">--dry-run</span>    <span class="op">&lt;</span>user<span class="op">&gt;</span>@<span class="op">&lt;</span>host<span class="op">&gt;</span> [--remote-project-path /path]</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tmx-ssh-install.sh <span class="at">--help</span></span></code></pre></div>
+<p>Defaults:</p>
+<ul>
+<li><code>--remote-project-path</code> → <code>~/Projects/tmux</code>
+(matches the operator&#39;s local convention; override when the remote
+checkout lives elsewhere).</li>
+<li><code>--force</code> → overwrite an existing per-host key.
+<strong>Default is to leave the key in place</strong> so re-runs do not
+invalidate prior installs.</li>
+</ul>
+<h2 id="inputs">Inputs</h2>
+<h3 id="positional">Positional</h3>
+<ul>
+<li><code>&lt;user&gt;@&lt;host&gt;</code> — the SSH target. Required.
+Must match <code>^[A-Za-z0-9._@-]+$</code>; rejected otherwise.</li>
+</ul>
+<h3 id="flags">Flags</h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--remote-project-path PATH</code></td>
+<td>Where the vasic-digital tmux clone lives on the remote (default
+<code>~/Projects/tmux</code>).</td>
+</tr>
+<tr>
+<td><code>--uninstall</code></td>
+<td>Reverse mode. Removes the authorized_keys entry (by fingerprint) and
+the local Host block.</td>
+</tr>
+<tr>
+<td><code>--purge-key</code></td>
+<td>Only with <code>--uninstall</code>. Also removes the local per-host
+key.</td>
+</tr>
+<tr>
+<td><code>--force</code></td>
+<td>Overwrite an existing local per-host key. Loud and intentional.</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td>Print every action without executing it. Safe to run anywhere.</td>
+</tr>
+<tr>
+<td><code>-h</code> / <code>--help</code></td>
+<td>Print usage and exit 0.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="environment">Environment</h3>
+<p>No environment variables are read directly. SSH itself honours
+<code>SSH_AUTH_SOCK</code>, etc. — pre-existing auth must work for step
+3 (reachability probe).</p>
+<h2 id="outputs">Outputs</h2>
+<h3 id="files-modified-install">Files modified (install)</h3>
+<ul>
+<li>Local: <code>~/.ssh/id_tmx_&lt;sanitized-host&gt;</code> +
+<code>.pub</code> (created if absent).</li>
+<li>Local: <code>~/.ssh/config</code> (appended
+<code>Host &lt;host&gt;-tmx</code> block — once).</li>
+<li>Remote:
+<code>&lt;remote-project&gt;/scripts/tmx-ssh-dispatch.sh.template</code>
+(scp&#39;d).</li>
+<li>Remote:
+<code>&lt;remote-project&gt;/scripts/tmx-ssh-dispatch.sh</code>
+(substituted + mode 0755).</li>
+<li>Remote: <code>~/.ssh/authorized_keys</code> (appended
+<code>command=&quot;…&quot;</code> line — once per fingerprint).</li>
+</ul>
+<h3 id="files-modified-uninstall">Files modified (uninstall)</h3>
+<ul>
+<li>Local: <code>~/.ssh/config</code> (drops the matching
+<code>Host</code> block).</li>
+<li>Remote: <code>~/.ssh/authorized_keys</code> (drops the line whose
+pubkey fingerprint matches the local pubkey).</li>
+<li>Local with <code>--purge-key</code>:
+<code>~/.ssh/id_tmx_&lt;sanitized-host&gt;</code> +
+<code>.pub</code>.</li>
+</ul>
+<h3 id="stderr-stream">Stderr stream</h3>
+<p>Every step logs <code>[tmx-ssh-install] step N: …</code> so the
+operator sees exactly which action is in flight. Errors are prefixed
+<code>[tmx-ssh-install] ERROR:</code>.</p>
+<h2 id="side-effects">Side-effects</h2>
+<ul>
+<li>Generates a new SSH key only if one does not already exist for the
+target host. Never overwrites without <code>--force</code>.</li>
+<li>Touches the remote&#39;s <code>~/.ssh</code> (mode 700) and
+<code>authorized_keys</code> (mode 600) to keep sshd happy.</li>
+<li>Performs a single SSH probe to assert reachability before mutating
+anything remote.</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li>POSIX <code>/bin/sh</code> (script runs under macOS bash 3.2 and any
+Linux dash/bash).</li>
+<li><code>ssh</code>, <code>scp</code>, <code>ssh-keygen</code>,
+<code>awk</code>, <code>mktemp</code>, <code>tr</code>,
+<code>sed</code>, <code>grep</code>.</li>
+<li>Pre-existing working SSH auth path to the target (used to install
+our key). If non-interactive
+<code>ssh -o BatchMode=yes &lt;target&gt; exit 0</code> fails, the
+installer aborts and tells the operator to run <code>ssh-copy-id</code>
+first.</li>
+</ul>
+<h2 id="cross-references">Cross-references</h2>
+<ul>
+<li><code>scripts/tmx-ssh-dispatch.sh.template</code> — the remote-side
+script this installer deploys; see
+<code>docs/scripts/tmx-ssh-dispatch.md</code>.</li>
+<li><code>scripts/tmx-shell-init.sh.template</code> — the interactive
+shell flow the dispatcher hands off to on empty
+<code>SSH_ORIGINAL_COMMAND</code>.</li>
+<li><code>scripts/tmx-state/main.go</code> — the cwd-recall daemon the
+dispatcher queries.</li>
+<li>Design spec:
+<code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code>
+§4.D, §5.2, §6 (edge cases 9 + 13).</li>
+<li>Governance: §11.4.18 (script docs), §11.4.44 (revision header),
+§11.4.67 (POSIX-parseable shell), §11.4.10 (never leak credentials —
+this script never reads existing private keys).</li>
+</ul>
+<h2 id="last-verified">Last verified</h2>
+<p>2026-05-22 — sh -n clean, <code>--dry-run</code> exercises all 8
+install steps and all 3 uninstall steps without performing any I/O. Full
+real-host verification deferred to P9 release verification per spec
+§10.</p>
+</body>
+</html>

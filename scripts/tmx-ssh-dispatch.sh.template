@@ -1,0 +1,104 @@
+#!/bin/sh
+# tmx-ssh-dispatch — authorized_keys `command=` dispatcher
+# Translates $SSH_ORIGINAL_COMMAND into a tmx session attach or rejects.
+# Project: vasic-digital tmux  Generated on __DATE__ from .template
+# Documentation: docs/guides/tmx-ssh-dispatch.md
+# §11.4.67 POSIX-parseable (sh -n clean)
+#
+# Behaviour contract (see docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md §4.C, §5.2, §6):
+#   - empty SSH_ORIGINAL_COMMAND                      -> exec bash -l (interactive login)
+#   - matches ^[A-Za-z0-9_.-]{1,64}$ via POSIX `case` -> exec tmx attach || exec tmx new -s ... -c <last-pwd>
+#   - anything else                                   -> stderr rejection + exit 1
+#
+# Installed at the path declared in ~/.ssh/authorized_keys as `command=`:
+#   command="__PROJECT__/scripts/tmx-ssh-dispatch.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding ssh-ed25519 AAAA...
+#
+# Project: __PROJECT__
+
+# Test mode: TMX_DISPATCH_TEST=1 replaces `exec` with a logging stub so
+# anti-bluff tests can prove which branch was taken without actually
+# replacing the shell.  Off in production.
+if [ -n "${TMX_DISPATCH_TEST:-}" ]; then
+    _tmx_exec() {
+        printf '[would exec:'
+        for _a in "$@"; do printf ' %s' "$_a"; done
+        printf ']\n'
+    }
+else
+    _tmx_exec() {
+        exec "$@"
+    }
+fi
+
+# tmx-state may not be on PATH under non-interactive SSH (sshd strips
+# shell-rc PATH additions).  Try PATH, then project-relative fallback.
+_tmx_state() {
+    if command -v tmx-state >/dev/null 2>&1; then
+        tmx-state "$@"
+        return $?
+    fi
+    if [ -x "__PROJECT__/scripts/tmx-state-bin" ]; then
+        "__PROJECT__/scripts/tmx-state-bin" "$@"
+        return $?
+    fi
+    return 127
+}
+
+# Locate the tmx wrapper similarly.
+_tmx_cmd() {
+    if command -v tmx >/dev/null 2>&1; then
+        echo "tmx"
+        return 0
+    fi
+    if [ -x "__PROJECT__/scripts/tmx" ]; then
+        echo "__PROJECT__/scripts/tmx"
+        return 0
+    fi
+    return 127
+}
+
+# 1. empty SSH_ORIGINAL_COMMAND -> hand off to a login shell.
+if [ -z "${SSH_ORIGINAL_COMMAND:-}" ]; then
+    _tmx_exec bash -l
+    exit 0
+fi
+
+session="${SSH_ORIGINAL_COMMAND}"
+
+# 2. length guard (1..64 chars).
+session_len=${#session}
+if [ "$session_len" -lt 1 ] || [ "$session_len" -gt 64 ]; then
+    printf "[tmx-ssh-dispatch] this key accepts only a tmx session name (1-64 chars, [A-Za-z0-9_.-]). Use your normal SSH key for shell commands. Got: '%s'\n" "$session" >&2
+    exit 1
+fi
+
+# 3. character-set guard (POSIX `case`, NOT bash [[ =~ ]]).
+# *[!A-Za-z0-9_.-]* matches any string containing at least one disallowed char.
+case "$session" in
+    *[!A-Za-z0-9_.-]*)
+        printf "[tmx-ssh-dispatch] this key accepts only a tmx session name (1-64 chars, [A-Za-z0-9_.-]). Use your normal SSH key for shell commands. Got: '%s'\n" "$session" >&2
+        exit 1
+        ;;
+esac
+
+# 4. valid name -> resolve tmx + recall last cwd, then attach-or-new.
+tmx_bin="$(_tmx_cmd)"
+if [ -z "$tmx_bin" ]; then
+    printf "[tmx-ssh-dispatch] tmx wrapper not found on PATH or at __PROJECT__/scripts/tmx\n" >&2
+    exit 1
+fi
+
+# Recall last-known cwd; empty if unknown or tmx-state unavailable.
+last_pwd="$(_tmx_state recall "$session" 2>/dev/null || true)"
+
+if [ -n "$last_pwd" ] && [ -d "$last_pwd" ]; then
+    start_cwd="$last_pwd"
+else
+    start_cwd="$HOME"
+fi
+
+# Single exec via `sh -c` -- attaches if session exists, else creates with
+# -s NAME -c <cwd>.  Mirrors tmx-shell-init.sh.template's attach-or-new
+# pattern for behavioural parity.
+_tmx_exec sh -c '"$1" attach -t "$2" 2>/dev/null || exec "$1" new -s "$2" -c "$3"' \
+    tmx-ssh-dispatch "$tmx_bin" "$session" "$start_cwd"

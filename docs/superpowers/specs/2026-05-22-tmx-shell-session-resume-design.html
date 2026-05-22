@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="tmx-shell-session-resume--ssh-dispatch--go-state-daemon--design-spec">tmx
+Shell-Session Resume + SSH Dispatch + Go State Daemon — Design Spec</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T06:14:03Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+v1.0.9 — extends the existing <code>tmx</code> per-session wrapper with
+(a) shell-init extraction, (b) per-session last-cwd persistence via a Go
+binary, (c) SSH-argument dispatch, (d) end-user docs, (e) full
+anti-bluff test + Challenge coverage on macOS + nezha-Linux</p>
+<hr />
+<h2 id="1-problem-statement">1. Problem statement</h2>
+<p>Today operators paste a hand-written shell snippet into
+<code>.bashrc</code>/<code>.zshrc</code> that prompts on every
+interactive login for a session name, defaulting to
+<code>default</code>. The snippet has four issues:</p>
+<ol type="1">
+<li>The snippet is <strong>duplicated</strong> in every operator&#39;s rc
+file — drift is invisible.</li>
+<li>The <code>read -r</code> call <strong>blocks</strong>
+non-interactive shells (scp, rsync, IDEs) — breaks them.</li>
+<li>There is <strong>no cwd memory</strong> — every session starts in
+<code>$HOME</code> regardless of where the operator was last
+working.</li>
+<li>Remote-by-SSH access to a specific session requires the operator to
+type <code>ssh host -t -- tmx attach -t NAME</code> — fragile and easy
+to mistype.</li>
+</ol>
+<p>This spec addresses all four under the §11.4 covenant: every PASS
+ships with positive captured runtime evidence on macOS +
+nezha-Linux.</p>
+<h2 id="2-goals">2. Goals</h2>
+<ul>
+<li><strong>G1.</strong> Extract the rc snippet into a single
+project-owned POSIX-compatible file sourced via <code>.</code> /
+<code>source</code>. One source of truth.</li>
+<li><strong>G2.</strong> Change the UX so <code>default</code> (literal
+or empty input) = SKIP tmx (bare shell), named = create-or-attach.</li>
+<li><strong>G3.</strong> Remember the last cwd per session and restore
+it when the session is recreated.</li>
+<li><strong>G4.</strong> Allow
+<code>ssh &lt;host&gt;-tmx &lt;session-name&gt;</code> to land directly
+inside that session, with cwd restored.</li>
+<li><strong>G5.</strong> Ship comprehensive docs (user guide + manual +
+script companions + auto-exported HTML+PDF).</li>
+<li><strong>G6.</strong> All of the above covered by four-layer
+anti-bluff tests + HelixQA Challenges that prove the feature works for
+end users on macOS + nezha-Linux.</li>
+</ul>
+<h2 id="3-non-goals">3. Non-goals</h2>
+<ul>
+<li>Replacing the existing <code>tmx new|attach|ls|kill</code> wrapper
+API. The wrapper remains the operator-facing CLI.</li>
+<li>Per-prompt cwd capture. Detach + close hooks are sufficient;
+per-prompt would add fsync overhead to every shell prompt.</li>
+<li>Cross-host state sync. State is per-host; a session named
+<code>work</code> on macOS and <code>work</code> on nezha are
+independent.</li>
+<li>Restoring cwd into a live pane on attach (would interrupt running
+processes).</li>
+<li>A TUI session picker. The rc-side prompt stays line-oriented;
+advanced operators use <code>tmx ls</code>.</li>
+</ul>
+<h2 id="4-architecture">4. Architecture</h2>
+<p>Five artefacts:</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Path</th>
+<th>Language</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td><code>scripts/tmx-shell-init.sh</code></td>
+<td>POSIX sh (bash 3.2 / 5+ / zsh compatible)</td>
+<td>Sourced from rc; interactive prompt + dispatch into wrapper</td>
+</tr>
+<tr>
+<td>B</td>
+<td><code>scripts/tmx-state/</code> →
+<code>scripts/tmx-state-bin</code></td>
+<td>Go (static binary, cross-compiled)</td>
+<td>Atomic per-session cwd state record/recall/list/forget</td>
+</tr>
+<tr>
+<td>C</td>
+<td><code>scripts/tmx-ssh-dispatch.sh</code></td>
+<td>POSIX sh</td>
+<td>Used as <code>command=</code> in remote
+<code>~/.ssh/authorized_keys</code>; translates
+<code>$SSH_ORIGINAL_COMMAND</code> into session attach</td>
+</tr>
+<tr>
+<td>D</td>
+<td><code>scripts/tmx-ssh-install.sh</code></td>
+<td>POSIX sh</td>
+<td>Generates client key, SCPs pubkey, installs
+<code>authorized_keys</code> entry, writes client Host alias</td>
+</tr>
+<tr>
+<td>E</td>
+<td><code>scripts/tmx.template</code> patch</td>
+<td>POSIX sh</td>
+<td>Wrapper queries Go binary on <code>new</code>; installs tmux hooks
+for cwd capture on detach/close</td>
+</tr>
+</tbody>
+</table>
+<h3 id="41-builddeploy-wiring">4.1 Build/deploy wiring</h3>
+<ul>
+<li><code>scripts/install_deps.sh</code> gets a Go toolchain step
+(<code>brew install go</code> on macOS, distro package on Linux).
+Already-installed Go ≥ 1.21 is accepted.</li>
+<li><code>scripts/setup.sh</code> learns three sub-tasks: generate
+<code>tmx-shell-init.sh</code> from <code>.template</code> with project
+paths substituted,
+<code>go build -o scripts/tmx-state-bin ./scripts/tmx-state/...</code>,
+print the one-line <code>source</code> directive for operator
+paste.</li>
+<li><code>scripts/bashrc_snippet.template</code> is REPLACED by a
+single-line <code>. &lt;project&gt;/scripts/tmx-shell-init.sh</code>
+plus the existing <code>PATH</code> block.</li>
+</ul>
+<h2 id="5-data-flow">5. Data flow</h2>
+<h3 id="51-cwd-persistence">5.1 Cwd persistence</h3>
+<pre><code>   tmux client-detached  ──┐
+   tmux session-closed   ──┼──&gt; hook fires: tmx-state record NAME #{pane_current_path}
+                           │                  (~5 ms, atomic temp+rename + fsync, fcntl F_SETLKW)
+                           │
+   wrapper `tmx new -s X`──┘    → tmx-state recall X → -c &lt;path&gt;  (passed to `tmux new-session`)</code></pre>
+<p>Capture point: <strong>only on detach/close</strong>. Hard-kill (host
+reboot, ssh -9) loses the most recent cwd → user lands in
+<code>$HOME</code>, wrapper prints
+<code>[tmx] last-pwd unknown for X; starting in $HOME</code>. Acceptable
+degradation.</p>
+<h3 id="52-ssh-dispatch">5.2 SSH dispatch</h3>
+<pre><code>client:  ssh nezha-tmx work
+   │
+   ├── ~/.ssh/config Host alias resolves to nezha.local + IdentityFile ~/.ssh/id_tmx_nezha + IdentitiesOnly yes
+   │
+remote: sshd authenticates key → reads command=&quot;…/tmx-ssh-dispatch.sh&quot; → execs it with SSH_ORIGINAL_COMMAND=&quot;work&quot;
+   │
+dispatch:
+   ├── empty SSH_ORIGINAL_COMMAND  → exec bash -l (interactive login → normal tmx-shell-init.sh flow)
+   ├── matches ^[A-Za-z0-9_.-]{1,64}$  → exec tmx attach -t NAME || tmx new -s NAME -c &quot;$(tmx-state recall NAME)&quot;
+   └── anything else  → stderr &quot;this key accepts only a session name; use your normal key for shell commands&quot; + exit 1</code></pre>
+<h3 id="53-state-file-schema-tmxstatejson-mode-0600">5.3 State file
+schema (<code>~/.tmx/state.json</code>, mode 0600)</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;schema_version&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sessions&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;work&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;last_pwd&quot;</span><span class="fu">:</span> <span class="st">&quot;/Users/milosvasic/Projects/tmux&quot;</span><span class="fu">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;last_seen_unix&quot;</span><span class="fu">:</span> <span class="dv">1748000000</span><span class="fu">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;created_unix&quot;</span><span class="fu">:</span> <span class="dv">1747000000</span><span class="fu">,</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;host&quot;</span><span class="fu">:</span> <span class="st">&quot;nezha.local&quot;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Single-file design (not jsonl) — fits in memory trivially (kilobytes
+for hundreds of sessions), allows atomic write+rename, easy to inspect
+by hand.</p>
+<h2 id="6-edge-cases">6. Edge cases</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Case</th>
+<th>Handling</th>
+<th>Test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Session name <code>default</code> (literal)</td>
+<td>SKIP (no tmx)</td>
+<td>19</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Blank input</td>
+<td>Coerced to <code>default</code> → SKIP</td>
+<td>20</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Session name with <code>;</code>, <code> </code>, <code>/</code>,
+<code>..</code>, backticks</td>
+<td>Rejected at rc prompt + dispatcher regex</td>
+<td>26</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>$TMUX</code> already set</td>
+<td>Skip silently</td>
+<td>28</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Non-TTY stdin (scp/rsync/IDE)</td>
+<td><code>[ -t 0 ] &amp;&amp; [ -t 1 ]</code> guard → silent skip</td>
+<td>21</td>
+</tr>
+<tr>
+<td>6</td>
+<td>State file corrupt</td>
+<td>Go binary rebuilds <code>{}</code>, logs notice, exits 0</td>
+<td>24</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Last cwd no longer exists</td>
+<td>Falls back to <code>$HOME</code> + notice</td>
+<td>29</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Concurrent record from N panes</td>
+<td>fcntl <code>F_SETLKW</code>, latest-wins</td>
+<td>24</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Dispatcher invoked with multi-word command</td>
+<td>Reject + stderr</td>
+<td>27</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Go toolchain absent at build</td>
+<td><code>setup.sh</code> aborts with install pointer</td>
+<td>gate <code>CM-TMX-STATE-GO-PRESENT</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>~/.tmx/</code> unwritable</td>
+<td>Wrapper falls through; no cwd restore; tmx itself never breaks</td>
+<td>30</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Bash 3.2 (macOS default)</td>
+<td>POSIX <code>case</code> not <code>[[ =~ ]]</code>; verified by
+<code>sh -n</code></td>
+<td>gate §11.4.67</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Idempotent install (run installer twice)</td>
+<td>No duplicate <code>authorized_keys</code> lines, no duplicate
+<code>Host</code> block</td>
+<td>25</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Cross-platform (macOS + Linux)</td>
+<td>Every test branches on <code>uname -s</code> per §11.4.81</td>
+<td>31</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7-anti-bluff-testing-strategy-114">7. Anti-bluff testing
+strategy (§11.4)</h2>
+<h3 id="layer-1--pre-build-gates-added-to-scriptsverifysh">Layer 1 —
+pre-build gates (added to <code>scripts/verify.sh</code>)</h3>
+<ul>
+<li><code>CM-TMX-STATE-GO-MOD-EXISTS</code></li>
+<li><code>CM-TMX-STATE-GO-PRESENT</code></li>
+<li><code>CM-TMX-SHELL-INIT-POSIX</code> (§11.4.67)</li>
+<li><code>CM-TMX-SSH-DISPATCH-POSIX</code> (§11.4.67)</li>
+<li><code>CM-TMX-DOCS-GUIDES-EXIST</code> (every doc has §11.4.44
+revision header + HTML+PDF siblings per §11.4.65)</li>
+</ul>
+<h3 id="layer-2--post-build">Layer 2 — post-build</h3>
+<ul>
+<li><code>tmx-state --version</code> returns expected value</li>
+<li><code>sh -n scripts/tmx-shell-init.sh</code></li>
+<li><code>sh -n scripts/tmx-ssh-dispatch.sh</code></li>
+<li><code>bash -n</code> + <code>zsh -n</code> smoke parse</li>
+</ul>
+<h3 id="layer-3--on-device-runtime-new-scriptstests">Layer 3 — on-device
+runtime (new <code>scripts/tests/</code>)</h3>
+<ul>
+<li><code>18_state_persistence.sh</code> — create <code>pwd-test</code>,
+cd /tmp, detach, kill server, recreate →
+<code>tmux display-message -p &#39;#{pane_current_path}&#39;</code> MUST equal
+<code>/tmp</code>. <strong>Positive evidence</strong>: captured
+pane-current-path string, not just exit code.</li>
+<li><code>19_default_skip.sh</code> — <code>default</code> input, no
+tmux started. <strong>Positive evidence</strong>: <code>tmux ls</code>
+empty.</li>
+<li><code>20_default_skip_blank.sh</code> — blank input variant.</li>
+<li><code>21_non_tty_skip.sh</code> — stdin redirected from
+<code>/dev/null</code>. <strong>Positive evidence</strong>: 5s
+<code>timeout</code> wrapper; success requires returning under timeout
+AND no tmux started.</li>
+<li><code>22_ssh_dispatch_local.sh</code> —
+<code>SSH_ORIGINAL_COMMAND=work tmx-ssh-dispatch.sh</code>.
+<strong>Positive evidence</strong>:
+<code>tmux ls | grep -x &#39;work: .*&#39;</code>.</li>
+<li><code>23_ssh_dispatch_remote_nezha.sh</code> — real SSH into
+nezha.local. SKIPs per §11.4.3 if unreachable; otherwise asserts session
+created AND cwd restored.</li>
+<li><code>24_state_concurrency.sh</code> — 10 parallel
+<code>tmx-state record</code>. <strong>Positive evidence</strong>:
+post-condition file parses as JSON AND all 10 keys present.</li>
+<li><code>25_ssh_install_idempotent.sh</code> — installer runs twice;
+<code>wc -l</code> on dup-detection patterns MUST return 1, not 2.</li>
+<li><code>26_session_name_validation.sh</code> — names with
+<code>;</code>, <code> </code>, <code>/</code>, <code>..</code> all
+rejected.</li>
+<li><code>27_dispatcher_rejects_multiword.sh</code> —
+<code>SSH_ORIGINAL_COMMAND=&quot;echo hi&quot;</code>; non-zero exit AND no
+tmux.</li>
+<li><code>28_nested_tmux_skip.sh</code> — <code>TMUX=fake</code> envvar;
+assert skip.</li>
+<li><code>29_stale_pwd_fallback.sh</code> — record
+<code>/tmp/gone</code>, delete, attach → cwd is <code>$HOME</code>.</li>
+<li><code>30_state_unwritable.sh</code> — <code>chmod 000 ~/.tmx</code>;
+tmx still works.</li>
+<li><code>31_macos_linux_parity.sh</code> — §11.4.81 case-on-uname; each
+branch positive evidence per §11.4.5.</li>
+</ul>
+<h3 id="layer-4--paired-11-meta-test-mutations-meta_test_false_positive_proofsh">Layer
+4 — paired §1.1 meta-test mutations
+(<code>meta_test_false_positive_proof.sh</code>)</h3>
+<ul>
+<li>M20: strip <code>[ -t 0 ]</code> guard → test 21 FAIL</li>
+<li>M21: strip cwd capture tmux hook → test 18 FAIL</li>
+<li>M22: strip <code>command=</code> from authorized_keys template →
+test 22 FAIL</li>
+<li>M23: strip name-regex validation from dispatcher → test 26 FAIL</li>
+<li>M24: strip cross-platform branch → test 31 FAIL</li>
+</ul>
+<h3 id="helixqa-challenges-scriptschallengestmuxyaml">HelixQA Challenges
+(<code>scripts/challenges/tmux.yaml</code>)</h3>
+<ul>
+<li><code>tmx_session_resume_cwd</code> — autonomous; reads cwd via
+<code>tmx-state recall</code>; PASSes only with captured-evidence per
+§11.4.5.</li>
+<li><code>tmx_ssh_dispatch_nezha</code> — autonomous; OPERATOR-BLOCKED
+if nezha unreachable.</li>
+<li><code>tmx_non_tty_safety</code> — autonomous pipe test.</li>
+<li><code>tmx_docs_user_guides_render</code> — pandoc-renders each
+<code>docs/guides/tmx-*.md</code> to HTML+PDF, asserts non-empty.</li>
+</ul>
+<h3 id="11450-deterministic-consistency">§11.4.50 deterministic
+consistency</h3>
+<p>Every test loops 3 iterations under <code>ab_run_n_times</code>;
+identical evidence-hash required.</p>
+<h2 id="8-documentation-deliverables">8. Documentation deliverables</h2>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Audience</th>
+<th>§11.4 anchor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docs/guides/tmx-shell-integration.md</code></td>
+<td>Operators installing the feature</td>
+<td>11.4.18, 11.4.44</td>
+</tr>
+<tr>
+<td><code>docs/guides/tmx-state.md</code></td>
+<td>Operators inspecting state</td>
+<td>11.4.18, 11.4.44</td>
+</tr>
+<tr>
+<td><code>docs/guides/tmx-ssh-dispatch.md</code></td>
+<td>Operators setting up SSH dispatch</td>
+<td>11.4.18, 11.4.44</td>
+</tr>
+<tr>
+<td><code>docs/manual/tmx-shell-integration.md</code></td>
+<td>End-user master manual with worked examples</td>
+<td>11.4.18, 11.4.44, 11.4.65</td>
+</tr>
+<tr>
+<td><code>docs/scripts/tmx-shell-init.md</code></td>
+<td>§11.4.18 script companion</td>
+<td>11.4.18</td>
+</tr>
+<tr>
+<td><code>docs/scripts/tmx-ssh-install.md</code></td>
+<td>§11.4.18 script companion</td>
+<td>11.4.18</td>
+</tr>
+<tr>
+<td><code>docs/scripts/tmx-ssh-dispatch.md</code></td>
+<td>§11.4.18 script companion</td>
+<td>11.4.18</td>
+</tr>
+<tr>
+<td><code>docs/scripts/tmx-state.md</code></td>
+<td>§11.4.18 script companion + state file schema</td>
+<td>11.4.18</td>
+</tr>
+<tr>
+<td><code>CHANGELOG.md</code> v1.0.9 entry</td>
+<td>Release notes</td>
+<td>—</td>
+</tr>
+<tr>
+<td>README Documentation Map rows</td>
+<td>Cross-reference</td>
+<td>11.4.57</td>
+</tr>
+</tbody>
+</table>
+<p>All <code>.md</code> docs ship with <code>.html</code> +
+<code>.pdf</code> siblings via <code>scripts/export_docs.sh</code>
+(§11.4.65) and carry the §11.4.44 revision header.</p>
+<h2 id="9-constitution-check">9. Constitution check</h2>
+<p>The user&#39;s mandate (&quot;tests MUST guarantee... full usability by end
+users&quot;) is verbatim §11.4 / §107. Already mirrored across:</p>
+<ul>
+<li>HelixConstitution submodule: <code>Constitution.md</code> §11.4,
+<code>CLAUDE.md</code>, <code>AGENTS.md</code></li>
+<li>Project root: <code>Constitution.md</code> §101,
+<code>CLAUDE.md</code>, <code>AGENTS.md</code>,
+<code>QWEN.md</code></li>
+<li>Containers submodule: same</li>
+</ul>
+<p><strong>Action:</strong> run
+<code>scripts/tests/test_constitution_inheritance.sh</code> to verify
+cascade. If any layer missing, append + cascade per §11.4.26. NO new
+clause planned — existing covenant already covers the requirement.</p>
+<h2 id="10-release-plan-11440--11441--11471">10. Release plan (§11.4.40
++ §11.4.41 + §11.4.71)</h2>
+<ol type="1">
+<li>Subagent-driven PWUs (§11.4.58 + §11.4.70) land on <code>main</code>
+in merge-queue order.</li>
+<li><code>bash scripts/setup.sh</code> rebuilds on macOS local +
+nezha-Linux.</li>
+<li>Full retest sweep (Layers 1-4 + Challenges) on BOTH platforms → all
+GREEN with captured evidence.</li>
+<li>Constitution-inheritance gate green.</li>
+<li>Bump <code>VERSION</code> to <code>version=1.0.9</code> /
+<code>versionCode=10</code>.</li>
+<li><code>CHANGELOG.md</code> v1.0.9 entry.</li>
+<li><code>bash commit_all.sh &quot;v1.0.9 — tmx shell-session resume + ssh dispatch + Go state daemon&quot;</code>
+(pushes to github + gitlab).</li>
+<li>Tag <code>v1.0.9</code>, push tag via commit_all.sh&#39;s tag path.</li>
+<li>Verify both remotes via <code>gh release view v1.0.9</code> +
+<code>glab release view v1.0.9</code>.</li>
+</ol>
+<h2 id="11-subagent-pwu-decomposition-11458">11. Subagent-PWU
+decomposition (§11.4.58)</h2>
+<table>
+<thead>
+<tr>
+<th>PWU</th>
+<th>Scope</th>
+<th>Files</th>
+<th>Depends on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P1</td>
+<td>Go state daemon</td>
+<td><code>scripts/tmx-state/**</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>Shell init script + bashrc snippet template</td>
+<td><code>scripts/tmx-shell-init.sh</code>,
+<code>scripts/bashrc_snippet.template</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>P3</td>
+<td>SSH dispatch + installer</td>
+<td><code>scripts/tmx-ssh-dispatch.sh</code>,
+<code>scripts/tmx-ssh-install.sh</code></td>
+<td>P1</td>
+</tr>
+<tr>
+<td>P4</td>
+<td>Wrapper integration (tmux hooks + <code>-c</code> arg)</td>
+<td><code>scripts/tmx.template</code>,
+<code>scripts/tmx-mac.template</code></td>
+<td>P1</td>
+</tr>
+<tr>
+<td>P5</td>
+<td>Pre-build gates + paired mutations</td>
+<td><code>scripts/verify.sh</code>,
+<code>scripts/tests/meta_test_false_positive_proof.sh</code></td>
+<td>P1, P2, P3</td>
+</tr>
+<tr>
+<td>P6</td>
+<td>Runtime tests 18-31</td>
+<td><code>scripts/tests/18_*.sh</code> … <code>31_*.sh</code></td>
+<td>P1, P2, P3, P4</td>
+</tr>
+<tr>
+<td>P7</td>
+<td>HelixQA Challenges</td>
+<td><code>scripts/challenges/tmux.yaml</code></td>
+<td>P6</td>
+</tr>
+<tr>
+<td>P8</td>
+<td>Documentation + exports</td>
+<td><code>docs/guides/**</code>, <code>docs/manual/**</code>,
+<code>docs/scripts/**</code>, README</td>
+<td>All above</td>
+</tr>
+<tr>
+<td>P9</td>
+<td>Release pipeline</td>
+<td><code>VERSION</code>, <code>CHANGELOG.md</code>, tag push</td>
+<td>All above</td>
+</tr>
+</tbody>
+</table>
+<p>P1, P2 in parallel; then P3, P4 in parallel; then P5, P6 in parallel;
+then P7, P8 in parallel; finally P9 serial.</p>
+<h2 id="12-open-questions">12. Open questions</h2>
+<p>None. All four design questions answered in brainstorming; user gave
+blanket approval to proceed.</p>
+<h2 id="13-implementation-deviations-from-spec-post-release-record">13.
+Implementation deviations from spec (post-release record)</h2>
+<ul>
+<li><strong>Test numbering renumbered 18-31 → 27-40</strong> during P6
+due to pre-existing tests already occupying 18-26
+(<code>18_constitution_inheritance.sh</code>,
+<code>19_covenant_propagation.sh</code>,
+<code>20-22_codegraph_*.sh</code>,
+<code>23_tmx_kill_shorthand.sh</code>,
+<code>24_cpu_cap_enforcement.sh</code>,
+<code>25_hostname_color_perceptual_distance.sh</code>,
+<code>26_ui_color_uniformity.sh</code>). The five paired §1.1 mutations
+were updated in lockstep:
+<ul>
+<li>M20 → P5-M20 (targets <code>30_non_tty_skip.sh</code>)</li>
+<li>M21 → P5-M21 (targets <code>27_state_persistence.sh</code>)</li>
+<li>M22 → P5-M22 (targets <code>31_ssh_dispatch_local.sh</code>)</li>
+<li>M23 → P5-M23 (targets
+<code>35_session_name_validation.sh</code>)</li>
+<li>M24 → P5-M24 (targets <code>40_macos_linux_parity.sh</code>)</li>
+</ul></li>
+<li><strong>Test 27 Phase 3 uses <code>tmux run-shell</code>
+directly</strong> (not session-closed hook firing) to prove the hook
+command&#39;s run-shell action works end-to-end. Reason: detached-session
+test has no attached client so <code>client-detached</code> cannot fire;
+<code>session-closed</code> fires after pane destruction making
+<code>#{pane_current_path}</code> empty. The hook COMMAND is the
+integration surface the test validates; the hook FIRING is the
+operator-visible behaviour exercised in normal interactive use and
+covered by HelixQA Challenge <code>TMUX-CH-25</code>. Documented in test
+27 source.</li>
+<li><strong>macOS path resolution</strong> — tests comparing
+<code>pane_current_path</code> against <code>/tmp/...</code> allow both
+the literal and the <code>pwd -P</code> resolved form
+(<code>/private/tmp/...</code>) per §11.4.81 (XNU&#39;s <code>/tmp</code>
+symlink behaviour).</li>
+<li><strong>41_docs_user_guides_render.sh</strong> added to P8
+deliverables to satisfy <code>TMUX-CH-28</code> Challenge.</li>
+<li>New file: <strong><code>scripts/tmx-state-bin</code></strong> —
+compiled binary, committed alongside source. Operators can rebuild via
+<code>cd scripts/tmx-state &amp;&amp; go build -o ../tmx-state-bin .</code>
+(also wired into <code>scripts/setup.sh</code>).</li>
+</ul>
+</body>
+</html>

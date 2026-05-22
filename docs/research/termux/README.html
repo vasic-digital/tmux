@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="termux-port-feasibility-research--index">Termux Port Feasibility
+Research — Index</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T07:20:02Z <strong>Authority:</strong> vasic-digital tmux
+project (research-only deliverable, no code changes)
+<strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+Investigate the feasibility of porting the vasic-digital hardened tmux
+build + <code>tmx</code> wrapper + v1.0.9 shell-init / Go state daemon /
+SSH dispatch features to <strong>Android via Termux</strong>. No
+implementation work is performed here — this is a future-port planning
+artefact.</p>
+<h2 id="why-this-exists">Why this exists</h2>
+<p>Today the project supports Linux (cgroup-v2 transient scopes via
+<code>systemd-run --user --scope</code>) and macOS (POSIX
+<code>setrlimit</code> wrapper). Mobile shells via Termux are a
+recurring operator ask; before we commit engineering effort, §11.4.6
+(no-guessing) demands deep web research with cited evidence rather than
+gut-feel estimation.</p>
+<p>Per §11.4.81 (cross-platform-parity) any new platform becomes a
+first-class citizen with its own honest-gap citation table — this
+research lays the groundwork.</p>
+<h2 id="files">Files</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Topic</th>
+<th>Approx. lines</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><a href="01_environment_overview.md"><code>01_environment_overview.md</code></a></td>
+<td>What Termux is + Android userland constraints</td>
+<td>150</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="02_build_toolchain.md"><code>02_build_toolchain.md</code></a></td>
+<td>How to produce native binaries (in-Termux build vs NDK cross-compile
+vs <code>termux-packages</code>)</td>
+<td>200</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="03_runtime_isolation.md"><code>03_runtime_isolation.md</code></a></td>
+<td>The key question — what replaces
+<code>systemd-run --user --scope</code>? (rlimit + honest gap
+citation)</td>
+<td>250</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="04_ssh_in_termux.md"><code>04_ssh_in_termux.md</code></a></td>
+<td>Termux&#39;s OpenSSH on port 8022 — <code>command=</code> directive +
+<code>tmx-ssh-dispatch</code> portability</td>
+<td>150</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="05_user_experience.md"><code>05_user_experience.md</code></a></td>
+<td>Touch keyboard, wake-lock, F-Droid install, end-user setup</td>
+<td>150</td>
+</tr>
+<tr>
+<td>6</td>
+<td><a href="06_constraints_and_gaps.md"><code>06_constraints_and_gaps.md</code></a></td>
+<td>Honest enumeration of WILL-NOT-WORK and WILL-DEGRADE features</td>
+<td>150</td>
+</tr>
+<tr>
+<td>7</td>
+<td><a href="07_test_strategy.md"><code>07_test_strategy.md</code></a></td>
+<td>Anti-bluff testing on Android + §11.4.81 four-platform parity
+table</td>
+<td>150</td>
+</tr>
+<tr>
+<td>8</td>
+<td><a href="08_recommendation.md"><code>08_recommendation.md</code></a></td>
+<td>Synthesis: yes / no / conditional + effort estimate</td>
+<td>100</td>
+</tr>
+</tbody>
+</table>
+<p>Read them in order — each builds on the previous one. §06 + §08 are
+the operator-actionable summaries.</p>
+<h2 id="citations">Citations</h2>
+<p>Every non-obvious claim carries a URL. Where verification was
+incomplete the claim is marked <code>UNCONFIRMED:</code> per §11.4.6
+(no-guessing mandate).</p>
+<h2 id="exports">Exports</h2>
+<p>Per §11.4.65, each <code>.md</code> file has <code>.html</code> +
+<code>.pdf</code> siblings produced by
+<code>scripts/export_docs.sh</code>. If you do not see them next to a
+file, the export pipeline has not yet been run since that file&#39;s last
+modification — re-run <code>bash scripts/export_docs.sh</code> to
+refresh.</p>
+</body>
+</html>

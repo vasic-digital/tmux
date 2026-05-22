@@ -765,7 +765,226 @@ PYEOF
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
-# SUMMARY
+# v1.0.9 shell-session-resume PWUs (P5) — paired mutations
+# ═══════════════════════════════════════════════════════════════════════
+# Spec: docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md
+#       §7 Layer 4 lists these as M20..M24. To avoid ID collision with
+#       the v1.0.7/v1.0.8 pre-existing M20..M24 (Darwin rlimit, palette,
+#       UI uniformity, etc.) this harness uses the P5-prefixed namespace
+#       `P5-M20..P5-M24`. Spec→harness mapping is 1:1:
+#         spec M20 → P5-M20 (non-TTY guard)
+#         spec M21 → P5-M21 (cwd-capture hook)
+#         spec M22 → P5-M22 (authorized_keys command= prefix)
+#         spec M23 → P5-M23 (dispatcher session-name regex)
+#         spec M24 → P5-M24 (cross-platform branch)
+#
+# Each mutation targets a P6 test that does not yet exist; until the test
+# file is present, the mutation SKIPs cleanly (no FAIL). Once P6 lands its
+# tests, the mutations activate. Pattern: safe-by-construction —
+#   1. abort if working tree dirty on the target file
+#   2. backup with cp -p (preserve mtime)
+#   3. apply mutation
+#   4. run target test, assert FAIL
+#   5. restore (trapped on EXIT so even Ctrl-C cleans up)
+#
+# Constitution: §1.1 paired-mutation, §11.4 anti-bluff, §11.4.81 (P5-M24
+# cross-platform branch coverage).
+
+# ── v109_run_mutation: SKIP-if-test-absent variant of run_mutation ─────
+# Usage: v109_run_mutation <mut_id> <desc> <target_rel> <mutate_cmd> \
+#                          <test_rel> <expect_fail_regex>
+# Differences from run_mutation:
+#   - SKIPs (not FAILs) if the target TEST file is absent (P6 not landed).
+#   - Refuses to mutate a dirty target file (uncommitted changes would be
+#     destroyed by the cp-restore step).
+#   - Uses `trap '_v109_restore' EXIT` so Ctrl-C / errexit still restores.
+v109_run_mutation() {
+    local mut_id="$1"
+    local desc="$2"
+    local target="$3"
+    local mutate_cmd="$4"
+    local test_script="$5"
+    local expect_fail="${6:-FAIL}"
+
+    local target_abs="$REPO_ROOT/$target"
+    local test_abs="$REPO_ROOT/$test_script"
+    local backup="${target_abs}.bak.v109.${mut_id}"
+
+    echo ""
+    echo "--- MUTATION: ${mut_id}: ${desc} ---"
+
+    # Target file must exist (the P1-P4 artefact).
+    if [ ! -f "$target_abs" ]; then
+        _skip "${mut_id}: target file ${target} not present"
+        return 0
+    fi
+    # Target TEST must exist (P6 deliverable). SKIP cleanly until then.
+    if [ ! -f "$test_abs" ]; then
+        _skip "${mut_id}: target test ${test_script} not present yet"
+        return 0
+    fi
+    # Refuse to mutate if the target file has uncommitted changes — the
+    # cp-restore step would clobber them and corrupt the operator's tree.
+    if git -C "$REPO_ROOT" status --porcelain -- "$target" 2>/dev/null \
+        | grep -qE '^( M| A|MM|AM|UU)'; then
+        echo "  >>> ABORT: $target has uncommitted changes (git status):"
+        git -C "$REPO_ROOT" status --porcelain -- "$target" | sed 's/^/    /'
+        _skip "${mut_id}: dirty working tree on ${target} — refusing to mutate"
+        return 0
+    fi
+
+    # Backup + EXIT-trapped restore. Saves mtime via -p.
+    cp -p "$target_abs" "$backup" || { _skip "${mut_id}: backup failed"; return 0; }
+    # Compose a restore closure that runs on EXIT until we explicitly
+    # disarm it after successful manual restore. Important: we use a
+    # global to track which file the trap touches so the trap function
+    # is reusable across mutations.
+    _V109_BACKUP_FILE="$backup"
+    _V109_TARGET_FILE="$target_abs"
+    # shellcheck disable=SC2064  # we want $-expansion now
+    trap '_v109_restore' EXIT
+
+    # Apply mutation.
+    if ! eval "$mutate_cmd" 2>/dev/null; then
+        _v109_restore
+        _skip "${mut_id}: mutation command failed to apply"
+        return 0
+    fi
+
+    # Run target test, expect FAIL.
+    local test_out test_rc
+    test_out=$(bash "$test_abs" 2>&1) || true
+    test_rc=$?
+    if echo "$test_out" | grep -qE "$expect_fail"; then
+        _pass "${mut_id} MUTATION CAUGHT — test output contains '${expect_fail}'"
+    elif [ "$test_rc" -ne 0 ]; then
+        _pass "${mut_id} MUTATION CAUGHT — test exited ${test_rc}"
+    else
+        echo "  >>> WARNING: mutation DID NOT cause test failure <<<"
+        echo "  >>> Test output: $(echo "$test_out" | head -5 | tr '\n' ';')"
+        _fail "${mut_id} MUTATION ESCAPED — test passed despite broken feature"
+    fi
+
+    # Manual restore + disarm trap.
+    _v109_restore
+    trap - EXIT
+}
+
+# _v109_restore — restore the most-recent v109 backup to its source.
+# Idempotent: NO-OP if backup file already removed.
+_v109_restore() {
+    if [ -n "${_V109_BACKUP_FILE:-}" ] && [ -f "${_V109_BACKUP_FILE}" ]; then
+        cp -p "${_V109_BACKUP_FILE}" "${_V109_TARGET_FILE}" 2>/dev/null || true
+        rm -f "${_V109_BACKUP_FILE}" 2>/dev/null || true
+    fi
+    _V109_BACKUP_FILE=""
+    _V109_TARGET_FILE=""
+}
+
+# ── P5-M20: strip `[ -t 0 ]` non-TTY guard from tmx-shell-init template
+# Spec §7 Layer 4: drop the non-TTY skip block (lines 24-27 in the
+# template). Without it, scp/rsync/IDE pipes would hit the interactive
+# `read -r` and hang. Test 21 (`21_non_tty_skip.sh`, P6) drives the
+# script with stdin redirected from `/dev/null` and asserts non-block
+# return — the mutation breaks that contract and the test FAILs.
+v109_run_mutation \
+    "P5-M20" \
+    "strip [ -t 0 ] non-TTY guard from tmx-shell-init.sh.template" \
+    "scripts/tmx-shell-init.sh.template" \
+    "grep -v 'if \[ ! -t 0 \] || \[ ! -t 1 \]' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\" && chmod 644 \"\$target_abs\"" \
+    "scripts/tests/30_non_tty_skip.sh" \
+    "FAIL"
+
+# ── P5-M21: strip cwd-capture tmux hook section from tmx.template ──────
+# Spec §7 Layer 4: remove the `set-hook -g client-detached` +
+# `set-hook -g session-closed` block that wires `tmx-state record` into
+# tmux's lifecycle. Without it, `pane_current_path` is never persisted,
+# so the next `tmx new -s NAME` cannot restore the cwd. Test 18
+# (`18_state_persistence.sh`, P6) records, kills, recreates, asserts
+# the restored cwd matches — without the hook block the assertion FAILs.
+v109_run_mutation \
+    "P5-M21" \
+    "strip cwd-capture tmux hook block (client-detached + session-closed) from scripts/tmx.template" \
+    "scripts/tmx.template" \
+    "grep -v 'set-hook -g client-detached\\|set-hook -g session-closed' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\"" \
+    "scripts/tests/27_state_persistence.sh" \
+    "FAIL"
+
+# ── P5-M22: strip `command=` prefix from tmx-ssh-install.sh's AK_LINE ──
+# Spec §7 Layer 4: the dispatcher only fires because the authorized_keys
+# entry is `command="…/tmx-ssh-dispatch.sh"…`. Without the `command=`
+# prefix, sshd treats the key as a regular login key and SSH_ORIGINAL_-
+# COMMAND-based dispatch never engages. Mutate the line that constructs
+# AK_LINE in scripts/tmx-ssh-install.sh to drop the prefix. Test 22
+# (`22_ssh_dispatch_local.sh`, P6) runs the local-loopback SSH dispatch
+# scenario; without the prefix the dispatch path does not fire and the
+# test FAILs. Chose this target over modifying the dispatcher template
+# itself because the prompt anchors on "command= prefix" specifically,
+# and that string lives in the install script's AK_LINE construction.
+v109_run_mutation \
+    "P5-M22" \
+    "strip command= prefix from tmx-ssh-install.sh authorized_keys line" \
+    "scripts/tmx-ssh-install.sh" \
+    "sed 's|AK_LINE=\"command=\\\\\"\$REMOTE_DISPATCH_PATH\\\\\",no-port-forwarding|AK_LINE=\"no-port-forwarding|' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
+    "scripts/tests/31_ssh_dispatch_local.sh" \
+    "FAIL"
+
+# ── P5-M23: strip session-name regex validation from dispatcher template
+# Spec §7 Layer 4: the POSIX `case "$session" in *[!A-Za-z0-9_.-]*)`
+# block at lines 77-82 of tmx-ssh-dispatch.sh.template rejects names
+# containing disallowed characters (spaces, `;`, `&`, `$()`, etc.).
+# Without it, an attacker could pass `; rm -rf $HOME` as a session
+# name and the dispatcher would forward it to tmx. Tests 26
+# (`26_session_name_validation.sh`) and 27 (`27_dispatcher_rejects_-
+# multiword.sh`, both P6) verify the dispatcher rejects multi-word and
+# special-char inputs; without the regex, the test FAILs.
+# Mutation: drop the entire case-block (5 lines) by python regex
+# substitution — sed cannot reliably express the multi-line block.
+v109_run_mutation \
+    "P5-M23" \
+    "strip session-name regex validation case-block from tmx-ssh-dispatch.sh.template" \
+    "scripts/tmx-ssh-dispatch.sh.template" \
+    "python3 -c 'import re, sys; p=\"\$target_abs\"; s=open(p).read(); pat=re.compile(r\"case \\\"\\\\\$session\\\" in\\n.*?esac\\n\", re.DOTALL); s2,n=pat.subn(\"\", s, count=1); open(p,\"w\").write(s2)'" \
+    "scripts/tests/35_session_name_validation.sh" \
+    "FAIL"
+
+# ── P5-M24: strip a `case \"$(uname -s)\"` branch from a cross-platform test
+# Spec §7 Layer 4 + §11.4.81 cross-platform parity: tests 18 and 31 will
+# carry per-OS branches once P6 authors them. The mutation strips the
+# Darwin branch from whichever exists. Until P6 lands either test, this
+# mutation SKIPs cleanly. Strategy: prefer test 31 (parity test) when
+# present, fall back to test 18, SKIP otherwise. We mutate the TEST
+# itself (the cross-platform dispatch logic lives there per §11.4.81);
+# stripping the Darwin branch makes the test silently miss positive
+# evidence on macOS — a §11.4.81 violation the gate then catches.
+M24_TARGET=""
+if [ -f "$REPO_ROOT/scripts/tests/40_macos_linux_parity.sh" ]; then
+    M24_TARGET="scripts/tests/40_macos_linux_parity.sh"
+elif [ -f "$REPO_ROOT/scripts/tests/27_state_persistence.sh" ]; then
+    M24_TARGET="scripts/tests/27_state_persistence.sh"
+fi
+if [ -z "$M24_TARGET" ]; then
+    _skip "P5-M24: target test scripts/tests/40_macos_linux_parity.sh not present yet (and 18_state_persistence.sh also absent — both are P6 deliverables)"
+else
+    # The mutation strips the Darwin case-arm. We anchor on the literal
+    # `Darwin)` arm head. The mutation succeeds only if the test
+    # actually contains a `case "$(uname -s)"` block — if P6 ships the
+    # file without one, the mutation SKIPs at the grep-not-found stage.
+    if ! grep -qE 'case .*uname' "$REPO_ROOT/$M24_TARGET"; then
+        _skip "P5-M24: $M24_TARGET present but contains no case \"\$(uname -s)\" block — mutation NO-OP"
+    else
+        v109_run_mutation \
+            "P5-M24" \
+            "strip Darwin) case-arm from $M24_TARGET (cross-platform parity per §11.4.81)" \
+            "$M24_TARGET" \
+            "python3 -c 'import re,sys; p=\"\$target_abs\"; s=open(p).read(); s2,n=re.subn(r\"\\s*Darwin\\)\\s*\\n.*?;;\\n\", \"\", s, count=1, flags=re.DOTALL); open(p,\"w\").write(s2)'" \
+            "$M24_TARGET" \
+            "FAIL"
+    fi
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════
 echo ""
 echo "════════════════════════════════════════════════════════════════"

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="02--build-toolchain-for-termux">§02 — Build Toolchain for
+Termux</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T07:20:02Z <strong>Authority:</strong> vasic-digital tmux
+project (research-only) <strong>Maintainer:</strong> milosvasic
+<strong>Scope:</strong> How to produce a tmux build and the
+<code>tmx-state</code> Go binary that run on Termux</p>
+<hr />
+<h2 id="1-three-production-paths">1. Three production paths</h2>
+<p>There are three viable build paths for native binaries that run
+inside Termux. Each has different operator costs and different fit with
+our current <code>scripts/build_native.sh</code> model.</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Where the build runs</th>
+<th>Effort to wire</th>
+<th>What we get</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>(a) On-device build</td>
+<td>inside Termux,
+<code>pkg install build-essential clang make autoconf</code></td>
+<td>Lowest (uses tools that already exist in the environment)</td>
+<td>Slow but always-fresh; matches <code>build_native.sh</code>
+ergonomics</td>
+</tr>
+<tr>
+<td>(b) NDK cross-compile from Linux/macOS host</td>
+<td>Android NDK r26+ from host</td>
+<td>Medium (new env vars, toolchain selection)</td>
+<td>Fastest, suitable for CI, requires NDK install</td>
+</tr>
+<tr>
+<td>(c) Termux&#39;s own <code>termux-packages</code> recipes</td>
+<td>upstream package farm</td>
+<td>Highest (PR upstream, ride their release cadence)</td>
+<td>We don&#39;t ship our own binary — operators just
+<code>pkg install tmux</code></td>
+</tr>
+</tbody>
+</table>
+<p>Path (c) is how Termux&#39;s standard tmux package ships today. We CAN
+piggyback on it for the base tmux 3.6a build IF we&#39;re willing to rely on
+whatever Termux ships and only deliver our wrapper + Go daemon. For the
+v1.0.9 features we want under our control (jemalloc preload, OOM guard,
+the <code>tmx</code> wrapper) we must do (a) or (b).</p>
+<h2 id="2-path-a--on-device-build-inside-termux">2. Path (a) — On-device
+build inside Termux</h2>
+<p>Easiest mental model:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pkg</span> install build-essential clang make autoconf automake pkg-config bison</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pkg</span> install libevent libevent-dev libjemalloc libjemalloc-dev ncurses-dev</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># go for the state daemon:</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">pkg</span> install golang</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># our project:</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="op">&lt;</span>our-repo<span class="op">&gt;</span> ~/tmux-project</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/tmux-project</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> submodule update <span class="at">--init</span> <span class="at">--recursive</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span></code></pre></div>
+<p>What works without modification:</p>
+<ul>
+<li><code>tmux/configure</code> accepts the bionic-libevent +
+bionic-ncurses combination. Termux&#39;s own tmux package proves this — see
+<a href="https://github.com/termux/termux-packages/blob/master/packages/tmux/build.sh">https://github.com/termux/termux-packages/blob/master/packages/tmux/build.sh</a>.</li>
+<li><code>go build -o scripts/tmx-state-bin ./scripts/tmx-state/...</code>
+works natively because Termux&#39;s <code>golang</code> package is built for
+bionic, so the resulting Go binary is bionic-linked.</li>
+<li><code>make</code>, <code>autoconf</code>, <code>automake</code>,
+<code>bash</code> — all the build helpers our
+<code>build_native.sh</code> calls — run identically.</li>
+</ul>
+<p>What needs adapting in our build pipeline:</p>
+<ul>
+<li><code>scripts/install_deps.sh</code> currently has a
+<code>Darwin / Linux</code> branch. We&#39;d add a third arm
+<code>case &quot;$HOST_OS&quot; in *) [ -n &quot;$TERMUX_VERSION&quot; ] &amp;&amp; pkg_install_termux ;; esac</code>.
+The detector is the <code>$TERMUX_VERSION</code> env var set by Termux&#39;s
+login script.</li>
+<li><code>scripts/setup.sh</code> runs <code>sudo</code> for Linux&#39;s
+<code>apt install</code> step. Termux&#39;s <code>pkg</code> is non-sudo
+because the app data dir is writable by the app&#39;s own UID. The script
+must not call <code>sudo</code> on Termux.</li>
+<li><code>bashrc_snippet.template</code> already targets
+<code>$HOME/.bashrc</code> — same on Termux.</li>
+</ul>
+<p>Build time on a Snapdragon 8 Gen 2 phone for our tmux + libevent +
+jemalloc set is ~5-8 min wall clock based on community reports for
+similar tmux-from-source builds in Termux (<code>UNCONFIRMED:</code> —
+need empirical measurement on our actual hardware before quoting).</p>
+<h2 id="3-path-b--ndk-cross-compile-from-a-host">3. Path (b) — NDK
+cross-compile from a host</h2>
+<p>Use when CI / release artefacts are needed without an Android device
+in the pipeline.</p>
+<p>The canonical Go-on-Android incantation (verified from <a href="https://dave.engineer/blog/2025/11/cross-compiling-go-android/">https://dave.engineer/blog/2025/11/cross-compiling-go-android/</a>):</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">ANDROID_NDK_HOME</span><span class="op">=</span>/path/to/android-ndk-r26d</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">ANDROID_API</span><span class="op">=</span>24        <span class="co"># Android 7 Nougat — Termux&#39;s minimum</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># For arm64 (most modern phones):</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">GOOS</span><span class="op">=</span>android</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">GOARCH</span><span class="op">=</span>arm64</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">CGO_ENABLED</span><span class="op">=</span>1</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">CC</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$ANDROID_NDK_HOME</span><span class="st">/toolchains/llvm/prebuilt/</span><span class="va">$(</span><span class="fu">uname</span> <span class="at">-s</span> <span class="kw">|</span> <span class="fu">tr</span> A-Z a-z<span class="va">)</span><span class="st">-x86_64/bin/aarch64-linux-android</span><span class="va">${ANDROID_API}</span><span class="st">-clang&quot;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="ex">go</span> build <span class="at">-ldflags</span><span class="op">=</span><span class="st">&#39;-extldflags=-pie&#39;</span> <span class="at">-o</span> tmx-state-bin ./scripts/tmx-state/...</span></code></pre></div>
+<p>Variant for armv7 (older devices) — <code>GOARCH=arm GOARM=7</code> +
+<code>armv7a-linux-androideabi24-clang</code>. Variant for x86_64
+(emulator) — <code>GOARCH=amd64</code> +
+<code>x86_64-linux-android24-clang</code>.</p>
+<h3 id="31-why-cgo_enabled1">3.1 Why <code>CGO_ENABLED=1</code></h3>
+<p>A pure-Go binary built with <code>CGO_ENABLED=0</code> ships Go&#39;s own
+DNS resolver. That resolver hard-codes <code>/etc/resolv.conf</code> and
+falls back to <code>[::1]:53</code> when the file is absent — which is
+exactly what happens on Android, where DNS goes through Android&#39;s system
+service. Result: any network call from the pure-Go binary fails. Source:
+<a href="https://dave.engineer/blog/2025/11/cross-compiling-go-android/">https://dave.engineer/blog/2025/11/cross-compiling-go-android/</a>.</p>
+<p>For <code>tmx-state</code> specifically this might NOT matter — the
+daemon reads/writes a local JSON state file and never hits the network.
+We could in principle ship a <code>CGO_ENABLED=0</code> static binary.
+But the moment we add an optional Crashlytics-style report-home or a
+multi-device-sync hook, CGO becomes mandatory. Recommend setting
+<code>CGO_ENABLED=1</code> from day one.</p>
+<h3 id="32-pie--position-independent-executable">3.2 PIE — Position
+Independent Executable</h3>
+<p>Android 5.0+ refuses to load non-PIE executables
+(<code>error: only position independent executables (PIE) are supported</code>).
+Source: <a href="http://gopinaths.gitlab.io/post/position_independent_error_in_android/">http://gopinaths.gitlab.io/post/position_independent_error_in_android/</a>.
+With Go 1.21+ and the NDK clang as <code>CC</code>, the linker produces
+PIE by default; the explicit <code>-extldflags=-pie</code> shown above
+is belt-and-suspenders for older Go.</p>
+<p>For C builds (tmux, libevent, jemalloc):</p>
+<ul>
+<li>Configure with <code>--enable-pie</code> where supported.</li>
+<li>Add <code>CFLAGS=&quot;-fPIE -fPIC&quot;</code> and
+<code>LDFLAGS=&quot;-pie&quot;</code> when building manually.</li>
+<li>Termux&#39;s own <code>termux_step_pre_configure</code> injects these
+for every package — proof that the toolchain emits PIE binaries cleanly.
+See <a href="https://github.com/termux/termux-packages/wiki">https://github.com/termux/termux-packages/wiki</a>.</li>
+</ul>
+<h3 id="33-api-level-choice">3.3 API level choice</h3>
+<p>The Termux Wiki notes: &quot;Termux requires Android 7.0 or higher&quot; (since
+their 2024 reset). Android 7 = API 24. Therefore
+<code>ANDROID_API=24</code> is the floor; choosing higher (e.g. 31 =
+Android 12) restricts compatibility for no gain.</p>
+<p><code>ANDROID_API=24</code> is widely deployed and produces a binary
+that runs on every Termux-supported device.</p>
+<h2 id="4-path-c--use-termuxs-own-packaging-system">4. Path (c) — Use
+Termux&#39;s own packaging system</h2>
+<p><code>termux-packages</code> is the GitHub repo that builds Termux&#39;s
+official package set. Each package has a <code>build.sh</code> recipe; a
+build farm produces <code>.deb</code> files served via the F-Droid
+Termux repo.</p>
+<p>To ship via this path we&#39;d:</p>
+<ol type="1">
+<li>Fork <code>termux-packages</code> (or PR upstream).</li>
+<li>Add a <code>packages/tmx/build.sh</code> recipe declaring
+<code>TERMUX_PKG_HOMEPAGE=&lt;our-repo&gt;</code>,
+<code>TERMUX_PKG_VERSION=1.0.9</code>,
+<code>TERMUX_PKG_DEPENDS=&quot;tmux openssh openssl&quot;</code>, dependencies on
+Go for the build, etc.</li>
+<li>Wait for the build farm CI + Termux maintainer review.</li>
+<li>Operators get our wrapper from <code>pkg install tmx</code> and the
+tmux dependency satisfies itself from the standard Termux package.</li>
+</ol>
+<p><strong>Trade-off:</strong> zero on-device build cost for the
+operator, but we lose our verification gate (the <code>tmx</code> binary
+is never on PATH unless <code>scripts/verify.sh</code> reports green per
+§103) because Termux&#39;s CI does not run our gates. Path (c) is
+incompatible with our anti-bluff covenant as-is. We&#39;d need to bring
+Layer 1 + 4 of §103 into the upstream recipe — substantial work.</p>
+<p><strong>Recommendation for now: skip path (c).</strong> Revisit if
+the port matures and Termux maintainers are receptive.</p>
+<h2 id="5-go-binary-portability--tmx-state-specifics">5. Go binary
+portability — <code>tmx-state</code> specifics</h2>
+<p>The v1.0.9 <code>tmx-state</code> daemon is stdlib-only with three
+sensitive syscalls:</p>
+<table>
+<thead>
+<tr>
+<th>Call</th>
+<th>Linux support</th>
+<th>Android (bionic) support</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>os.OpenFile(O_CREAT | O_RDWR | O_EXCL)</code> for atomic
+temp-then-rename</td>
+<td>works</td>
+<td>works (Android Linux kernel underneath, same VFS)</td>
+</tr>
+<tr>
+<td><code>syscall.Flock(fd, LOCK_EX)</code> for cross-process state-file
+locking</td>
+<td>works</td>
+<td>works — <code>flock(2)</code> is a kernel syscall, bionic provides
+the wrapper</td>
+</tr>
+<tr>
+<td><code>f.Sync()</code> (fsync) for durability after
+<code>rename</code></td>
+<td>works</td>
+<td>works</td>
+</tr>
+</tbody>
+</table>
+<p>Verified via bionic status doc (<a href="https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md">https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md</a>)
+which lists <code>flock</code> and <code>fsync</code> as available since
+API 1. No special porting work needed.</p>
+<p><code>syscall.Setrlimit</code> is also supported on Android (bionic
+has architecture-specific <code>setrlimit.S</code> shims since the
+project&#39;s inception — Google-source ref above). Useful for §03&#39;s
+isolation discussion.</p>
+<h2 id="6-build-artefact-location">6. Build artefact location</h2>
+<p>On Termux there is no <code>/usr/local/bin</code>. We install our
+wrapper to <code>$PREFIX/bin/tmx</code> (the project&#39;s own
+<code>setup.sh</code> already chooses install location based on operator
+config — works as-is).</p>
+<h2 id="7-multi-arch-story">7. Multi-arch story</h2>
+<p>Modern phones (≥2020) are arm64. Older devices may still be armv7.
+x86_64 only exists on emulators and some Chromebooks. We have three
+options:</p>
+<ol type="1">
+<li><strong>Single arm64 binary</strong> — ship only
+<code>aarch64-linux-android</code>. Covers ~95% of in-the-field Termux
+installs (UNCONFIRMED — need Termux maintainer survey data). Operators
+on armv7 build from source.</li>
+<li><strong>Fat dual-arch tarball</strong> — ship arm64 + armv7 side by
+side, runtime selector picks one. Doubles the wrapper-installer
+complexity.</li>
+<li><strong>Source-only distribution</strong> — operators always build
+via path (a). Simplest from our side; pushes work to the operator.
+Matches our current Linux/macOS posture (we don&#39;t ship a Mach-O binary
+today either).</li>
+</ol>
+<p>Recommended path (3): source distribution. This is what
+<code>scripts/setup.sh</code> already does on Linux/macOS — adding a
+Termux arm is a straightforward extension.</p>
+<h2 id="8-summary-build-matrix">8. Summary build matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Linux today</th>
+<th>macOS today</th>
+<th>Termux future</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tmux</td>
+<td>from-source via <code>build_native.sh</code></td>
+<td>from-source via <code>build_native.sh</code></td>
+<td>from-source via <code>build_native.sh</code> (path a); OR
+<code>pkg install tmux</code> (path c hybrid)</td>
+</tr>
+<tr>
+<td>jemalloc</td>
+<td>apt/dnf <code>libjemalloc-dev</code></td>
+<td>brew <code>jemalloc</code></td>
+<td><code>pkg install libjemalloc</code></td>
+</tr>
+<tr>
+<td>libevent</td>
+<td>apt/dnf</td>
+<td>brew</td>
+<td><code>pkg install libevent</code></td>
+</tr>
+<tr>
+<td>Go toolchain</td>
+<td>apt/dnf <code>golang</code></td>
+<td>brew <code>go</code></td>
+<td><code>pkg install golang</code></td>
+</tr>
+<tr>
+<td><code>tmx-state</code></td>
+<td><code>go build</code></td>
+<td><code>go build</code></td>
+<td><code>go build</code> natively, OR cross-compile with NDK</td>
+</tr>
+<tr>
+<td>Wrapper</td>
+<td>template-substituted shell</td>
+<td>template-substituted shell</td>
+<td>template-substituted shell</td>
+</tr>
+</tbody>
+</table>
+<p>Build pipeline impact is contained: ~50 LOC of new branching in
+<code>install_deps.sh</code> and <code>setup.sh</code>, plus a new
+<code>$TERMUX_VERSION</code> detection guard at the top.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://github.com/termux/termux-packages">https://github.com/termux/termux-packages</a>
+— the official package recipes repo</li>
+<li><a href="https://github.com/termux/termux-packages/blob/master/packages/tmux/build.sh">https://github.com/termux/termux-packages/blob/master/packages/tmux/build.sh</a>
+— current Termux tmux recipe</li>
+<li><a href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">https://github.com/termux/termux-packages/wiki/Common-porting-problems</a></li>
+<li><a href="https://dave.engineer/blog/2025/11/cross-compiling-go-android/">https://dave.engineer/blog/2025/11/cross-compiling-go-android/</a>
+— Go-on-Android cross-compile, including the DNS-resolver gotcha</li>
+<li><a href="https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md">https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md</a>
+— bionic API support matrix</li>
+<li><a href="http://gopinaths.gitlab.io/post/position_independent_error_in_android/">http://gopinaths.gitlab.io/post/position_independent_error_in_android/</a>
+— PIE requirement on Android 5+</li>
+<li><a href="https://ziggit.dev/t/native-android-bionic-build-on-termux-with-zig-0-15-2/14897">https://ziggit.dev/t/native-android-bionic-build-on-termux-with-zig-0-15-2/14897</a>
+— community confirmation that bionic builds work end-to-end on
+Termux</li>
+</ul>
+</body>
+</html>

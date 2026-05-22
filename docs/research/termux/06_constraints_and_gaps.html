@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="06--honest-constraints-and-gaps">§06 — Honest Constraints and
+Gaps</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T07:20:02Z <strong>Authority:</strong> vasic-digital tmux
+project (research-only) <strong>Maintainer:</strong> milosvasic
+<strong>Scope:</strong> What will NOT work, and what will work but with
+degradation, on Termux</p>
+<hr />
+<p>Per §11.4.6 (no-guessing) and §11.4.81 (cross-platform-parity —
+honest gap citation), this file enumerates the things that DEMONSTRABLY
+do not work or degrade on Termux. Each item maps to a specific §11.4.3
+topology SKIP-with-reason or to a documented user-action workaround. No
+speculation. No &quot;should work&quot; — only &quot;verified works&quot;, &quot;verified does
+not work&quot;, or <code>UNCONFIRMED:</code> with a resolution path.</p>
+<h2 id="1-will-not-work--full-skip-with-reason">1. WILL NOT WORK — full
+SKIP-with-reason</h2>
+<h3 id="11-systemd-based-gates">1.1 systemd-based gates</h3>
+<ul>
+<li><strong>What:</strong> Any test or gate that invokes
+<code>systemctl --user</code>, <code>systemd-run --user</code>,
+<code>loginctl</code>, <code>journalctl</code>,
+<code>systemd-cgls</code>, <code>systemd-cgtop</code>, or queries
+<code>/sys/fs/cgroup</code> writability.</li>
+<li><strong>Why:</strong> Termux has no systemd. Android does not use it
+as init. Source: <a href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a>.</li>
+<li><strong>Tests affected (existing suite):</strong> anything that
+requires the <code>tmx-supported</code> classification path branched on
+systemd-availability. Currently tests 12-14 (the destructive ones) and
+the cgroup-verification ladder.</li>
+<li><strong>SKIP reason:</strong>
+<code>topology_unsupported: termux-no-systemd</code>.</li>
+</ul>
+<h3 id="12-cgroup-writes-from-unprivileged-userspace">1.2 cgroup writes
+from unprivileged userspace</h3>
+<ul>
+<li><strong>What:</strong> writing to
+<code>/sys/fs/cgroup/.../cgroup.procs</code>,
+<code>cgroup.subtree_control</code>, <code>memory.max</code>,
+<code>cpu.max</code>, etc.</li>
+<li><strong>Why:</strong> SELinux denies the write for the
+<code>untrusted_app</code> context that hosts Termux. Source: <a href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a>.</li>
+<li><strong>Workaround:</strong> rooted-only opt-in path (Magisk +
+<code>su -c</code>). Out of scope for default support.</li>
+<li><strong>SKIP reason:</strong>
+<code>topology_unsupported: termux-no-cgroup-write</code>.</li>
+</ul>
+<h3 id="13-journalctl-based-diagnostics">1.3
+<code>journalctl</code>-based diagnostics</h3>
+<ul>
+<li><strong>What:</strong> any check that queries
+<code>journalctl -u tmx-NAME.scope</code> for runtime state.</li>
+<li><strong>Why:</strong> No systemd → no journal. Termux&#39;s analogue is
+<code>logcat</code> (Android&#39;s log buffer) or process stderr.</li>
+<li><strong>Replacement:</strong> for Termux topology, diagnostic
+queries become <code>logcat -d -t 100 | grep tmx</code> or just
+<code>tail -n 100 ~/.tmx/log/$NAME.log</code> if we write a per-session
+log file.</li>
+<li><strong>SKIP reason for unconverted tests:</strong>
+<code>topology_unsupported: termux-no-journal</code>.</li>
+</ul>
+<h3 id="14-privileged-port-binding">1.4 Privileged port binding</h3>
+<ul>
+<li><strong>What:</strong> anything binding to ports &lt; 1024 from
+Termux. The default sshd port 22 in our spec must become 8022 on
+Termux.</li>
+<li><strong>Why:</strong> Android sandbox denies unprivileged port
+binding. Same as on Linux/macOS for non-root.</li>
+<li><strong>Workaround:</strong> use port 8022 (Termux convention);
+document in operator guide.</li>
+<li><strong>Impact on <code>tmx-ssh-install.sh</code>:</strong> add
+<code>--port 8022</code> flag with autodetect fallback.</li>
+</ul>
+<h3 id="15-setuid-binaries">1.5 setuid binaries</h3>
+<ul>
+<li><strong>What:</strong> any code path expecting a setuid helper.
+Notably we do NOT have one today — the <code>tmx-oom-set</code> helper
+on Linux is non-suid; it uses ambient capabilities. So no impact, but
+worth noting.</li>
+<li><strong>Why:</strong> Android 9+ blocks <code>setuid()</code> via
+seccomp. Source: <a href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">https://github.com/termux/termux-packages/wiki/Common-porting-problems</a>.</li>
+<li><strong>SKIP reason for any new setuid feature:</strong>
+<code>topology_unsupported: android-seccomp-blocks-setuid</code>.</li>
+</ul>
+<h3 id="16-systemd-style-service-restart-on-failure">1.6 systemd-style
+&quot;service restart on failure&quot;</h3>
+<ul>
+<li><strong>What:</strong> running the tmux server as a
+<code>--restart=on-failure</code> unit.</li>
+<li><strong>Why:</strong> no systemd. Termux has
+<code>termux-services</code> (runit-based) as a packaged alternative —
+<code>pkg install termux-services</code>. That IS a viable path for
+autorestart, but would require explicit operator opt-in and is NOT what
+<code>setup.sh</code> does today.</li>
+<li><strong>Workaround:</strong> document <code>termux-services</code>
+as optional power-user feature; default port doesn&#39;t include it.</li>
+</ul>
+<h2 id="2-will-degrade--partial-functionality">2. WILL DEGRADE — partial
+functionality</h2>
+<h3 id="21-oom-protection-via-oom_score_adj">2.1 OOM protection via
+<code>oom_score_adj</code></h3>
+<ul>
+<li><strong>What we do:</strong> write <code>-500</code> to
+<code>/proc/$PID/oom_score_adj</code> so tmux survives memory
+pressure.</li>
+<li><strong>Status:</strong> the FILE write succeeds on Termux
+(<code>/proc</code> is writable for own processes). BUT Android&#39;s lmkd
+maintains its OWN priority table keyed on Android UID, NOT on
+<code>oom_score_adj</code>. When lmkd kicks in (memory pressure), it can
+<code>SIGKILL</code> Termux regardless of our score adjustment.</li>
+<li><strong>Result:</strong> the write is cosmetic. Real protection
+requires the operator to disable battery optimization AND grant Termux
+&quot;high priority&quot; via OEM settings (where available).</li>
+<li><strong>§11.4.81 honest-gap row:</strong> &quot;Termux: oom_score_adj
+writable but Android lmkd may override based on app priority.&quot;</li>
+<li>Source: <a href="https://source.android.com/docs/core/perf/lmkd">https://source.android.com/docs/core/perf/lmkd</a>.</li>
+</ul>
+<h3 id="22-memory-cap-rlimit_as">2.2 Memory cap
+(<code>RLIMIT_AS</code>)</h3>
+<ul>
+<li><strong>Status:</strong> ACTUALLY WORKS on Termux (Linux kernel
+underneath). Better than macOS.</li>
+<li><strong>Caveat:</strong> the cap is per-process, not per-cgroup. If
+tmux forks 100 panes, each can hit the cap independently. Total memory
+usage is <code>RLIMIT_AS × N_processes</code> worst case. On Linux&#39;s
+cgroup model, the cap is shared across all processes in the scope — true
+ceiling. We lose that.</li>
+</ul>
+<h3 id="23-cpu-cap-rlimit_cpu">2.3 CPU cap
+(<code>RLIMIT_CPU</code>)</h3>
+<ul>
+<li><strong>Status:</strong> works (CPU seconds, signal-driven, same as
+macOS).</li>
+<li><strong>Caveat:</strong> measures cumulative CPU time, not real-time
+percentage. A long-running interactive session WILL eventually trip the
+cap and <code>SIGKILL</code>. Documented behaviour on macOS today
+(<code>TMX_CPU_HARD_SEC=86400</code> default = 24h). Same on
+Termux.</li>
+</ul>
+<h3 id="24-background-survival">2.4 Background survival</h3>
+<ul>
+<li><strong>Status:</strong> degrades to &quot;kept alive only with
+<code>termux-wake-lock</code> + battery-opt unrestricted&quot;.</li>
+<li><strong>Failure modes:</strong>
+<ul>
+<li>Doze freezes CPU; sessions appear hung when screen off (<a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>).</li>
+<li>Phantom Process Killer (Android 12+) kills child processes when
+count &gt; 32 (<a href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>).</li>
+<li>OEM-specific killers (MIUI, ColorOS, etc.) may override even Android
+settings.</li>
+</ul></li>
+<li><strong>Workarounds in §05</strong> are user-actionable but cannot
+be enforced from our side.</li>
+</ul>
+<h3 id="25-os-level-shared-tmp">2.5 OS-level shared
+<code>/tmp</code></h3>
+<ul>
+<li><strong>Status:</strong> Termux&#39;s <code>/tmp</code> is
+<code>$PREFIX/tmp</code>, not <code>/tmp</code>. Code expecting
+<code>/tmp</code> hard-coded will fail.</li>
+<li><strong>Impact on us:</strong> our existing code uses
+<code>${TMPDIR:-/tmp}</code> or the user&#39;s home for state. UNCONFIRMED —
+need grep audit of the codebase for raw <code>/tmp</code> references.
+Resolution: grep <code>/tmp/</code> literally in
+<code>scripts/</code>.</li>
+<li><strong>Termux-specific:</strong> also <code>/tmp</code> is wiped on
+app restart (different lifecycle from Linux). Don&#39;t store persistent
+state there.</li>
+</ul>
+<h3 id="26-phantom-process-killers-32-child-cap-on-android-12">2.6
+Phantom Process Killer&#39;s 32-child cap on Android 12+</h3>
+<ul>
+<li><strong>What:</strong> Android 12+ kills child processes when more
+than 32 are seen as &quot;phantom&quot; (children of an app whose parent has gone
+background). tmux with 6+ windows × 5+ panes = potential trip.</li>
+<li><strong>Workaround:</strong> ADB toggle to disable, documented for
+operator. Cannot be set programmatically without root.</li>
+<li><strong>§11.4.81 honest-gap row:</strong> &quot;Termux on Android 12+:
+TasksMax is effectively 32 unless ADB-toggled higher&quot;.</li>
+</ul>
+<h3 id="27-concurrent-session-rlimit_nproc-sharing">2.7
+Concurrent-session <code>RLIMIT_NPROC</code> sharing</h3>
+<ul>
+<li><strong>What:</strong> <code>RLIMIT_NPROC</code> is per-real-UID.
+Termux runs all sessions as the same UID. So per-session task caps are
+not actually isolated.</li>
+<li><strong>Status:</strong> identical issue exists on macOS today. NOT
+a Termux regression vs current support matrix.</li>
+</ul>
+<h2 id="3-works-but-requires-adaptation">3. WORKS BUT REQUIRES
+ADAPTATION</h2>
+<h3 id="31-tmux-itself">3.1 tmux itself</h3>
+<ul>
+<li><strong>Status:</strong> works (Termux ships a maintained
+<code>tmux</code> package). Our hardened 3.6a build also compiles
+cleanly under Termux&#39;s bionic toolchain (Termux&#39;s recipe is proof).</li>
+<li><strong>Adaptation:</strong> none for tmux core; potentially adjust
+<code>tmux.conf.template</code> to add Termux-specific keybindings
+(touch-friendly prefix). Not blocking.</li>
+</ul>
+<h3 id="32-the-go-state-daemon">3.2 The Go state daemon</h3>
+<ul>
+<li><strong>Status:</strong> works. Stdlib-only Go binary,
+atomic-file-write + flock, fsync — all are bionic-supported
+syscalls.</li>
+<li><strong>Adaptation:</strong> build path (native build inside Termux
+via <code>pkg install golang</code>, OR NDK cross-compile from host per
+§02).</li>
+</ul>
+<h3 id="33-shell-init-script">3.3 Shell-init script</h3>
+<ul>
+<li><strong>Status:</strong> works. POSIX-sh / bash 5.x. The
+<code>[ -t 0 ] &amp;&amp; [ -t 1 ]</code> non-TTY guard works because
+sshd-without-PTY doesn&#39;t allocate one.</li>
+<li><strong>Adaptation:</strong> none.</li>
+</ul>
+<h3 id="34-ssh-dispatcher">3.4 SSH dispatcher</h3>
+<ul>
+<li><strong>Status:</strong> works. Termux&#39;s OpenSSH 10.3p1 supports
+<code>command=</code> and propagates <code>SSH_ORIGINAL_COMMAND</code>
+identically to Linux/macOS. (See §04.)</li>
+<li><strong>Adaptation:</strong> port number — <code>8022</code> not
+<code>22</code> — in <code>tmx-ssh-install.sh</code> config-block
+emitter.</li>
+</ul>
+<h3 id="35-hostname-derived-colour">3.5 Hostname-derived colour</h3>
+<ul>
+<li><strong>Status:</strong> works in principle. <code>hostname</code>
+command exists on Termux (provided by <code>inetutils</code> package).
+<code>scutil --get LocalHostName</code> does NOT exist
+(macOS-only).</li>
+<li><strong>Adaptation:</strong> Termux branch in
+<code>_apply_host_color</code> should use
+<code>getprop net.hostname</code> or
+<code>getprop ro.product.model</code> as a phone-friendly identifier.
+Falls back to <code>$HOSTNAME</code> env var if neither.</li>
+</ul>
+<h2 id="4-unconfirmed-items-requiring-real-device-verification">4.
+UNCONFIRMED items requiring real-device verification</h2>
+<p>These are statements I have HIGH PRIOR CONFIDENCE in based on cited
+sources, but which I have not directly observed because this is a
+research-only mission. Each carries a resolution path:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Claim</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>U1</td>
+<td><code>bash -l</code> follows Termux&#39;s documented login chain
+(<code>$PREFIX/etc/bash.bashrc</code> → <code>~/.bashrc</code>)</td>
+<td>Run `bash -lc &#39;env</td>
+</tr>
+<tr>
+<td>U2</td>
+<td><code>termux-services</code> (runit) is a viable supervisor for
+<code>sshd</code> autorestart</td>
+<td>Operator-side test: <code>sv up sshd</code> and observe restart on
+<code>pkill sshd</code></td>
+</tr>
+<tr>
+<td>U3</td>
+<td>Build time for our deps on a Snapdragon 8 Gen 2 is in the 5-8 min
+range</td>
+<td>Stopwatch a real on-device build of our setup.sh</td>
+</tr>
+<tr>
+<td>U4</td>
+<td>Battery drain figures (5-15%/hr active, 2-5%/hr wake-lock-only)</td>
+<td>Plug in a phone for 24 hr, run a tmux session with measured
+workload</td>
+</tr>
+<tr>
+<td>U5</td>
+<td><code>hostname_color.sh</code> contrast is acceptable against Termux
+default colours for every hostname hash</td>
+<td>Visual check + perhaps an automated contrast-ratio test</td>
+</tr>
+<tr>
+<td>U6</td>
+<td>OpenSSH&#39;s
+<code>no-port-forwarding,no-X11-forwarding,no-agent-forwarding</code>
+restrictions are honoured by Termux&#39;s build</td>
+<td>Add explicit restriction-bypass-attempt tests to test 22</td>
+</tr>
+<tr>
+<td>U7</td>
+<td>Disk usage post-install is ~600-700 MB</td>
+<td><code>du -sh ~</code> after install</td>
+</tr>
+<tr>
+<td>U8</td>
+<td>The <code>hostname</code> command (from <code>inetutils</code>) is
+reliably present on Termux base install</td>
+<td>Audit: is it default or does it need
+<code>pkg install inetutils</code>?</td>
+</tr>
+<tr>
+<td>U9</td>
+<td>Whether the existing scrolling fix (Applied Fix A16) actually works
+under Termux in 2026 (file was originally noted as &quot;mobile/Termux&quot;
+compatible)</td>
+<td>Run scripts/tests/17_*.sh under Termux</td>
+</tr>
+<tr>
+<td>U10</td>
+<td>Exact behaviour of <code>tmx-state-bin</code>&#39;s <code>flock</code>
+calls on Android tmpfs vs ext4 — should be identical but unverified</td>
+<td>flock-contention smoke test on the actual device</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-carve-outs-from-existing-11481-cross-platform-parity-invariant">5.
+Carve-outs from existing §11.4.81 cross-platform-parity invariant</h2>
+<p>For each existing gate test that depends on a Linux primitive, the
+Termux branch is documented above. Summary of NEW SKIP-with-reasons:</p>
+<ul>
+<li><code>topology_unsupported: termux-no-systemd</code> (for systemd
+gates)</li>
+<li><code>topology_unsupported: termux-no-cgroup-write</code> (for
+cgroup-controller gates)</li>
+<li><code>topology_unsupported: termux-no-journal</code> (for
+journalctl-based diagnostics)</li>
+<li><code>feature_disabled_by_config: termux-phantom-killer-active</code>
+(test 24-equivalent stress test)</li>
+</ul>
+<p>Tests using NEW Termux primitives:</p>
+<ul>
+<li>Add tests for <code>RLIMIT_AS</code> actually capping memory (this
+is a NEW capability vs macOS).</li>
+<li>Add tests for <code>termux-wake-lock</code> being held during
+<code>tmx new</code> (operator-facing notice path).</li>
+</ul>
+<h2 id="6-risk-register">6. Risk register</h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Likelihood</th>
+<th>Impact</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Android API breakage between major versions (12→13→14→15→16)</td>
+<td>Medium</td>
+<td>Per-version test breakage</td>
+<td>Maintain compatibility matrix, run tests on at least two Android
+versions</td>
+</tr>
+<tr>
+<td>Termux maintainer abandonment (less active than 2019-2022)</td>
+<td>Low-Medium</td>
+<td>Have to maintain our own packages</td>
+<td>Path (c) hybrid: rely on <code>pkg install tmux</code> for the base,
+ship our wrapper only</td>
+</tr>
+<tr>
+<td>F-Droid policy changes blocking Termux distribution</td>
+<td>Low</td>
+<td>Catastrophic for entire community</td>
+<td>Out of our control; would affect everyone, not just us</td>
+</tr>
+<tr>
+<td>OEM lock-down increasing (Samsung Knox, Google Play Integrity)</td>
+<td>Medium</td>
+<td>Termux refused or restricted on certain devices</td>
+<td>Document supported-device list; provide fallback via cellular
+SSH-only mode</td>
+</tr>
+<tr>
+<td>KernelSU / Magisk policy changes affecting rooted opt-in path</td>
+<td>Low</td>
+<td>Power-user feature degraded</td>
+<td>Power-user path is opt-in; degrading it doesn&#39;t affect default
+operator</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a>
+(systemd absence)</li>
+<li><a href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a>
+(cgroup access)</li>
+<li><a href="https://source.android.com/docs/core/perf/lmkd">https://source.android.com/docs/core/perf/lmkd</a>
+(lmkd overrides oom_score_adj)</li>
+<li><a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>
+(Doze)</li>
+<li><a href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>
+(Phantom Process Killer)</li>
+<li><a href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a></li>
+<li><a href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">https://github.com/termux/termux-packages/wiki/Common-porting-problems</a>
+(setuid blocked since Android 9)</li>
+</ul>
+</body>
+</html>

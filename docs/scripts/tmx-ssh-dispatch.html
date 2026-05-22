@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="tmx-ssh-dispatch">tmx-ssh-dispatch</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T00:00:00Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+§11.4.18 script companion doc for
+<code>scripts/tmx-ssh-dispatch.sh</code> (generated from
+<code>scripts/tmx-ssh-dispatch.sh.template</code>)</p>
+<h2 id="purpose">Purpose</h2>
+<p>Remote-side <code>command=&quot;…&quot;</code> dispatcher referenced from
+<code>~/.ssh/authorized_keys</code>. Translates whatever the SSH client
+passes after <code>ssh &lt;host&gt;-tmx &lt;…&gt;</code> (kernel exposes
+it as <code>$SSH_ORIGINAL_COMMAND</code>) into one of three
+outcomes:</p>
+<ol type="1">
+<li><strong>empty</strong> → exec <code>bash -l</code> (interactive
+login; the operator&#39;s normal <code>.bashrc</code> then sources
+<code>tmx-shell-init.sh</code> for the regular interactive prompt
+flow).</li>
+<li><strong>valid tmx session name</strong> (POSIX
+<code>case</code>-matching <code>^[A-Za-z0-9_.-]{1,64}$</code>) →
+<code>tmx attach -t NAME</code> if the session exists, else
+<code>tmx new -s NAME -c &lt;last-pwd&gt;</code> where
+<code>&lt;last-pwd&gt;</code> comes from
+<code>tmx-state recall NAME</code>.</li>
+<li><strong>anything else</strong> (multi-word command, shell injection
+attempt, oversized token) → write a one-line rejection to stderr and
+<code>exit 1</code>.</li>
+</ol>
+<p>This is the per-host SSH key&#39;s only permitted action surface —
+operators who need a real shell over the same host use a different key
+without the <code>command=</code> restriction.</p>
+<h2 id="usage">Usage</h2>
+<p>The script is invoked by sshd, never by hand. The relevant
+authorized_keys line on the remote machine looks like:</p>
+<pre><code>command=&quot;/path/to/project/scripts/tmx-ssh-dispatch.sh&quot;,no-port-forwarding,no-X11-forwarding,no-agent-forwarding ssh-ed25519 AAAA… tmx-dispatch-&lt;host&gt;</code></pre>
+<p><code>scripts/tmx-ssh-install.sh</code> installs that line
+idempotently — see <code>docs/scripts/tmx-ssh-install.md</code>.</p>
+<p>Operator-facing usage from the client side:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> <span class="op">&lt;</span>host<span class="op">&gt;</span>-tmx              <span class="co"># empty SSH_ORIGINAL_COMMAND → bash -l</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> <span class="op">&lt;</span>host<span class="op">&gt;</span>-tmx work         <span class="co"># valid name → attach/create session &#39;work&#39;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> <span class="op">&lt;</span>host<span class="op">&gt;</span>-tmx <span class="st">&#39;foo bar&#39;</span>    <span class="co"># rejected; exit 1; stderr [tmx-ssh-dispatch]…</span></span></code></pre></div>
+<h2 id="inputs">Inputs</h2>
+<h3 id="environment-variables-set-by-sshd">Environment variables (set by
+sshd)</h3>
+<table>
+<thead>
+<tr>
+<th>Var</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SSH_ORIGINAL_COMMAND</code></td>
+<td>The argv tail the client passed after
+<code>ssh &lt;alias&gt;</code>. Empty when the client omitted any
+command.</td>
+</tr>
+<tr>
+<td><code>HOME</code></td>
+<td>Used as the cwd fallback when <code>tmx-state recall</code> returns
+nothing or the recalled directory no longer exists.</td>
+</tr>
+<tr>
+<td><code>TMX_DISPATCH_TEST</code></td>
+<td><strong>Test-mode only.</strong> When set, replaces every
+<code>exec</code> with a logging stub that prints
+<code>[would exec: …]</code> to stdout. Off in production.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="filesystem-inputs">Filesystem inputs</h3>
+<ul>
+<li><code>tmx-state</code> binary — looked up first on
+<code>PATH</code>, then at
+<code>&lt;project&gt;/scripts/tmx-state-bin</code>. If both are missing,
+the dispatcher falls back to no-cwd-restore (still works — just lands in
+<code>$HOME</code>).</li>
+<li><code>tmx</code> wrapper — looked up first on <code>PATH</code>,
+then at <code>&lt;project&gt;/scripts/tmx</code>. If both are missing,
+the dispatcher emits a stderr error and exits 1.</li>
+</ul>
+<h2 id="outputs">Outputs</h2>
+<ul>
+<li><strong>stdout:</strong> nothing in production; in
+<code>TMX_DISPATCH_TEST=1</code> mode it prints the
+<code>[would exec: …]</code> line that captures which branch was
+taken.</li>
+<li><strong>stderr:</strong> one-line rejection messages on bad input;
+nothing on success.</li>
+<li><strong>exit code:</strong> 0 on the <code>exec</code> paths (only
+meaningful when test-mode short-circuits the actual exec); 1 on
+rejection.</li>
+</ul>
+<h2 id="side-effects">Side-effects</h2>
+<p>None apart from the <code>exec</code> that replaces the dispatcher&#39;s
+process image with either <code>bash -l</code> (login path) or the tmx
+wrapper (attach/new path). The script never writes to disk, never edits
+state, never creates background processes.</p>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li>POSIX <code>/bin/sh</code> (script parses clean under sh, dash, bash
+3.2/5, mksh).</li>
+<li><code>tmx</code> wrapper — required for the session-attach path; the
+dispatcher emits a clear error if absent.</li>
+<li><code>tmx-state</code> binary — optional; dispatcher gracefully
+degrades to &quot;no cwd restore&quot; if absent.</li>
+</ul>
+<h2 id="cross-references">Cross-references</h2>
+<ul>
+<li>Spec:
+<code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code>
+§4.C, §5.2, §6 (edge cases 3 + 9 + 13).</li>
+<li>Operator guide (installation + usage):
+<code>docs/guides/tmx-ssh-dispatch.md</code> (to be generated by PWU
+P8).</li>
+<li>Sibling script: <code>scripts/tmx-ssh-install.sh</code> (installer)
+and its companion <code>docs/scripts/tmx-ssh-install.md</code>.</li>
+<li>Wrapper: <code>scripts/tmx.template</code> (the <code>tmx new</code>
+/ <code>tmx attach</code> end the dispatcher exec&#39;s into).</li>
+<li>Governance: §11.4.18 (script docs), §11.4.44 (revision header),
+§11.4.67 (POSIX-parseable shell), §11.4.50 (deterministic consistency —
+dispatcher behaves identically across N iterations because no
+time/random inputs).</li>
+</ul>
+<h2 id="debugging">Debugging</h2>
+<p>When <code>ssh &lt;alias&gt; &lt;session&gt;</code> misbehaves the
+diagnostic ladder is:</p>
+<ol type="1">
+<li><strong>Client side:</strong>
+<code>ssh -v &lt;alias&gt; work 2&gt;&amp;1 | head -40</code> — the
+verbose log shows whether the key matched and whether the
+<code>command=</code> was applied.</li>
+<li><strong>Remote sshd logs:</strong>
+<code>journalctl -u ssh.service</code> (Linux systemd) or
+<code>tail -F /var/log/auth.log</code> (Debian/Ubuntu) or
+<code>log show --predicate &#39;process == &quot;sshd&quot;&#39; --last 5m</code> (macOS)
+shows server-side decisions about which key and command line
+matched.</li>
+<li><strong>Dispatcher dry-run on the remote:</strong>
+<code>SSH_ORIGINAL_COMMAND=work TMX_DISPATCH_TEST=1 sh /path/to/tmx-ssh-dispatch.sh</code>
+reveals which branch the dispatcher would take without actually exec&#39;ing
+tmux. This is the primary anti-bluff smoke test referenced by §11.4.50
+and is the same probe runtime test 22
+(<code>22_ssh_dispatch_local.sh</code>) uses.</li>
+<li><strong>Reject probe (no key needed remotely):</strong>
+<code>ssh &lt;alias&gt; tmx-install-verify-token-XXXX</code> should
+produce a <code>[tmx-ssh-dispatch]…</code> stderr line and exit 1. If it
+produces something else, the <code>authorized_keys</code>
+<code>command=&quot;…&quot;</code> did not apply — likely a path mismatch.</li>
+</ol>
+<h2 id="last-verified">Last verified</h2>
+<p>2026-05-22 — sh -n clean on substituted template; four anti-bluff
+smoke tests (empty / valid-name / multi-word / shell-injection) all
+produced the expected branch / stderr / exit code on macOS. Full
+real-host verification deferred to P9 release verification per spec
+§10.</p>
+</body>
+</html>

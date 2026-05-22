@@ -261,6 +261,23 @@ fi
 
 case "$SUBCMD" in
     new|new-session|start-server|"")
+        # §11.4 cwd restore: query state daemon for last-known pwd of
+        # this session. Falls back to $HOME if no record exists or if
+        # the recalled path no longer exists on disk. Failure of the
+        # state binary is non-fatal — wrapper preserves its tmx-never-
+        # breaks invariant per spec §6 edge cases 6 / 7 / 11.
+        LAST_PWD=""
+        if [ -x "$TMX_DIR/tmx-state-bin" ]; then
+            LAST_PWD=$("$TMX_DIR/tmx-state-bin" recall "$NAME" 2>/dev/null || true)
+            # Validate the recalled path still exists and is a directory.
+            if [ -n "$LAST_PWD" ] && [ ! -d "$LAST_PWD" ]; then
+                printf '[tmx] last-pwd %s no longer exists for %s; using $HOME\n' "$LAST_PWD" "$NAME" >&2
+                LAST_PWD=""
+            fi
+        fi
+        # Final fallback: $HOME if nothing usable.
+        START_DIR="${LAST_PWD:-$HOME}"
+
         # Collision check (Linux only — scope-based; Darwin uses socket
         # presence as the natural collision detector).
         if [ "$HOST_OS" = "Linux" ] && [ "$_scope_ok" -eq 1 ] && \
@@ -311,7 +328,9 @@ case "$SUBCMD" in
                     esac
                 done
                 if [ "$SAW_NEW" -eq 0 ] && [ "$INTERACTIVE" -eq 1 ]; then
-                    NEW_ARGS=("-L" "$SOCK_LABEL" "-f" "$TMUX_CONF" "new-session" "-d" "-s" "$NAME")
+                    # §11.4 cwd restore: -c $START_DIR makes tmux spawn
+                    # the new session's initial pane in the recalled cwd.
+                    NEW_ARGS=("-L" "$SOCK_LABEL" "-f" "$TMUX_CONF" "new-session" "-d" "-s" "$NAME" "-c" "$START_DIR")
                     SAW_NEW=1
                 fi
 
@@ -357,10 +376,13 @@ case "$SUBCMD" in
                 # shell.
                 SESSION_CMD="$RLIMIT_WRAPPER $MEM_KB $CPU_SEC $PROC_MAX $USER_SHELL -l"
 
+                # §11.4 cwd restore: -c $START_DIR makes tmux spawn the
+                # new session's initial pane in the recalled cwd. tmux's
+                # arg order is `-c <dir>` before the trailing command.
                 if [ "$INTERACTIVE" -eq 1 ]; then
-                    "$TMUX_BIN" -L "$SOCK_LABEL" -f "$TMUX_CONF" new-session -d -s "$NAME" "$SESSION_CMD"
+                    "$TMUX_BIN" -L "$SOCK_LABEL" -f "$TMUX_CONF" new-session -d -s "$NAME" -c "$START_DIR" "$SESSION_CMD"
                 else
-                    "$TMUX_BIN" -L "$SOCK_LABEL" -f "$TMUX_CONF" new-session -d -s "$NAME" "$SESSION_CMD"
+                    "$TMUX_BIN" -L "$SOCK_LABEL" -f "$TMUX_CONF" new-session -d -s "$NAME" -c "$START_DIR" "$SESSION_CMD"
                 fi
 
                 # Also wrap default-command so :new-window / :split-window
@@ -371,6 +393,20 @@ case "$SUBCMD" in
 
         _apply_oom_score "$SOCK_LABEL"
         _apply_host_color "$SOCK_LABEL"
+
+        # §11.4 cwd capture: install tmux hooks that fire `tmx-state
+        # record` on client-detached and session-closed, persisting the
+        # current pane's cwd so the next `tmx new -s NAME` can restore
+        # it. The OUTER quoting is single-quoted so #{pane_current_path}
+        # is passed verbatim to tmux for FORMAT expansion at hook time.
+        # `$NAME` is sanitised upstream; embedding it inside the run-
+        # shell string is safe for the sanitised token set
+        # ([A-Za-z0-9._-]) per `_sanitise` above.
+        if [ -x "$TMX_DIR/tmx-state-bin" ]; then
+            HOOK_CMD="run-shell '$TMX_DIR/tmx-state-bin record $NAME #{pane_current_path}'"
+            "$TMUX_BIN" -L "$SOCK_LABEL" set-hook -g client-detached "$HOOK_CMD" 2>/dev/null || true
+            "$TMUX_BIN" -L "$SOCK_LABEL" set-hook -g session-closed  "$HOOK_CMD" 2>/dev/null || true
+        fi
 
         # Propagate TMX_HOSTNAME for status-bar conditional.
         if [ -n "${TMX_HOSTNAME:-}" ]; then

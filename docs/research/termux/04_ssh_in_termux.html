@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="04--ssh-in-termux">§04 — SSH in Termux</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T07:20:02Z <strong>Authority:</strong> vasic-digital tmux
+project (research-only) <strong>Maintainer:</strong> milosvasic
+<strong>Scope:</strong> Termux&#39;s OpenSSH and how it interacts with
+v1.0.9&#39;s <code>tmx-ssh-dispatch.sh</code></p>
+<hr />
+<h2 id="1-termux-ships-standard-openssh">1. Termux ships standard
+OpenSSH</h2>
+<p><code>pkg install openssh</code> installs a regular OpenSSH build,
+currently <strong>10.3p1</strong> per the package recipe at <a href="https://github.com/termux/termux-packages/blob/master/packages/openssh/build.sh">https://github.com/termux/termux-packages/blob/master/packages/openssh/build.sh</a>.
+This is the same upstream OpenSSH used on Linux and macOS, with
+Termux-specific path adjustments.</p>
+<p>Build-time customisations (per the recipe):</p>
+<ul>
+<li><code>--sysconfdir=$TERMUX_PREFIX/etc/ssh</code> — sshd_config lives
+at <code>/data/data/com.termux/files/usr/etc/ssh/sshd_config</code></li>
+<li><code>--with-default-path=$TERMUX_PREFIX/bin</code> — sshd-launched
+processes get Termux&#39;s PATH</li>
+<li><code>--with-pid-dir=$TERMUX_PREFIX/var/run</code> — PID file lives
+under the app&#39;s data dir</li>
+<li><code>--without-ssh1</code> — protocol 1 disabled (good; it&#39;s
+deprecated everywhere)</li>
+<li>utmp/wtmp/lastlog disabled — Android has no shared <code>utmp</code>
+infrastructure</li>
+</ul>
+<p>Crucially, <strong>the <code>command=</code> directive in
+<code>authorized_keys</code>, the
+<code>Match</code>/<code>ForceCommand</code> keywords in
+<code>sshd_config</code>, and the <code>SSH_ORIGINAL_COMMAND</code> env
+var all work identically to upstream OpenSSH</strong> — they are core
+OpenSSH features and Termux&#39;s build does not touch them.</p>
+<h2 id="2-default-port-8022">2. Default port: 8022</h2>
+<p>Ports 1-1024 are privileged on Linux (bind requires
+<code>CAP_NET_BIND_SERVICE</code> or root). Termux runs as an
+unprivileged Android app and therefore cannot bind to port 22. Default
+is <strong>port 8022</strong>.</p>
+<p>The default sshd_config that Termux ships sets <code>Port 8022</code>
+explicitly. Source: confirmed in numerous Termux setup guides — <a href="https://jonesbalada.gitlab.io/18-dezoito/2018-12-05-run_ssh_termux.html">https://jonesbalada.gitlab.io/18-dezoito/2018-12-05-run_ssh_termux.html</a>,
+<a href="https://termuxtools.com/ssh-server-termux-setup-guide-2/">https://termuxtools.com/ssh-server-termux-setup-guide-2/</a>.</p>
+<p>Client incantation:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> <span class="at">-p</span> 8022 user@phone.local         <span class="co"># local network</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> <span class="at">-p</span> 8022 user@1.2.3.4             <span class="co"># if exposed via static IP</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> nezha-tmx work                   <span class="co"># using a ~/.ssh/config Host alias (preferred)</span></span></code></pre></div>
+<h2 id="3-username">3. Username</h2>
+<p>Termux assigns the operator a username derived from the Android UID
+(<code>u0_a274</code> shape). For the <code>command=</code> dispatch
+design, the username doesn&#39;t matter — what matters is the SSH key, not
+the local identity. But the <code>ssh user@host</code> syntax requires
+SOME name; the standard incantation in the Termux community is
+<code>ssh -p 8022 $(whoami)@hostname</code> after first running
+<code>whoami</code> once to discover the actual UID-derived name.</p>
+<p>Operators often add a <code>User u0_a274</code> line to the
+client-side <code>~/.ssh/config</code> Host block. Our
+<code>tmx-ssh-install.sh</code> should detect the remote username
+automatically via <code>ssh remote-host whoami</code> during initial
+install and bake it into the Host block.</p>
+<h2 id="4-command-directive--does-it-work">4. <code>command=</code>
+directive — does it work?</h2>
+<p><strong>Yes.</strong> OpenSSH 10.3p1&#39;s <code>command=</code>
+directive is a server-side enforcement: when the matching public key
+authenticates, sshd unconditionally exec&#39;s the specified command instead
+of the user&#39;s shell. The user&#39;s actual <code>$SHELL</code> does not run.
+The user-supplied command (if any) is exposed in
+<code>$SSH_ORIGINAL_COMMAND</code>.</p>
+<p><code>authorized_keys</code> format works the same:</p>
+<pre><code>command=&quot;$PREFIX/bin/tmx-ssh-dispatch.sh&quot;,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-ed25519 AAAA... operator@host</code></pre>
+<p>(Note: the <code>no-pty</code> restriction would BREAK us because we
+WANT a PTY for tmux. Omit <code>no-pty</code> from the directive
+list.)</p>
+<p>Source for <code>command=</code> mechanics: <a href="https://manpages.debian.org/experimental/openssh-server/authorized_keys.5.en.html">https://manpages.debian.org/experimental/openssh-server/authorized_keys.5.en.html</a>,
+and the Linux-side man page applies identically.</p>
+<h2 id="5-ssh_original_command-propagation">5.
+<code>$SSH_ORIGINAL_COMMAND</code> propagation</h2>
+<p>When the client runs <code>ssh nezha-tmx work</code>, sshd
+authenticates the key, sees the <code>command=</code> directive, and
+exec&#39;s <code>tmx-ssh-dispatch.sh</code> with these env vars set:</p>
+<ul>
+<li><code>SSH_ORIGINAL_COMMAND=work</code> (the user-supplied
+command)</li>
+<li><code>SSH_CONNECTION=&lt;client-ip&gt; &lt;client-port&gt; &lt;server-ip&gt; &lt;server-port&gt;</code></li>
+<li><code>SSH_CLIENT=&lt;client-ip&gt; &lt;client-port&gt; &lt;server-port&gt;</code></li>
+<li><code>SSH_TTY=/dev/pts/N</code> (if PTY allocated)</li>
+<li><code>LANG</code>, <code>TERM</code>, <code>PATH</code>, etc.
+inherited from sshd&#39;s environment</li>
+</ul>
+<p>The <code>command=</code> path takes priority over the user&#39;s shell —
+the dispatcher script does NOT have to source <code>.bashrc</code>. It
+MUST set up its own PATH if it needs more than <code>$PREFIX/bin</code>.
+(Termux&#39;s default PATH is just <code>$PREFIX/bin</code>, which is fine
+for our purposes — <code>tmx</code> and <code>tmux</code> both live
+there.)</p>
+<h2 id="6-path-propagation--confirmation">6. <code>$PATH</code>
+propagation — confirmation</h2>
+<p>The sshd build flag
+<code>--with-default-path=$TERMUX_PREFIX/bin</code> ensures every
+sshd-spawned process gets
+<code>$PATH=/data/data/com.termux/files/usr/bin</code>. This is exactly
+what the dispatcher needs: it can call <code>tmx attach -t NAME</code>
+directly without absolute paths.</p>
+<p>If we want to be defensive, the dispatcher prologue should do:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="va">PATH</span><span class="op">=</span><span class="st">&quot;</span><span class="va">${PREFIX</span><span class="op">:-</span>/data/data/com.termux/files/usr<span class="va">}</span><span class="st">/bin:</span><span class="va">$PATH</span><span class="st">&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PATH</span></span></code></pre></div>
+<p>This handles the edge case of a misconfigured sshd or a custom Termux
+PREFIX.</p>
+<h2 id="7-tmx-ssh-dispatchsh-portability-check">7.
+<code>tmx-ssh-dispatch.sh</code> portability check</h2>
+<p>Walking the spec §5.2 logic against Termux:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">case</span> <span class="st">&quot;</span><span class="va">${SSH_ORIGINAL_COMMAND</span><span class="op">:-</span><span class="va">}</span><span class="st">&quot;</span> <span class="kw">in</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;&quot;</span><span class="kw">)</span>          <span class="bu">exec</span> bash <span class="at">-l</span> <span class="cf">;;</span>                       <span class="co"># interactive — works on Termux</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="pp">*</span><span class="st">&#39; &#39;</span><span class="pp">*</span> <span class="kw">|</span> <span class="pp">*</span><span class="st">&#39;;&#39;</span><span class="pp">*</span><span class="kw">)</span> <span class="bu">printf</span> <span class="st">&#39;reject\n&#39;</span> <span class="op">&gt;&amp;</span><span class="dv">2</span><span class="kw">;</span> <span class="bu">exit</span> 1 <span class="cf">;;</span>     <span class="co"># POSIX case patterns — works</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="pp">*</span><span class="kw">)</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> <span class="st">&quot;</span><span class="va">$SSH_ORIGINAL_COMMAND</span><span class="st">&quot;</span> <span class="kw">in</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>            <span class="ss">[A-Za-z0-9_.-]</span><span class="pp">*</span><span class="kw">)</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>                <span class="bu">exec</span> tmx attach <span class="at">-t</span> <span class="st">&quot;</span><span class="va">$SSH_ORIGINAL_COMMAND</span><span class="st">&quot;</span> <span class="kw">||</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>                    <span class="bu">exec</span> tmx new <span class="at">-s</span> <span class="st">&quot;</span><span class="va">$SSH_ORIGINAL_COMMAND</span><span class="st">&quot;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>                <span class="cf">;;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>            <span class="pp">*</span><span class="kw">)</span> <span class="bu">printf</span> <span class="st">&#39;reject\n&#39;</span> <span class="op">&gt;&amp;</span><span class="dv">2</span><span class="kw">;</span> <span class="bu">exit</span> 1 <span class="cf">;;</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">esac</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">;;</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="cf">esac</span></span></code></pre></div>
+<p>POSIX-sh patterns are bash-3.2-and-up compatible (§11.4.67 mandate).
+Termux ships bash 5.x so we are well-supported.
+<code>exec bash -l</code> works because bash is at
+<code>$PREFIX/bin/bash</code>.</p>
+<p><strong>One thing to verify on Termux specifically:</strong> does
+<code>exec bash -l</code> properly source the Termux login chain?
+Termux&#39;s bash login chain is:
+<code>/data/data/com.termux/files/usr/etc/bash.bashrc</code>
+(system-wide) → <code>~/.bash_profile</code> → <code>~/.profile</code> →
+<code>~/.bashrc</code>. UNCONFIRMED: I have not confirmed
+<code>bash -l</code> follows this exact chain inside Termux; some Termux
+community guides claim Termux&#39;s <code>bash</code> was patched to merge
+<code>.bash_profile</code> and <code>.bashrc</code> semantics, but the
+patch is not documented in the upstream package recipe.
+<strong>Resolution path:</strong> run
+<code>bash -lc &#39;echo $TERMUX_VERSION&#39;</code> interactively after
+<code>ssh nezha-tmx</code> — if <code>$TERMUX_VERSION</code> is set, the
+login chain ran; if empty, we have to source
+<code>$PREFIX/etc/bash.bashrc</code> explicitly in the dispatcher.</p>
+<h2 id="8-host-alias-on-the-client">8. Host alias on the client</h2>
+<p>The v1.0.9 design writes a Host block to
+<code>~/.ssh/config</code>:</p>
+<pre><code>Host nezha-tmx
+    HostName nezha.local
+    Port 22
+    User milosvasic
+    IdentityFile ~/.ssh/id_tmx_nezha
+    IdentitiesOnly yes</code></pre>
+<p>For a Termux target the block needs <code>Port 8022</code>:</p>
+<pre><code>Host phone-tmx
+    HostName phone.local
+    Port 8022
+    User u0_a274
+    IdentityFile ~/.ssh/id_tmx_phone
+    IdentitiesOnly yes</code></pre>
+<p>The <code>tmx-ssh-install.sh</code> installer should detect the
+remote sshd port. Today&#39;s spec hardcodes 22; we&#39;d add a
+<code>--port 8022</code> flag, or auto-probe by trying
+<code>ssh -p 8022 hostname true &amp;&amp; PORT=8022</code> before
+falling back.</p>
+<h2 id="9-authorized_keys-path-on-termux">9.
+<code>authorized_keys</code> path on Termux</h2>
+<p>Standard: <code>$HOME/.ssh/authorized_keys</code> →
+<code>/data/data/com.termux/files/home/.ssh/authorized_keys</code>. Mode
+<code>0600</code>. <code>.ssh/</code> directory mode <code>0700</code>.
+OpenSSH refuses to use them if perms are too open — same as anywhere
+else.</p>
+<p>The Termux package install creates <code>$HOME/.ssh/</code> with the
+right perms IF the operator runs <code>ssh-keygen</code> once. Our
+installer should be defensive and
+<code>mkdir -p -m 0700 ~/.ssh &amp;&amp; chmod 0700 ~/.ssh &amp;&amp; touch ~/.ssh/authorized_keys &amp;&amp; chmod 0600 ~/.ssh/authorized_keys</code>.</p>
+<h2 id="10-starting-sshd">10. Starting sshd</h2>
+<p>Termux&#39;s sshd does NOT auto-start. The operator runs
+<code>sshd</code> once (which forks the daemon — sshd defaults to
+daemon-mode). Source: <a href="https://gist.github.com/devmaars/8e33a1edefc4b048a433651a1fc89844">https://gist.github.com/devmaars/8e33a1edefc4b048a433651a1fc89844</a>.</p>
+<p>For persistent sshd across phone reboots: install
+<code>Termux:Boot</code>
+(<code>f-droid.org/en/packages/com.termux.boot/</code>) and place a
+script at <code>~/.termux/boot/start-sshd</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/data/data/com.termux/files/usr/bin/sh</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">termux-wake-lock</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">sshd</span></span></code></pre></div>
+<p>Source: <a href="https://github.com/termux/termux-boot">https://github.com/termux/termux-boot</a>
++ the Termux:Boot wiki.</p>
+<p>This is the canonical pattern. Our installer should add this script
+when the operator opts into autostart.</p>
+<h2 id="11-security-posture">11. Security posture</h2>
+<ul>
+<li>The <code>command=</code>-restricted key authorises ONLY session
+attaches. Cannot run arbitrary commands, cannot scp/sftp (sftp goes
+through a different subsystem handled by sshd before
+<code>command=</code> fires — but <code>command=</code> overrides
+it).</li>
+<li>The operator&#39;s normal shell-access key remains separate, so
+administrative access doesn&#39;t go through the restricted dispatcher.</li>
+<li>Adding
+<code>no-port-forwarding,no-X11-forwarding,no-agent-forwarding</code> to
+the directive line is recommended defence-in-depth. (Keep
+<code>no-pty</code> OUT — we need the PTY.)</li>
+</ul>
+<p>UNCONFIRMED: whether Termux&#39;s sshd respects all the <code>no-*</code>
+options as a regular OpenSSH would. The build doesn&#39;t patch the relevant
+code paths so I have high confidence they work, but a runtime smoke test
+should explicitly verify each restriction. <strong>Resolution
+path:</strong> Test 22 in spec §7.3 expanded with one assertion per
+restriction.</p>
+<h2 id="12-practical-end-to-end-demo-target-state-after-termux-port">12.
+Practical end-to-end demo (target state after Termux port)</h2>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># On the phone — first-time setup:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pkg</span> install openssh tmux git</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh-keygen</span> <span class="at">-t</span> ed25519                      <span class="co"># creates ~/.ssh/id_ed25519</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Add the operator&#39;s PUBLIC key (from laptop) to ~/.ssh/authorized_keys with command= directive</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ex">sshd</span>                                       <span class="co"># start daemon</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="ex">termux-wake-lock</span>                           <span class="co"># keep alive in background</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"># On the laptop — first-time setup:</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh-keygen</span> <span class="at">-t</span> ed25519 <span class="at">-f</span> ~/.ssh/id_tmx_phone</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Add Host block to ~/.ssh/config with Port 8022</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Copy public key to phone&#39;s authorized_keys</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Daily use, laptop side:</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> phone-tmx work</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co"># → laptop connects to phone:8022 → sshd authenticates → command= fires → tmx-ssh-dispatch</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co"># → exec tmx attach -t work || exec tmx new -s work</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co"># → operator is inside session `work` on the phone</span></span></code></pre></div>
+<p>End user experience matches the macOS/nezha experience modulo the
+<code>Port 8022</code> + the <code>termux-wake-lock</code>
+recommendation.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://github.com/termux/termux-packages/blob/master/packages/openssh/build.sh">https://github.com/termux/termux-packages/blob/master/packages/openssh/build.sh</a>
+— Termux&#39;s OpenSSH recipe</li>
+<li><a href="https://manpages.debian.org/experimental/openssh-server/authorized_keys.5.en.html">https://manpages.debian.org/experimental/openssh-server/authorized_keys.5.en.html</a>
+— authorized_keys <code>command=</code> semantics</li>
+<li><a href="https://jonesbalada.gitlab.io/18-dezoito/2018-12-05-run_ssh_termux.html">https://jonesbalada.gitlab.io/18-dezoito/2018-12-05-run_ssh_termux.html</a>
+— practical Termux SSH setup guide</li>
+<li><a href="https://termuxtools.com/ssh-server-termux-setup-guide-2/">https://termuxtools.com/ssh-server-termux-setup-guide-2/</a>
+— port 8022 default confirmation</li>
+<li><a href="https://gist.github.com/devmaars/8e33a1edefc4b048a433651a1fc89844">https://gist.github.com/devmaars/8e33a1edefc4b048a433651a1fc89844</a>
+— sshd start procedure on Termux</li>
+<li><a href="https://github.com/termux/termux-boot">https://github.com/termux/termux-boot</a>
+— Termux:Boot for autostart</li>
+<li><a href="https://github.com/termux/termux-packages/discussions/18318">https://github.com/termux/termux-packages/discussions/18318</a>
+— community discussion of sshd accessibility</li>
+</ul>
+</body>
+</html>

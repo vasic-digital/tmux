@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="tmx-state--operator-guide">tmx-state — Operator Guide</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T14:30:00Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+Operator inspecting / overriding / resetting the per-session cwd state
+file used by the v1.0.9 <code>tmx-shell-init.sh</code> and
+<code>tmx-ssh-dispatch.sh</code> integrations</p>
+<hr />
+<h2 id="1-overview">1. Overview</h2>
+<p><code>tmx-state</code> is a small Go binary (single static
+executable, no runtime dependencies) that stores one record per tmx
+session in <code>~/.tmx/state.json</code>. The wrapper
+<code>scripts/tmx</code> queries it on <code>tmx new</code> to restore
+the session&#39;s last cwd; the same wrapper writes a fresh record from a
+tmux hook fired on detach / session-closed.</p>
+<p>Why a Go binary instead of a shell helper:</p>
+<ul>
+<li><strong>Atomic writes.</strong> A temp-file write +
+<code>rename(2)</code> is atomic on POSIX; shell-only equivalents are
+racy under concurrent panes.</li>
+<li><strong><code>fcntl(F_SETLKW)</code> locking.</strong> Ten panes
+hitting <code>record</code> at once serialize cleanly; latest-wins.</li>
+<li><strong>Sub-millisecond reads.</strong> No interpreter startup, no
+JSON parsing in shell.</li>
+</ul>
+<p>The binary is built by <code>bash scripts/setup.sh</code> and lives
+at <code>scripts/tmx-state-bin</code>. The same source tree generates a
+<code>tmx-state</code> symlink in the project <code>scripts/</code>
+directory so plain <code>tmx-state</code> works once
+<code>scripts/</code> is on <code>$PATH</code>.</p>
+<p>Design authority:
+<code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code>
+§4.B + §5.1 + §5.3.</p>
+<h2 id="2-cli-reference">2. CLI reference</h2>
+<pre class="text"><code>tmx-state record  &lt;session&gt; &lt;abs-path&gt;
+tmx-state recall  &lt;session&gt;
+tmx-state list
+tmx-state forget  &lt;session&gt;
+tmx-state version
+tmx-state help</code></pre>
+<p>All subcommands respect <code>$TMX_STATE_FILE</code> for the file
+path (default <code>~/.tmx/state.json</code>).</p>
+<h3 id="21-record-session-abs-path">2.1
+<code>record &lt;session&gt; &lt;abs-path&gt;</code></h3>
+<p>Atomically upserts a session&#39;s <code>last_pwd</code> and bumps
+<code>last_seen_unix</code>. Creates <code>~/.tmx/</code> mode 0700 +
+<code>state.json</code> mode 0600 if missing.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state record work /tmp</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> echo <span class="va">$?</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span></span></code></pre></div>
+<p>Errors:</p>
+<ul>
+<li>exit 1 + stderr if <code>&lt;session&gt;</code> is empty or
+<code>&lt;abs-path&gt;</code> is relative.</li>
+</ul>
+<h3 id="22-recall-session">2.2 <code>recall &lt;session&gt;</code></h3>
+<p>Prints <code>last_pwd</code> to stdout (NO trailing newline — safe
+for <code>$(tmx-state recall …)</code> command substitution). Exit
+codes:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Found — last_pwd printed</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Not found (session never recorded, or corruption rebuilt empty)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>State file unreadable / corrupt (treat as &quot;unknown&quot;, fall back)</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state recall work</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">/tmp</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state recall never-existed</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> echo <span class="va">$?</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span></span></code></pre></div>
+<p>The wrapper uses this exit code to decide between
+<code>-c $(tmx-state recall X)</code> and falling back to
+<code>$HOME</code>.</p>
+<h3 id="23-list">2.3 <code>list</code></h3>
+<p>Tab-separated table sorted by session name:</p>
+<pre class="text"><code>SESSION&lt;TAB&gt;LAST_PWD&lt;TAB&gt;LAST_SEEN_UNIX</code></pre>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state list</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">build</span>   /Users/milosvasic/Projects/tmux         1748189000</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ex">investigate</span>     /tmp                             1748190100</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="ex">work</span>    /Users/milosvasic/Projects/tmux/docs    1748190500</span></code></pre></div>
+<h3 id="24-forget-session">2.4 <code>forget &lt;session&gt;</code></h3>
+<p>Idempotent removal. Exit 0 whether the session was present or
+not.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state forget investigate</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state recall investigate</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> echo <span class="va">$?</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span></span></code></pre></div>
+<h3 id="25-version">2.5 <code>version</code></h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state version</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">tmx-state</span> v1.0.9</span></code></pre></div>
+<h3 id="26-help----help---h">2.6 <code>help</code> / <code>--help</code>
+/ <code>-h</code></h3>
+<p>Prints the same usage block to stdout (exit 0).</p>
+<h2 id="3-state-file-location-and-override">3. State file location and
+override</h2>
+<p>Default path: <code>$HOME/.tmx/state.json</code> mode 0600 (parent
+dir mode 0700).</p>
+<p>Override via <code>$TMX_STATE_FILE</code>. Useful for:</p>
+<ul>
+<li>isolated test runs (tests 27, 33, 38, 39, 40 do this);</li>
+<li>per-project state files;</li>
+<li>sandboxes where <code>$HOME</code> is read-only.</li>
+</ul>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> TMX_STATE_FILE=/tmp/my-tmx-state.json tmx-state record work /tmp</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> TMX_STATE_FILE=/tmp/my-tmx-state.json tmx-state list</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">work</span>    /tmp    1748190500</span></code></pre></div>
+<h2 id="4-state-file-schema">4. State file schema</h2>
+<div class="sourceCode" id="cb9"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;schema_version&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sessions&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;work&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;last_pwd&quot;</span><span class="fu">:</span> <span class="st">&quot;/Users/milosvasic/Projects/tmux&quot;</span><span class="fu">,</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;last_seen_unix&quot;</span><span class="fu">:</span> <span class="dv">1748000000</span><span class="fu">,</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;created_unix&quot;</span><span class="fu">:</span> <span class="dv">1747000000</span><span class="fu">,</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;host&quot;</span><span class="fu">:</span> <span class="st">&quot;nezha.local&quot;</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;investigate&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;last_pwd&quot;</span><span class="fu">:</span> <span class="st">&quot;/tmp&quot;</span><span class="fu">,</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;last_seen_unix&quot;</span><span class="fu">:</span> <span class="dv">1748190100</span><span class="fu">,</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;created_unix&quot;</span><span class="fu">:</span> <span class="dv">1748190100</span><span class="fu">,</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;host&quot;</span><span class="fu">:</span> <span class="st">&quot;mistborn.local&quot;</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Single-file design (not jsonl). Fits in memory trivially — kilobytes
+even for hundreds of sessions. Atomic write-then-rename. Easy to inspect
+by hand:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> cat ~/.tmx/state.json <span class="kw">|</span> <span class="ex">python3</span> <span class="at">-m</span> json.tool</span></code></pre></div>
+<p>The <code>host</code> field is the value of
+<code>os.Hostname()</code> at record-time. It&#39;s informational — the
+binary does not gate on it (a session named <code>work</code> on macOS
+and <code>work</code> on nezha are independent files, since each host
+has its own <code>~/.tmx/state.json</code>).</p>
+<h2 id="5-worked-examples">5. Worked examples</h2>
+<h3 id="example-1--pretty-print-the-current-state">Example 1 —
+pretty-print the current state</h3>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> cat ~/.tmx/state.json <span class="kw">|</span> <span class="ex">python3</span> <span class="at">-m</span> json.tool</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;schema_version&quot;</span><span class="ex">:</span> 1,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;sessions&quot;</span><span class="ex">:</span> {</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;work&quot;</span><span class="ex">:</span> {</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;last_pwd&quot;</span><span class="ex">:</span> <span class="st">&quot;/Users/milosvasic/Projects/tmux&quot;</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;last_seen_unix&quot;</span><span class="ex">:</span> 1748190500,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;created_unix&quot;</span><span class="ex">:</span> 1747000000,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;host&quot;</span><span class="ex">:</span> <span class="st">&quot;mistborn.local&quot;</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">}</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="er">}</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="er">}</span></span></code></pre></div>
+<h3 id="example-2--clean-slate-reset-everything">Example 2 — clean slate
+(reset everything)</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> rm ~/.tmx/state.json</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state list</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> echo <span class="va">$?</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># state file is missing; tmx-state silently treats this as an empty store.</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co"># The next `tmx new -s X` rebuilds the file on first record.</span></span></code></pre></div>
+<h3 id="example-3--query-from-a-script">Example 3 — query from a
+script</h3>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="va">SESSION</span><span class="op">=</span><span class="st">&quot;work&quot;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="va">PWD</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$(</span><span class="ex">tmx-state</span> recall <span class="st">&quot;</span><span class="va">$SESSION</span><span class="st">&quot;</span> <span class="dv">2</span><span class="op">&gt;</span>/dev/null<span class="va">)</span><span class="st">&quot;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="ot">-n</span> <span class="st">&quot;</span><span class="va">$PWD</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="bu">[</span> <span class="ot">-d</span> <span class="st">&quot;</span><span class="va">$PWD</span><span class="st">&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">echo</span> <span class="st">&quot;would start session &#39;</span><span class="va">$SESSION</span><span class="st">&#39; at </span><span class="va">$PWD</span><span class="st">&quot;</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">echo</span> <span class="st">&quot;no cwd memory for &#39;</span><span class="va">$SESSION</span><span class="st">&#39; — would start at </span><span class="dt">\$</span><span class="st">HOME&quot;</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span></code></pre></div>
+<h3 id="example-4--concurrent-record-from-10-panes">Example 4 —
+concurrent record from 10 panes</h3>
+<div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inside an existing tmx session named &#39;storm&#39; — open 10 panes,</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># each cd&#39;s to /tmp/pane-N and immediately detaches.</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> for i in <span class="va">$(</span><span class="fu">seq</span> 1 10<span class="va">)</span><span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">(</span><span class="fu">mkdir</span> <span class="at">-p</span> <span class="st">&quot;/tmp/pane-</span><span class="va">$i</span><span class="st">&quot;</span> <span class="kw">&amp;&amp;</span> <span class="ex">tmx-state</span> record <span class="st">&quot;storm-</span><span class="va">$i</span><span class="st">&quot;</span> <span class="st">&quot;/tmp/pane-</span><span class="va">$i</span><span class="st">&quot;</span><span class="kw">)</span> <span class="kw">&amp;</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">done</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> wait</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state list <span class="kw">|</span> <span class="fu">wc</span> <span class="at">-l</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="ex">10</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="co"># fcntl(F_SETLKW) serialized the 10 writers without dropping any record.</span></span></code></pre></div>
+<p>(This is exactly what test <code>33_state_concurrency.sh</code>
+asserts.)</p>
+<h3 id="example-5--recover-from-a-corrupt-state-file">Example 5 —
+recover from a corrupt state file</h3>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> echo <span class="st">&#39;not valid json&#39;</span> <span class="op">&gt;</span> ~/.tmx/state.json</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state list</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="ex">tmx-state:</span> notice: state file was corrupt, rebuilt</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state recall work</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> echo <span class="va">$?</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>     <span class="co"># ← unreadable signal; wrapper falls back to $HOME on `new`.</span></span></code></pre></div>
+<h2 id="6-troubleshooting">6. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Diagnosis</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tmx-state: command not found</code></td>
+<td><code>scripts/</code> not on <code>$PATH</code></td>
+<td><code>bash scripts/setup.sh</code> re-runs the snippet
+installer</td>
+</tr>
+<tr>
+<td><code>recall</code> always returns nothing</td>
+<td>State file missing or empty</td>
+<td>Detach from a session at least once — the tmux hook will write the
+record</td>
+</tr>
+<tr>
+<td>Wrong cwd restored</td>
+<td>Stale state — directory was moved or deleted</td>
+<td><code>tmx-state record SESSION /new/path</code> to overwrite, or
+<code>forget</code> + recreate</td>
+</tr>
+<tr>
+<td><code>tmx-state record: pwd must be absolute, got &quot;foo&quot;</code></td>
+<td>You passed a relative path</td>
+<td>Pass an absolute path; use <code>$(pwd)</code> if you need the
+current directory</td>
+</tr>
+<tr>
+<td><code>~/.tmx</code> unwritable</td>
+<td>Filesystem read-only or wrong owner</td>
+<td><code>chmod 700 ~/.tmx &amp;&amp; chown $(id -u):$(id -g) ~/.tmx</code></td>
+</tr>
+<tr>
+<td>State file mode looks wrong</td>
+<td>An external tool touched it</td>
+<td><code>chmod 600 ~/.tmx/state.json</code> — restores §11.4.10
+default</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7-cross-references">7. Cross-references</h2>
+<ul>
+<li><a href="tmx-shell-integration.md">docs/guides/tmx-shell-integration.md</a>
+— the rc-side prompt that calls <code>recall</code> indirectly</li>
+<li><a href="tmx-ssh-dispatch.md">docs/guides/tmx-ssh-dispatch.md</a> —
+SSH dispatcher that also calls <code>recall</code></li>
+<li><a href="../manual/tmx-shell-integration.md">docs/manual/tmx-shell-integration.md</a>
+— end-user master manual</li>
+<li><a href="../scripts/tmx-state.md">docs/scripts/tmx-state.md</a> —
+§11.4.18 script companion (schema, internals)</li>
+<li>Spec:
+<code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code>
+§4.B + §5.1 + §5.3</li>
+</ul>
+<h2 id="8-anti-bluff-114">8. Anti-bluff (§11.4)</h2>
+<p>Tests 27 / 33 / 38 / 39 cover:</p>
+<ul>
+<li>27 <code>state_persistence.sh</code> — record → recall round-trip +
+real tmux hook firing on session-close (positive evidence:
+pane_current_path read back via <code>display-message</code>);</li>
+<li>33 <code>state_concurrency.sh</code> — 10 parallel records, all 10
+keys present, JSON still parses;</li>
+<li>38 <code>stale_pwd_fallback.sh</code> — recorded path deleted →
+wrapper falls back to <code>$HOME</code> cleanly;</li>
+<li>39 <code>state_unwritable.sh</code> — <code>chmod 000 ~/.tmx</code>
+→ <code>tmx new</code> still works (no cwd restore, no crash).</li>
+</ul>
+<p>Paired mutation M21 strips the cwd-capture hook from
+<code>scripts/tmx.template</code> → test 27 FAILs (the hook stops
+writing, so the second <code>recall</code> returns the OLD path, not the
+post-<code>cd</code> path). Restored → PASS.</p>
+<h2 id="9-last-verified">9. Last verified</h2>
+<p>2026-05-22 on Darwin arm64 (macOS 15.x, Go 1.22, tmux 3.6a) with
+<code>bash scripts/tests/27_state_persistence.sh</code>,
+<code>33_state_concurrency.sh</code>,
+<code>38_stale_pwd_fallback.sh</code>, and
+<code>39_state_unwritable.sh</code> all PASS, 3/3 iterations identical
+evidence-hash per §11.4.50.</p>
+</body>
+</html>

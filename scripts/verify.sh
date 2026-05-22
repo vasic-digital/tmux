@@ -125,6 +125,188 @@ if [ "$L1B_FAIL" -ne 0 ]; then
 fi
 echo "  ✓ Layer-1 covenant-propagation gate GREEN"
 
+# ── Layer-1 static gates for v1.0.9 shell-session-resume PWUs (P5) ──────
+# Spec: docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md §7.
+# Each gate is fail-fast: prints [PASS]/[FAIL]/[WARN], returns 0 on PASS,
+# non-0 on FAIL. Function names follow the _check_CM_<gate-id> convention.
+# Constitution: §11.4.67 (POSIX target-shell parseability), §11.4.18
+# (script-companion docs), §11.4.44 (revision header), §11.4.4 (four-layer
+# coverage — these are layer 1).
+
+echo ""
+echo "  Layer-1 static gates — v1.0.9 shell-session-resume PWUs..."
+
+# CM-TMX-STATE-GO-MOD-EXISTS — Go module declaration intact.
+_check_CM_TMX_STATE_GO_MOD_EXISTS() {
+    local f="$REPO_ROOT/scripts/tmx-state/go.mod"
+    if [ ! -f "$f" ]; then
+        printf '[FAIL] %s missing scripts/tmx-state/go.mod\n' "CM-TMX-STATE-GO-MOD-EXISTS"
+        return 1
+    fi
+    local first_line
+    first_line=$(head -1 "$f")
+    case "$first_line" in
+        "module digital.vasic.tmx-state")
+            printf '[PASS] %s\n' "CM-TMX-STATE-GO-MOD-EXISTS"
+            return 0
+            ;;
+        *)
+            printf '[FAIL] %s first line is "%s" — expected "module digital.vasic.tmx-state"\n' \
+                "CM-TMX-STATE-GO-MOD-EXISTS" "$first_line"
+            return 1
+            ;;
+    esac
+}
+
+# CM-TMX-STATE-GO-PRESENT — Go toolchain >= 1.21 available on PATH.
+_check_CM_TMX_STATE_GO_PRESENT() {
+    if ! command -v go >/dev/null 2>&1; then
+        printf '[FAIL] %s `go` not on PATH (install: https://go.dev/dl/ or `brew install go`)\n' \
+            "CM-TMX-STATE-GO-PRESENT"
+        return 1
+    fi
+    # Parse `go version go1.X.Y …` — take the third token, strip the leading "go".
+    local raw ver major minor
+    raw=$(go version 2>/dev/null)
+    ver=$(printf '%s\n' "$raw" | awk '{print $3}' | sed 's/^go//')
+    major=$(printf '%s\n' "$ver" | awk -F. '{print $1}')
+    minor=$(printf '%s\n' "$ver" | awk -F. '{print $2}')
+    if [ -z "$major" ] || [ -z "$minor" ]; then
+        printf '[FAIL] %s could not parse `go version` output: %s\n' \
+            "CM-TMX-STATE-GO-PRESENT" "$raw"
+        return 1
+    fi
+    if [ "$major" -lt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -lt 21 ]; }; then
+        printf '[FAIL] %s go %s is too old (require >= 1.21)\n' \
+            "CM-TMX-STATE-GO-PRESENT" "$ver"
+        return 1
+    fi
+    printf '[PASS] %s (go %s)\n' "CM-TMX-STATE-GO-PRESENT" "$ver"
+    return 0
+}
+
+# CM-TMX-SHELL-INIT-POSIX — §11.4.67 target-shell parseability for the
+# shell-init template (sh -n clean after placeholder substitution).
+_check_CM_TMX_SHELL_INIT_POSIX() {
+    local f="$REPO_ROOT/scripts/tmx-shell-init.sh.template"
+    if [ ! -f "$f" ]; then
+        printf '[FAIL] %s missing %s\n' "CM-TMX-SHELL-INIT-POSIX" "$f"
+        return 1
+    fi
+    local tmp
+    tmp=$(mktemp 2>/dev/null) || { printf '[FAIL] %s mktemp failed\n' "CM-TMX-SHELL-INIT-POSIX"; return 1; }
+    # Substitute __PROJECT__ + __DATE__ with safe defaults that produce
+    # a syntactically-clean POSIX script — same shape setup.sh emits.
+    sed -e "s|__PROJECT__|/tmp/tmx-verify-stub|g" \
+        -e "s|__DATE__|1970-01-01|g" "$f" > "$tmp"
+    local parse_out
+    parse_out=$(sh -n "$tmp" 2>&1) || {
+        printf '[FAIL] %s sh -n FAILED: %s\n' "CM-TMX-SHELL-INIT-POSIX" "$parse_out"
+        rm -f "$tmp"
+        return 1
+    }
+    rm -f "$tmp"
+    printf '[PASS] %s\n' "CM-TMX-SHELL-INIT-POSIX"
+    return 0
+}
+
+# CM-TMX-SSH-DISPATCH-POSIX — §11.4.67 target-shell parseability for the
+# SSH dispatcher template (sh -n clean after placeholder substitution).
+_check_CM_TMX_SSH_DISPATCH_POSIX() {
+    local f="$REPO_ROOT/scripts/tmx-ssh-dispatch.sh.template"
+    if [ ! -f "$f" ]; then
+        printf '[FAIL] %s missing %s\n' "CM-TMX-SSH-DISPATCH-POSIX" "$f"
+        return 1
+    fi
+    local tmp
+    tmp=$(mktemp 2>/dev/null) || { printf '[FAIL] %s mktemp failed\n' "CM-TMX-SSH-DISPATCH-POSIX"; return 1; }
+    sed -e "s|__PROJECT__|/tmp/tmx-verify-stub|g" \
+        -e "s|__DATE__|1970-01-01|g" "$f" > "$tmp"
+    local parse_out
+    parse_out=$(sh -n "$tmp" 2>&1) || {
+        printf '[FAIL] %s sh -n FAILED: %s\n' "CM-TMX-SSH-DISPATCH-POSIX" "$parse_out"
+        rm -f "$tmp"
+        return 1
+    }
+    rm -f "$tmp"
+    printf '[PASS] %s\n' "CM-TMX-SSH-DISPATCH-POSIX"
+    return 0
+}
+
+# CM-TMX-DOCS-GUIDES-EXIST — §11.4.18 script-companion docs each carry
+# the §11.4.44 revision header (Revision + Last modified) in the first
+# 10 lines. User-guide docs under docs/guides/ are PERMISSIVE for this
+# pre-P8 phase: WARN only.
+# TODO: After P8 lands (docs/guides/tmx-*.md authored), promote the
+# four `docs/guides/tmx-*.md` paths from WARN to strict-FAIL.
+_check_CM_TMX_DOCS_GUIDES_EXIST() {
+    local rc=0
+    local d
+    # Strict: §11.4.18 script-companion docs (P1-P4 deliverables).
+    for d in \
+        docs/scripts/tmx-state.md \
+        docs/scripts/tmx-shell-init.md \
+        docs/scripts/tmx-ssh-install.md \
+        docs/scripts/tmx-ssh-dispatch.md ; do
+        local p="$REPO_ROOT/$d"
+        if [ ! -f "$p" ]; then
+            printf '[FAIL] %s missing %s\n' "CM-TMX-DOCS-GUIDES-EXIST" "$d"
+            rc=1
+            continue
+        fi
+        local head10
+        head10=$(head -10 "$p")
+        if ! printf '%s\n' "$head10" | grep -q '\*\*Revision:\*\*' \
+            || ! printf '%s\n' "$head10" | grep -q '\*\*Last modified:\*\*'; then
+            printf '[FAIL] %s %s lacks Revision/Last-modified header in first 10 lines (§11.4.44)\n' \
+                "CM-TMX-DOCS-GUIDES-EXIST" "$d"
+            rc=1
+        fi
+    done
+    # Permissive: docs/guides/* are the P8 deliverables. WARN only,
+    # promotes to strict-FAIL after P8 lands.
+    for d in \
+        docs/guides/tmx-shell-integration.md \
+        docs/guides/tmx-state.md \
+        docs/guides/tmx-ssh-dispatch.md ; do
+        local p="$REPO_ROOT/$d"
+        if [ ! -f "$p" ]; then
+            printf '[WARN] %s %s not yet present (P8 deliverable — strict after P8 lands)\n' \
+                "CM-TMX-DOCS-GUIDES-EXIST" "$d"
+            continue
+        fi
+        local head10
+        head10=$(head -10 "$p")
+        if ! printf '%s\n' "$head10" | grep -q '\*\*Revision:\*\*' \
+            || ! printf '%s\n' "$head10" | grep -q '\*\*Last modified:\*\*'; then
+            printf '[WARN] %s %s exists but lacks Revision/Last-modified header (§11.4.44)\n' \
+                "CM-TMX-DOCS-GUIDES-EXIST" "$d"
+        fi
+    done
+    if [ "$rc" -eq 0 ]; then
+        printf '[PASS] %s (script-companion docs strict; user-guides WARN until P8)\n' \
+            "CM-TMX-DOCS-GUIDES-EXIST"
+    fi
+    return "$rc"
+}
+
+# Run the five new gates. Aggregate failure into V109_FAIL — Layer 1 must
+# stay fail-fast, so any FAIL aborts before the runtime suite (binary is
+# NOT operator-safe with broken P1-P4 artefacts).
+V109_FAIL=0
+_check_CM_TMX_STATE_GO_MOD_EXISTS || V109_FAIL=1
+_check_CM_TMX_STATE_GO_PRESENT    || V109_FAIL=1
+_check_CM_TMX_SHELL_INIT_POSIX    || V109_FAIL=1
+_check_CM_TMX_SSH_DISPATCH_POSIX  || V109_FAIL=1
+_check_CM_TMX_DOCS_GUIDES_EXIST   || V109_FAIL=1
+if [ "$V109_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: one or more v1.0.9 PWU pre-build gates FAILed. Investigate"
+    echo "     individual [FAIL] lines above. setup.sh will REFUSE."
+    exit 1
+fi
+echo "  ✓ Layer-1 v1.0.9 PWU gates GREEN"
+
 # Run the full test suite
 echo ""
 echo "  running test suite..."

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="05--end-user-experience-on-termux">§05 — End-User Experience on
+Termux</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T07:20:02Z <strong>Authority:</strong> vasic-digital tmux
+project (research-only) <strong>Maintainer:</strong> milosvasic
+<strong>Scope:</strong> Day-to-day UX considerations for operators using
+<code>tmx</code> inside Termux on a phone or tablet</p>
+<hr />
+<h2 id="1-where-to-install-termux-from">1. Where to install Termux
+from</h2>
+<p><strong>Use F-Droid. Not Google Play.</strong></p>
+<p>The Play Store version of Termux is <strong>frozen at 2022</strong>
+and unmaintained. From the official announcement (<a href="https://github.com/termux/termux-app/discussions/4000">https://github.com/termux/termux-app/discussions/4000</a>):
+Google&#39;s Play policies in 2022 began requiring
+<code>targetSdkVersion=30+</code>, which (combined with Google&#39;s W^X
+mitigation in Android 10+) prevents Termux from executing files in its
+private data directory. Termux&#39;s only viable path forward was to abandon
+the Play release and update only via F-Droid + GitHub.</p>
+<p>The XDA write-up confirms: <em>&quot;The last version was released in 2022
+due to Google Play policy requirements&quot;</em> (<a href="https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/">https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/</a>).</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Status</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F-Droid (<a href="https://f-droid.org/en/packages/com.termux/">https://f-droid.org/en/packages/com.termux/</a>)</td>
+<td>actively maintained</td>
+<td><strong>use this</strong></td>
+</tr>
+<tr>
+<td>GitHub releases (<a href="https://github.com/termux/termux-app/releases">https://github.com/termux/termux-app/releases</a>)</td>
+<td>actively maintained</td>
+<td>also acceptable; direct APK download</td>
+</tr>
+<tr>
+<td>Google Play Store</td>
+<td>frozen 2022, missing fixes</td>
+<td><strong>do NOT use</strong></td>
+</tr>
+</tbody>
+</table>
+<p>A migration guide for operators who have the Play version installed:
+<a href="https://docs.andronix.app/termux/migrating-to-f-droid">https://docs.andronix.app/termux/migrating-to-f-droid</a>
+— uninstall Play version, install F-Droid version. Configuration is lost
+(it lives in app data) so the operator should back up
+<code>~/.ssh/</code> and other personal state first.</p>
+<h2 id="2-first-time-install-steps">2. First-time install steps</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Install Termux from F-Droid.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Open Termux.</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Update the system:</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">pkg</span> upgrade <span class="at">-y</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Install Termux:Boot (separately, from F-Droid):</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#    f-droid.org/en/packages/com.termux.boot/</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#    Open it once after install to enable boot autostart.</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. Install Termux:API (optional but useful, also from F-Droid):</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">#    f-droid.org/en/packages/com.termux.api/</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">#    Required for termux-wake-lock and other system integrations.</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 6. Install our dependencies:</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="ex">pkg</span> install <span class="at">-y</span> bash zsh openssh git tmux libevent libjemalloc <span class="dt">\</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>              build-essential clang make autoconf automake pkg-config <span class="dt">\</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>              bison ncurses-dev golang</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co"># 7. Clone our project:</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/vasic-digital/tmux ~/tmux-project</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/tmux-project</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> submodule update <span class="at">--init</span> <span class="at">--recursive</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co"># 8. Build:</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co"># 9. Source the shell-init into ~/.bashrc:</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&#39;. ~/tmux-project/scripts/tmx-shell-init.sh&#39;</span> <span class="op">&gt;&gt;</span> ~/.bashrc</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co"># 10. Restart Termux session; verify:</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="ex">tmx</span> ls</span></code></pre></div>
+<h2 id="3-touch-keyboard-ux">3. Touch keyboard UX</h2>
+<p>A tmux prefix is hard to type on a touch keyboard. Termux provides
+several mitigations:</p>
+<ul>
+<li><strong>Volume Down = Ctrl emulation.</strong> &quot;VOLUME DOWN + L&quot;
+sends Ctrl+L. Built-in, works everywhere. Source: <a href="https://www.learntermux.tech/2024/02/blog-post.html">https://www.learntermux.tech/2024/02/blog-post.html</a>.</li>
+<li><strong>Volume Up = Esc / function-keys.</strong> &quot;VOLUME UP + Q&quot;
+toggles the extra-keys row visibility; &quot;VOLUME UP + K&quot; same. Source: <a href="https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/">https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/</a>.</li>
+<li><strong>Extra Keys row.</strong> A configurable bottom-of-screen row
+of keys (Ctrl, Alt, Esc, arrows, Tab, function keys) — visible by
+default. Customisable via <code>~/.termux/termux.properties</code> since
+Termux v0.66. Each key supports a popup (swipe-up gesture) since Termux
+v0.95. Source: <a href="https://mobile-coding-hub.github.io/termux/customisation/extra_keys/">https://mobile-coding-hub.github.io/termux/customisation/extra_keys/</a>.</li>
+<li><strong>External keyboard.</strong> Bluetooth + USB-OTG keyboards
+work natively; if the operator has one, the experience approaches a
+Linux desktop.</li>
+</ul>
+<p>For our <code>tmx</code>&#39;s default behaviour, no special config is
+needed. The standard tmux prefix <code>Ctrl-b</code> is typed as
+VolDown+b. For heavier users we&#39;d recommend
+<code>unbind C-b ; set -g prefix C-a ; bind a send-prefix</code>
+(already a common community choice) — but that&#39;s NOT a Termux-specific
+change. Project default stays.</p>
+<h2 id="4-scrollback--copy-mode">4. Scrollback / copy mode</h2>
+<p>The existing scrolling work (project Applied Fix A16) explicitly
+mentions Termux compatibility. From <code>CLAUDE.md</code>:</p>
+<blockquote>
+<p>| A16 | tmux scrolling fix for Claude Code TUI + mobile/Termux |
+<code>scripts/tmux.conf.template</code>,
+<code>scripts/tests/17_*.sh</code> |</p>
+</blockquote>
+<p>So scrollback is already a tested concern. Termux + tmux community
+guidance:</p>
+<ul>
+<li>Enter copy-mode with <code>Prefix + [</code>.</li>
+<li>Arrow keys + PgUp/PgDn navigate the scrollback buffer.</li>
+<li>Mouse support (<code>set -g mouse on</code>) lets the operator
+scroll with two-finger swipe on the touchscreen. Source: <a href="https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/">https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/</a>.</li>
+</ul>
+<p><code>A16</code> should already give us a baseline operator
+experience. A Termux test run of <code>scripts/tests/17_*.sh</code>
+would confirm the fix carries through to the Android port.</p>
+<h2 id="5-background-survival--the-wake-lock-dance">5. Background
+survival — the wake-lock dance</h2>
+<p>The biggest UX trap is that Android suspends background apps
+aggressively. Without intervention, <code>tmx new -s work</code>,
+switching to the home screen, and coming back an hour later finds the
+session dead and the wrapper unable to attach.</p>
+<p>Mitigations the operator must apply:</p>
+<ol type="1">
+<li><strong><code>termux-wake-lock</code></strong> — acquires an Android
+partial wake lock for Termux. CPU stays available with screen off. Run
+once per Termux session (or once at boot via
+<code>~/.termux/boot/start-sshd</code>).</li>
+<li><strong>Battery optimization → Unrestricted.</strong> Phone Settings
+→ Apps → Termux → Battery → Unrestricted. This excludes Termux from
+Doze. (Path varies by OEM but the option exists everywhere.) Source: <a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>.</li>
+<li><strong>Disable Phantom Process Killer (Android 12+).</strong>
+Either via Developer Options &quot;Disable child process restrictions&quot;
+(Android 14+ has the toggle) or ADB:
+<code>adb shell &quot;settings put global settings_enable_monitor_phantom_procs false&quot;</code>.
+Source: <a href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a>.</li>
+<li><strong>OEM-specific.</strong> Xiaomi MIUI, Oppo ColorOS, Vivo
+FunTouchOS, Huawei HarmonyOS each have their own aggressive memory
+managers stacked on top of stock Android. Adding Termux to &quot;Autostart&quot; /
+&quot;Locked apps&quot; / &quot;Allowed in background&quot; in the OEM settings is a
+per-vendor incantation. <a href="https://dontkillmyapp.com">https://dontkillmyapp.com</a> is a
+community-maintained directory of these workarounds.</li>
+</ol>
+<p>Our wrapper should DETECT Termux and print a one-time first-run
+notice listing the above. Possibly add a <code>tmx doctor</code>
+subcommand that probes:</p>
+<ul>
+<li><code>termux-wake-lock</code> available? (yes/no)</li>
+<li>Battery optimization setting (queryable via
+<code>dumpsys deviceidle</code>)</li>
+<li>Phantom killer setting (queryable via
+<code>settings get global settings_enable_monitor_phantom_procs</code>)</li>
+<li>OEM family (queryable via
+<code>getprop ro.product.manufacturer</code>)</li>
+</ul>
+<h2 id="6-fonts-and-colours">6. Fonts and colours</h2>
+<p>Termux supports custom fonts (<code>~/.termux/font.ttf</code>) and
+colour schemes (<code>~/.termux/colors.properties</code>). Defaults are
+sane and our hostname-colour palette (Applied Fix A12 family) renders
+correctly — confirmed by the existing scrolling/colour work that ALREADY
+mentions Termux.</p>
+<p>UNCONFIRMED: whether <code>scripts/hostname_color.sh</code>&#39;s
+deterministic palette assignment produces enough contrast against
+Termux&#39;s default dark background for every hostname. Resolution: visual
+check on actual device once a port lands.</p>
+<h2 id="7-filesystem-visibility">7. Filesystem visibility</h2>
+<p>Termux&#39;s <code>$HOME</code> is isolated — other Android apps cannot
+read it (SELinux denies). For the operator this means:</p>
+<ul>
+<li>Project files cloned with <code>git clone</code> live in
+<code>~/tmux-project</code> and are SAFE from accidental phone-app data
+corruption.</li>
+<li>BUT: Android&#39;s external storage (<code>/sdcard</code>,
+<code>/storage/emulated/0</code>) is shared with other apps. Termux can
+request access via <code>termux-setup-storage</code> (creates
+<code>~/storage/</code> symlinks). Useful for sharing files with editor
+apps.</li>
+</ul>
+<p>For our use case (running tmux + Claude Code TUI inside tmux) the
+operator stays in <code>~/</code>.</p>
+<h2 id="8-networking--how-is-the-phone-reachable">8. Networking — how is
+the phone reachable?</h2>
+<p>Three options for the SSH dispatch use case:</p>
+<ol type="1">
+<li><strong>Same Wi-Fi LAN.</strong> Phone gets an IP from the router;
+laptop ssh&#39;s <code>-p 8022</code> to it. Easiest setup. Phone IP changes
+on reconnect (DHCP) → use mDNS (<code>&lt;phone-name&gt;.local</code>
+works on most home routers) or fixed reservation.</li>
+<li><strong>Tailscale.</strong> Install Tailscale on phone (Play Store
+version IS fine — Tailscale is not subject to the Termux issue). Run
+<code>tailscale up</code> from Termux. Phone gets a fixed
+<code>100.x.x.x</code> IP visible from any other Tailscale node.
+Recommended for road warriors.</li>
+<li><strong>Cellular network.</strong> Phone behind carrier NAT — no
+inbound SSH possible without a relay. Tailscale or a reverse-tunnel
+script (<code>autossh -R 8022:localhost:8022 jumphost</code>)
+needed.</li>
+</ol>
+<p>Document option 2 in operator guide as the recommended remote-access
+path.</p>
+<h2 id="9-storage-cost">9. Storage cost</h2>
+<p>Termux base install + our deps + the project tree is
+approximately:</p>
+<ul>
+<li>Termux app + OpenSSH: ~150 MB</li>
+<li>Build deps (clang, make, libevent-dev, etc.): ~400 MB</li>
+<li>Project tree + submodules + build output: ~50-100 MB</li>
+</ul>
+<p>Total: ~600-700 MB. Comfortable on any modern phone (32 GB+ storage
+standard). UNCONFIRMED — exact disk usage measurement requires running
+the install on a real device.</p>
+<h2 id="10-charging-consideration">10. Charging consideration</h2>
+<p>Active tmux + Claude Code TUI + wake-lock + screen-on drains a phone
+at 5-15%/hour depending on workload. For multi-hour sessions plug in.
+For background-only sessions (wake-lock held, screen off) drain is
+2-5%/hour — viable for overnight tasks. UNCONFIRMED — measurements
+depend on phone model.</p>
+<h2 id="11-recommended-bashrc-snippet-for-termux">11. Recommended
+<code>~/.bashrc</code> snippet for Termux</h2>
+<p>Once the port lands, the snippet our <code>setup.sh</code> installs
+would be:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ─── vasic-digital optimized tmux (Termux) ───</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">PATH</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$HOME</span><span class="st">/tmux-project/scripts:</span><span class="va">$PATH</span><span class="st">&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">[</span> <span class="ot">-f</span> <span class="st">&quot;</span><span class="va">$HOME</span><span class="st">/tmux-project/scripts/tmx-shell-init.sh&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">.</span> <span class="st">&quot;</span><span class="va">$HOME</span><span class="st">/tmux-project/scripts/tmx-shell-init.sh&quot;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># ─── end vasic-digital optimized tmux (Termux) ───</span></span></code></pre></div>
+<p>Same shape as the Linux/macOS snippet. The <code>[ -f ... ]</code>
+guard means subsequent uninstalls cleanly remove the dependency without
+breaking shell startup.</p>
+<h2 id="12-summary-ux-gaps">12. Summary: UX gaps</h2>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Severity</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Touch keyboard for tmux prefix</td>
+<td>Medium</td>
+<td>VolDown+Ctrl emulation; recommend remap to <code>C-a</code></td>
+</tr>
+<tr>
+<td>Background suspension by Doze</td>
+<td>High</td>
+<td><code>termux-wake-lock</code> + battery-opt unrestricted</td>
+</tr>
+<tr>
+<td>Phantom Process Killer (Android 12+)</td>
+<td>High</td>
+<td>ADB-disable via developer options</td>
+</tr>
+<tr>
+<td>OEM aggressive memory managers</td>
+<td>Medium-High</td>
+<td>dontkillmyapp.com per-vendor instructions</td>
+</tr>
+<tr>
+<td>Play Store version is frozen</td>
+<td>High (first-time installs)</td>
+<td>Document F-Droid as the only supported source</td>
+</tr>
+<tr>
+<td>Storage cost of build deps</td>
+<td>Low</td>
+<td>Already small fraction of modern phone storage</td>
+</tr>
+<tr>
+<td>Charging during long sessions</td>
+<td>Low</td>
+<td>Operator practical concern only</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://github.com/termux/termux-app/discussions/4000">https://github.com/termux/termux-app/discussions/4000</a>
+— official Termux Play Store frozen announcement</li>
+<li><a href="https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/">https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/</a></li>
+<li><a href="https://f-droid.org/en/packages/com.termux/">https://f-droid.org/en/packages/com.termux/</a></li>
+<li><a href="https://docs.andronix.app/termux/migrating-to-f-droid">https://docs.andronix.app/termux/migrating-to-f-droid</a></li>
+<li><a href="https://github.com/termux/termux-boot">https://github.com/termux/termux-boot</a></li>
+<li><a href="https://www.learntermux.tech/2024/02/blog-post.html">https://www.learntermux.tech/2024/02/blog-post.html</a>
+— touch keyboard guide</li>
+<li><a href="https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/">https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/</a>
+— tmux on Termux specifics</li>
+<li><a href="https://mobile-coding-hub.github.io/termux/customisation/extra_keys/">https://mobile-coding-hub.github.io/termux/customisation/extra_keys/</a>
+— extra-keys row</li>
+<li><a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>
+— Doze + wake-lock interaction</li>
+<li><a href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a></li>
+<li><a href="https://dontkillmyapp.com">https://dontkillmyapp.com</a> —
+OEM-specific battery-killer workarounds</li>
+</ul>
+</body>
+</html>

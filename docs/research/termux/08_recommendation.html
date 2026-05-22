@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="08--recommendation">§08 — Recommendation</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T07:20:02Z <strong>Authority:</strong> vasic-digital tmux
+project (research-only) <strong>Maintainer:</strong> milosvasic
+<strong>Scope:</strong> Synthesis — should we port the vasic-digital
+tmux project to Termux on Android?</p>
+<hr />
+<h2 id="tldr">TL;DR</h2>
+<p><strong>Conditional YES.</strong> A Termux port is technically
+feasible and would deliver real operator value. Recommended sequencing:
+<strong>do NOT port now</strong>; defer until v1.0.9 lands and the test
+harness for nezha-Linux is hardened. Then add Termux as the third
+platform (§11.4.81 cross-platform-parity branch) in a focused PWU.
+Effort: medium (≈ 2-3 weeks of subagent-driven work). Maintenance:
+medium-ongoing.</p>
+<h2 id="decision-matrix">Decision matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Assessment</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Build complexity</strong></td>
+<td>LOW-MEDIUM</td>
+<td>tmux + libevent + jemalloc all build cleanly on bionic (Termux&#39;s own
+package proves it). Go cross-compile is well-trodden territory.
+<code>setup.sh</code> extension is ~50 LOC.</td>
+</tr>
+<tr>
+<td><strong>Isolation primitives</strong></td>
+<td>MEDIUM</td>
+<td>Lose cgroup features. Gain <code>RLIMIT_AS</code> enforcement vs
+macOS. Honest-gap citation table is clean.</td>
+</tr>
+<tr>
+<td><strong>End-user UX</strong></td>
+<td>MEDIUM</td>
+<td>Touch keyboard is awkward but workable (Vol-Down emulates Ctrl,
+extra-keys row). Background suspension is the biggest pain point —
+requires operator wake-lock dance + battery-opt disable.</td>
+</tr>
+<tr>
+<td><strong>Test coverage</strong></td>
+<td>MEDIUM</td>
+<td>SSH-driven harness is straightforward (same shape as nezha bridge).
+New failure-mode classes (Doze, Phantom Process Killer, lmkd) require
+explicit topology detection. ~200 LOC new test scaffolding.</td>
+</tr>
+<tr>
+<td><strong>Maintenance burden</strong></td>
+<td>MEDIUM-ONGOING</td>
+<td>Android version drift every 12 months. Termux package cadence is
+currently slower than 2019-2022 peak. Need at least one phone in regular
+CI rotation.</td>
+</tr>
+<tr>
+<td><strong>Operator demand</strong></td>
+<td>UNKNOWN</td>
+<td>This research was prompted by a &quot;could we&quot; question, not a count of
+requests. <strong>Validation needed</strong>: ask operators whether
+they&#39;d actually use it.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="recommendation-rationale">Recommendation rationale</h2>
+<p>A Termux port is not technically expensive. The hard parts of
+<code>tmx</code> (per-session isolation, anti-bluff testing,
+multi-platform parity) are already designed to extend cleanly via
+§11.4.81. The new mechanical work is:</p>
+<ol type="1">
+<li>~50 LOC in <code>install_deps.sh</code> + <code>setup.sh</code> for
+Termux detection and package install.</li>
+<li>A Termux branch in <code>tmx.template</code> reusing the existing
+rlimit wrapper.</li>
+<li>A <code>Port 8022</code> flag in
+<code>tmx-ssh-install.sh</code>.</li>
+<li>A documented operator-prep checklist (wake-lock, battery-opt,
+Phantom killer).</li>
+<li>~200 LOC of test-harness adaptation per §07.</li>
+<li>Documentation: new <code>docs/guides/tmx-on-termux.md</code> +
+per-script companion guides.</li>
+</ol>
+<p>What does NOT need work: the Go state daemon, the shell-init script,
+the SSH dispatcher, tmux itself, jemalloc preload, the project&#39;s
+verify/test/Challenge infrastructure.</p>
+<p>The expensive part is <strong>maintenance</strong>: we&#39;d commit to
+running Termux tests on every release, keeping pace with Android API
+changes, and supporting end users on a less-predictable OS.</p>
+<h2 id="conditions-for-proceeding">Conditions for proceeding</h2>
+<p>The conditional &quot;yes&quot; depends on:</p>
+<ol type="1">
+<li><strong>v1.0.9 ships clean on Linux + macOS first.</strong> Adding a
+third platform mid-feature-development is §11.4.42-iteration-discipline
+violation territory.</li>
+<li><strong>Operator demand is validated.</strong> A 1-question
+Issues.md poll: &quot;Would you use <code>tmx</code> on your Android phone
+via Termux?&quot; If &lt;30% yes, defer the port until demand grows.</li>
+<li><strong>At least one test device dedicated.</strong> Either a
+developer&#39;s spare phone or a 2-3 year old phone we keep plugged into the
+test bench. Termux on an emulator is insufficient for the §06
+WILL-DEGRADE items.</li>
+<li><strong>Tailscale or equivalent established for remote
+access.</strong> Without it, dev-loop friction (laptop ↔︎ phone test
+cycle) is prohibitive on cellular networks.</li>
+<li><strong>One operator volunteers to be the Termux-using-end-user beta
+tester.</strong> §11.4 covenant demands end-user-validation; we need a
+real end user who actually uses tmux on Android.</li>
+</ol>
+<p>If all five hold: ship a v1.1.x feature release adding Termux
+support. If any fail: defer.</p>
+<h2 id="what-would-the-v11x-scope-look-like">What would the v1.1.x scope
+look like?</h2>
+<table>
+<thead>
+<tr>
+<th>PWU</th>
+<th>Scope</th>
+<th>Estimate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T1</td>
+<td><code>install_deps.sh</code> + <code>setup.sh</code> Termux
+branch</td>
+<td>2 days</td>
+</tr>
+<tr>
+<td>T2</td>
+<td><code>tmx.template</code> Termux dispatch + RLIMIT_AS branch</td>
+<td>2 days</td>
+</tr>
+<tr>
+<td>T3</td>
+<td><code>tmx-ssh-install.sh</code> <code>--port 8022</code>
+autodetect</td>
+<td>1 day</td>
+</tr>
+<tr>
+<td>T4</td>
+<td><code>tmx doctor</code> Termux-environment probe (wake-lock,
+battery-opt, Phantom killer)</td>
+<td>2 days</td>
+</tr>
+<tr>
+<td>T5</td>
+<td>Test harness: <code>scripts/test_termux.sh</code> + per-test Termux
+branches</td>
+<td>4 days</td>
+</tr>
+<tr>
+<td>T6</td>
+<td>Pre-build gates + paired §1.1 mutations for Termux</td>
+<td>2 days</td>
+</tr>
+<tr>
+<td>T7</td>
+<td>Docs: <code>docs/guides/tmx-on-termux.md</code>, operator setup
+checklist, troubleshooting</td>
+<td>2 days</td>
+</tr>
+<tr>
+<td>T8</td>
+<td>First real-device shake-out cycle (10× full retest per
+§11.4.50)</td>
+<td>1 day</td>
+</tr>
+<tr>
+<td>T9</td>
+<td>§11.4.40 full-suite retest on Linux+macOS+Termux before tagging</td>
+<td>1 day</td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Total</strong></td>
+<td><strong>~17 working days</strong></td>
+</tr>
+</tbody>
+</table>
+<p>That fits comfortably into a 3-week iteration with subagent
+parallelism per §11.4.58 + §11.4.70. PWUs T1-T3 are parallel; T4-T5 are
+parallel; T6-T7 are parallel; T8-T9 serial.</p>
+<h2 id="what-we-do-not-recommend">What we do NOT recommend</h2>
+<ul>
+<li><strong>A &quot;minimal viable port&quot; that skips lmkd / Doze
+handling.</strong> That is exactly the §11.4 &quot;tests green but feature
+broken for end user&quot; failure mode the covenant exists to prevent. If we
+port, we port with the operator-prep checklist + the
+<code>tmx doctor</code> probe + the SKIP-with-reason vocabulary for
+unavoidable Android killers. Otherwise we ship a feature that &quot;works on
+my screen-on dev phone&quot; and breaks for everyone else.</li>
+<li><strong>A Play Store distribution.</strong> Termux itself isn&#39;t on
+Play Store (frozen 2022). We have no business trying to ship a tmux
+wrapper there.</li>
+<li><strong>A rooted-cgroup-v2 default path.</strong> Document the
+rooted opt-in for power users, but the supported default is unrooted
+Termux with rlimit.</li>
+<li><strong>Cross-host state sync.</strong> v1.0.9 explicitly excludes
+this (spec §3 non-goal). Adding it to support &quot;my work session on phone
+matches my work session on laptop&quot; doubles the design surface. Stay
+focused.</li>
+</ul>
+<h2 id="open-questions-for-operator-approval">Open questions for
+operator approval</h2>
+<p>Per §11.4.66 (blocker-resolution-interactive-clarification), the
+decisions that ultimately need operator sign-off:</p>
+<ol type="1">
+<li><strong>Go / no-go on the v1.1.x port itself.</strong> This document
+recommends conditional-yes with the five conditions above. Operator may
+say &quot;go ahead anyway&quot; or &quot;defer indefinitely.&quot;</li>
+<li><strong>Default port 8022 vs alternate.</strong> 8022 is Termux
+convention; we recommend keeping it.</li>
+<li><strong>Wake-lock policy.</strong> Default to
+operator-runs-it-themselves (notice), or wrapper auto-acquires?</li>
+<li><strong>Whether to publish a Termux-targeted recipe via
+<code>termux-packages</code> upstream.</strong> Path (c) in §02 —
+currently not recommended, but operator may differ.</li>
+<li><strong>CI investment.</strong> Buy a dedicated test phone
+(~$300-500) and integrate it into the nezha-bridge pattern, or rely on
+emulator-only smoke + operator-driven full-sweep?</li>
+</ol>
+<p>Each is a closed-set decision well-suited to AskUserQuestion if
+operator chooses to advance.</p>
+<h2 id="recommendation-summary">Recommendation summary</h2>
+<p><strong>Defer until v1.0.9 ships and operator demand is validated.
+Then a focused 3-week PWU lands Termux as a first-class third
+platform.</strong></p>
+<p>The technical risk is low. The maintenance commitment is real but
+bounded. The honest-gap citation is clean (we don&#39;t pretend Termux gives
+us what cgroups give us, and we explicitly document the Android-killer
+caveats per §11.4.6).</p>
+<p>If at any point operator demand crystallises into a hard requirement
+(&quot;this MUST work on Termux&quot;), the work is well-understood and ready to
+begin.</p>
+<hr />
+<h2 id="sources">Sources</h2>
+<p>(synthesised from §01-§07; no new sources cited here — see prior
+files for evidence)</p>
+</body>
+</html>

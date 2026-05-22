@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="07--anti-bluff-test-strategy-for-termux">§07 — Anti-Bluff Test
+Strategy for Termux</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T07:20:02Z <strong>Authority:</strong> vasic-digital tmux
+project (research-only) <strong>Maintainer:</strong> milosvasic
+<strong>Scope:</strong> How to run the §103 four-layer + §11.4
+anti-bluff covenant on Android via Termux</p>
+<hr />
+<h2 id="1-the-challenge">1. The challenge</h2>
+<p>Our anti-bluff posture requires positive captured runtime evidence
+per §11.4.5 — not just exit codes. On Linux/macOS we have:</p>
+<ul>
+<li>Direct shell access on the SUT.</li>
+<li><code>commit_all.sh</code> → push → CI → tested on Linux.</li>
+<li>Nezha-Linux remote test bridge for the existing v1.0.9 spec.</li>
+</ul>
+<p>For Termux we need an equivalent capture path that does NOT
+require:</p>
+<ul>
+<li><code>adb shell run-as com.termux</code> — this DOES NOT WORK.
+Termux&#39;s <code>AndroidManifest.xml</code> does NOT declare
+<code>android:debuggable=&quot;true&quot;</code> (security posture), so
+<code>run-as</code> refuses access. Confirmed in numerous Termux GitHub
+discussions.</li>
+<li>Rooting the test device.</li>
+<li>Installing a custom Termux build.</li>
+</ul>
+<h2 id="2-the-ssh-driven-harness--recommended">2. The SSH-driven harness
+— RECOMMENDED</h2>
+<p>The cleanest approach is to use <strong>Termux&#39;s own sshd as the test
+harness&#39;s remote-host channel</strong>. The host machine (Linux or macOS
+dev box) ssh&#39;s into the phone on port 8022 and drives tests over SSH.
+This is identical in shape to our existing nezha remote-test
+pattern.</p>
+<h3 id="21-setup-contract">2.1 Setup contract</h3>
+<p>The test device (a phone or tablet running Termux) ships with:</p>
+<ul>
+<li>Termux installed from F-Droid.</li>
+<li>OpenSSH (<code>pkg install openssh</code>).</li>
+<li><code>~/.ssh/authorized_keys</code> populated with the host
+machine&#39;s CI public key (NO <code>command=</code> restriction — we want
+unrestricted shell for testing).</li>
+<li><code>sshd</code> running on 8022 (started via Termux:Boot autostart
+script).</li>
+<li><code>termux-wake-lock</code> held permanently.</li>
+<li>Battery optimization disabled.</li>
+<li>Phantom Process Killer disabled.</li>
+<li>Our project cloned at <code>~/tmux-project</code>.</li>
+<li>Network access (Wi-Fi LAN or Tailscale).</li>
+</ul>
+<h3 id="22-host-side-test-driver">2.2 Host-side test driver</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># scripts/test_termux.sh — host-side driver</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-euo</span> pipefail</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="va">TERMUX_HOST</span><span class="op">=</span><span class="st">&quot;</span><span class="va">${TERMUX_TEST_HOST</span><span class="op">:-</span><span class="va">}</span><span class="st">&quot;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="bu">[</span> <span class="ot">-z</span> <span class="st">&quot;</span><span class="va">$TERMUX_HOST</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="kw">{</span> <span class="bu">echo</span> <span class="st">&quot;SKIP: TERMUX_TEST_HOST not set&quot;</span><span class="kw">;</span> <span class="bu">exit</span> 0<span class="kw">;</span> <span class="kw">}</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> <span class="at">-p</span> 8022 <span class="st">&quot;</span><span class="va">$TERMUX_HOST</span><span class="st">&quot;</span> <span class="st">&#39;cd ~/tmux-project &amp;&amp; git pull &amp;&amp; bash scripts/tests/run_all.sh&#39;</span></span></code></pre></div>
+<p>Test scripts run unchanged on the remote because Termux&#39;s bash is
+bash 5.x and our scripts use POSIX features (per §11.4.67). Output is
+captured back to host, evidence files are pulled via
+<code>scp</code>.</p>
+<h3 id="23-captured-evidence-per-1145">2.3 Captured-evidence per
+§11.4.5</h3>
+<p>Each test still must produce positive evidence — same shape as
+Linux/macOS, just collected over SSH:</p>
+<ul>
+<li><code>tmux capture-pane -p</code> output saved to
+<code>~/.tmx/evidence/&lt;test&gt;/&lt;iter&gt;/pane.txt</code>, then
+<code>scp</code>&#39;d to host.</li>
+<li>For tests asserting RLIMIT_AS enforcement: capture
+<code>/proc/$PID/status</code> lines <code>VmPeak:</code>,
+<code>VmSize:</code>, before and after attempting to exceed.</li>
+<li>For tests asserting <code>RLIMIT_CPU</code> enforcement: capture the
+<code>SIGXCPU</code> followed by <code>SIGKILL</code> via a small trap
+script.</li>
+<li>For tests asserting OOM survival: capture
+<code>/proc/$PID/oom_score_adj</code> value + tmux-server PID before and
+after a synthetic memory-pressure event.</li>
+<li>For tests asserting wake-lock effectiveness: capture
+<code>dumpsys power | grep -A2 &#39;PARTIAL_WAKE_LOCK&#39;</code> output BEFORE
+entering Doze + AFTER simulating Doze.</li>
+</ul>
+<p>All evidence files travel back to host and feed the standard
+<code>qa-results/</code> analyser.</p>
+<h2 id="3-11481-four-platform-parity-table-proposed">3. §11.4.81
+four-platform parity table (proposed)</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Linux (systemd)</th>
+<th>Linux (no-systemd, e.g. Alpine)</th>
+<th>macOS</th>
+<th>Termux</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Memory cap enforced</td>
+<td>cgroup <code>memory.max</code></td>
+<td>rlimit <code>RLIMIT_AS</code></td>
+<td>macOS gap (no enforcement) — SKIP
+<code>feature_unsupported: xnu-rlimit-as-unenforced</code></td>
+<td>rlimit <code>RLIMIT_AS</code> (kernel-enforced)</td>
+</tr>
+<tr>
+<td>CPU cap enforced</td>
+<td>cgroup <code>cpu.max</code></td>
+<td>rlimit <code>RLIMIT_CPU</code></td>
+<td>rlimit <code>RLIMIT_CPU</code></td>
+<td>rlimit <code>RLIMIT_CPU</code></td>
+</tr>
+<tr>
+<td>Task cap enforced (per session)</td>
+<td>cgroup <code>pids.max</code></td>
+<td>NO per-session — <code>RLIMIT_NPROC</code> is per-UID — SKIP
+partial</td>
+<td>NO per-session (same) — SKIP partial</td>
+<td>NO per-session (same) — SKIP partial; Android 12+ phantom-killer
+adds an UNRELATED 32-cap</td>
+</tr>
+<tr>
+<td>OOM kill priority</td>
+<td><code>oom_score_adj</code> + cgroup OOM</td>
+<td><code>oom_score_adj</code></td>
+<td>macOS has no OOM killer — SKIP
+<code>feature_unsupported: xnu-no-oom-killer</code></td>
+<td><code>oom_score_adj</code> writable but lmkd may override —
+degraded</td>
+</tr>
+<tr>
+<td>Background survival</td>
+<td>systemd-managed</td>
+<td>service-manager dependent</td>
+<td>login keeps process alive</td>
+<td>wake-lock + battery-opt required — degraded</td>
+</tr>
+<tr>
+<td>SSH dispatch (<code>command=</code>)</td>
+<td>works</td>
+<td>works</td>
+<td>works</td>
+<td>works (port 8022)</td>
+</tr>
+<tr>
+<td>State daemon flock</td>
+<td>works</td>
+<td>works</td>
+<td>works</td>
+<td>works</td>
+</tr>
+<tr>
+<td>Shell-init non-TTY skip</td>
+<td>works</td>
+<td>works</td>
+<td>works</td>
+<td>works</td>
+</tr>
+</tbody>
+</table>
+<p>Each &quot;works&quot; needs CAPTURED-RUNTIME-EVIDENCE per §11.4.5, not just an
+exit code. The matrix becomes one of the layer-3 runtime tests in the
+existing <code>scripts/tests/</code> directory.</p>
+<h2 id="4-test-31--macos_linux_paritysh-extension-to-termux">4. Test 31
+— <code>macos_linux_parity.sh</code> extension to Termux</h2>
+<p>Spec §7.3 test 31 today reads
+<code>case &quot;$(uname -s)&quot; in Darwin) ... ;; Linux) ... ;; esac</code>.
+For Termux this becomes:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">case</span> <span class="st">&quot;</span><span class="va">$(</span><span class="fu">uname</span> <span class="at">-s</span><span class="va">)</span><span class="st">&quot;</span> <span class="kw">in</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="ss">Darwin</span><span class="kw">)</span> <span class="ex">...</span> <span class="cf">;;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="ss">Linux</span><span class="kw">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">[</span> <span class="ot">-n</span> <span class="st">&quot;</span><span class="va">${TERMUX_VERSION</span><span class="op">:-</span><span class="va">}</span><span class="st">&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Termux branch — same rlimit assertions as macOS PLUS</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>            <span class="co"># the additional RLIMIT_AS check that macOS skips.</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>            <span class="ex">_assert_rlimit_as_enforced</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>            <span class="ex">_assert_rlimit_cpu_enforced</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>            <span class="ex">_assert_rlimit_nproc_enforced</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> <span class="ex">_has_systemd_user</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Real Linux with systemd — cgroup assertions.</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            <span class="ex">_assert_cgroup_memory_max</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            <span class="ex">_assert_cgroup_cpu_quota</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            <span class="ex">_assert_cgroup_tasks_max</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Linux without systemd — same rlimit assertions as macOS/Termux.</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            <span class="ex">_assert_rlimit_cpu_enforced</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>            <span class="ex">_assert_rlimit_nproc_enforced</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            <span class="co"># RLIMIT_AS works here too but is currently a Linux-Alpine-only path.</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">fi</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">;;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="cf">esac</span></span></code></pre></div>
+<p>§11.4.4 (test-interrupt-on-discovery) applies: discovering Termux
+fails the AS check would STOP the cycle until fixed.</p>
+<h2 id="5-ci-integration">5. CI integration</h2>
+<p>Three deployment options for CI:</p>
+<h3 id="51-self-hosted-phone-in-a-drawer">5.1 Self-hosted phone in a
+drawer</h3>
+<ul>
+<li>Real phone, plugged in, behind Tailscale, reachable from CI
+runner.</li>
+<li>Every push triggers <code>scripts/test_termux.sh</code>.</li>
+<li>Pros: real device, real Android, real lmkd behaviour.</li>
+<li>Cons: physical maintenance, network reliability, OS update
+churn.</li>
+</ul>
+<h3 id="52-android-emulator-in-ci">5.2 Android emulator in CI</h3>
+<ul>
+<li><code>avdmanager create avd ...</code> +
+<code>emulator -no-window</code>.</li>
+<li>Termux can be installed in an emulator via <code>adb install</code>
+of the F-Droid APK.</li>
+<li>Pros: reproducible, no physical hardware.</li>
+<li>Cons: emulators do NOT replicate lmkd / Doze / Phantom Process
+Killer accurately. Most of the WILL-DEGRADE items in §06 can&#39;t be
+tested.</li>
+<li>Verdict: useful for happy-path build smoke; insufficient for full
+anti-bluff.</li>
+</ul>
+<h3 id="53-hybrid-emulator-for-cheap-smoke--scheduled-phone-runs-for-full-sweep">5.3
+Hybrid: emulator for cheap smoke + scheduled phone-runs for full
+sweep</h3>
+<ul>
+<li>PRs go through emulator (5-min smoke).</li>
+<li>Tagged releases run full sweep on a real phone, blocking the tag
+until green.</li>
+<li>Mirrors our existing Linux/macOS split (CI does Linux fast, nezha
+bridge does deep tests).</li>
+<li>Recommended.</li>
+</ul>
+<h2 id="6-helixqa-challenges-on-termux">6. HelixQA Challenges on
+Termux</h2>
+<p>Existing Challenge bank lives at
+<code>scripts/challenges/tmux.yaml</code>. Each Challenge invokes a
+fixed shell command and asserts on captured output. They run on whatever
+the SSH-driven test harness lands on, so:</p>
+<ul>
+<li><code>tmx_session_resume_cwd</code> works on Termux unchanged.</li>
+<li><code>tmx_ssh_dispatch_nezha</code> becomes
+<code>tmx_ssh_dispatch_termux</code> with the <code>Port 8022</code>
+host alias.</li>
+<li><code>tmx_non_tty_safety</code> works unchanged.</li>
+<li><code>tmx_docs_user_guides_render</code> works unchanged (pandoc +
+weasyprint available in Termux via
+<code>pkg install pandoc weasyprint</code>).</li>
+</ul>
+<p>A new Challenge <code>tmx_termux_wake_lock_held</code> validates the
+operator-side wake-lock notice mechanism: spawn
+<code>tmx new -s foo</code>, capture stderr, assert it mentions
+<code>termux-wake-lock</code> if <code>dumpsys power</code> shows no
+held lock. (Operator-facing notice — not a hard fail, just a captured
+warning.)</p>
+<h2 id="7-anti-bluff-failure-modes-specific-to-termux">7. Anti-bluff
+failure modes specific to Termux</h2>
+<p>The §11.4.69 sink-side evidence taxonomy applies. Termux-specific
+risks:</p>
+<ul>
+<li><strong>Phantom Process Killer firing mid-test.</strong> A passing
+test gets <code>SIGKILL</code>&#39;d at iteration 7 of 10 because Android
+decided the parent went background. The test framework needs to detect
+this (signal 9 != normal exit) and re-classify the run as
+<code>topology_unsupported: termux-phantom-killer-fired</code> rather
+than letting it count as a flake.</li>
+<li><strong>Doze freeze mid-test.</strong> Same shape — screen lock
+during a long test → CPU frozen → test wall-clock blows past timeout.
+Detect via <code>dumpsys deviceidle | grep STATE</code> poll; classify
+as topology issue.</li>
+<li><strong>lmkd <code>SIGKILL</code> during memory-pressure
+test.</strong> A memory-cap test that asserts the kernel OOM-killed the
+offending child may instead see lmkd kill the entire Termux process
+before the kernel OOM fires. Detect by reading <code>/dev/kmsg</code>
+(where lmkd logs its kills) vs <code>dmesg</code> (where kernel OOM
+logs).</li>
+</ul>
+<p>Each requires per-Termux test logic. Documented in §06 already; here
+we map them onto the test-harness side.</p>
+<h2 id="8-11450-deterministic-consistency-on-termux">8. §11.4.50
+deterministic-consistency on Termux</h2>
+<p>The 3-iteration (or 10-iteration) loop applies. On Termux
+specifically:</p>
+<ul>
+<li>Iteration latency is HIGHER (slower CPU, slower I/O on flash
+storage) — overall sweep walltime increases by ~3× vs a Linux SSD.</li>
+<li>Some iterations may fall victim to background-kill mid-iteration.
+Classification must distinguish &quot;feature is non-deterministic&quot; (FAIL)
+from &quot;Android killed the test process&quot; (SKIP-with-reason).</li>
+</ul>
+<p>Recommend Termux-specific N=3 for fast tests, N=10 reserved for the
+cycle-validation suite, with explicit retry-on-SIGKILL semantics.</p>
+<h2 id="9-pre-build-gate-cm-cross-platform-parity-extension">9.
+Pre-build gate <code>CM-CROSS-PLATFORM-PARITY</code> extension</h2>
+<p>§11.4.81 already defines this gate. When Termux lands, the gate&#39;s
+<code>case &quot;$(uname -s)&quot;</code> scanner detects three branches
+needed:</p>
+<ul>
+<li><code>Darwin)</code></li>
+<li><code>Linux)</code> + nested
+<code>if [ -n &quot;${TERMUX_VERSION:-}&quot; ]</code></li>
+<li><code>Linux)</code> + nested <code>else</code> (the systemd-or-not
+split)</li>
+</ul>
+<p>The mutation §1.1 pair strips the Termux nested branch → gate FAILs.
+Standard four-layer integration.</p>
+<h2 id="10-topology-detection-in-tests">10. Topology detection in
+tests</h2>
+<p>The canonical &quot;am I on Termux?&quot; detector is:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">_is_termux()</span> <span class="kw">{</span> <span class="bu">[</span> <span class="ot">-n</span> <span class="st">&quot;</span><span class="va">${TERMUX_VERSION</span><span class="op">:-</span><span class="va">}</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">||</span> <span class="bu">[</span> <span class="ot">-d</span> /data/data/com.termux/files/usr <span class="bu">]</span><span class="kw">;</span> <span class="kw">}</span></span></code></pre></div>
+<p>Belt-and-suspenders — <code>$TERMUX_VERSION</code> is the env var,
+the directory check is the fallback when the env wasn&#39;t sourced.</p>
+<h2 id="11-captured-evidence-directory-layout">11. Captured-evidence
+directory layout</h2>
+<pre><code>qa-results/
+└── termux/
+    ├── 2026-05-22T07-20-02Z/
+    │   ├── device.txt           # uname -a, getprop ro.product.model, Termux pkg list
+    │   ├── 18_state_persistence/
+    │   │   ├── iter-1/pane.txt
+    │   │   ├── iter-1/state.json
+    │   │   ├── iter-2/...
+    │   ├── 22_ssh_dispatch_local/
+    │   ├── 31_macos_linux_parity/
+    │   └── meta-test/
+    │       └── mutation-M20/...</code></pre>
+<p>Symmetric with the existing Linux/macOS layouts.</p>
+<h2 id="12-summary">12. Summary</h2>
+<p>The test strategy reduces to: <strong>SSH-into-the-phone as we today
+SSH-into-nezha</strong>. The technical primitives (SSH, capture-pane,
+evidence files, flock state) all port. The COMPLICATION is that
+Android&#39;s mid-test killers (lmkd, Doze, Phantom Process Killer)
+introduce a new failure class that must be detected and classified as
+topology issues, not test flakes. Our existing §103 + §11.4 machinery
+accommodates this via the SKIP-with-reason vocabulary.</p>
+<p>Effort estimate for test-harness adaptation: ~200 LOC of new bash
+(<code>scripts/test_termux.sh</code> + the per-test Termux branches in
+tests 18-31 + the new <code>_is_termux</code> helper in the anti-bluff
+lib). Plus the operator-side phone-prep checklist (§05).</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://source.android.com/docs/core/perf/lmkd">https://source.android.com/docs/core/perf/lmkd</a></li>
+<li><a href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>
+(Phantom Process Killer)</li>
+<li><a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>
+(Doze)</li>
+<li><a href="https://developer.android.com/topic/performance/vitals/lmk">https://developer.android.com/topic/performance/vitals/lmk</a></li>
+<li><a href="https://github.com/termux/termux-app">https://github.com/termux/termux-app</a>
+(Termux app source — <code>android:debuggable</code> confirmation)</li>
+<li><a href="https://www.sitepoint.com/hardened-mobile-dev-a-termux-docker-guide-for-grapheneos/">https://www.sitepoint.com/hardened-mobile-dev-a-termux-docker-guide-for-grapheneos/</a>
+(community discussion of test/dev workflows on Termux)</li>
+</ul>
+</body>
+</html>

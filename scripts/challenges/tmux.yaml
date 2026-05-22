@@ -435,3 +435,191 @@ challenges:
       readback via send-keys + capture-pane. Linux: cgroup iteration
       count vs unrestricted reference.
     severity: high
+
+  - id: TMUX-CH-25
+    title: tmx_session_resume_cwd — per-session last-cwd recall (P4 + P6)
+    description: |
+      Per v1.0.9 design spec §7 HelixQA Challenges: this Challenge proves
+      the end-user-visible behaviour "I create a session named X again and
+      it starts where I left it last time". Dispatches to test 27
+      (scripts/tests/27_state_persistence.sh) which (a) exercises the
+      Go state daemon's record→recall round-trip, (b) drives a real
+      `tmx new -s NAME -d` session via the OPERATOR PATH per §102, (c)
+      reads `pane_current_path` back from the live tmux server, (d)
+      proves the cwd-capture hook fires on kill-session by overwriting
+      state with a different cwd and re-recalling. PASS only when the
+      captured `[evidence]` line carries `pane_path=<expected>` proving
+      §11.4.5 captured-evidence. §11.4.50 reliability: the underlying
+      test wraps 3 iterations + asserts identical evidence-hash; the
+      Challenge inherits that contract. Paired mutation P5-M21 strips
+      the cwd-capture tmux hook block from scripts/tmx.template — when
+      the hook is gone, test 27 (and this Challenge) MUST FAIL.
+    test_script: scripts/tests/27_state_persistence.sh
+    pass_condition: |
+      Test exit 0 AND stdout contains literal `[evidence]` line with
+      `pane_path=<TARGET_DIR>` matching the recorded path AND
+      `recall1=<TARGET_DIR>` AND `recall2=<hook_target>` (hook fired
+      and overwrote state); 3/3 reliability iterations identical
+      evidence-hash per §11.4.50.
+    skip_conditions: |
+      §11.4.3 topology dispatch: SKIP-77 if scripts/tmx-state-bin not
+      present (Go binary not built — P1 not landed yet), OR if the
+      generated wrapper lacks `tmx-state-bin` integration (operator
+      hasn't re-run setup.sh after P4), OR if tmux binary unavailable,
+      OR if HOST_OS is neither Linux nor Darwin.
+    evidence: |
+      stdout `[evidence]` lines per iteration with iter index,
+      recall1 (round-trip), pane_path (live tmux readback), recall2
+      (post-hook); HOST_OS + reliability_hash on final line.
+    mutation_targets: P5-M21 (strip cwd-capture hook from tmx.template)
+    severity: blocker
+
+  - id: TMUX-CH-26
+    title: tmx_ssh_dispatch_nezha — remote SSH dispatch (P3 + P6)
+    description: |
+      Per v1.0.9 design spec §5.2 + §7: an operator running
+      `ssh nezha-tmx <session>` MUST land directly in that tmx session
+      on the remote host. Dispatches to test 32
+      (scripts/tests/32_ssh_dispatch_remote_nezha.sh) which (a) probes
+      nezha reachability via BatchMode SSH, (b) verifies the operator's
+      ~/.ssh/config carries the dispatcher alias, (c) backgrounds an
+      ssh-via-alias call with the session name, (d) verifies via a
+      SECOND ssh that `tmx ls` on the remote lists the session — the
+      POSITIVE sink-side captured-evidence per §11.4.5 + §11.4.68
+      (positive sink-side evidence — the remote listing IS the
+      downstream evidence). §11.4.50 reliability: 3 iterations,
+      identical evidence-hash. Paired mutation P5-M22 strips the
+      `command=` clause from the authorized_keys template — when the
+      command restriction is gone, the dispatcher does not run and
+      the session is never created on the remote, so this Challenge
+      MUST FAIL.
+    test_script: scripts/tests/32_ssh_dispatch_remote_nezha.sh
+    pass_condition: |
+      Test exit 0 AND stdout contains `[evidence] listed='<SESS>:'`
+      lines per iteration proving the remote `tmx ls` showed the
+      dispatched session; 3/3 reliability iterations identical
+      evidence-hash per §11.4.50.
+    skip_conditions: |
+      §11.4.3 topology dispatch: SKIP-77 if TMX_TEST_REMOTE=1 not
+      set (opt-in network-heavy), OR if nezha unreachable via
+      BatchMode SSH, OR if normal SSH command execution fails
+      (pre-existing infra), OR if ~/.ssh/config alias is not
+      configured (operator hasn't run tmx-ssh-install.sh yet).
+    operator_block_details: |
+      §11.4.21 Operator-Block-Details (applies when ALL self-resolution
+      paths exhausted but Challenge still cannot run):
+      WHAT: Operator must (a) ensure nezha.local resolvable from the
+        running host, (b) run scripts/tmx-ssh-install.sh to provision
+        ~/.ssh/config alias + remote authorized_keys, (c) set env
+        var TMX_TEST_REMOTE=1 (and optionally TMX_TEST_REMOTE_HOST,
+        TMX_TEST_REMOTE_ALIAS to override defaults).
+      WHY: BatchMode SSH probe to nezha is the SOLE means to verify
+        the dispatcher round-trip end-to-end; mocking ssh would be a
+        §11.4.27 no-fakes-beyond-unit-tests violation; no captured
+        recording can substitute for a live remote tmux session
+        listing (§11.4.13 out-of-band sink-side evidence).
+      UNBLOCK CONDITION: `ssh -o BatchMode=yes -o ConnectTimeout=3
+        milosvasic@nezha.local exit` returns 0 AND
+        `ssh -G nezha-tmx | grep -qi '^hostname '` succeeds AND
+        TMX_TEST_REMOTE=1 in environment.
+      WHO: project operator (milosvasic) — nezha is operator-private
+        infrastructure; no shared/CI access exists.
+    evidence: |
+      alias→hostname resolution line; client_uname + remote_target;
+      per-iteration `listed=<SESS>:` line; reliability_hash on final
+      line. Sink-side per §11.4.68: the remote `tmx ls` reading IS
+      the downstream evidence — never a config-only PASS.
+    mutation_targets: P5-M22 (strip command= from authorized_keys template)
+    severity: blocker
+
+  - id: TMUX-CH-27
+    title: tmx_non_tty_safety — non-TTY stdin silent-skips fast (P2 + P6)
+    description: |
+      Per v1.0.9 design spec G2 + §6 edge case 5: tmx-shell-init.sh
+      MUST detect non-interactive stdin (scp, rsync, IDE pipes, cron)
+      and return 0 immediately WITHOUT printing the prompt and
+      WITHOUT blocking on `read`. Pre-fix snippets `read`-blocked
+      non-interactive shells and broke `scp`. Dispatches to test 30
+      (scripts/tests/30_non_tty_skip.sh) which (a) seeds the init
+      script from the template, (b) runs it under `timeout 5` with
+      stdin from /dev/null, (c) asserts elapsed_ms < 2000 (POSITIVE
+      evidence per §11.4.5 — must be FAR under the 5s ceiling stated
+      in the contract), (d) asserts the prompt string was NOT printed
+      to stdout, (e) asserts no tmx session was created.
+      §11.4.50 reliability: 3 iterations, identical evidence-hash.
+      Paired mutation P5-M20 strips the `[ -t 0 ]` guard — when the
+      guard is gone, the script prints the prompt and blocks on
+      `read </dev/null`, exit code = 124 (timeout fired), so this
+      Challenge MUST FAIL.
+    test_script: scripts/tests/30_non_tty_skip.sh
+    pass_condition: |
+      Test exit 0 AND stdout contains `[evidence] ... elapsed_ms=<N>`
+      with N < 2000 (well under the spec's 5000ms ceiling) per
+      iteration AND `rc=0 no_prompt=yes no_session=yes` AND no
+      `Enter session name` substring in captured stdout; 3/3
+      reliability iterations identical evidence-hash per §11.4.50.
+    skip_conditions: |
+      §11.4.3 topology dispatch: SKIP-77 if scripts/tmx-shell-init.sh.template
+      not present (P2 not landed yet), OR if HOST_OS is neither
+      Linux nor Darwin.
+    evidence: |
+      stdout `[evidence]` lines per iteration with elapsed_ms + rc
+      + no_prompt + no_session flags; platform_note for per-OS
+      branch coverage (§11.4.81); reliability_hash on final line.
+    mutation_targets: P5-M20 (strip non-TTY guard from tmx-shell-init.sh)
+    severity: critical
+
+  - id: TMUX-CH-28
+    title: tmx_docs_user_guides_render — operator + manual docs ship HTML+PDF (P8)
+    description: |
+      Per v1.0.9 design spec §8 documentation deliverables + §11.4.65
+      universal Markdown export: the four operator-facing
+      documentation paths (3 guides + 1 manual) MUST exist as .md AND
+      have valid .html + .pdf siblings whose mtime is ≥ the .md
+      mtime (sync invariant). This is the autonomous render gate —
+      it PASSes only when all four paths have all three formats AND
+      the sibling mtimes are not stale. POSITIVE evidence per §11.4.5
+      = stat output for each file triple. §11.4.50 reliability: a
+      file-mtime check is by construction deterministic; the
+      Challenge runner SHOULD invoke 3 times and assert identical
+      verdict (no flake possible if filesystem is consistent).
+      Required paths (relative to project root):
+        - docs/guides/tmx-shell-integration.md
+        - docs/guides/tmx-state.md
+        - docs/guides/tmx-ssh-dispatch.md
+        - docs/manual/tmx-shell-integration.md
+      Until P8 lands the docs do not exist yet — this Challenge
+      SKIPs with reason "P8 not landed". After v1.0.9 release the
+      Challenge becomes STRICT (any missing file or stale sibling
+      mtime FAILs).
+      RUNTIME DRIVER NOTE: this Challenge dispatches to a
+      dedicated render-check driver script that P8 MUST land
+      alongside the docs themselves. Until P8 lands the driver,
+      the harness SKIPs per §11.4.3 with the "test script not yet
+      present" reason — NEVER PASS-by-default.
+    test_script: scripts/tests/41_docs_user_guides_render.sh
+    pass_condition: |
+      For each of the 4 required paths: .md exists AND .html exists
+      AND .pdf exists AND .html mtime ≥ .md mtime AND .pdf mtime ≥
+      .md mtime AND .html size > 0 AND .pdf size > 0. Captured stat
+      output for each file triple printed as `[evidence] path=<p>
+      md=<ts> html=<ts> pdf=<ts> html_size=<N> pdf_size=<N>` lines.
+      Driver invokes the check 3 times and asserts identical
+      verdict per §11.4.50.
+    skip_conditions: |
+      §11.4.3 topology dispatch: SKIP-77 if test_script
+      scripts/tests/41_docs_user_guides_render.sh is not yet
+      present (P8 not landed), OR if ANY of the 4 required .md
+      files is missing (P8 not yet landed — strict after v1.0.9
+      release tag, until then SKIP-with-reason citing the missing
+      path). NEVER PASS-by-default when files are absent.
+    evidence: |
+      Per-file `[evidence]` line with path + md/html/pdf mtimes +
+      html/pdf byte sizes; final reliability_hash line.
+    mutation_targets: |
+      P5 mutation pair (TBD when P8 lands): backdate one .html sibling
+      (touch -t old) and assert this Challenge FAILs with stale-sibling
+      evidence; OR remove one .pdf sibling and assert FAIL with
+      missing-sibling evidence.
+    severity: blocker
+

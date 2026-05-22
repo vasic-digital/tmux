@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="tmx-shell-init">tmx-shell-init</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T12:20:00Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+§11.4.18 script companion doc for
+<code>scripts/tmx-shell-init.sh</code></p>
+<h2 id="purpose">Purpose</h2>
+<p>Single project-owned entry point sourced from the operator&#39;s
+<code>.bashrc</code> / <code>.zshrc</code>. Replaces the hand-pasted,
+drift-prone snippet that previously lived in every operator&#39;s rc file.
+On every interactive login it prompts for a session name, defaulting to
+<code>default</code> (the literal token <code>default</code> AND blank
+input both mean SKIP — bare shell, no tmx wrapping). Any other name
+routes through the <code>tmx</code> wrapper, which in turn restores the
+session&#39;s last cwd via the Go state daemon. Design authority:
+<code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code>
+§4.A + §5.2.</p>
+<h2 id="usage">Usage</h2>
+<p>One-time install — append to <code>~/.bashrc</code> AND
+<code>~/.zshrc</code>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># vasic-digital tmx shell integration</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span> /path/to/tmux/scripts/tmx-shell-init.sh</span></code></pre></div>
+<p>(or use the generated <code>scripts/bashrc_snippet.template</code>
+produced by <code>scripts/setup.sh</code>, which already embeds the
+project&#39;s resolved path plus the <code>PATH</code> block).</p>
+<p>Manual one-shot probe (no install required):</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Source it interactively to test.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span> scripts/tmx-shell-init.sh</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Or run it under a sub-shell, with stdin redirected (non-TTY guard</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># MUST silently no-op, never block, never error):</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> <span class="at">-c</span> <span class="st">&#39;. scripts/tmx-shell-init.sh&#39;</span> <span class="op">&lt;</span>/dev/null</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;exit=</span><span class="va">$?</span><span class="st">  ← MUST be 0&quot;</span></span></code></pre></div>
+<p>Concrete operator session walk-through:</p>
+<pre class="text"><code>$ ssh nezha
+[tmx] session name (default = skip, blank = skip): work
+[tmx] resuming &#39;work&#39; (last cwd: /home/m/Projects/tmux)
+... tmx new -s work runs, attaches, drops you in the recalled cwd ...</code></pre>
+<pre class="text"><code>$ ssh nezha
+[tmx] session name (default = skip, blank = skip): &lt;enter&gt;
+... no tmx; you&#39;re in a bare login shell ...</code></pre>
+<h2 id="inputs">Inputs</h2>
+<ul>
+<li><strong>stdin (TTY)</strong> — single line read; trimmed; coerced to
+<code>default</code> on empty input.</li>
+<li><strong><code>$TMUX</code></strong> — if non-empty, script silently
+returns (don&#39;t nest tmux servers per spec §6 edge case 4).</li>
+<li><strong><code>$TMX_SHELL_INIT_SKIP</code></strong> — operator escape
+hatch; if non-empty, script silently returns. Useful in CI and one-off
+<code>bash -c</code> flows.</li>
+<li><strong><code>$TMX_HOSTNAME</code></strong> — optional override
+propagated downstream to the wrapper for status-bar colour
+stability.</li>
+<li><strong>TTY check</strong> —
+<code>[ -t 0 ] &amp;&amp; [ -t 1 ]</code>; non-TTY contexts (scp, rsync,
+IDE remote shells, automated SSH commands) silently no-op per spec §6
+edge case 5.</li>
+</ul>
+<h2 id="outputs">Outputs</h2>
+<ul>
+<li><strong>stdout</strong> — the operator prompt and one-line
+<code>[tmx] resuming X</code> banner on session entry.</li>
+<li><strong>stderr</strong> — name-validation rejection messages
+(forbidden characters per spec §6 edge case 3).</li>
+<li><strong>process exec</strong> — on success, <code>exec</code>s the
+<code>tmx</code> wrapper, which in turn <code>exec</code>s
+<code>tmux attach</code>. The operator&#39;s shell is replaced; no fork is
+left behind.</li>
+</ul>
+<h2 id="side-effects">Side-effects</h2>
+<ul>
+<li>Reads one line from stdin (only when TTY-guarded).</li>
+<li>May <code>exec tmx new -s &lt;name&gt;</code> or
+<code>exec tmx attach -t &lt;name&gt;</code>, replacing the calling
+shell.</li>
+<li>Never writes to disk directly. The downstream wrapper + state daemon
+handle persistence per <code>docs/scripts/tmx-state.md</code>.</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li>POSIX sh (works in bash 3.2+ — the macOS default — and in zsh 5+;
+parses clean under <code>sh -n</code> per §11.4.67).</li>
+<li>The <code>tmx</code> wrapper on <code>$PATH</code> (or referenced
+via the project path the template substitution baked in).</li>
+<li>Optional but recommended: <code>scripts/tmx-state-bin</code> for cwd
+restore; absence is non-fatal (wrapper falls back to
+<code>$HOME</code>).</li>
+</ul>
+<h2 id="cross-references">Cross-references</h2>
+<ul>
+<li>Design spec:
+<code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code></li>
+<li>Operator user guide:
+<code>docs/guides/tmx-shell-integration.md</code> (P8 deliverable)</li>
+<li>Companion script docs: <code>docs/scripts/tmx-state.md</code>,
+<code>docs/scripts/tmx-ssh-dispatch.md</code>,
+<code>docs/scripts/tmx-ssh-install.md</code></li>
+<li>Wrapper integration: <code>scripts/tmx.template</code> (P4 — the
+cwd-restore + hook-install machinery)</li>
+<li>Runtime tests:
+<ul>
+<li><code>scripts/tests/19_default_skip.sh</code> (literal
+<code>default</code> SKIPs)</li>
+<li><code>scripts/tests/20_default_skip_blank.sh</code> (blank
+SKIPs)</li>
+<li><code>scripts/tests/21_non_tty_skip.sh</code> (non-TTY SKIPs
+silently)</li>
+<li><code>scripts/tests/26_session_name_validation.sh</code> (forbidden
+chars)</li>
+<li><code>scripts/tests/28_nested_tmux_skip.sh</code>
+(<code>$TMUX</code> set SKIPs)</li>
+</ul></li>
+<li>Constitution: §11.4.18 (script docs), §11.4.6 (no-guessing — every
+prompt response handled deterministically), §11.4.67 (POSIX
+parseability), §11.4.81 (cross-platform — same script works on macOS
+bash 3.2 and Linux bash 5 / zsh).</li>
+</ul>
+<h2 id="last-verified">Last verified</h2>
+<p>2026-05-22 — sibling PWU P2 published the script and its
+<code>sh -n</code> parse-clean evidence; this companion doc tracks its
+contract. Full on-device runtime coverage gated on PWU P6.</p>
+</body>
+</html>

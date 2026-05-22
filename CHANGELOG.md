@@ -6,6 +6,181 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.9] — 2026-05-22
+
+**Shell-session resume + SSH-argument dispatch + Go state daemon.
+Ten-PWU parallel-development cycle (§11.4.58 + §11.4.70). Every
+`tmx new -s NAME` now restores the session's last cwd from
+`~/.tmx/state.json`; `ssh <host>-tmx <session>` lands directly inside
+that session over a one-purpose dispatch key; the rc-side prompt is
+extracted into one project-owned POSIX script that is safe on SCP /
+rsync / IDE pipes.**
+
+### Summary
+
+Four artefacts work together: a Go binary (`scripts/tmx-state-bin`)
+with atomic-write + `fcntl(F_SETLKW)` per-session cwd persistence; a
+sourced POSIX shell init (`scripts/tmx-shell-init.sh`) replacing the
+hand-pasted snippet that previously drifted across operators' rc files
+and blocked non-TTY shells; an SSH dispatcher
+(`scripts/tmx-ssh-dispatch.sh`) wired into `authorized_keys` via
+`command=` so `ssh host-tmx <name>` attaches/creates the named session
+with the right cwd; and the existing `tmx` wrapper gains tmux hooks
+that record cwd on detach + a `-c <recalled-pwd>` on `tmx new`.
+
+### Added
+
+- **`scripts/tmx-state/` (Go module)** — `tmx-state` binary with
+  subcommands `record / recall / list / forget / version`. Atomic
+  temp-file + rename, `fcntl(F_SETLKW)` locking, JSON schema v1 stored
+  at `~/.tmx/state.json` (mode 0600, parent dir 0700). `$TMX_STATE_FILE`
+  override for tests + sandboxes. Honest exit-code split for
+  `recall`: 0 = found, 1 = not found, 2 = unreadable (lets the wrapper
+  fall back to `$HOME` without ambiguity).
+- **`scripts/tmx-shell-init.sh.template`** — POSIX-parseable
+  (`sh -n` clean per §11.4.67) shell init sourced from `.bashrc` /
+  `.zshrc`. Five-guard contract: `$TMUX` set → silent; non-TTY → silent;
+  `$TMX_SKIP` non-empty → silent; `tmx` not on PATH → silent; blank /
+  literal `default` → bare shell. Valid name → `exec sh -c 'tmx attach
+  -t … || exec tmx new -s …'`. Character-class validation via POSIX
+  `case` glob (not bash `[[ =~ ]]`).
+- **`scripts/tmx-ssh-dispatch.sh.template`** — `authorized_keys`
+  `command=` dispatcher. Same regex + length guard as shell-init.
+  Empty `SSH_ORIGINAL_COMMAND` → `bash -l`. Valid name → recalls last
+  cwd, exec's `tmx attach || exec tmx new -s NAME -c <cwd>`. Test mode
+  via `$TMX_DISPATCH_TEST` so anti-bluff tests prove which branch was
+  taken.
+- **`scripts/tmx-ssh-install.sh`** — client-side bootstrapper.
+  Generates `~/.ssh/id_tmx_<sanitized-host>` (ed25519, BatchMode-friendly),
+  probes remote reachability via existing auth path, scp's the
+  dispatcher template, substitutes `__PROJECT__` / `__DATE__` on the
+  remote, appends the `authorized_keys` line (idempotent by fingerprint),
+  writes a `Host <host>-tmx` block to local `~/.ssh/config` (idempotent
+  by Host heading), runs a verification probe (token deliberately
+  fails the dispatcher regex). `--dry-run`, `--force`,
+  `--uninstall`, `--purge-key`, `--remote-project-path` all supported.
+- **NEW tests 27–40** covering: state persistence (27), default-skip
+  (28), default-skip blank (29), non-TTY skip (30), local SSH dispatch
+  (31), remote SSH dispatch against nezha (32, §11.4.3 SKIPs if
+  unreachable), state concurrency (33, 10 parallel records), installer
+  idempotency (34), session-name validation (35), dispatcher rejects
+  multiword (36), nested-tmux skip (37), stale-pwd fallback (38),
+  state-file unwritable (39), `case "$(uname -s)"` cross-platform
+  parity (40 per §11.4.81). §11.4.50 reliability: each test loops 3
+  iterations with identical evidence-hash required.
+- **NEW test 41 `41_docs_user_guides_render.sh`** — drives the
+  TMUX-CH-28 Challenge: renders every v1.0.9 guide + the master
+  manual to HTML+PDF (mtime parity per §11.4.65), asserts non-empty
+  output, captures `[evidence]` lines per file.
+- **NEW paired §1.1 mutations M20–M24** — strip the `-t 0` guard
+  (test 30 FAILs), strip the cwd-capture tmux hook (test 27 FAILs),
+  strip the `command=` from `authorized_keys` (test 31 FAILs), strip
+  the regex validation (test 35 FAILs), strip a `case "$(uname -s)"`
+  branch (test 40 FAILs).
+- **NEW HelixQA Challenges** in `scripts/challenges/tmux.yaml`:
+  `tmx_session_resume_cwd`, `tmx_ssh_dispatch_nezha`,
+  `tmx_non_tty_safety`, `tmx_docs_user_guides_render`. All autonomous
+  per §11.4.52; the nezha challenge OPERATOR-BLOCKs when unreachable.
+- **NEW documentation set** (every doc carries the §11.4.44 revision
+  header + HTML + PDF siblings per §11.4.65):
+  - `docs/guides/tmx-shell-integration.md` (operator install/uninstall)
+  - `docs/guides/tmx-state.md` (state daemon CLI reference)
+  - `docs/guides/tmx-ssh-dispatch.md` (SSH dispatch architecture +
+    setup + security notes)
+  - `docs/manual/tmx-shell-integration.md` (end-user **master manual**
+    with copy-paste-runnable worked examples — the marquee document)
+  - `docs/scripts/tmx-shell-init.md`, `tmx-state.md`,
+    `tmx-ssh-install.md`, `tmx-ssh-dispatch.md` (§11.4.18 script
+    companions, landed during P2/P3)
+  - README "Documentation map" section updated per §11.4.57 with 4
+    new rows linking to the v1.0.9 docs.
+
+### Changed
+
+- **`scripts/bashrc_snippet.template`** — now sources
+  `tmx-shell-init.sh` in addition to setting PATH; the legacy in-line
+  `read -r` block is removed. Setup.sh writes the new block on every
+  install (idempotent).
+- **`scripts/setup.sh`** — adds three sub-tasks: generate
+  `tmx-shell-init.sh` from `.template`, `go build -o
+  scripts/tmx-state-bin ./scripts/tmx-state/...`, print the one-line
+  `source` directive operators paste. `scripts/install_deps.sh` adds
+  Go toolchain (`brew install go` macOS, distro package Linux;
+  Go ≥ 1.21 accepted).
+- **`scripts/tmx.template` and `scripts/tmx-mac.template`** — `tmx new`
+  consults `scripts/tmx-state-bin recall <name>` and passes
+  `-c <recalled-pwd>` to `tmux new-session` when present; tmux hooks
+  fire `tmx-state record <name> #{pane_current_path}` on
+  `client-detached` and `session-closed`.
+
+### Fixed
+
+(none specific to v1.0.9 — every entry is an additive feature; existing
+defects continue to be tracked in `Issues.md` / `Fixed.md`).
+
+### §11.4 covenant — explicit anti-bluff statement
+
+Every new test (27–41) captures positive runtime evidence and ships
+with a paired §1.1 mutation that proves the gate is not itself a
+bluff. PASS lines include `[evidence]` markers per §11.4.5; no
+metadata-only, configuration-only, or absence-of-error PASS exists in
+the v1.0.9 set. The doc-render challenge `tmx_docs_user_guides_render`
+captures per-file `[evidence] md_mtime=... html_mtime=... pdf_mtime=...
+sizes=...` lines so a future reader can re-derive the assertion.
+
+### §11.4.65 — universal Markdown export
+
+Every new `docs/guides/*.md` and `docs/manual/*.md` has matching
+`.html` + `.pdf` siblings generated by `bash scripts/export_docs.sh`
+in the same commit batch as the markdown.
+
+### §11.4.58 — parallel-development PWU pipeline
+
+This release was built via the §11.4.58 PWU pipeline:
+
+- **P1** Go state daemon (`scripts/tmx-state/**`)
+- **P2** Shell init script + bashrc-snippet template
+- **P3** SSH dispatch + installer
+- **P4** Wrapper integration (cwd hook + `-c` arg)
+- **P5** Pre-build gates + paired mutations (verify.sh + meta-test)
+- **P6** Runtime tests 27–40
+- **P7** HelixQA Challenges
+- **P8** Documentation + HTML/PDF exports (this entry)
+- **P9** Release pipeline (VERSION + CHANGELOG + tag push)
+- **R1** Termux/Android compatibility research (concluded; no
+  additional code change needed for v1.0.9 — shell-init.sh is already
+  POSIX and Termux-compatible)
+
+P1, P2 parallel; then P3, P4 parallel; then P5, P6 parallel; then
+P7, P8 parallel; finally P9 serial. Merge-queue discipline per §11.4.58
+Stage 2; anti-bluff coverage per §11.4.58 C1–C4 at merge time.
+
+### §11.4.70 — subagent-driven execution
+
+PWUs P1–P8 were executed by subagents per the `superpowers:subagent-driven-development`
+skill, with the parent conductor reviewing each subagent's output
+against the spec's §8 contract before staging. Inline execution was
+reserved for the merge-queue conductor (P9) per §11.4.70 carve-out
+for critical-state sequencing.
+
+### Files added / modified (terse)
+
+- Added: `scripts/tmx-state/{main.go,state.go,go.mod,go.sum}`,
+  `scripts/tmx-shell-init.sh.template`,
+  `scripts/tmx-ssh-dispatch.sh.template`,
+  `scripts/tmx-ssh-install.sh`, `scripts/tests/27_*.sh` …
+  `scripts/tests/41_*.sh`, `docs/guides/tmx-{shell-integration,state,ssh-dispatch}.{md,html,pdf}`,
+  `docs/manual/tmx-shell-integration.{md,html,pdf}`,
+  `docs/scripts/tmx-{shell-init,state,ssh-install,ssh-dispatch}.{md,html,pdf}`.
+- Modified: `scripts/setup.sh`, `scripts/install_deps.sh`,
+  `scripts/bashrc_snippet.template`, `scripts/tmx.template`,
+  `scripts/tmx-mac.template`, `scripts/verify.sh`,
+  `scripts/tests/meta_test_false_positive_proof.sh`,
+  `scripts/challenges/tmux.yaml`, `README.md`, `VERSION` (`1.0.8`/`9`
+  → `1.0.9`/`10`), `CHANGELOG.md` (this entry).
+
+---
+
 ## [v1.0.8] — 2026-05-21
 
 **Hostname-derived colour now applies to ALL default-green tmux UI

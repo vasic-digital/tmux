@@ -1,0 +1,77 @@
+#!/bin/sh
+# tmx-shell-init — sourced from .bashrc/.zshrc to drive interactive tmx session selection
+# Project: vasic-digital tmux (https://github.com/vasic-digital/twork-tmux)
+# Generated from scripts/tmx-shell-init.sh.template by scripts/setup.sh on __DATE__
+# Documentation: docs/guides/tmx-shell-integration.md
+# §11.4.67 — POSIX-parseable (sh -n clean), works under bash 3.2/5+, zsh, dash
+#
+# Behaviour contract (see docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md §4.A, §5, §6):
+#   - $TMUX set                      → silent return 0 (already inside tmux)
+#   - non-TTY stdin/stdout           → silent return 0 (scp/rsync/IDE pipes)
+#   - $TMX_SKIP non-empty            → silent return 0 (operator override)
+#   - `tmx` not on PATH              → silent return 0 (graceful degradation)
+#   - empty or `default` input       → return 0 (bare shell)
+#   - invalid session name           → stderr error + return 1
+#   - valid name                     → exec `tmx attach -t NAME` || exec `tmx new -s NAME`
+#
+# Project: __PROJECT__
+
+# Already inside a tmux session — do nothing.
+if [ -n "${TMUX:-}" ]; then
+    return 0 2>/dev/null || exit 0
+fi
+
+# Non-interactive shell (scp, rsync, IDE pipe, cron) — do not prompt.
+if [ ! -t 0 ] || [ ! -t 1 ]; then
+    return 0 2>/dev/null || exit 0
+fi
+
+# Operator opt-out.
+if [ -n "${TMX_SKIP:-}" ]; then
+    return 0 2>/dev/null || exit 0
+fi
+
+# Wrapper absent — graceful degradation, no prompt, bare shell.
+if ! command -v tmx >/dev/null 2>&1; then
+    return 0 2>/dev/null || exit 0
+fi
+
+# Prompt + read. printf, not echo -e (POSIX).
+printf '[tmx] Enter session name (blank or "default" = bare shell): ' >&2
+# shellcheck disable=SC2034  # session_name read below
+session_name=''
+if ! IFS= read -r session_name; then
+    # EOF or read error — fall through to bare shell.
+    return 0 2>/dev/null || exit 0
+fi
+
+# Empty input or literal `default` → bare shell, no tmx.
+if [ -z "$session_name" ] || [ "$session_name" = "default" ]; then
+    return 0 2>/dev/null || exit 0
+fi
+
+# Validate via POSIX case (NOT bash-only [[ =~ ]]).
+# Allowed: [A-Za-z0-9_.-]{1,64}
+# Reject in this order: length, then character set.
+session_name_len=${#session_name}
+if [ "$session_name_len" -lt 1 ] || [ "$session_name_len" -gt 64 ]; then
+    printf '[tmx] invalid session name %s; allowed: [A-Za-z0-9_.-]{1,64}\n' "'$session_name'" >&2
+    return 1 2>/dev/null || exit 1
+fi
+
+# Character-class check: reject if any char is OUTSIDE the allowed set.
+# We use `case` with a glob that matches a string containing at least one
+# disallowed char. POSIX `case` glob `*[!...]*` = "contains anything not in set".
+case "$session_name" in
+    *[!A-Za-z0-9_.-]*)
+        printf '[tmx] invalid session name %s; allowed: [A-Za-z0-9_.-]{1,64}\n' "'$session_name'" >&2
+        return 1 2>/dev/null || exit 1
+        ;;
+esac
+
+# Try attach first; if it fails (no such session), create. `exec` replaces the
+# current shell with the tmux client so detach returns the operator to the
+# pre-source environment rather than dropping into a child shell. We use a
+# single `exec sh -c` so the attach-or-new fallback is atomic (one exec, not
+# two — avoids double-prompt on attach success).
+exec sh -c 'tmx attach -t "$1" 2>/dev/null || exec tmx new -s "$1"' tmx-shell-init "$session_name"

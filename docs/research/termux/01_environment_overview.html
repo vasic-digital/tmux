@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+.display.math{display: block; text-align: center; margin: 0.5rem auto;}
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="01--termux-environment-overview">§01 — Termux Environment
+Overview</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-22T07:20:02Z <strong>Authority:</strong> vasic-digital tmux
+project (research-only) <strong>Maintainer:</strong> milosvasic
+<strong>Scope:</strong> What Termux is and the Android userland
+constraints relevant to porting the <code>tmx</code> wrapper</p>
+<hr />
+<h2 id="1-what-termux-is">1. What Termux is</h2>
+<p><strong>Termux</strong> is an Android terminal-emulator +
+Linux-userspace add-on app. It does NOT virtualise Linux (no chroot, no
+namespaces, no PRoot in the default install) — instead it ships a
+packaged collection of Linux userland binaries (bash, coreutils, tmux,
+openssh, …) compiled against <strong>Android&#39;s own bionic libc</strong>,
+installed inside the Termux app&#39;s private data directory.</p>
+<p>Architecturally Termux is &quot;Linux userland running as a regular
+unprivileged Android app.&quot; Every Termux process is a child of the
+Android <code>app_process</code> for <code>com.termux</code>, runs as
+the same Linux UID Android assigns the Termux app, inherits its app
+sandbox, and sees the same <code>/proc</code> view any other
+unprivileged Android app sees.</p>
+<p>The project is hosted at <a href="https://github.com/termux/termux-app">https://github.com/termux/termux-app</a>
+(the app) and <a href="https://github.com/termux/termux-packages">https://github.com/termux/termux-packages</a>
+(the package recipes).</p>
+<h2 id="2-filesystem-layout">2. Filesystem layout</h2>
+<p>The Termux app&#39;s private data directory is
+<code>/data/data/com.termux/</code>. Two well-known children are
+exported as environment variables:</p>
+<table>
+<thead>
+<tr>
+<th>Env</th>
+<th>Path</th>
+<th>Linux analogue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$PREFIX</code> (deprecated name
+<code>$TERMUX__PREFIX</code>)</td>
+<td><code>/data/data/com.termux/files/usr</code></td>
+<td><code>/usr</code></td>
+</tr>
+<tr>
+<td><code>$HOME</code> (also <code>$TERMUX__HOME</code>)</td>
+<td><code>/data/data/com.termux/files/home</code></td>
+<td><code>/home/$USER</code></td>
+</tr>
+<tr>
+<td><code>$TERMUX__ROOTFS</code></td>
+<td><code>/data/data/com.termux/files</code></td>
+<td>(no exact analogue)</td>
+</tr>
+</tbody>
+</table>
+<p>Source: <a href="https://github.com/termux/termux-packages/wiki/Termux-file-system-layout">https://github.com/termux/termux-packages/wiki/Termux-file-system-layout</a>
+and <a href="https://github.com/termux/termux-packages/wiki/Termux-execution-environment">https://github.com/termux/termux-packages/wiki/Termux-execution-environment</a>.</p>
+<p>The Android security model prohibits Termux from writing to
+<code>/bin</code>, <code>/etc</code>, <code>/usr</code>,
+<code>/var</code>, etc. at the actual filesystem root — these are part
+of the read-only <code>/system</code> partition and belong to Android
+itself. Every Linux-userland convention you&#39;d expect at
+<code>/etc</code> lives under <code>$PREFIX/etc</code>,
+<code>/var</code> under <code>$PREFIX/var</code>, <code>/tmp</code>
+under <code>$PREFIX/tmp</code>. Programs that hardcode absolute Linux
+paths require porting patches per the <a href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">Common
+porting problems wiki</a>.</p>
+<p>The <code>$PREFIX</code> paths are <strong>baked into binaries at
+compile time</strong> — if you copy a Termux binary to a phone whose
+Termux app is installed under a different package name (e.g. forked
+builds like Termux:Float), the binary will not find its libraries or
+config. There is no <code>$PREFIX</code> relocation at runtime.</p>
+<h2 id="3-libc-bionic-not-glibc">3. libc: bionic, not glibc</h2>
+<p>Termux binaries link against <strong>Android&#39;s bionic libc</strong>,
+not glibc. Bionic is Google&#39;s minimalist BSD-licensed C library, written
+specifically for embedded / mobile use.</p>
+<p>Practical consequences for our port:</p>
+<ul>
+<li><strong>Missing or non-conformant POSIX/GNU APIs.</strong> The
+bionic status doc enumerates which standard APIs are available at which
+Android API level — see <a href="https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md">https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md</a>.
+Notable: <code>pthread_cancel</code> is missing and explicitly flagged
+as &quot;unlikely to ever be implemented.&quot;</li>
+<li><strong>DNS resolver path.</strong> Bionic does NOT use
+<code>/etc/resolv.conf</code>; DNS goes through the Android system
+service. A pure-Go binary built with <code>CGO_ENABLED=0</code> will hit
+hard-coded <code>[::1]:53</code> and fail. Detail in §02.</li>
+<li><strong><code>tmpnam()</code> / <code>TMPDIR</code>.</strong> Older
+Bionic ignored <code>$TMPDIR</code>; fixed in Bionic commit 439ebbd3 but
+worth knowing about for legacy devices. (Source: Termux
+common-porting-problems wiki.)</li>
+<li><strong><code>setuid()</code> blocked since Android 9.</strong>
+Seccomp filters at the zygote level block <code>setuid()</code> and
+friends for app processes. Termux is single-user by design — there is
+nothing to give up. (Source: Termux common-porting-problems wiki.)</li>
+</ul>
+<p>For our purposes (tmux + a Go state daemon + shell scripts) bionic is
+sufficient — tmux already builds cleanly under bionic (Termux ships it
+as a maintained package).</p>
+<h2 id="4-what-is-not-available">4. What is NOT available</h2>
+<table>
+<thead>
+<tr>
+<th>Linux concept</th>
+<th>Termux availability</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>systemd</code> / <code>systemctl</code></td>
+<td>absent</td>
+<td>Android doesn&#39;t use systemd. No <code>--user</code> instance. <a href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a></td>
+</tr>
+<tr>
+<td><code>init.d</code> / <code>rc.d</code></td>
+<td>absent</td>
+<td>App-lifecycle-driven; use the <code>Termux:Boot</code> add-on
+app.</td>
+</tr>
+<tr>
+<td>cgroups v1 / v2 writable from userspace</td>
+<td>absent for unprivileged user</td>
+<td>Kernel may have cgroup-v2 but the Termux UID has no write access to
+<code>cgroup.procs</code>. <a href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a></td>
+</tr>
+<tr>
+<td><code>setuid()</code> / setuid binaries</td>
+<td>blocked since Android 9</td>
+<td>seccomp policy on zygote-spawned app processes.</td>
+</tr>
+<tr>
+<td><code>journalctl</code></td>
+<td>absent</td>
+<td>No systemd → no journal. Use <code>logcat</code> or Termux&#39;s own
+stderr.</td>
+</tr>
+<tr>
+<td><code>D-Bus</code> user session</td>
+<td>absent in default install</td>
+<td>Some apps install dbus, but no auto-start.</td>
+</tr>
+<tr>
+<td><code>/proc</code> writable for OOM tuning</td>
+<td>partial</td>
+<td><code>/proc/$pid/oom_score_adj</code> is writable but lmkd may
+override (see §03).</td>
+</tr>
+<tr>
+<td><code>udev</code> / device hotplug</td>
+<td>absent</td>
+<td>Android handles device events itself.</td>
+</tr>
+<tr>
+<td><code>/etc/passwd</code> / <code>/etc/shadow</code></td>
+<td>absent</td>
+<td>Termux is single-user; identity comes from Android UID.</td>
+</tr>
+<tr>
+<td>Privileged ports (&lt;1024)</td>
+<td>unavailable</td>
+<td><code>bind()</code> returns EACCES for the unprivileged app.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-selinux-on-android">5. SELinux on Android</h2>
+<p>Every Android process runs under an SELinux context. Termux processes
+inherit <code>u:r:untrusted_app_xx:s0:...</code> (the exact context
+depends on Android version + target SDK). Key consequences:</p>
+<ul>
+<li><strong>App-data-exec restriction (Android 10+).</strong> Per the
+Termux execution-environment wiki: apps targeting
+<code>targetSdkVersion ≥29</code> <em>cannot</em> exec arbitrary files
+from <code>/data/data/&lt;package&gt;</code> — Google&#39;s W^X mitigation.
+Termux works around this by targeting an older SDK + a custom dynamic
+linker bridge (<code>libtermux-exec.so</code>, preloaded via
+<code>$LD_PRELOAD</code>). Operators who sideload a Termux binary
+outside Termux&#39;s own preload setup hit <code>Permission denied</code>
+(logged as <code>avc: denied</code> in <code>logcat</code>). Source: <a href="https://github.com/termux/termux-packages/wiki/Termux-execution-environment">https://github.com/termux/termux-packages/wiki/Termux-execution-environment</a>.</li>
+<li><strong><code>/system/bin</code> exec is allowed</strong> under the
+<code>app_data_file</code> → <code>system_file</code> transition, so
+calling out to Android system binaries (<code>getprop</code>,
+<code>am</code>, <code>pm</code>, <code>dumpsys</code>, <code>ip</code>)
+works.</li>
+<li><strong>No <code>mount</code> / <code>chroot</code> /
+<code>unshare</code> capability.</strong> Container-style isolation
+needs root (Magisk / KernelSU).</li>
+</ul>
+<h2 id="6-default-path-and-shell">6. Default <code>$PATH</code> and
+shell</h2>
+<p>From the Termux execution-environment wiki:</p>
+<ul>
+<li><strong>Android ≥ 7 (Nougat, API 24):</strong>
+<code>PATH=/data/data/com.termux/files/usr/bin</code>;
+<code>$LD_PRELOAD=/data/data/com.termux/files/usr/lib/libtermux-exec.so</code>.</li>
+<li><strong>Android &lt; 7:</strong>
+<code>PATH=/data/data/com.termux/files/usr/bin:/data/data/com.termux/files/usr/bin/applets</code>;
+<code>$LD_LIBRARY_PATH=/data/data/com.termux/files/usr/lib</code>.</li>
+</ul>
+<p>The default login shell is bash (Termux ships <code>bash</code> as
+<code>$PREFIX/bin/bash</code>). zsh is available via
+<code>pkg install zsh</code>. <strong>Bash 5.x</strong> — not the
+macOS-default Bash 3.2 — so the <code>tmx-shell-init.sh</code> POSIX-sh
+discipline gives us Termux for free.</p>
+<h2 id="7-why-this-matters-for-the-tmx-port">7. Why this matters for the
+<code>tmx</code> port</h2>
+<ul>
+<li>Filesystem paths in <code>tmx</code> (the wrapper, the Go state
+daemon, the SSH dispatcher) MUST resolve at runtime via
+<code>$PREFIX</code> / <code>$HOME</code>, not via hardcoded
+<code>/usr/local/bin/...</code>. Our existing wrapper already does this
+(<code>TMX_DIR=&quot;$(cd &quot;$(dirname &quot;$0&quot;)&quot; &amp;&amp; pwd)&quot;</code>) —
+good.</li>
+<li>We cannot rely on systemd / cgroups / setuid / mount namespaces for
+isolation — those gates simply do not exist for an unprivileged Termux
+process. The substitute is POSIX <code>setrlimit</code> + Android&#39;s own
+lmkd OOM killer. Details in §03.</li>
+<li>The shell-init prompt + <code>[ -t 0 ]</code> guard from the v1.0.9
+spec works as-is on Termux: stdin and stdout are TTYs when the operator
+opens the Termux terminal window; they are not TTYs when an
+<code>Termux:Boot</code> script or <code>sshd</code> runs the script
+non-interactively.</li>
+<li>The <code>command=</code> directive +
+<code>SSH_ORIGINAL_COMMAND</code> machinery in
+<code>tmx-ssh-dispatch.sh</code> should work because Termux&#39;s OpenSSH is
+a standard build with only Termux-prefix path changes. Verified in
+§04.</li>
+</ul>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://github.com/termux/termux-packages/wiki/Termux-file-system-layout">https://github.com/termux/termux-packages/wiki/Termux-file-system-layout</a></li>
+<li><a href="https://github.com/termux/termux-packages/wiki/Termux-execution-environment">https://github.com/termux/termux-packages/wiki/Termux-execution-environment</a></li>
+<li><a href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">https://github.com/termux/termux-packages/wiki/Common-porting-problems</a></li>
+<li><a href="https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md">https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md</a></li>
+<li><a href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a>
+(systemctl failure discussion)</li>
+<li><a href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a>
+(cgroup unavailability)</li>
+<li><a href="https://lwn.net/Articles/936953/">https://lwn.net/Articles/936953/</a>
+(LWN&#39;s overview of Termux internals)</li>
+</ul>
+</body>
+</html>
