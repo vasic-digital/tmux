@@ -365,6 +365,66 @@ If you previously had a wrapper that ran `tmx new -s default`
 automatically, you now need to type `default-session` (or any other
 non-`default` name) to get the same behaviour.
 
+## 7a. Uninstall (v1.0.11+)
+
+The dedicated uninstall entry point removes EVERYTHING setup.sh
+installed and leaves operator data untouched:
+
+```bash
+cd ~/Projects/tmux
+bash scripts/uninstall.sh
+```
+
+This calls `setup.sh --uninstall` under the hood (single source of
+truth), which:
+
+1. Strips the `─── vasic-digital optimized tmux ───` fenced block
+   from `~/.bashrc` and `~/.zshrc`.
+2. Strips any LEGACY hand-pasted `if command -v tmx ...; then ...; fi`
+   block (operators upgrading from pre-v1.0.9 had this risk).
+3. Removes `~/.tmux.conf` ONLY if it carries the
+   `vasic-digital optimized tmux configuration` marker; pre-existing
+   operator-owned `~/.tmux.conf` is preserved (a backup was created
+   at install time as `~/.tmux.conf.pre-vasic-digital`).
+4. Removes the generated files in the project: `scripts/tmx`,
+   `scripts/tmx-shell-init.sh`, `scripts/tmx-state-bin`. All three
+   are produced from tracked templates / source at install time, so
+   removing them is safe — the next `setup.sh` regenerates them.
+
+### Also purge per-session last-pwd state
+
+By default, `~/.tmx/` (the cwd-memory state file) is preserved per
+§9 zero-risk-data-safety. To also remove it:
+
+```bash
+bash scripts/uninstall.sh --purge-state
+```
+
+### Clean-slate reinstall (automatic, v1.0.11+)
+
+Every `bash scripts/setup.sh` invocation now runs the uninstall
+logic SILENTLY as step 0 before re-installing. You no longer need
+to manually uninstall before upgrading — just run `setup.sh` and
+the stale generated artefacts (old wrapper, missing init.sh,
+half-installed rc block) are cleaned first. Operator data under
+`~/.tmx/` is preserved.
+
+### How to verify the uninstall worked
+
+```bash
+# rc snippet block gone:
+grep -c '─── vasic-digital optimized tmux ─' ~/.bashrc ~/.zshrc
+# expect: 0 in each
+
+# init file gone:
+ls -la scripts/tmx-shell-init.sh 2>&1
+# expect: No such file or directory
+
+# wrapper gone:
+ls -la scripts/tmx 2>&1
+# expect: No such file or directory
+```
+
 ## 8. Last verified
 
 2026-05-22 on:

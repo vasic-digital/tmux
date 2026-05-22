@@ -232,7 +232,9 @@ are intentional)</td>
 <td><strong>Hermetic install</strong></td>
 <td>Built artifact lives in <code>tmux/build/</code>. PATH export points
 there; system tmux untouched. Removable via
-<code>bash scripts/setup.sh --uninstall</code>.</td>
+<code>bash scripts/uninstall.sh</code> (or
+<code>bash scripts/setup.sh --uninstall</code> — both delegate to the
+same single source of truth).</td>
 </tr>
 </tbody>
 </table>

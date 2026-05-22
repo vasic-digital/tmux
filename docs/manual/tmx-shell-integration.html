@@ -566,6 +566,56 @@ shortcut);</li>
 <code>tmx new -s default</code> automatically, you now need to type
 <code>default-session</code> (or any other non-<code>default</code>
 name) to get the same behaviour.</p>
+<h2 id="7a-uninstall-v1011">7a. Uninstall (v1.0.11+)</h2>
+<p>The dedicated uninstall entry point removes EVERYTHING setup.sh
+installed and leaves operator data untouched:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh</span></code></pre></div>
+<p>This calls <code>setup.sh --uninstall</code> under the hood (single
+source of truth), which:</p>
+<ol type="1">
+<li>Strips the <code>─── vasic-digital optimized tmux ───</code> fenced
+block from <code>~/.bashrc</code> and <code>~/.zshrc</code>.</li>
+<li>Strips any LEGACY hand-pasted
+<code>if command -v tmx ...; then ...; fi</code> block (operators
+upgrading from pre-v1.0.9 had this risk).</li>
+<li>Removes <code>~/.tmux.conf</code> ONLY if it carries the
+<code>vasic-digital optimized tmux configuration</code> marker;
+pre-existing operator-owned <code>~/.tmux.conf</code> is preserved (a
+backup was created at install time as
+<code>~/.tmux.conf.pre-vasic-digital</code>).</li>
+<li>Removes the generated files in the project:
+<code>scripts/tmx</code>, <code>scripts/tmx-shell-init.sh</code>,
+<code>scripts/tmx-state-bin</code>. All three are produced from tracked
+templates / source at install time, so removing them is safe — the next
+<code>setup.sh</code> regenerates them.</li>
+</ol>
+<h3 id="also-purge-per-session-last-pwd-state">Also purge per-session
+last-pwd state</h3>
+<p>By default, <code>~/.tmx/</code> (the cwd-memory state file) is
+preserved per §9 zero-risk-data-safety. To also remove it:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh <span class="at">--purge-state</span></span></code></pre></div>
+<h3 id="clean-slate-reinstall-automatic-v1011">Clean-slate reinstall
+(automatic, v1.0.11+)</h3>
+<p>Every <code>bash scripts/setup.sh</code> invocation now runs the
+uninstall logic SILENTLY as step 0 before re-installing. You no longer
+need to manually uninstall before upgrading — just run
+<code>setup.sh</code> and the stale generated artefacts (old wrapper,
+missing init.sh, half-installed rc block) are cleaned first. Operator
+data under <code>~/.tmx/</code> is preserved.</p>
+<h3 id="how-to-verify-the-uninstall-worked">How to verify the uninstall
+worked</h3>
+<div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># rc snippet block gone:</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-c</span> <span class="st">&#39;─── vasic-digital optimized tmux ─&#39;</span> ~/.bashrc ~/.zshrc</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># expect: 0 in each</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co"># init file gone:</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> <span class="at">-la</span> scripts/tmx-shell-init.sh <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co"># expect: No such file or directory</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># wrapper gone:</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> <span class="at">-la</span> scripts/tmx <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co"># expect: No such file or directory</span></span></code></pre></div>
 <h2 id="8-last-verified">8. Last verified</h2>
 <p>2026-05-22 on:</p>
 <ul>
@@ -575,11 +625,11 @@ name) to get the same behaviour.</p>
 1.22.</li>
 </ul>
 <p>Reproducible from a fresh clone via:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/install_deps.sh   <span class="co"># Linux only</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tests/run_all.sh  <span class="co"># full suite — expect GREEN</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/install_deps.sh   <span class="co"># Linux only</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tests/run_all.sh  <span class="co"># full suite — expect GREEN</span></span></code></pre></div>
 <p>All §11.4.50 deterministic-consistency loops (3 iterations identical
 evidence-hash) GREEN; all §11.4.81 cross-platform branches GREEN on both
 platforms; §1.1 paired-mutation harness reports
