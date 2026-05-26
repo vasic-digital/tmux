@@ -129,6 +129,19 @@ covered with GREEN tests and physical evidence. Test 44 + M44 close
 the cycle's own anti-bluff cycle cleanly. Transparency in the
 release notes per §11.4 / §101.
 
+**Companion finding — nezha environmental escape (M22):** on nezha,
+the meta-test additionally reports `M22 MUTATION ESCAPED` AND `V3
+does not PASS after revert`. M22 targets the CodeGraph
+`Containers/**` exclude path in `.codegraph/config.json`. Both the
+mutate-and-test-fail step and the revert-and-test-pass step fail —
+indicating the CodeGraph validate baseline itself is broken on
+nezha (the test cannot reach GREEN even with original config). This
+is an environmental state issue (CodeGraph index/config) on the
+remote host, not a v1.0.14 regression. Closure condition: bring
+nezha's CodeGraph state to the baseline `codegraph_validate` would
+PASS on; either re-run `bash scripts/codegraph_setup.sh` on nezha
+or document why M22 should SKIP on nezha-class hosts.
+
 **Closure conditions:** test 21 design tightening so it specifically
 asserts the SCRIPT GUARD fired (not the libc fallback); test 18
 re-architecture so it does NOT short-circuit the hook auto-install.

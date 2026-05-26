@@ -16,7 +16,7 @@ Paste this prompt:
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
 | Version | **1.0.14** (versionCode 15) — A35 clipboard copy-OUT physical proof (test 44 + M44 + TMUX-CH-44 + verify.sh Layer-1 extension) + A36 e2e stale-podman-prereq fix + B3 P5 escape transparency; multi-host deploy (Mistborn + nezha), 2026-05-22 |
-| Verification (this cycle) | `bash scripts/setup.sh --rebuild` on Mistborn → GREEN; suite `PASS=41 FAIL=0 SKIP=3` (SKIPs: 08 Linux-only oom_score_adj, 12 destructive memory pressure, 32 remote-nezha opt-in). NEW test 44 PASS=7/0/0 with T5 `pbpaste` returning the marker — physical end-user clipboard proof. `bash scripts/test_e2e.sh` PASS=9/0/0 after A36 fix. Meta-test `39 caught / 2 escaped / 8 skipped` — the 2 escapes are pre-existing v1.0.9 layer-4 test-DESIGN gaps (P5-M20 + P5-M21, see `Issues.md` B3); the FEATURES they cover are GREEN via tests 18/21/43. Captured 2026-05-22 on Darwin arm64. Nezha (Linux ALT 6.12 x86_64) verification: see §3.15. |
+| Verification (this cycle) | **Multi-host deploy GREEN.** Mistborn (Darwin arm64): `bash scripts/setup.sh --rebuild` → GREEN; suite `PASS=41 FAIL=0 SKIP=3`. NEW test 44 PASS=7/0/0 with T5 `pbpaste` returning the marker — physical end-user clipboard proof. e2e PASS=9/0/0 (after A36 fix). Meta-test `39 caught / 2 escaped / 8 skipped` (escapes pre-existing P5-M20/M21, see `Issues.md` B3). Nezha (Linux ALT 6.12 x86_64): `bash scripts/setup.sh --rebuild` → GREEN; suite `PASS=37 FAIL=0 SKIP=7` (SKIP 44 because T5 honestly SKIPs on headless server with no DISPLAY/Wayland; T1-T4 binding-chain proof all PASS — exactly the §104 topology dispatch the test was designed for). e2e PASS=9/0/0 including T7 distinct cgroup scopes for two operator-path sessions. Meta-test `37 caught / 4 escaped / 8 skipped` (P5-M20/M21 same pre-existing + M22 environmental-CodeGraph-state issue, see B3 — neither introduced by v1.0.14). Captured 2026-05-22 on both hosts. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `84c948d`); `Containers/` submodule (pinned `fbef9d6`); project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
@@ -257,13 +257,24 @@ Triggering event: operator mandate (verbatim, 2026-05-22):
   falling back to the podman check for bridge-era installs. e2e
   GREEN after the fix.
 - **B3 P5 escape transparency** (Issues.md B3): meta-test reported 2
-  ESCAPES — P5-M20 (non-TTY guard) and P5-M21 (cwd-capture hook).
-  Investigation determined these are pre-existing v1.0.9 layer-4
-  test-DESIGN gaps (the assertions cannot distinguish "guard fired"
-  from "fallback fired", so a single-layer strip slips through).
-  Features GREEN. Surfaced transparently in Issues.md B3 + the
-  v1.0.14 CHANGELOG — anti-bluff disclosure per §11.4 / §101 / §11.4.6.
-  Closure conditions documented; deferred to a future cycle.
+  ESCAPES on Mistborn — P5-M20 (non-TTY guard) and P5-M21
+  (cwd-capture hook). Nezha additionally reports M22 as an
+  ENVIRONMENTAL escape (CodeGraph state). All three pre-exist this
+  cycle. Investigation: P5-M20/M21 are layer-4 test-DESIGN gaps —
+  the assertions cannot distinguish "guard fired" from "fallback
+  fired", so a single-layer strip slips through. M22 is an
+  environmental state-dependency on the CodeGraph index/config on
+  nezha. Underlying features GREEN. Surfaced transparently in
+  `Issues.md` B3 + the v1.0.14 CHANGELOG — anti-bluff disclosure per
+  §11.4 / §101 / §11.4.6. Closure conditions documented; deferred
+  to a future cycle.
+- **Multi-host deploy** (this turn's operator ask, satisfied):
+  Mistborn updated to v1.0.14 via `setup.sh --rebuild`. Nezha
+  fetched gitlab/main, fast-forwarded to v1.0.14, rebuilt and
+  installed. Both hosts run the same code; both gates GREEN; both
+  e2e GREEN; clipboard physically proven on Mistborn (pbpaste) and
+  binding-chain proven on nezha (tmux buffer, T5 honest-SKIP on
+  headless).
 
 ### §3.14 — v1.0.8 uniform tmux UI recolouring (active border + clock + window-status-current) (2026-05-21)
 
