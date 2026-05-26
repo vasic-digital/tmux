@@ -52,15 +52,22 @@ fi
 _pass "T1.0: scripts/tmx is generated and executable"
 
 if [ "$(uname -s)" = "Darwin" ]; then
-    if ! command -v podman >/dev/null 2>&1; then
-        _fail "T1.1: podman missing on Darwin (the bridge requires it)"
+    # Native dual-OS (since v1.0.7) builds Mach-O on Darwin and runs
+    # the tmux binary as a host process — the legacy podman-machine
+    # bridge layer is GONE. We only require podman if the operator is
+    # still on the bridge-era install (a rebuild was skipped). Probe:
+    # if the Darwin native binary exists and is executable, native
+    # path is active and podman is not needed.
+    TMUX_DARWIN_NATIVE="$(cd "$(dirname "$0")/.." && pwd)/tmux/build-darwin/bin/tmux"
+    if [ -x "$TMUX_DARWIN_NATIVE" ]; then
+        _pass "T1.1+T1.2: native Darwin Mach-O binary present ($TMUX_DARWIN_NATIVE) — no bridge / podman needed"
+    elif command -v podman >/dev/null 2>&1 \
+            && podman machine list --format '{{.LastUp}}' 2>/dev/null | grep -qi "currently running"; then
+        _pass "T1.1+T1.2: podman machine running on Darwin host (bridge-era install)"
+    else
+        _fail "T1.1+T1.2: neither native Mach-O binary nor running podman machine — run: bash scripts/setup.sh --rebuild"
         exit 1
     fi
-    if ! podman machine list --format '{{.LastUp}}' 2>/dev/null | grep -qi "currently running"; then
-        _fail "T1.2: podman machine not running — start: podman machine start"
-        exit 1
-    fi
-    _pass "T1.1+T1.2: podman machine running on Darwin host"
 else
     _pass "T1.1+T1.2: Linux host (no bridge layer needed)"
 fi

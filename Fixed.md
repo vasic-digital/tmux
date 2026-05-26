@@ -54,6 +54,106 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A36. `scripts/test_e2e.sh` T1.2 stale podman-machine prerequisite — `RESOLVED`
+
+**Closure cycle:** v1.0.14 / versionCode 15 (2026-05-22).
+**Re-discovered:** v1.0.14 verification cycle, 2026-05-22 on Mistborn —
+`bash scripts/test_e2e.sh` reported `FAIL: T1.2: podman machine not
+running` immediately after the otherwise-GREEN `setup.sh --rebuild`
+gate. A §11.4.1 FAIL-bluff at the test infrastructure layer: the test
+exits FAIL for a non-product reason (a legacy prerequisite check that
+no longer reflects the architecture).
+
+**Forensic detail:** the e2e check has hard-required a running podman
+machine on Darwin since the pre-v1.0.7 SSH-bridge architecture. The
+native dual-OS refactor (v1.0.7, Fixed.md A8 + project §108) replaced
+the bridge with a native Mach-O binary built on Darwin and run as a
+host process. The legacy prerequisite was never updated. As long as
+the operator happened to have podman machine running (e.g. from
+unrelated work), the FAIL was masked; on machines without podman the
+e2e suite refused to start despite a fully-functional native install.
+
+**Source-side fix:** `scripts/test_e2e.sh` T1.1+T1.2 — probe for the
+native Mach-O binary at `tmux/build-darwin/bin/tmux` FIRST. If
+present, PASS with positive evidence ("native Mach-O binary present
+— no bridge / podman needed"). Fall back to the podman check ONLY
+for legacy bridge-era installs. If neither: FAIL with the actionable
+remediation (`run: bash scripts/setup.sh --rebuild`).
+
+**Captured evidence:** post-fix run printed `PASS: T1.1+T1.2: native
+Darwin Mach-O binary present (...build-darwin/bin/tmux) — no bridge /
+podman needed` and the suite continued through T2..T8 with
+`SUMMARY: PASS=9 FAIL=0 SKIP=0 GREEN`.
+
+**Regression-protection:** the change is structural in the e2e script
+itself; no paired mutation needed (the script's own PASS/FAIL line is
+the gate).
+
+**Tracked task:** discovered + closed in this cycle (v1.0.14).
+
+### A35. Clipboard copy-OUT had no physical-proof coverage — `RESOLVED`
+
+**Closure cycle:** v1.0.14 / versionCode 15 (2026-05-22).
+**Reported:** operator mandate, 2026-05-22 — "we can always copy /
+paste from and to the terminal window and current tmux (tmx) session!
+Using mouse or keyboard MUST WORK properly!!!"
+
+**Forensic detail (no guessing per §11.4.6):**
+
+- The `@clip` user option + `copy-pipe-and-cancel "#{@clip}"`
+  bindings on `y` / `Enter` / `MouseDragEnd1Pane` have lived in
+  `scripts/tmux.conf.template` since v1.0.3 (Fixed.md A16).
+- Every prior test verified only (a) the STRUCTURE of the bindings
+  (grep on the template) and (b) tmux's internal paste buffer via
+  `show-buffer`. NO test ever read back the OS clipboard. The
+  bindings could grep-pass while routing nothing.
+- This is the textbook §101 PASS-bluff hole: structural evidence + a
+  silent shell pipe that nobody checks the receiving end of.
+
+**Source-side fix:** no production-code change was required — the
+existing bindings work. The gap was at the gate layer. This cycle
+closes it with a new operator-path test, a Layer-1 static gate
+extension, a Challenge entry, and a paired mutation.
+
+**Captured evidence (4-layer per §103):**
+
+- **Layer 1 (static gate):** `scripts/verify.sh` gained four `_l1`
+  checks (`@clip user option`, `copy-mode-vi y -> @clip`,
+  `copy-mode-vi Enter -> @clip`, `MouseDragEnd1Pane -> @clip`).
+  Verified GREEN this cycle.
+- **Layer 2 (runtime, operator-path):**
+  `scripts/tests/44_clipboard_copy_out_physical.sh` — PASS=7/0/0.
+  T1 template carries all four clipboard lines; T2.0 operator-path
+  `tmx new` succeeded; T2.1 + T2.2 live `list-keys -T copy-mode-vi`
+  for `y` and `MouseDragEnd1Pane` both route through
+  `copy-pipe-and-cancel "#{@clip}"`; T3 direct `-X` copy-pipe routed
+  the selection into the tmux buffer (binding chain proven); T4 the
+  literal `y` keystroke in copy-mode triggered the binding and put
+  the marker in the buffer (bind-table dispatch proven end-to-end);
+  **T5 the OS-native clipboard (`pbcopy/pbpaste` on Darwin in this
+  run) carried the marker — physical end-user proof the copy
+  actually reached the system clipboard**. Pre-test save + post-test
+  restore of the operator's clipboard so the test never clobbers it.
+- **Layer 3 (Challenge):** `TMUX-CH-44` in
+  `scripts/challenges/tmux.yaml`.
+- **Layer 4 (paired mutation):** `M44` in
+  `meta_test_false_positive_proof.sh` strips the `@clip` user-option
+  definition; test 44 T1 catches universally (structural grep), T5
+  additionally catches wherever a clipboard tool is reachable —
+  multi-layer catch so no false ESCAPE on any topology. MUTATION
+  CAUGHT + FEATURE RESTORED both directions verified.
+
+**Multi-platform coverage:** test 44 dispatches at runtime to the
+OS-native paste tool — `pbpaste` (Darwin), `wl-paste` (Wayland),
+`xclip -o -selection clipboard` (X11), `termux-clipboard-get`
+(Termux). On a headless Linux server with none of these reachable,
+T5 honestly SKIPs with reason and T3/T4 still PROVE the binding
+chain via tmux's own buffer — no test becomes inert anywhere.
+
+**Regression-protection:** verify.sh Layer-1 gate + test 44 + M44.
+
+**Tracked task:** operator request 2026-05-22 (this cycle).
+
 ### A34. Hostname colour now applies to ALL default-green tmux UI surfaces (not just status-bar) — `RESOLVED`
 
 **Closure cycle:** v1.0.8 / versionCode 9 (2026-05-21).

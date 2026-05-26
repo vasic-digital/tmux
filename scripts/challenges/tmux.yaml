@@ -623,3 +623,53 @@ challenges:
       missing-sibling evidence.
     severity: blocker
 
+
+  - id: TMUX-CH-44
+    title: clipboard copy-OUT physical end-user proof (operator-path)
+    description: |
+      The operator MUST be able to copy text from a tmx session into
+      their system clipboard, using either the keyboard ('y' in
+      copy-mode-vi, or Enter) or the mouse (drag-end). The bindings
+      live in scripts/tmux.conf.template (@clip user option +
+      copy-pipe-and-cancel "#{@clip}" on y / Enter / MouseDragEnd1Pane).
+      Until test 44 landed, no test PROVED a single byte ever reached
+      the system clipboard — a §101 PASS-bluff risk for a feature an
+      operator uses every minute. This Challenge closes that hole with
+      physical proof: a unique marker is printed in a real tmx session,
+      copied through the actual operator binding via a 'y' keystroke,
+      and then read back from the OS-native clipboard tool (pbpaste on
+      Darwin; wl-paste / xclip -o on Linux with Wayland/X11;
+      termux-clipboard-get on Termux). On a headless server with no
+      clipboard tool, T5 honestly SKIPs while T3/T4 still PROVE the
+      binding chain via tmux's own buffer.
+    test_script: scripts/tests/44_clipboard_copy_out_physical.sh
+    pass_condition: |
+      FAIL=0. T1 conf-template carries @clip + the three bindings;
+      T2.1+T2.2 live `list-keys -T copy-mode-vi` show y and
+      MouseDragEnd1Pane routing through copy-pipe-and-cancel "#{@clip}";
+      T3 direct -X copy-pipe puts the marker into tmux's own buffer
+      (binding chain proven); T4 sending the literal 'y' key in
+      copy-mode triggers the binding and puts the marker into the
+      buffer (bind table dispatch proven); T5 the OS-native paste tool
+      returns the marker (physical end-user proof) — or honestly SKIPs
+      with reason where no clipboard tool is reachable.
+    evidence: |
+      live `tmux -L tmx-NAME list-keys -T copy-mode-vi y` output;
+      `show-buffer` content after the binding fires (T3 + T4);
+      `pbpaste` / `wl-paste -n` / `xclip -o -selection clipboard` /
+      `termux-clipboard-get` output (T5) — the physical clipboard
+      readback proves the operator's external paste would receive
+      the text. Cleanup: operator's prior clipboard is captured
+      pre-test and restored at exit so the test never clobbers it.
+    skip_conditions: |
+      §11.4.3 topology: T5 (system clipboard) SKIPs with reason on
+      headless Linux servers with no DISPLAY/Wayland/Termux clipboard
+      tool — T3/T4 binding-chain proof still runs and asserts. The
+      whole test SKIPs only if the tmux binary or tmx wrapper is
+      absent (i.e. setup.sh not yet run).
+    mutation_targets: |
+      M-CLIP: replace the @clip value with `cat >/dev/null` (silent
+      drop) and assert tests T3/T4 FAIL (tmux buffer does not carry
+      the marker). FEATURE RESTORED via the harness backup. Lives in
+      meta_test_false_positive_proof.sh.
+    severity: blocker

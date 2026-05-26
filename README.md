@@ -90,11 +90,11 @@ Both OS paths deliver the **same operator UX**: plain-vanilla tmux behaviour, th
 ## Verification gate
 
 ```
-SUMMARY: PASS=13  FAIL=0  SKIP=5
+SUMMARY: PASS=41  FAIL=0  SKIP=3
 GREEN: tmux binary verified — safe to PATH-export.
 ```
 
-The 18 tests cover: smoke (binary version), session lifecycle, jemalloc loaded, history-limit honored, clear-history releases memory (the "apparent leak"), 10 concurrent panes, 30-s sustained session no-leak, OOM-score wrapper applies -500, crash isolation scope (cgroup-v2 transient), hostname-derived status-bar colour (algorithm + wrapper integration), memory pressure under cap, TasksMax stress, concurrent OOM independence, per-session cgroup distinctness, window-name `.exe` strip, **scrollback + copy-mode scrolling** (operator-path: 3000 lines generated, proven scrolled off-screen, proven reachable via copy-mode), and **HelixConstitution inheritance** (the `constitution/` submodule + every governance doc's inheritance pointer).
+The 44 numbered tests cover (among others): smoke + binary version, session lifecycle, jemalloc loaded, history-limit honored, clear-history releases memory, 10 concurrent panes, sustained session no-leak, OOM-score wrapper, crash isolation scope (cgroup-v2 transient), hostname-derived status-bar colour (algorithm + integration), memory pressure under cap, TasksMax stress, concurrent OOM independence, per-session cgroup distinctness, window-name `.exe` strip, **scrollback + copy-mode scrolling** (operator-path: 3000 lines generated, proven scrolled off-screen, reachable via copy-mode), HelixConstitution inheritance (submodule + every governance doc's pointer), CodeGraph index materialisation, cross-platform parity branches (macOS ↔ Linux), tmx-shell-init non-TTY guard, tmx-state cwd persistence end-to-end across exit + reopen, SSH dispatch to remote nezha, dispatcher session-name validation, setup install/uninstall E2E, and — new in **v1.0.14** — **clipboard copy-OUT physically proven** end-to-end (test 44: marker round-trip through `y` keystroke → `@clip` shell-pipe → `pbpaste` / `wl-paste` / `xclip` / `termux-clipboard-get` returns the marker).
 
 Four honest SKIPs document precondition gates:
 - `03_jemalloc_loaded` SKIPs if host doesn't have libjemalloc — `sudo bash scripts/install_deps.sh` provides it

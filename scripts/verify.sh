@@ -83,6 +83,10 @@ _l1 "WheelDownPane bind"           '^bind +-n +WheelDownPane'
 _l1 "allow-passthrough on"         '^set +-g +allow-passthrough +on'
 _l1 "extended-keys on"             '^set +-s +extended-keys +on'
 _l1 "automatic-rename .exe strip"  'automatic-rename-format'
+_l1 "@clip user option"            '^set +-g +@clip '
+_l1 "copy-mode-vi y -> @clip"      '^bind +-T +copy-mode-vi +y .*copy-pipe-and-cancel.*@clip'
+_l1 "copy-mode-vi Enter -> @clip"  '^bind +-T +copy-mode-vi +Enter .*copy-pipe-and-cancel.*@clip'
+_l1 "MouseDragEnd1Pane -> @clip"   '^bind +-T +copy-mode-vi +MouseDragEnd1Pane .*copy-pipe-and-cancel.*@clip'
 if [ "$L1_FAIL" -ne 0 ]; then
     echo ""
     echo "RED: tmux.conf.template failed the Layer-1 static gate."

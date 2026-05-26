@@ -6,6 +6,100 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.14] — 2026-05-22
+
+**Clipboard copy-OUT physically proven end-to-end; multi-host
+deployment verified on Mistborn (Darwin) + nezha (Linux ALT).**
+
+User request (2026-05-22): "Make sure we can always copy / paste from
+and to the terminal window and current tmux (tmx) session! Using mouse
+or keyboard MUST WORK properly!!! Scrolling the content / history MUST
+NOT be broken or anything else! ... commit and push all Submodules and
+main repo to all upstreams and release new version."
+
+### Fixed
+
+- **A35 — Clipboard copy-OUT had no physical-proof coverage.** The
+  bindings have existed in `scripts/tmux.conf.template` since v1.0.3
+  (`@clip` user option + `copy-pipe-and-cancel "#{@clip}"` on `y` /
+  `Enter` / `MouseDragEnd1Pane`), but every prior test verified only
+  the binding STRUCTURE (grep) and the tmux INTERNAL buffer
+  (`show-buffer`) — no test ever read back the actual system
+  clipboard. That was a textbook §101 PASS-bluff hole: the bindings
+  could grep-pass while nothing ever reached the OS clipboard. This
+  release closes the hole with PHYSICAL proof via `pbpaste`
+  (Darwin) / `wl-paste` / `xclip -o` (Linux X11/Wayland) /
+  `termux-clipboard-get` (Termux). See `Fixed.md` A35.
+
+- **A36 — `scripts/test_e2e.sh` T1.2 stale podman-machine
+  prerequisite.** The e2e check still hard-required a running podman
+  machine on Darwin, a legacy from the pre-v1.0.7 SSH-bridge
+  architecture. Native dual-OS (since v1.0.7) builds Mach-O on
+  Darwin and runs the binary as a host process — podman is no longer
+  needed. The check now probes for the Darwin native binary first,
+  and only falls back to the podman path for bridge-era installs.
+
+### Hardened (4-layer regression protection per Constitution §103)
+
+- **Layer 1 (static gate):** `scripts/verify.sh` extended with four
+  new `_l1` checks asserting `@clip` + `y` / `Enter` /
+  `MouseDragEnd1Pane` copy-pipe bindings present in
+  `tmux.conf.template`. RED if any missing.
+- **Layer 2 (runtime, operator-path per §102):**
+  `scripts/tests/44_clipboard_copy_out_physical.sh` — spawns
+  `tmx new -s NAME -d`, prints a unique marker, enters copy-mode,
+  search-backward + select-line + invokes `@clip` (T3 direct
+  copy-pipe-and-cancel + T4 literal `y` keystroke that triggers the
+  bind-table dispatch end-to-end), then reads the OS-native paste
+  tool and asserts the marker is there (T5). On a headless Linux
+  server with no clipboard tool, T5 honestly SKIPs while T3/T4
+  binding-chain proof still runs — no false ESCAPE on any topology.
+  **Pre-test save + post-test restore** of the operator's clipboard
+  so the test never clobbers it.
+- **Layer 3 (Challenge):** `TMUX-CH-44` in
+  `scripts/challenges/tmux.yaml` documenting the operator flow + the
+  multi-tier evidence chain + the cleanup discipline.
+- **Layer 4 (paired mutation):** **M44** in
+  `meta_test_false_positive_proof.sh` strips the `@clip` user-option
+  definition; test 44 T1 catches universally (structural grep),
+  T5 additionally catches wherever a clipboard tool is reachable.
+  MUTATION CAUGHT + FEATURE RESTORED both directions verified.
+
+### Verification (this cycle, captured 2026-05-22 on Darwin arm64)
+
+- `bash scripts/setup.sh --rebuild` → GREEN; suite `PASS=41 FAIL=0
+  SKIP=3` (SKIPs: 08 Linux-only oom_score_adj, 12 destructive memory
+  pressure, 32 remote-nezha opt-in). Test 44 PASS=7/0/0 including T5
+  pbpaste physical proof.
+- `bash scripts/test_e2e.sh` → `PASS=9 FAIL=0 SKIP=0` GREEN after
+  A36 fix.
+- `bash scripts/tests/meta_test_false_positive_proof.sh` →
+  `39 caught / 2 escaped / 8 skipped`. The 2 escapes are
+  **pre-existing v1.0.9 layer-4 gaps** (P5-M20 + P5-M21 — see
+  `Issues.md` B3 for the full forensic detail). Each escape is a
+  test-DESIGN gap (defense-in-depth on the target FEATURE makes the
+  mutation invisible to the assertion), not a feature defect — the
+  underlying features (shell-init non-TTY skip, cwd persistence)
+  remain GREEN via tests 18, 21, 43. Closure conditions documented
+  in B3.
+
+### Multi-host verification
+
+- **Mistborn (Darwin arm64)**: native Mach-O + setup.sh --rebuild
+  GREEN, test 44 T5 returned the marker via pbpaste — physical
+  end-user evidence.
+- **nezha.local (Linux ALT 6.12 x86_64)**: see this cycle's
+  CONTINUATION §3 + the release artefact log for the captured
+  remote-side gate.
+
+### Known issues (transparent disclosure per §11.4)
+
+- `Issues.md` B3 — P5-M20 + P5-M21 escapes (pre-existing from v1.0.9).
+  Feature behaviour GREEN; layer-4 test-DESIGN tightening tracked for
+  a future cycle.
+
+---
+
 ## [v1.0.13] — 2026-05-22
 
 **The cwd-persistence design fix.** User report (2026-05-22): "we open

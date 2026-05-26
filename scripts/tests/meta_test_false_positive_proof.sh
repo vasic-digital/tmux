@@ -764,6 +764,27 @@ PYEOF
     fi
 fi
 
+# ── M44: tmx.conf.template — strip the @clip user-option definition. ─
+#        The operator's copy-out flow (Fixed.md A35) is `y` /
+#        MouseDragEnd1Pane → copy-pipe-and-cancel "#{@clip}". Removing
+#        the @clip definition leaves `#{@clip}` undefined; tmux expands
+#        it to empty, the pipe command becomes empty, and nothing ever
+#        reaches the system clipboard. Test 44 catches this on TWO
+#        layers: T1 (structural grep — template no longer carries `set
+#        -g @clip`) fires on any host, even headless Linux. T5
+#        (physical pbpaste / wl-paste / xclip readback) additionally
+#        fires wherever a clipboard tool is reachable. Multi-layer
+#        catch = no false ESCAPE on any topology.
+#
+#        Implementation: grep-out + atomic rename (portable BSD/GNU).
+run_mutation \
+    "M44: tmux.conf.template strip @clip user-option definition" \
+    "scripts/tmux.conf.template" \
+    "grep -v '^set -g @clip ' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/44_clipboard_copy_out_physical.sh" \
+    "FAIL.*T1"
+
 # ═══════════════════════════════════════════════════════════════════════
 # v1.0.9 shell-session-resume PWUs (P5) — paired mutations
 # ═══════════════════════════════════════════════════════════════════════

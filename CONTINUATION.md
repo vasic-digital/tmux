@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-21T21:00Z
+**Last updated:** 2026-05-22T15:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,9 +15,9 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.8** (versionCode 9) — hostname colour now applies to ALL default-green tmux UI surfaces (active border + clock + window-status-current), not just status-bar; NEW test 26 + M24; quintuple GREEN macOS, 2026-05-21 |
-| Verification (this cycle) | Full rebuild via `bash scripts/setup.sh` → GREEN. `setup.sh --verify-only` → PASS=22 FAIL=0 SKIP=2. Meta-test 32 caught / 0 escaped / 6 skipped. e2e PASS=9/0/0. codegraph_validate 4/0/SKIP=1. codegraph_cadence_check GREEN (0.2d ago, 6 nodes, within 7d floor). tmx operator-path live confirmation (`which tmx` + `tmx -V`). launchd job `digital.vasic.tmux.codegraph-cadence` loaded. git pre-push hook installed. All captured 2026-05-21 on Darwin arm64. |
-| Governance docs | `constitution/` submodule (HelixConstitution, pinned `6e164f3` carrying §11.4.81); `Containers/` submodule (pinned `fbef9d6` — bumped this cycle from `4ca5491` after Containers/QWEN.md covenant gap closure); project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
+| Version | **1.0.14** (versionCode 15) — A35 clipboard copy-OUT physical proof (test 44 + M44 + TMUX-CH-44 + verify.sh Layer-1 extension) + A36 e2e stale-podman-prereq fix + B3 P5 escape transparency; multi-host deploy (Mistborn + nezha), 2026-05-22 |
+| Verification (this cycle) | `bash scripts/setup.sh --rebuild` on Mistborn → GREEN; suite `PASS=41 FAIL=0 SKIP=3` (SKIPs: 08 Linux-only oom_score_adj, 12 destructive memory pressure, 32 remote-nezha opt-in). NEW test 44 PASS=7/0/0 with T5 `pbpaste` returning the marker — physical end-user clipboard proof. `bash scripts/test_e2e.sh` PASS=9/0/0 after A36 fix. Meta-test `39 caught / 2 escaped / 8 skipped` — the 2 escapes are pre-existing v1.0.9 layer-4 test-DESIGN gaps (P5-M20 + P5-M21, see `Issues.md` B3); the FEATURES they cover are GREEN via tests 18/21/43. Captured 2026-05-22 on Darwin arm64. Nezha (Linux ALT 6.12 x86_64) verification: see §3.15. |
+| Governance docs | `constitution/` submodule (HelixConstitution, pinned `84c948d`); `Containers/` submodule (pinned `fbef9d6`); project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
 
@@ -208,6 +208,62 @@ The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque co
 - Updated `Issues.md`: A1 removed (→ Fixed.md A1). Issues.md now has
   **zero open items** — all originally seeded items are closed.
 - Cleaned up `CONTINUATION.md` §3.6: removed stale "remaining open" note.
+
+### §3.15 — v1.0.14 clipboard copy-OUT physical proof + e2e stale-prereq fix + multi-host deploy (2026-05-22)
+
+**Status:** COMPLETE (2026-05-22).
+
+Triggering event: operator mandate (verbatim, 2026-05-22):
+> "We can always copy / paste from and to the terminal window and
+> current tmux (tmx) session! Using mouse or keyboard MUST WORK
+> properly!!! Scrolling the content / history MUST NOT be broken or
+> anything else! After all changes are done, covered with full
+> validation and verification tests make sure we setup new version
+> to current host (macOS) and nezha (nezha.local is back online).
+> Once both hosts are updated with the latest versions and on both
+> hosts all tests are executed with success with no failure and
+> bringing real proofs of everything working as requested and
+> expected (physical proofs) with no bluffs commit and push all
+> Submodules and main repo to all upstreams and release new version
+> with comprehensive in-depth version (change) log using GitHub and
+> GitLab CLIs."
+
+- **A35 clipboard copy-OUT physical proof** (Fixed.md A35):
+  identified the §101 PASS-bluff hole — bindings existed and grepped
+  fine, but no test ever read back the OS clipboard.
+  - NEW `scripts/tests/44_clipboard_copy_out_physical.sh` —
+    operator-path. Spawns `tmx new -s NAME -d`, prints a unique
+    marker, enters copy-mode, search-backward + select-line, invokes
+    `@clip` (T3 direct -X + T4 the literal `y` keystroke that
+    triggers the bind table end-to-end), then reads the OS-native
+    paste tool (T5 — `pbpaste` / `wl-paste -n` / `xclip -o` /
+    `termux-clipboard-get`) and asserts the marker is there. T5
+    SKIPs honestly with reason on headless Linux; T3/T4 binding-
+    chain proof runs everywhere so the test is never inert. Pre-test
+    save + post-test restore of the operator's clipboard.
+  - PASS=7/0/0 this cycle (Darwin); T5 returned the marker via
+    `pbpaste` — physical end-user evidence.
+  - Layer-1 verify.sh static gate extended (4 new `_l1` checks for
+    `@clip` + the three bindings).
+  - Layer-3: `TMUX-CH-44` in `scripts/challenges/tmux.yaml`.
+  - Layer-4: `M44` in `meta_test_false_positive_proof.sh` strips
+    the `@clip` definition line — test 44 T1 catches universally
+    (structural grep), T5 additionally catches where a clipboard
+    tool is reachable. CAUGHT + RESTORED both directions.
+- **A36 e2e stale podman-machine prerequisite** (Fixed.md A36):
+  `scripts/test_e2e.sh` T1.2 still hard-required a running podman
+  machine, a leftover from the pre-v1.0.7 SSH-bridge architecture.
+  Fixed by probing for the native Mach-O binary FIRST and only
+  falling back to the podman check for bridge-era installs. e2e
+  GREEN after the fix.
+- **B3 P5 escape transparency** (Issues.md B3): meta-test reported 2
+  ESCAPES — P5-M20 (non-TTY guard) and P5-M21 (cwd-capture hook).
+  Investigation determined these are pre-existing v1.0.9 layer-4
+  test-DESIGN gaps (the assertions cannot distinguish "guard fired"
+  from "fallback fired", so a single-layer strip slips through).
+  Features GREEN. Surfaced transparently in Issues.md B3 + the
+  v1.0.14 CHANGELOG — anti-bluff disclosure per §11.4 / §101 / §11.4.6.
+  Closure conditions documented; deferred to a future cycle.
 
 ### §3.14 — v1.0.8 uniform tmux UI recolouring (active border + clock + window-status-current) (2026-05-21)
 
