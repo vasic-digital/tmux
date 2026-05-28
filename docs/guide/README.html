@@ -4,94 +4,240 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>README</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-color: #aaaaaa;
-}
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
-div.sourceCode
-{ background-color: #f8f8f8; }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ef2929; } 
-code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.at { color: #204a87; } 
-code span.bn { color: #0000cf; } 
-code span.cf { color: #204a87; font-weight: bold; } 
-code span.ch { color: #4e9a06; } 
-code span.cn { color: #8f5902; } 
-code span.co { color: #8f5902; font-style: italic; } 
-code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.dt { color: #204a87; } 
-code span.dv { color: #0000cf; } 
-code span.er { color: #a40000; font-weight: bold; } 
-code span.ex { } 
-code span.fl { color: #0000cf; } 
-code span.fu { color: #204a87; font-weight: bold; } 
-code span.im { } 
-code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.kw { color: #204a87; font-weight: bold; } 
-code span.op { color: #ce5c00; font-weight: bold; } 
-code span.ot { color: #8f5902; } 
-code span.pp { color: #8f5902; font-style: italic; } 
-code span.sc { color: #ce5c00; font-weight: bold; } 
-code span.ss { color: #4e9a06; } 
-code span.st { color: #4e9a06; } 
-code span.va { color: #000000; } 
-code span.vs { color: #4e9a06; } 
-code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
-<h1 id="vasic-digital-optimized-tmux--user--operator-guide">vasic-digital
+<h1
+id="vasic-digital-optimized-tmux--user--operator-guide">vasic-digital
 Optimized tmux — User &amp; Operator Guide</h1>
 <p><strong>Status:</strong> Phase 38, Bug #33 (this session,
 2026-05-07). <strong>Constitution alignment:</strong> §11.4 anti-bluff
@@ -123,7 +269,7 @@ future bumps).</li>
 system tmux untouched.</li>
 </ol>
 <p><strong>Why this is gated by §11.4</strong> — the original article
-warns about &quot;apparent leaks&quot; in tmux. Our forensic record (§12 incidents
+warns about "apparent leaks" in tmux. Our forensic record (§12 incidents
 2026-04-27, 2026-04-28, 2026-04-30, 2026-05-06) shows tmux was
 <em>not</em> the actual cause of any documented host-distress event.
 Building from source therefore would not have prevented those incidents.
@@ -133,7 +279,8 @@ full test suite to make sure the new build is genuinely better than the
 system tmux — not silently worse.</p>
 <hr />
 <h2 id="2-one-command-install">§2 One-command install</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 0 — install build deps (one-time, requires sudo)</span></span>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 0 — install build deps (one-time, requires sudo)</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> bash scripts/install_deps.sh</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1 — build + verify + install (no sudo)</span></span>
@@ -252,13 +399,13 @@ catastrophic)</td>
 </tr>
 <tr>
 <td>05 clear-history releases</td>
-<td>the article&#39;s &quot;apparent leak&quot; — clear-history actually frees
+<td>the article's "apparent leak" — clear-history actually frees
 memory</td>
 <td>glibc fragmentation (no jemalloc) — degrades to WARN, not FAIL</td>
 </tr>
 <tr>
 <td>06 concurrent panes</td>
-<td>10 panes don&#39;t OOM the server</td>
+<td>10 panes don't OOM the server</td>
 <td>severe leak</td>
 </tr>
 <tr>
@@ -319,8 +466,8 @@ export). Tests that emit a <code>SKIP</code> line are counted as SKIP
 and do not block (intended for honest precondition gates — see
 Constitution §11.4.2). Tests 12 / 13 / 14 are destructive and opt-in via
 <code>TMX_TEST_DESTRUCTIVE=1</code> — they SKIP by default on
-non-dedicated hosts. There is no per-test &quot;blocker / critical /
-advisory&quot; hierarchy in the gate code: the rule is &quot;any FAIL = RED&quot;.</p>
+non-dedicated hosts. There is no per-test "blocker / critical /
+advisory" hierarchy in the gate code: the rule is "any FAIL = RED".</p>
 <hr />
 <h2 id="5-operator-commands">§5 Operator commands</h2>
 <table>
@@ -374,12 +521,13 @@ advisory&quot; hierarchy in the gate code: the rule is &quot;any FAIL = RED&quot
 </tbody>
 </table>
 <hr />
-<h2 id="56-native-dual-os-per-session-isolation-architecture-since-2026-05-13">§5.6
+<h2
+id="56-native-dual-os-per-session-isolation-architecture-since-2026-05-13">§5.6
 Native dual-OS per-session isolation (architecture since
 2026-05-13)</h2>
 <p>Each <code>tmx new -s NAME</code> invocation produces its own tmux
 server running as a <strong>host-native process</strong> with
-OS-specific resource isolation. The session&#39;s shell IS the operator&#39;s
+OS-specific resource isolation. The session's shell IS the operator's
 host shell — same <code>$USER</code>, same <code>$HOME</code>, same
 <code>$PATH</code>, full filesystem access. The wrapper applies the
 strongest containment each OS natively supports.</p>
@@ -415,7 +563,7 @@ applied as session <code>default-command</code></td>
 <tr>
 <td>Memory cap</td>
 <td><code>MemoryMax</code> (kernel-enforced per cgroup)</td>
-<td><strong>NOT ENFORCED</strong> — see &quot;Honest gap&quot; below</td>
+<td><strong>NOT ENFORCED</strong> — see "Honest gap" below</td>
 </tr>
 <tr>
 <td>CPU cap</td>
@@ -462,7 +610,7 @@ alloc OK: 200000000              # process allocates 200 MB freely</code></pre>
 <p>The <code>tmx-rlimit-wrapper</code> on Darwin therefore applies ONLY
 the limits the kernel actually enforces (<code>RLIMIT_CPU</code>,
 <code>RLIMIT_NPROC</code>). The setup.sh closing message documents this
-explicitly. For full memory containment on macOS, you&#39;d need launchd
+explicitly. For full memory containment on macOS, you'd need launchd
 jobs with <code>HardResourceLimits</code> (root) or — for the same
 workload on a Linux host — cgroup scopes which DO enforce memory.</p>
 <h3 id="naming--sanitisation-both-oses">Naming + sanitisation (both
@@ -553,6 +701,145 @@ $ id ; hostname ; which brew
 <p>Test 15 + e2e T7 in <code>scripts/tests/</code> automate these checks
 with OS-dispatched assertions per Constitution §11.4.2.</p>
 <hr />
+<h2
+id="57-clipboard--multi-line-copy--paste-in--modifier-drag-v1014--v1015">§5.7
+Clipboard — multi-line copy + paste-IN + modifier-drag (v1.0.14 /
+v1.0.15)</h2>
+<p>The shipped <code>~/.tmux.conf</code> (generated from
+<code>scripts/tmux.conf.template</code>) wires four cooperating
+mechanisms so every clipboard surface is reachable from every device —
+mouse, keyboard, and modifier-drag inside mouse-tracking TUIs (Claude
+Code, vim, less, htop).</p>
+<h3 id="quick-reference">Quick reference</h3>
+<table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>Keystroke / mouse</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Select &amp; copy plain shell output</td>
+<td>drag with mouse, release — read back via <code>pbpaste</code> /
+<code>wl-paste</code> / <code>xclip -o</code> /
+<code>termux-clipboard-get</code></td>
+</tr>
+<tr>
+<td>Select &amp; copy inside Claude Code et al.</td>
+<td><strong>Alt-drag</strong> (macOS) OR <strong>Shift-drag</strong>
+(Linux)</td>
+</tr>
+<tr>
+<td>Keyboard-only copy</td>
+<td><code>prefix + [</code> → <code>v</code> → arrows / <code>j</code> /
+<code>k</code> → <code>y</code></td>
+</tr>
+<tr>
+<td>Paste OS clipboard INTO the pane</td>
+<td><code>prefix + P</code> (capital — lowercase is
+<code>previous-window</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-four-mechanisms">The four mechanisms</h3>
+<ol type="1">
+<li><p><strong><code>@clip</code> user option</strong> — OS-adaptive
+WRITE pipeline (pbcopy → wl-copy → xclip → termux-clipboard-set → OSC-52
+fallback). <code>copy-pipe-and-cancel "#{@clip}"</code> routes every
+<code>y</code> / <code>Enter</code> / <code>MouseDragEnd1Pane</code>
+selection through it.</p></li>
+<li><p><strong><code>@clip-read</code> user option (v1.0.15)</strong> —
+symmetric READ pipeline (pbpaste → wl-paste → xclip -o →
+termux-clipboard-get → empty). Drives <code>prefix + P</code>.</p></li>
+<li><p><strong>Modifier-drag overrides (v1.0.15)</strong> —
+<code>bind -n M-MouseDrag1Pane copy-mode -M</code> +
+<code>bind -n S-MouseDrag1Pane copy-mode -M</code>. When a TUI captures
+mouse events (Claude Code's alt-screen + DECSET 1002/1003), the
+unmodified <code>MouseDrag1Pane</code> forwards the drag to the app via
+<code>send -M</code>. Holding Alt / Option (macOS) or Shift (Linux)
+prefixes the event with <code>M-</code> / <code>S-</code> and tmux
+routes it to copy-mode regardless of the app's mouse mode.</p></li>
+<li><p><strong>Bracketed-paste on paste-IN</strong> —
+<code>bind P run -b 'tmux load-buffer - &lt;&lt;&lt; "$(#{@clip-read})" \; tmux paste-buffer -p'</code>.
+The <code>-p</code> flag (per <code>man tmux</code>: <em>"paste bracket
+control codes are inserted around the buffer if the application has
+requested bracketed paste mode"</em>) makes shells / editors treat the
+inserted block as literal text — no accidental command execution from a
+stray newline.</p></li>
+</ol>
+<h3 id="verification-positive-evidence-per-101">Verification (positive
+evidence per §101)</h3>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>What it proves</th>
+<th>Mutation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>44 — clipboard copy-OUT physical</td>
+<td><code>y</code> keystroke → <code>@clip</code> → <code>pbpaste</code>
+round-trip with unique marker</td>
+<td>M44 strips <code>@clip</code> definition</td>
+</tr>
+<tr>
+<td>45 — multi-line keyboard copy</td>
+<td><code>v</code> + arrows + <code>y</code> selects ≥3 lines;
+round-trip via <code>pbpaste</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>46 — paste-IN physical</td>
+<td><code>prefix + P</code> reads <code>@clip-read</code> and inserts
+into the pane</td>
+<td>M46 strips <code>@clip-read</code></td>
+</tr>
+<tr>
+<td>47 — modifier mouse surface</td>
+<td>tmux observes <code>M-</code> / <code>S-</code> modifier on
+drag-start</td>
+<td>—</td>
+</tr>
+<tr>
+<td>48 — modifier-drag binding chain</td>
+<td><code>M-MouseDrag1Pane</code> + <code>M-MouseDragEnd1Pane</code>
+resolves through <code>@clip</code> end-to-end</td>
+<td>M48 strips the modifier binding</td>
+</tr>
+</tbody>
+</table>
+<p>The synthetic alt-screen surrogate at
+<code>scripts/tests/helpers/synthetic_alt_screen_app.py</code>
+substitutes for the Claude Code CLI in tests 47 / 48, avoiding §11.4.98
+OAuth/interactive flake while still exercising the exact alt-screen +
+mouse-tracking surface.</p>
+<p>The dedicated operator-recipe document is <a
+href="../guides/clipboard.md"><code>docs/guides/clipboard.md</code></a>
+— quick recipes, OS-by-OS modifier choice, troubleshooting (Alt-drag
+captured by terminal, empty <code>@clip-read</code>, post-aborted-drag
+mouse weirdness).</p>
+<h3 id="sources-verified-2026-05-28">Sources verified 2026-05-28</h3>
+<ul>
+<li><strong>tmux 3.6a man page</strong> — <code>man tmux</code> on the
+host. Confirms <code>S-</code> / <code>M-</code> modifier prefixes apply
+to mouse events (<code>MouseDrag1Pane</code> is a key name; key names
+accept <code>C-</code> / <code>S-</code> / <code>M-</code> prefixes per
+the "KEY BINDINGS" section); confirms <code>paste-buffer -p</code>
+enables bracketed-paste; confirms <code>@</code>-prefixed user options
+accept arbitrary string values.</li>
+<li><strong>tmux upstream man page mirror</strong> — <a
+href="https://man.openbsd.org/tmux.1">https://man.openbsd.org/tmux.1</a>
+(OpenBSD ships the canonical upstream <code>tmux.1</code>).</li>
+<li><strong>Anthropic Claude Code docs</strong> — <a
+href="https://code.claude.com/docs/en/">https://code.claude.com/docs/en/</a>
+(verified 2026-05-28; no tmux-specific integration page is published;
+the alt-screen + mouse-tracking behaviour cited above is documented from
+direct observation against Claude Code CLI v2.x).</li>
+</ul>
+<hr />
 <h2 id="6-why-we-did-this-despite-the-data">§6 Why we did this despite
 the data</h2>
 <p>The forensic record (§12 incidents) does NOT name tmux as a root
@@ -571,13 +858,13 @@ investigate, instead of losing all context.</p></li>
 host might be 1.x with known leaks. Pinning to 3.6a + jemalloc removes
 that variable.</p></li>
 <li><p><strong>Documentation as a teaching artifact.</strong> The 14
-tests + Challenges show <em>exactly</em> what &quot;tmux is healthy&quot; means in
+tests + Challenges show <em>exactly</em> what "tmux is healthy" means in
 measurable terms. Future engineers can re-run these on any new
 host.</p></li>
 </ol>
 <p><strong>This is justified Defense-in-Depth, not a fix for an existing
 problem.</strong> The investigation explicitly recorded that the
-article&#39;s premise doesn&#39;t apply to us; we still proceeded because the
+article's premise doesn't apply to us; we still proceeded because the
 marginal cost is small and the upside is non-zero.</p>
 <hr />
 <h2 id="8-full-oom-protection-options-cap_sys_resource-required">§8 Full
@@ -595,7 +882,8 @@ PASS.</p>
 for full OOM protection</h3>
 <h4 id="option-a--run-wrapper-via-sudo-simplest-annoying-ux">Option A —
 Run wrapper via sudo (simplest, annoying UX)</h4>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> tmux=<span class="st">&#39;sudo -E /path/to/tmx&#39;</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> tmux=<span class="st">&#39;sudo -E /path/to/tmx&#39;</span></span></code></pre></div>
 <p>Pro: works immediately, no new binaries. Con: requires sudo password
 every tmux launch.</p>
 <h4 id="option-b--setcap-enabled-oom_set-helper-recommended">Option B —
@@ -616,21 +904,23 @@ the wrapper:</p>
 <span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
 <span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>Build + grant capability (one-time):</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">gcc</span> <span class="at">-o</span> oom_set oom_set.c</span>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">gcc</span> <span class="at">-o</span> oom_set oom_set.c</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> setcap cap_sys_resource+ep ./oom_set</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-m</span> 755 ./oom_set /usr/local/bin/tmx-oom-set</span></code></pre></div>
 <p>Then update the wrapper to call
-<code>tmx-oom-set &quot;$server_pid&quot; -500</code> instead of writing
+<code>tmx-oom-set "$server_pid" -500</code> instead of writing
 directly.</p>
 <p>Pro: no per-invocation sudo. Helper has only one capability (minimal
 blast radius). Con: requires one-time root setup; the helper binary must
-be audited (it&#39;s tiny so this is easy).</p>
+be audited (it's tiny so this is easy).</p>
 <h4 id="option-c--systemd-user-service-with-oomscoreadjust">Option C —
 systemd user service with <code>OOMScoreAdjust=</code></h4>
 <p>Run tmux as a systemd user service whose unit file declares
 <code>OOMScoreAdjust=-500</code>. systemd applies the adjustment at
 process startup (it has CAP_SYS_RESOURCE).</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode ini"><code class="sourceCode ini"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ~/.config/systemd/user/tmux.service</span></span>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode ini"><code class="sourceCode ini"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ~/.config/systemd/user/tmux.service</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">[Service]</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="dt">ExecStart</span><span class="ot">=</span><span class="st">/path/to/tmx new-session -A -s main</span></span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="dt">OOMScoreAdjust</span><span class="ot">=</span><span class="dv">-500</span></span>
@@ -638,14 +928,15 @@ process startup (it has CAP_SYS_RESOURCE).</p>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="kw">[Install]</span></span>
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="dt">WantedBy</span><span class="ot">=</span><span class="st">default.target</span></span></code></pre></div>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">systemctl</span> <span class="at">--user</span> enable <span class="at">--now</span> tmux.service</span></code></pre></div>
-<p>Pro: clean, capability-less from the operator&#39;s perspective. systemd
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">systemctl</span> <span class="at">--user</span> enable <span class="at">--now</span> tmux.service</span></code></pre></div>
+<p>Pro: clean, capability-less from the operator's perspective. systemd
 handles everything. Con: tmux runs in a different cgroup hierarchy; some
 plugins / <code>$TMUX_PANE</code> integrations may behave
 differently.</p>
 <h3 id="recommendation">Recommendation</h3>
-<p>For most operators: <strong>Option C</strong> if you&#39;re already on a
-systemd-based distro and use tmux as your &quot;main&quot; workspace.
+<p>For most operators: <strong>Option C</strong> if you're already on a
+systemd-based distro and use tmux as your "main" workspace.
 <strong>Option B</strong> if you launch tmux ad-hoc from terminals.
 <strong>Option A</strong> if you only want OOM protection during
 high-risk tasks (a single sudo-tmux session for the AOSP build

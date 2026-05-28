@@ -183,6 +183,112 @@ func TestAddItem_AllocatesATMAndOpensHistory(t *testing.T) {
 	}
 }
 
+// TestOpenDB_MigratesRawBodyColumn (PWU-Q3, §11.4.93 phase-6) — verify that
+// opening a DB whose `items` table lacks the raw_body column triggers the
+// ALTER TABLE ADD COLUMN auto-migration without losing data.
+func TestOpenDB_MigratesRawBodyColumn(t *testing.T) {
+	tmp := t.TempDir()
+	dbPath := filepath.Join(tmp, "migrate.db")
+
+	// Phase 1: open DB, get past the auto-migrate logic, then DROP the
+	// raw_body column to simulate an older DB.  SQLite doesn't have DROP
+	// COLUMN until 3.35; instead we recreate the items table without
+	// raw_body and then re-open via OpenDB.
+	{
+		db, err := OpenDB(dbPath)
+		if err != nil {
+			t.Fatalf("initial open: %v", err)
+		}
+		// Insert a row.
+		it := &Item{
+			ATMID:           "ATM-001",
+			Type:            TypeTask,
+			Status:          StatusQueued,
+			Title:           "Migrate row",
+			Description:     "A description that comfortably exceeds the forty-character §11.4.91 floor.",
+			CurrentLocation: LocationIssues,
+			Category:        "A",
+			CodeOrdinal:     1,
+			HeadingHash:     computeHeadingHash("A", "A1", "Migrate row"),
+			RawBody:         "verbatim body content\n",
+		}
+		if err := db.UpsertItem(it); err != nil {
+			t.Fatalf("upsert: %v", err)
+		}
+		// Simulate older schema by dropping raw_body column. SQLite >=3.35
+		// supports ALTER TABLE DROP COLUMN; modernc.org/sqlite ships a new
+		// enough version, so this works on the test host.
+		if _, err := db.conn.Exec(`ALTER TABLE items DROP COLUMN raw_body`); err != nil {
+			t.Skipf("DROP COLUMN not supported on this sqlite build: %v (test is best-effort)", err)
+		}
+		_ = db.Close()
+	}
+
+	// Phase 2: re-open and confirm the column is back + the row is intact.
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("re-open: %v", err)
+	}
+	defer db.Close()
+
+	it, err := db.GetItem("ATM-001")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if it == nil {
+		t.Fatalf("row vanished after migration")
+	}
+	if it.Title != "Migrate row" {
+		t.Errorf("title drift after migration: got %q", it.Title)
+	}
+	// raw_body was dropped + re-added with default '' — so it's empty now.
+	if it.RawBody != "" {
+		t.Errorf("raw_body after re-add: got %q, want empty (column dropped + recreated)", it.RawBody)
+	}
+	// Confirm we CAN write to raw_body now.
+	it.RawBody = "post-migration body"
+	if err := db.UpsertItem(it); err != nil {
+		t.Fatalf("write after migration: %v", err)
+	}
+	got, err := db.GetItem("ATM-001")
+	if err != nil {
+		t.Fatalf("re-get: %v", err)
+	}
+	if got.RawBody != "post-migration body" {
+		t.Errorf("post-migration raw_body roundtrip: got %q", got.RawBody)
+	}
+}
+
+// TestPutGetDocumentSource (PWU-Q3, §11.4.93 phase-6) — round-trip a verbatim
+// document source through document_sources table.
+func TestPutGetDocumentSource(t *testing.T) {
+	tmp := t.TempDir()
+	db, err := OpenDB(filepath.Join(tmp, "doc.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	got, err := db.GetDocumentSource(LocationIssues)
+	if err != nil {
+		t.Fatalf("get (empty): %v", err)
+	}
+	if got != "" {
+		t.Errorf("get on empty: got %q, want \"\"", got)
+	}
+	want := "# Issues\n\n## A\n\n### A1. foo — `OPEN`\n**Status:** `OPEN`\n\nbody\n"
+	if err := db.PutDocumentSource(LocationIssues, want); err != nil {
+		t.Fatalf("put: %v", err)
+	}
+	got, err = db.GetDocumentSource(LocationIssues)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got != want {
+		t.Errorf("get: %q, want %q", got, want)
+	}
+}
+
 func TestCloseItem_RequiresEvidence(t *testing.T) {
 	tmp := t.TempDir()
 	db, err := OpenDB(filepath.Join(tmp, "cl.db"))

@@ -9,8 +9,10 @@
 package main
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -42,6 +44,25 @@ func OpenDB(path string) (*DB, error) {
 	if _, err := conn.Exec(embeddedSchema); err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("apply schema: %w", err)
+	}
+	// PWU-Q3 (§11.4.93 phase-6) — auto-migrate older DBs that lack the
+	// raw_body column. CREATE TABLE IF NOT EXISTS won't add new columns to
+	// an existing table, so we do ALTER TABLE ADD COLUMN if absent. SQLite
+	// has no IF NOT EXISTS for ADD COLUMN, so we probe pragma_table_info.
+	var hasRawBody int
+	if err := conn.QueryRow(
+		`SELECT COUNT(*) FROM pragma_table_info('items') WHERE name = 'raw_body'`,
+	).Scan(&hasRawBody); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("probe raw_body column: %w", err)
+	}
+	if hasRawBody == 0 {
+		if _, err := conn.Exec(
+			`ALTER TABLE items ADD COLUMN raw_body TEXT NOT NULL DEFAULT ''`,
+		); err != nil {
+			_ = conn.Close()
+			return nil, fmt.Errorf("migrate raw_body: %w", err)
+		}
 	}
 	return &DB{conn: conn, path: path}, nil
 }
@@ -133,11 +154,13 @@ func (d *DB) UpsertItem(it *Item) error {
 			UPDATE items SET
 				type = ?, status = ?, severity = ?, title = ?, description = ?,
 				forensic_anchor = ?, closure_criteria = ?, composes_with = ?,
-				current_location = ?, category = ?, code_ordinal = ?, last_modified = datetime('now')
+				current_location = ?, category = ?, code_ordinal = ?,
+				raw_body = ?, last_modified = datetime('now')
 			WHERE atm_id = ?`,
 			it.Type, it.Status, it.Severity, it.Title, it.Description,
 			it.ForensicAnchor, it.ClosureCriteria, it.ComposesWith,
-			it.CurrentLocation, it.Category, it.CodeOrdinal, existingATM)
+			it.CurrentLocation, it.Category, it.CodeOrdinal,
+			it.RawBody, existingATM)
 		return err
 	}
 	// Insert new row.
@@ -145,11 +168,11 @@ func (d *DB) UpsertItem(it *Item) error {
 		INSERT INTO items(
 			atm_id, type, status, severity, title, description,
 			forensic_anchor, closure_criteria, composes_with,
-			current_location, category, code_ordinal, heading_hash
-		) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			current_location, category, code_ordinal, heading_hash, raw_body
+		) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		it.ATMID, it.Type, it.Status, it.Severity, it.Title, it.Description,
 		it.ForensicAnchor, it.ClosureCriteria, it.ComposesWith,
-		it.CurrentLocation, it.Category, it.CodeOrdinal, it.HeadingHash)
+		it.CurrentLocation, it.Category, it.CodeOrdinal, it.HeadingHash, it.RawBody)
 	return err
 }
 
@@ -171,6 +194,7 @@ func (d *DB) AllItems() ([]*Item, error) {
 		       COALESCE(forensic_anchor, ''), COALESCE(closure_criteria, ''),
 		       COALESCE(composes_with, ''), current_location,
 		       COALESCE(category, ''), COALESCE(code_ordinal, 0), heading_hash,
+		       COALESCE(raw_body, ''),
 		       created_at, last_modified
 		FROM items
 		ORDER BY CAST(SUBSTR(atm_id, 5) AS INTEGER) ASC`)
@@ -187,6 +211,7 @@ func (d *DB) AllItems() ([]*Item, error) {
 			&it.ForensicAnchor, &it.ClosureCriteria,
 			&it.ComposesWith, &it.CurrentLocation,
 			&it.Category, &it.CodeOrdinal, &it.HeadingHash,
+			&it.RawBody,
 			&it.CreatedAt, &it.LastModified); err != nil {
 			return nil, err
 		}
@@ -218,6 +243,7 @@ func (d *DB) GetItem(atmID string) (*Item, error) {
 		       COALESCE(forensic_anchor, ''), COALESCE(closure_criteria, ''),
 		       COALESCE(composes_with, ''), current_location,
 		       COALESCE(category, ''), COALESCE(code_ordinal, 0), heading_hash,
+		       COALESCE(raw_body, ''),
 		       created_at, last_modified
 		FROM items WHERE atm_id = ?`, atmID).Scan(
 		&it.ATMID, &it.Type, &it.Status, &it.Severity,
@@ -225,6 +251,7 @@ func (d *DB) GetItem(atmID string) (*Item, error) {
 		&it.ForensicAnchor, &it.ClosureCriteria,
 		&it.ComposesWith, &it.CurrentLocation,
 		&it.Category, &it.CodeOrdinal, &it.HeadingHash,
+		&it.RawBody,
 		&it.CreatedAt, &it.LastModified)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -305,4 +332,37 @@ func nullIfEmpty(s string) any {
 		return nil
 	}
 	return s
+}
+
+// PutDocumentSource upserts a verbatim source document for the given location.
+// Used by md→db so db→md can replay byte-identical even when the items.raw_body
+// per-item capture cannot represent preamble / section separators / trailers.
+func (d *DB) PutDocumentSource(location, rawText string) error {
+	if location != LocationIssues && location != LocationFixed {
+		return fmt.Errorf("PutDocumentSource: invalid location %q", location)
+	}
+	sum := sha256.Sum256([]byte(rawText))
+	hash := hex.EncodeToString(sum[:])
+	_, err := d.conn.Exec(`
+		INSERT INTO document_sources(location, raw_text, sha256, last_modified)
+		VALUES(?, ?, ?, datetime('now'))
+		ON CONFLICT(location) DO UPDATE SET
+			raw_text = excluded.raw_text,
+			sha256 = excluded.sha256,
+			last_modified = excluded.last_modified`,
+		location, rawText, hash)
+	return err
+}
+
+// GetDocumentSource returns the stored verbatim source for the given location.
+// Returns ("", nil) when no source has been captured yet.
+func (d *DB) GetDocumentSource(location string) (string, error) {
+	var rawText string
+	err := d.conn.QueryRow(
+		`SELECT raw_text FROM document_sources WHERE location = ?`, location,
+	).Scan(&rawText)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return rawText, err
 }

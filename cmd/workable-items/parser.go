@@ -85,7 +85,29 @@ func ParseFile(path, location string) ([]*ParsedItem, error) {
 
 	commit := func() {
 		if state.current != nil {
+			// Body is the trimmed view used for description derivation.
 			state.current.Item.Body = strings.TrimRight(state.bodyBuilder.String(), "\n")
+			// RawBody (PWU-Q3, §11.4.93 phase-6) is the VERBATIM text between
+			// the heading and the next heading, preserved EXACTLY so db→md
+			// re-emits it byte-identical. Includes leading blank lines + the
+			// trailing newline that separates from the next item's heading.
+			state.current.Item.RawBody = state.bodyBuilder.String()
+			// §11.4.33 type-aware closure refinement (post-PWU-Q5).
+			// The tmux project's Fixed.md uses `RESOLVED` as a universal
+			// closure marker across all Types — preserving operator-readability
+			// at the cost of a parser-side mapping ambiguity. We resolve it
+			// here: once we know the Type (parsed from the body's `**Type:**`
+			// line above), we refine an already-set `StatusFixed` to the
+			// type-aware closure word so `workable-items validate` reports
+			// 0 §11.4.33 findings on the live corpus.
+			if state.current.Item.Status == StatusFixed {
+				switch state.current.Item.Type {
+				case TypeFeature:
+					state.current.Item.Status = StatusImplemented
+				case TypeTask:
+					state.current.Item.Status = StatusCompleted
+				}
+			}
 			items = append(items, state.current)
 			state.current = nil
 			state.bodyBuilder.Reset()

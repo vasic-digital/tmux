@@ -47,24 +47,41 @@ func SyncDBToMD(db *DB, outDir string) error {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir %s: %w", outDir, err)
 	}
-	issuesItems, err := db.ItemsByLocation(LocationIssues)
-	if err != nil {
-		return err
-	}
-	fixedItems, err := db.ItemsByLocation(LocationFixed)
-	if err != nil {
-		return err
-	}
 
-	// Issues.md: group by Category (A..E expected for tmux), sort by Severity
-	// then ATM-ID; emit.
-	if err := writeIssuesMD(filepath.Join(outDir, "Issues.md"), issuesItems); err != nil {
-		return err
+	// PWU-Q3 (§11.4.93 phase-6): byte-identical live-corpus round-trip.
+	// When document_sources holds a captured verbatim source for the
+	// location, replay it directly. This guarantees byte-identical
+	// output for the md→db→md cycle on free-form-body items where the
+	// per-item raw_body alone cannot capture preamble + section
+	// separators + trailer. Items written via `add`/`close` since the
+	// last md→db will NOT appear in this replay — the operator MUST
+	// re-run md→db to capture the latest source, OR fall back to the
+	// structured generator by leaving document_sources empty.
+	if src, err := db.GetDocumentSource(LocationIssues); err == nil && src != "" {
+		if err := os.WriteFile(filepath.Join(outDir, "Issues.md"), []byte(src), 0o644); err != nil {
+			return fmt.Errorf("write Issues.md (verbatim): %w", err)
+		}
+	} else {
+		issuesItems, err := db.ItemsByLocation(LocationIssues)
+		if err != nil {
+			return err
+		}
+		if err := writeIssuesMD(filepath.Join(outDir, "Issues.md"), issuesItems); err != nil {
+			return err
+		}
 	}
-	// Fixed.md: chronological by ATM-ID ascending (proxy for closure date in the
-	// absence of explicit closure_date column).
-	if err := writeFixedMD(filepath.Join(outDir, "Fixed.md"), fixedItems); err != nil {
-		return err
+	if src, err := db.GetDocumentSource(LocationFixed); err == nil && src != "" {
+		if err := os.WriteFile(filepath.Join(outDir, "Fixed.md"), []byte(src), 0o644); err != nil {
+			return fmt.Errorf("write Fixed.md (verbatim): %w", err)
+		}
+	} else {
+		fixedItems, err := db.ItemsByLocation(LocationFixed)
+		if err != nil {
+			return err
+		}
+		if err := writeFixedMD(filepath.Join(outDir, "Fixed.md"), fixedItems); err != nil {
+			return err
+		}
 	}
 
 	if err := db.MetaSet("last_sync_direction", "db-to-md"); err != nil {
@@ -154,6 +171,21 @@ func writeItemBlock(sb *strings.Builder, it *Item) {
 		it.Category, codeOrdinal, it.Title, statusHint)
 	sb.WriteString(heading)
 	sb.WriteString("\n")
+
+	// PWU-Q3 (§11.4.93 phase-6): when raw_body is non-empty, re-emit it
+	// VERBATIM. The structured Type/Status/Severity/ATM-ID prefix lines
+	// are NOT prepended because they are already inside raw_body (the
+	// parser captured everything between the heading and the next heading
+	// without stripping). This is what makes the round-trip byte-identical
+	// for live-corpus free-form bodies (forensic anchors, multi-paragraph
+	// captured-evidence, blockquotes, code fences).
+	if it.RawBody != "" {
+		sb.WriteString(it.RawBody)
+		return
+	}
+
+	// Fallback path for items created via `workable-items add` (no source
+	// body yet) — emit the structured prefix-block + description.
 	sb.WriteString(fmt.Sprintf("**ATM-ID:** %s\n", it.ATMID))
 	sb.WriteString(fmt.Sprintf("**Type:** %s\n", it.Type))
 	sb.WriteString(fmt.Sprintf("**Status:** `%s`\n", it.Status))

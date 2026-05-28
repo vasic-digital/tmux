@@ -3,6 +3,13 @@
 -- Source of truth: constitution/scripts/workable-items/schema.sql
 -- This local copy is embedded via go:embed into the workable-items binary.
 --
+-- PROJECT-LOCAL EXTENSION (PWU-Q3, 2026-05-28): added raw_body column for
+-- §11.4.93 phase-6 byte-identical round-trip on free-form-body items.
+-- Constitution upstream PR tracked as next-cycle item. The DB layer applies
+-- ALTER TABLE items ADD COLUMN raw_body TEXT NOT NULL DEFAULT '' at open()
+-- time when an existing DB lacks the column, so older docs/workable_items.db
+-- files migrate transparently.
+--
 -- workable-items DDL — §11.4.93 SQLite-SSoT for workable items
 --
 -- Canonical authority: constitution/Constitution.md §11.4.93
@@ -73,6 +80,16 @@ CREATE TABLE IF NOT EXISTS items (
     -- Heading hash (sha256 of normalised title) — binding key for re-sync
     -- when wording reflows but identity persists.
     heading_hash     TEXT NOT NULL UNIQUE,
+
+    -- PROJECT-LOCAL EXTENSION (PWU-Q3, 2026-05-28): verbatim free-form body
+    -- captured at md→db time, replayed verbatim at db→md time. Stores the
+    -- exact text between the H3 heading and the next H3 heading. When
+    -- non-empty, db→md emits "<heading>\n<raw_body>" — the structured
+    -- Type/Status/Severity/ATM-ID prefix lines are NOT re-prepended because
+    -- they are already inside raw_body (parser preserves them verbatim).
+    -- Empty for items created via `workable-items add` (no source body yet);
+    -- db→md falls back to the structured prefix-block emission for those.
+    raw_body         TEXT NOT NULL DEFAULT '',
 
     -- Timestamps
     created_at       TEXT NOT NULL DEFAULT (datetime('now')),
@@ -163,6 +180,28 @@ CREATE TABLE IF NOT EXISTS firebase_metadata (
     stacktrace_cluster_hash TEXT,
     kpi                    TEXT,           -- Performance KPI ref
     funnel                 TEXT            -- Analytics funnel ref
+);
+
+-- ============================================================
+-- PWU-Q3 (§11.4.93 phase-6) — document_sources: verbatim source documents
+--
+-- Holds the full Markdown text of each tracked document (Issues.md, Fixed.md)
+-- captured at md→db time, so db→md can replay it byte-identical even for
+-- free-form content the items.raw_body column cannot represent (preamble,
+-- section separators, document conventions table, trailer line, etc.).
+--
+-- The items table remains authoritative for individual workable-item
+-- queries / validation / Status_Summary regeneration. The document_sources
+-- table is the carbon copy used for byte-identical round-trip.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS document_sources (
+    -- Closed-set: 'Issues' | 'Fixed'.
+    location         TEXT PRIMARY KEY NOT NULL CHECK (location IN ('Issues', 'Fixed')),
+    -- Full Markdown text, verbatim from the source file.
+    raw_text         TEXT NOT NULL,
+    -- sha256 of raw_text — used to detect drift in fast paths.
+    sha256           TEXT NOT NULL,
+    last_modified    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- ============================================================

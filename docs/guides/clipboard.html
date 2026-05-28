@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>clipboard</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1 id="tmx-clipboard--operator-guide">tmx Clipboard — Operator
+Guide</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-28T17:00:00Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+Operator-facing guide for the v1.0.14 / v1.0.15 clipboard surface —
+multi-line copy-OUT, paste-IN, and modifier-drag selection inside
+mouse-tracking TUIs (especially Claude Code, vim, less, htop).</p>
+<hr />
+<h2 id="1-quick-recipe-tldr">1. Quick recipe (TL;DR)</h2>
+<table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>Keystroke / mouse</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Select &amp; copy a few lines of plain shell output</td>
+<td>drag with mouse, release — then <code>pbpaste</code> /
+<code>wl-paste</code> / <code>xclip -o</code></td>
+</tr>
+<tr>
+<td>Select &amp; copy inside Claude Code, vim, less, htop</td>
+<td><strong>Alt-drag</strong> (macOS) OR <strong>Shift-drag</strong>
+(Linux) — then paste as above</td>
+</tr>
+<tr>
+<td>Copy without a mouse</td>
+<td><code>prefix + [</code> → <code>v</code> → arrows / <code>j</code> /
+<code>k</code> → <code>y</code></td>
+</tr>
+<tr>
+<td>Paste OS clipboard INTO the current pane</td>
+<td><code>prefix + P</code> (capital P; lowercase <code>p</code> is
+<code>previous-window</code>)</td>
+</tr>
+<tr>
+<td>Scroll back through history</td>
+<td>wheel up (any device, including Termux touch)</td>
+</tr>
+</tbody>
+</table>
+<p>Replace <code>prefix</code> with your tmux prefix (default
+<code>C-b</code>).</p>
+<hr />
+<h2 id="2-inside-claude-code-and-other-mouse-tracking-tuis">2. Inside
+Claude Code (and other mouse-tracking TUIs)</h2>
+<p>The forensic anchor for this section is the 2026-05-28 operator
+mandate: <em>"Selecting multiple lines and copying of them does not
+work. We MUST BE able to scroll vertically everywhere and copy / paste
+anything! Especially in Claude Code (<code>claude</code>
+command)!"</em></p>
+<h3
+id="why-plain-mouse-drag-does-not-enter-copy-mode-in-claude-code">Why
+plain mouse-drag does NOT enter copy-mode in Claude Code</h3>
+<p>Claude Code, like vim / less / htop / fzf, runs on the terminal's
+<strong>alternate screen</strong> and requests <strong>mouse
+tracking</strong> (DECSET 1000/1002/1003/1006). When mouse tracking is
+active, tmux's default <code>MouseDrag1Pane</code> binding forwards
+every drag event to the application via <code>send -M</code> so the TUI
+can handle its own click behaviour. The drag therefore never reaches
+tmux's copy-mode, so the obvious select-with-mouse motion appears to do
+nothing for the operator.</p>
+<p>This is by design upstream — but for the operator who wants to copy
+multiple lines out of Claude Code's transcript, it is the worst possible
+UX.</p>
+<h3 id="the-escape-alt-drag-macos-or-shift-drag-linux">The escape:
+Alt-drag (macOS) or Shift-drag (Linux)</h3>
+<p>tmux 3.6a supports modifier-prefixed mouse events (<code>M-</code>
+for Alt/meta, <code>S-</code> for Shift; see <code>man tmux</code> under
+"key names"). vasic-digital tmux v1.0.15 adds two dedicated bindings to
+the shipped <code>~/.tmux.conf</code>:</p>
+<pre class="tmux"><code>bind -n M-MouseDrag1Pane  copy-mode -M
+bind -n S-MouseDrag1Pane  copy-mode -M
+bind -T copy-mode-vi M-MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel &quot;#{@clip}&quot;
+bind -T copy-mode-vi S-MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel &quot;#{@clip}&quot;</code></pre>
+<p>Effect: <strong>hold Alt (<code>Option</code> on macOS) or Shift
+while you drag</strong> and tmux forces copy-mode entry regardless of
+what the TUI is doing with the mouse. Release the drag and the selection
+goes straight through the OS clipboard pipeline (<code>@clip</code>, see
+§3 below). A plain (unmodified) drag still goes to the app, so Claude
+Code's own click behaviour is preserved.</p>
+<table>
+<thead>
+<tr>
+<th>OS</th>
+<th>Recommended modifier</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>macOS (Terminal.app, iTerm2, WezTerm, Ghostty, Alacritty)</td>
+<td><strong>Alt-drag</strong> (hold Option)</td>
+<td>Option passes through cleanly on every macOS terminal we tested</td>
+</tr>
+<tr>
+<td>Linux (gnome-terminal, konsole, xterm, kitty, foot, alacritty)</td>
+<td><strong>Shift-drag</strong></td>
+<td>The natural "select even in mouse-tracking apps" modifier on
+X11/Wayland; also the modifier most terminals already use to bypass
+their own mouse handling</td>
+</tr>
+<tr>
+<td>Termux on Android</td>
+<td>long-press → "Select text" (terminal-native), then drag</td>
+<td>Termux's gesture handler intercepts before tmux sees the event</td>
+</tr>
+</tbody>
+</table>
+<p>Either modifier works on either OS — pick whichever your terminal
+forwards correctly.</p>
+<hr />
+<h2 id="3-on-the-keyboard-no-mouse-at-all">3. On the keyboard (no mouse
+at all)</h2>
+<p>Vi mode in copy-mode is enabled by default
+(<code>set -g mode-keys vi</code> in the shipped config).</p>
+<pre><code>prefix + [        enter copy-mode at the bottom of the buffer
+prefix + PageUp   enter copy-mode AND page up in one motion
+  k / j           move up / down one line
+  C-u / C-d       half-page up / down
+  g / G           top / bottom of scrollback
+  / / ?           search forward / backward
+  v               begin selection
+  V               line-mode selection (whole-line block)
+  C-v             rectangle (block) selection
+  y               copy through @clip → OS clipboard, exit copy-mode
+  Enter           same as y
+  q / Escape      exit copy-mode without copying</code></pre>
+<p>The <code>y</code> binding is what physically reaches
+<code>pbpaste</code> / <code>wl-paste</code> / <code>xclip -o</code>.
+Test 44 (<code>scripts/tests/44_clipboard_copy_out_physical.sh</code>)
+proves the literal <code>y</code> keystroke makes a marker show up on
+the OS clipboard end-to-end.</p>
+<hr />
+<h2 id="4-paste-os-clipboard-into-the-current-pane-v1015">4. Paste OS
+clipboard INTO the current pane (v1.0.15)</h2>
+<p><code>set -g set-clipboard external</code> is COPY-OUT only — OSC-52
+is not standardised for paste-IN. v1.0.15 adds an explicit binding:</p>
+<pre class="tmux"><code>set -g @clip-read &#39;sh -c &quot;command -v pbpaste &gt;/dev/null 2&gt;&amp;1 &amp;&amp; exec pbpaste; \
+                          command -v wl-paste &gt;/dev/null 2&gt;&amp;1 &amp;&amp; exec wl-paste -n; \
+                          command -v xclip &gt;/dev/null 2&gt;&amp;1 &amp;&amp; exec xclip -o -selection clipboard; \
+                          command -v termux-clipboard-get &gt;/dev/null 2&gt;&amp;1 &amp;&amp; exec termux-clipboard-get; \
+                          printf \&quot;\&quot;&quot;&#39;
+bind P run -b &#39;tmux load-buffer - &lt;&lt;&lt; &quot;$(#{@clip-read})&quot; \; tmux paste-buffer -p&#39;</code></pre>
+<ul>
+<li><code>prefix + P</code> (capital) reads the OS clipboard via the
+OS-adaptive <code>@clip-read</code> helper and pastes it into the
+current pane.</li>
+<li><code>paste-buffer -p</code> enables
+<strong>bracketed-paste</strong> mode (per <code>man tmux</code>:
+<em>"If <code>-p</code> is specified, paste bracket control codes are
+inserted around the buffer if the application has requested bracketed
+paste mode"</em>). Apps that understand bracketed paste (bash, zsh, vim,
+neovim, Claude Code's prompt) treat the inserted text as a single
+literal block — no accidental command execution from a stray
+newline.</li>
+</ul>
+<p>Lowercase <code>prefix + p</code> is left bound to tmux's
+<code>previous-window</code> so existing muscle memory is preserved.</p>
+<hr />
+<h2 id="5-on-headless-linux-no-clipboard-tool-installed">5. On headless
+Linux (no clipboard tool installed)</h2>
+<p><code>@clip</code> and <code>@clip-read</code> probe a closed set of
+tools in this order:</p>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Tool</th>
+<th>Provides</th>
+<th>Install</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>pbcopy</code> / <code>pbpaste</code></td>
+<td>macOS native</td>
+<td>preinstalled on Darwin</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>wl-copy</code> / <code>wl-paste</code></td>
+<td>Wayland (sway, GNOME Wayland, KDE Wayland)</td>
+<td><code>apt install wl-clipboard</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>xclip</code></td>
+<td>X11 (Xorg)</td>
+<td><code>apt install xclip</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>termux-clipboard-set</code> /
+<code>termux-clipboard-get</code></td>
+<td>Android Termux</td>
+<td><code>pkg install termux-api</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>OSC-52 (<code>set-clipboard external</code>)</td>
+<td>any terminal that supports the OSC-52 escape</td>
+<td>already enabled by the shipped config</td>
+</tr>
+</tbody>
+</table>
+<p>If none of 1–4 are available AND the operator's terminal does not
+honour OSC-52, copy-OUT physical-proof test (T5 of test 44)
+<strong>honestly SKIPs</strong> with reason
+<code>no_clipboard_tool_reachable</code>. The binding chain (T3/T4)
+still verifies end-to-end inside tmux; only the final "did it land in
+<code>pbpaste</code>" hop is unverifiable on that topology. This is a
+§11.4.3 topology SKIP, not a PASS-bluff.</p>
+<hr />
+<h2 id="6-troubleshooting">6. Troubleshooting</h2>
+<p><strong>"Copy works in tmux but <code>pbpaste</code> returns the OLD
+clipboard."</strong> The <code>@clip</code> user option is set by the
+shipped <code>~/.tmux.conf</code> — confirm it is present:
+<code>tmux show -gv @clip</code> inside a <code>tmx</code> session. If
+the output is empty, your <code>~/.tmux.conf</code> is from before
+v1.0.14; re-run <code>bash scripts/setup.sh</code> to regenerate.</p>
+<p><strong>"Alt-drag selects nothing; the app still gets the
+drag."</strong> Your terminal is capturing Alt before tmux sees it
+(common on Linux with gnome-terminal's "Use Alt as Meta" preference
+disabled). Try Shift-drag instead. As a permanent fix, check the
+terminal's "Pass Alt through to applications" / "Use Option as Meta key"
+setting.</p>
+<p><strong>"<code>prefix + P</code> does nothing."</strong> Either (a)
+<code>@clip-read</code> resolved to an empty probe — install one of
+<code>pbpaste</code> / <code>wl-paste</code> / <code>xclip</code> /
+<code>termux-clipboard-get</code>; or (b) the OS clipboard is genuinely
+empty. Verify with <code>tmux show -gv @clip-read</code> and then run
+the value in a shell to see what it returns.</p>
+<p><strong>"Mouse buttons behave weirdly after an aborted
+Alt-drag."</strong> Press <code>q</code> or <code>Escape</code> to exit
+copy-mode cleanly. tmux returns the pane to the app's mouse mode on
+copy-mode exit.</p>
+<p><strong>"Scrollback works in the shell but not in Claude
+Code."</strong> That's the same root cause as the selection problem
+above — Claude Code holds the alt-screen with mouse tracking. The
+shipped config overrides <code>WheelUpPane</code> /
+<code>WheelDownPane</code> so wheel scroll ALWAYS drives tmux's
+scrollback regardless of the app's mouse mode. If wheel scroll still
+misbehaves, <code>tmux show -g | grep WheelUp</code> should show the
+binding; if it doesn't, regenerate the config.</p>
+<hr />
+<h2 id="7-anti-bluff-verification-positive-evidence-on-every-pass">7.
+Anti-bluff verification (positive evidence on every PASS)</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>What it proves</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>44 — clipboard copy-OUT physical</td>
+<td><code>y</code> keystroke through <code>@clip</code> reaches the OS
+clipboard; SKIPs honestly on headless</td>
+<td><code>scripts/tests/44_clipboard_copy_out_physical.sh</code></td>
+</tr>
+<tr>
+<td>45 — multi-line copy regression</td>
+<td>keyboard <code>v</code> + arrows + <code>y</code> selects ≥3 lines;
+round-trip via <code>pbpaste</code></td>
+<td><code>scripts/tests/45_multi_line_keyboard_copy.sh</code></td>
+</tr>
+<tr>
+<td>46 — paste-IN physical</td>
+<td><code>prefix + P</code> reads <code>@clip-read</code> and inserts
+into the pane</td>
+<td><code>scripts/tests/46_paste_in_physical.sh</code></td>
+</tr>
+<tr>
+<td>47 — mouse-surface confirmation</td>
+<td>tmux observes the <code>M-</code> / <code>S-</code> modifier on
+drag-start</td>
+<td><code>scripts/tests/47_modifier_mouse_surface.sh</code></td>
+</tr>
+<tr>
+<td>48 — modifier-drag binding chain</td>
+<td><code>M-MouseDrag1Pane</code> + <code>M-MouseDragEnd1Pane</code>
+resolves to <code>@clip</code> end-to-end</td>
+<td><code>scripts/tests/48_modifier_drag_binding_chain.sh</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each test follows Constitution §101 (positive captured evidence) and
+§11.4.69 (sink-side / downstream evidence — <code>pbpaste</code> IS the
+sink). Paired mutations M44 / M46 / M48 in
+<code>meta_test_false_positive_proof.sh</code> strip the relevant
+binding and assert each test FAILs (CAUGHT + FEATURE RESTORED).</p>
+<hr />
+<h2 id="8-cross-references">8. Cross-references</h2>
+<ul>
+<li><code>scripts/tmux.conf.template</code> — the canonical source of
+all bindings cited above</li>
+<li><a href="../guide/README.md"><code>docs/guide/README.md</code></a>
+§5 — operator-command reference</li>
+<li><a
+href="../scrolling/README.md"><code>docs/scrolling/README.md</code></a>
+— sister guide for wheel / touch scrolling in Claude Code</li>
+<li><a href="../../Fixed.md"><code>Fixed.md</code></a> A35 (v1.0.14
+copy-OUT) + A37 (v1.0.15 multi-line + paste-IN + modifier-drag)</li>
+<li><a href="../../CHANGELOG.md"><code>CHANGELOG.md</code></a> v1.0.14 +
+v1.0.15 sections</li>
+</ul>
+<hr />
+<h2 id="sources-verified-2026-05-28">Sources verified 2026-05-28</h2>
+<ul>
+<li><strong>tmux 3.6a man page</strong> — <code>man tmux</code> on the
+host (Mistborn Darwin arm64, tmux 3.6a from
+<code>tmux/build-darwin/bin/tmux</code>). Confirmed: <code>S-</code> /
+<code>M-</code> modifier prefixes for keys including mouse events ("Ctrl
+keys may be prefixed with <code>C-</code> or <code>^</code>, Shift keys
+with <code>S-</code> and Alt (meta) with <code>M-</code>");
+<code>MouseDrag1</code> / <code>MouseDragEnd1</code> events listed in
+MOUSE SUPPORT; <code>paste-buffer -p</code> documented as "paste bracket
+control codes are inserted around the buffer if the application has
+requested bracketed paste mode"; user options prefixed with
+<code>@</code> are arbitrary and string-typed.</li>
+<li><strong>tmux upstream man page mirror</strong> — <a
+href="https://man.openbsd.org/tmux.1">https://man.openbsd.org/tmux.1</a>
+(verified 2026-05-28; OpenBSD ships the upstream tmux man page).</li>
+<li><strong>Anthropic Claude Code documentation</strong> — <a
+href="https://code.claude.com/docs/en/">https://code.claude.com/docs/en/</a>
+(verified 2026-05-28; the public docs do not currently publish a
+tmux-integration page, so the alt-screen + mouse-tracking behaviour
+cited above is documented here from direct observation against the
+Claude Code CLI v2.x — the upstream binary that ships as
+<code>bin/claude.exe</code> Mach-O on macOS and is exercised in
+<code>scripts/tests/47..48</code>).</li>
+<li><strong>Synthetic alt-screen surrogate</strong> —
+<code>scripts/tests/helpers/synthetic_alt_screen_app.py</code> (this
+repo) substitutes for Claude Code in CI to avoid §11.4.98
+OAuth/interactive flake while still exercising the exact alt-screen +
+mouse-tracking surface.</li>
+</ul>
+</body>
+</html>

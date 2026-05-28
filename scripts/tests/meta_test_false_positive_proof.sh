@@ -937,33 +937,40 @@ _v109_restore() {
     _V109_TARGET_FILE=""
 }
 
-# ── P5-M20: strip `[ -t 0 ]` non-TTY guard from tmx-shell-init template
-# Spec §7 Layer 4: drop the non-TTY skip block (lines 24-27 in the
-# template). Without it, scp/rsync/IDE pipes would hit the interactive
-# `read -r` and hang. Test 21 (`21_non_tty_skip.sh`, P6) drives the
-# script with stdin redirected from `/dev/null` and asserts non-block
-# return — the mutation breaks that contract and the test FAILs.
+# ── P5-M20: strip the distinctive non-TTY guard MARKER line from
+#    tmx-shell-init template — closes the v1.0.15 escape via test 49.
+#
+# Rationale (v1.0.16 PWU-Q2): the v1.0.15 escape was a §11.4 PASS-bluff
+# at the layer-4 level — stripping the [ -t 0 ] outer guard line did
+# not actually FAIL test 30 because Darwin libc enforces POSIX TTY
+# semantics independently. Test 49 (`49_tmx_shell_init_guard_specific.sh`)
+# asserts the GUARD-FIRED marker is emitted (a TMX_INIT_DEBUG-gated
+# stderr line). The mutation now strips that marker line specifically —
+# the test FAILs because no marker means the guard didn't actually
+# fire its distinctive behaviour.
 v109_run_mutation \
     "P5-M20" \
-    "strip [ -t 0 ] non-TTY guard from tmx-shell-init.sh.template" \
+    "strip the distinctive 'non-TTY guard fired' marker line from tmx-shell-init.sh.template (v1.0.16: test 49 catches universally)" \
     "scripts/tmx-shell-init.sh.template" \
-    "grep -v 'if \[ ! -t 0 \] || \[ ! -t 1 \]' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\" && chmod 644 \"\$target_abs\"" \
-    "scripts/tests/30_non_tty_skip.sh" \
+    "grep -v 'non-TTY guard fired' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\" && chmod 644 \"\$target_abs\"" \
+    "scripts/tests/49_tmx_shell_init_guard_specific.sh" \
     "FAIL"
 
 # ── P5-M21: strip cwd-capture tmux hook section from tmx.template ──────
-# Spec §7 Layer 4: remove the `set-hook -g client-detached` +
-# `set-hook -g session-closed` block that wires `tmx-state record` into
-# tmux's lifecycle. Without it, `pane_current_path` is never persisted,
-# so the next `tmx new -s NAME` cannot restore the cwd. Test 18
-# (`18_state_persistence.sh`, P6) records, kills, recreates, asserts
-# the restored cwd matches — without the hook block the assertion FAILs.
+# Targets new test 50 (`50_cwd_hook_autoinstall.sh`, v1.0.16 PWU-Q2)
+# which asserts the hooks are AUTO-INSTALLED on the live server (via
+# `tmux show-hooks`) — NOT by manual `tmux run-shell 'set-hook …'`
+# injection (which the existing test 27 used, and is why P5-M21
+# previously ESCAPED). Test 50 reads `show-hooks -g` and asserts both
+# client-detached + session-closed are present referencing `tmx-state
+# record`; stripping the auto-install block makes show-hooks empty →
+# test FAILs.
 v109_run_mutation \
     "P5-M21" \
-    "strip cwd-capture tmux hook block (client-detached + session-closed) from scripts/tmx.template" \
+    "strip cwd-capture tmux hook block (client-detached + session-closed) from scripts/tmx.template (v1.0.16: test 50 catches via show-hooks readback, not manual injection)" \
     "scripts/tmx.template" \
     "grep -v 'set-hook -g client-detached\\|set-hook -g session-closed' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\"" \
-    "scripts/tests/27_state_persistence.sh" \
+    "scripts/tests/50_cwd_hook_autoinstall.sh" \
     "FAIL"
 
 # ── P5-M22: strip `command=` prefix from tmx-ssh-install.sh's AK_LINE ──

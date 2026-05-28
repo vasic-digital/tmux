@@ -327,10 +327,10 @@ RESOLVED</h2>
 id="a40-docx-export-extension--pandoc-docx-siblings-alongside-html--pdf--resolved">A40.
 DOCX export extension — pandoc <code>.docx</code> siblings alongside
 <code>.html</code> + <code>.pdf</code> — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.15 / versionCode 16
-(2026-05-28). <strong>Reported:</strong> operator mandate, 2026-05-28 —
-"all relevant docs around it (with them all being exported in all
-expected file types - PDF, HTML, DOCX)".</p>
+<p><strong>Type:</strong> Feature <strong>Closure cycle:</strong>
+v1.0.15 / versionCode 16 (2026-05-28). <strong>Reported:</strong>
+operator mandate, 2026-05-28 — "all relevant docs around it (with them
+all being exported in all expected file types - PDF, HTML, DOCX)".</p>
 <p><strong>Forensic detail (no guessing per §11.4.6):</strong> the
 project's existing markdown-sync wrapper produced <code>.html</code>
 (pandoc) + <code>.pdf</code> (weasyprint) siblings per §11.4.65.
@@ -379,6 +379,7 @@ cycle).</p>
 id="a39-sqlite-backed-workable-items-single-source-of-truth-go-binary-project-local-phase-3--resolved">A39.
 SQLite-backed workable-items single-source-of-truth (Go binary,
 project-local Phase 3+) — <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Feature</p>
 <p><strong>Closure cycle:</strong> v1.0.15 / versionCode 16
 (2026-05-28). <strong>Reported:</strong> operator mandate, 2026-05-28 —
 "We MUST NEVER forget the flow: workable item (with proper type and
@@ -489,13 +490,14 @@ cycle).</p>
 id="a38-constitution-submodule-sync-84c948d6828ff2--1148798-short-form-propagation--resolved">A38.
 Constitution submodule sync 84c948d→6828ff2 + §11.4.87–98 short-form
 propagation — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.15 / versionCode 16
-(2026-05-28). <strong>Reported:</strong> operator mandate, 2026-05-28 —
-"Make sure that all these points / rules / mandatory constraints and
-details ... be part of Constitution.md of our project, its CLAUDE.MD,
-AGENTS.MD and QWEN.md if it is not there already, and to be applied to
-all Submodules's Constitution... Do not forget to first fetch and pull
-all latest changes before changing any of Submodules!"</p>
+<p><strong>Type:</strong> Task <strong>Closure cycle:</strong> v1.0.15 /
+versionCode 16 (2026-05-28). <strong>Reported:</strong> operator
+mandate, 2026-05-28 — "Make sure that all these points / rules /
+mandatory constraints and details ... be part of Constitution.md of our
+project, its CLAUDE.MD, AGENTS.MD and QWEN.md if it is not there
+already, and to be applied to all Submodules's Constitution... Do not
+forget to first fetch and pull all latest changes before changing any of
+Submodules!"</p>
 <p><strong>Forensic detail (no guessing per §11.4.6):</strong> the
 project's <code>constitution/</code> submodule pinned at
 <code>84c948d</code> was 19 commits behind upstream
@@ -550,11 +552,11 @@ cycle).</p>
 id="a37-multi-line-copy--paste-into--alt-screen-tui-mouse-drag-override-claude-code-support--resolved">A37.
 Multi-line copy + PASTE-INTO + alt-screen TUI mouse-drag override
 (Claude Code support) — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.15 / versionCode 16
-(2026-05-28). <strong>Reported:</strong> operator mandate, 2026-05-28 —
-"Selecting multiple lines and copying of them does not work. We MUST BE
-able to scroll vertically everywhere and copy / past anything!
-Especially in Claude Code (claude command)!"</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.15 /
+versionCode 16 (2026-05-28). <strong>Reported:</strong> operator
+mandate, 2026-05-28 — "Selecting multiple lines and copying of them does
+not work. We MUST BE able to scroll vertically everywhere and copy /
+past anything! Especially in Claude Code (claude command)!"</p>
 <p><strong>Forensic detail (no guessing per §11.4.6):</strong> v1.0.14
 (Fixed.md A35) proved single-line copy-OUT via <code>select-line</code>
 end-to-end with pbpaste readback. Three user-visible paths remained
@@ -663,14 +665,15 @@ cycle — the primary user ask of v1.0.15).</p>
 id="a36-scriptstest_e2esh-t12-stale-podman-machine-prerequisite--resolved">A36.
 <code>scripts/test_e2e.sh</code> T1.2 stale podman-machine prerequisite
 — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.14 / versionCode 15
-(2026-05-22). <strong>Re-discovered:</strong> v1.0.14 verification
-cycle, 2026-05-22 on Mistborn — <code>bash scripts/test_e2e.sh</code>
-reported <code>FAIL: T1.2: podman machine not running</code> immediately
-after the otherwise-GREEN <code>setup.sh --rebuild</code> gate. A
-§11.4.1 FAIL-bluff at the test infrastructure layer: the test exits FAIL
-for a non-product reason (a legacy prerequisite check that no longer
-reflects the architecture).</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.14 /
+versionCode 15 (2026-05-22). <strong>Re-discovered:</strong> v1.0.14
+verification cycle, 2026-05-22 on Mistborn —
+<code>bash scripts/test_e2e.sh</code> reported
+<code>FAIL: T1.2: podman machine not running</code> immediately after
+the otherwise-GREEN <code>setup.sh --rebuild</code> gate. A §11.4.1
+FAIL-bluff at the test infrastructure layer: the test exits FAIL for a
+non-product reason (a legacy prerequisite check that no longer reflects
+the architecture).</p>
 <p><strong>Forensic detail:</strong> the e2e check has hard-required a
 running podman machine on Darwin since the pre-v1.0.7 SSH-bridge
 architecture. The native dual-OS refactor (v1.0.7, Fixed.md A8 + project
@@ -699,10 +702,11 @@ PASS/FAIL line is the gate).</p>
 id="a35-clipboard-copy-out-had-no-physical-proof-coverage--resolved">A35.
 Clipboard copy-OUT had no physical-proof coverage —
 <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.14 / versionCode 15
-(2026-05-22). <strong>Reported:</strong> operator mandate, 2026-05-22 —
-"we can always copy / paste from and to the terminal window and current
-tmux (tmx) session! Using mouse or keyboard MUST WORK properly!!!"</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.14 /
+versionCode 15 (2026-05-22). <strong>Reported:</strong> operator
+mandate, 2026-05-22 — "we can always copy / paste from and to the
+terminal window and current tmux (tmx) session! Using mouse or keyboard
+MUST WORK properly!!!"</p>
 <p><strong>Forensic detail (no guessing per §11.4.6):</strong></p>
 <ul>
 <li>The <code>@clip</code> user option +
@@ -771,11 +775,12 @@ cycle).</p>
 id="a34-hostname-colour-now-applies-to-all-default-green-tmux-ui-surfaces-not-just-status-bar--resolved">A34.
 Hostname colour now applies to ALL default-green tmux UI surfaces (not
 just status-bar) — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.8 / versionCode 9 (2026-05-21).
-<strong>Operator mandate (verbatim, 2026-05-21):</strong> "Do coloring
-of all UI tmux parts with proper color we use instead of default green.
-Anything colored with that green colors has to become the color we have
-assigned to the bottom view we are coloring."</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.8 /
+versionCode 9 (2026-05-21). <strong>Operator mandate (verbatim,
+2026-05-21):</strong> "Do coloring of all UI tmux parts with proper
+color we use instead of default green. Anything colored with that green
+colors has to become the color we have assigned to the bottom view we
+are coloring."</p>
 <p><strong>Root cause:</strong> v1.0.7 <code>_apply_host_color()</code>
 in <code>scripts/tmx.template</code> set only
 <code>status-style bg=$color</code>. Tmux's other default-green surfaces
@@ -834,11 +839,11 @@ regeneration path.</p>
 id="a33-hostname-colour-palette-orange-heavy-collision--resolved">A33.
 Hostname-colour palette orange-heavy collision —
 <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.7 / versionCode 8 (2026-05-21).
-<strong>Operator-reported:</strong> "both hosts nezha and mistborn have
-orange background at the bottom view of tmux when we determine
-dynamically color generated from the host name? They shall not have the
-same color, correct?"</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.7 /
+versionCode 8 (2026-05-21). <strong>Operator-reported:</strong> "both
+hosts nezha and mistborn have orange background at the bottom view of
+tmux when we determine dynamically color generated from the host name?
+They shall not have the same color, correct?"</p>
 <p><strong>Root cause:</strong> the pre-v1.0.7 27-entry palette had 7
 orange-family colours (colour130 / 166 / 172 / 178 / 202 / 208 / 214 —
 26% of the palette). Nezha hashed to colour130 (dark orange), Mistborn
@@ -877,11 +882,12 @@ gate explicitly.</p>
 id="a32-codegraph-init-silently-clobbered-configjson-cross-version--resolved">A32.
 CodeGraph init silently clobbered config.json (cross-version) —
 <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.7 / versionCode 8 (2026-05-21).
-<strong>Observed live on Nezha:</strong> <code>codegraph init</code>
-overwrote our customised <code>.codegraph/config.json</code> with
-default schema; SHA changed b50f440 → 0cfa449. Affects both codegraph
-0.6.8 (Darwin earlier session) and 0.8.0 (Nezha current).</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.7 /
+versionCode 8 (2026-05-21). <strong>Observed live on Nezha:</strong>
+<code>codegraph init</code> overwrote our customised
+<code>.codegraph/config.json</code> with default schema; SHA changed
+b50f440 → 0cfa449. Affects both codegraph 0.6.8 (Darwin earlier session)
+and 0.8.0 (Nezha current).</p>
 <p><strong>Change:</strong> <code>scripts/codegraph_reindex.sh</code>
 now:</p>
 <ul>
@@ -903,8 +909,8 @@ requires init's DB schema before <code>index</code> will run).</li>
 <h3 id="a31-codegraph-cli-path-in-non-interactive-shells--resolved">A31.
 CodeGraph CLI PATH in non-interactive shells —
 <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.7 / versionCode 8 (2026-05-21).
-<strong>Observed live on Nezha:</strong>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.7 /
+versionCode 8 (2026-05-21). <strong>Observed live on Nezha:</strong>
 PATH=/bin:/usr/bin:/usr/local/bin under SSH-batch invocation;
 <code>~/.npm-global/bin/codegraph</code> invisible. Interactive shells
 got it via <code>.bashrc</code> / <code>.zshrc</code>.</p>
@@ -920,8 +926,8 @@ probe for direct invocation (cron / launchd).</li>
 id="a30-linuxmacos-portability-stat--f-z-sleep-integer-compare-send-keys-race--resolved">A30.
 Linux/macOS portability: <code>stat -f '%z'</code>, <code>sleep</code>
 integer compare, send-keys race — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.7 / versionCode 8
-(2026-05-21).</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.7 /
+versionCode 8 (2026-05-21).</p>
 <p>Three portability bugs identified live on Nezha and fixed:</p>
 <ol type="1">
 <li><p><strong>Test 21 T2 — <code>stat -f '%z'</code></strong>: Darwin
@@ -945,8 +951,8 @@ Added a 15s poll budget matching the existing T4 GEN_OK loop.</p></li>
 id="a29-setupsh--11477---11480-wiring-codegraph-bootstrap--auto-update--resolved">A29.
 setup.sh § 11.4.77 + § 11.4.80 wiring (codegraph bootstrap +
 auto-update) — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.7 / versionCode 8
-(2026-05-21).</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.7 /
+versionCode 8 (2026-05-21).</p>
 <p>§11.4.77 mandates regen mechanisms for gitignored artefacts; we had
 the manifest at <code>.gitignore-meta/codegraph-db.yaml</code> + the
 script <code>scripts/codegraph_reindex.sh</code>, but
@@ -972,9 +978,10 @@ the codegraph symlink.</p>
 id="a28-11480-automatic-trigger-wiring-landed-deferred--resolved--resolved">A28.
 §11.4.80 automatic-trigger wiring landed (DEFERRED → RESOLVED) —
 <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.6 / versionCode 7 (2026-05-21).
-<strong>Trigger:</strong> v1.0.5 audit logged §11.4.80 cron/hook wiring
-as the one deferred item; this cycle closes it.</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.6 /
+versionCode 7 (2026-05-21). <strong>Trigger:</strong> v1.0.5 audit
+logged §11.4.80 cron/hook wiring as the one deferred item; this cycle
+closes it.</p>
 <p><strong>Change:</strong></p>
 <ul>
 <li><code>scripts/codegraph_cadence_check.sh</code> (NEW): §11.4.80
@@ -1018,10 +1025,11 @@ content.</p>
 id="a27-containersqwenmd-verbatim-covenant--11481-reference--resolved">A27.
 Containers/QWEN.md verbatim covenant + §11.4.81 reference —
 <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.6 / versionCode 7 (2026-05-21).
-<strong>Containers commit pushed:</strong> <code>fbef9d6</code> (github
-+ gitlab). <strong>Parent pointer bump:</strong> <code>4ca5491</code> →
-<code>fbef9d6</code> in this project commit.</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.6 /
+versionCode 7 (2026-05-21). <strong>Containers commit pushed:</strong>
+<code>fbef9d6</code> (github + gitlab). <strong>Parent pointer
+bump:</strong> <code>4ca5491</code> → <code>fbef9d6</code> in this
+project commit.</p>
 <p><strong>Trigger:</strong> v1.0.5 audit identified
 <code>Containers/QWEN.md</code> as the one remaining gap at the
 consumer-layer covenant fleet (the other 5 governance files in
@@ -1054,14 +1062,15 @@ now PASSes that audit.</p>
 id="a26-11479-compliance--own-org-submodules-removed-from-codegraph-exclude-list--resolved">A26.
 §11.4.79 compliance — own-org submodules removed from CodeGraph exclude
 list — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.5 / versionCode 6 (2026-05-21).
-<strong>Trigger:</strong> constitution submodule §11.4.79 anchor landed
-upstream (<code>19ce1b1</code>) 2026-05-21 mandating own-org submodules
-MUST be INCLUDED in the CodeGraph index. v1.0.4's
-<code>.codegraph/config.json</code> was a §11.4.79 violation:
-<code>constitution/**</code> and <code>Containers/**</code> were both in
-the exclude list. Test-interrupt per §11.4.4 fired the moment the
-constitution pull revealed the new mandate.</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.5 /
+versionCode 6 (2026-05-21). <strong>Trigger:</strong> constitution
+submodule §11.4.79 anchor landed upstream (<code>19ce1b1</code>)
+2026-05-21 mandating own-org submodules MUST be INCLUDED in the
+CodeGraph index. v1.0.4's <code>.codegraph/config.json</code> was a
+§11.4.79 violation: <code>constitution/**</code> and
+<code>Containers/**</code> were both in the exclude list. Test-interrupt
+per §11.4.4 fired the moment the constitution pull revealed the new
+mandate.</p>
 <p><strong>Fix:</strong></p>
 <ul>
 <li><code>.codegraph/config.json</code>: removed
@@ -1114,10 +1123,11 @@ compliance).</li>
 id="a25-11481--cross-platform-parity-infrastructure-darwin-branches-for-tests-091314--new-test-24-cpu-cap--resolved">A25.
 §11.4.81 — Cross-platform-parity infrastructure: Darwin branches for
 tests 09/13/14 + NEW test 24 (CPU cap) — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.5 / versionCode 6 (2026-05-21).
-<strong>Mandate:</strong> user directive 2026-05-21 — every Linux-only
-blocker MUST have a macOS-equivalent implementation. This cycle ALSO
-landed the universal §11.4.81 anchor in the constitution submodule
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.5 /
+versionCode 6 (2026-05-21). <strong>Mandate:</strong> user directive
+2026-05-21 — every Linux-only blocker MUST have a macOS-equivalent
+implementation. This cycle ALSO landed the universal §11.4.81 anchor in
+the constitution submodule
 (<code>HelixDevelopment/HelixConstitution@6e164f3</code>) so EVERY
 consuming project under this Constitution gets the same discipline.</p>
 <p><strong>Change:</strong></p>
@@ -1218,9 +1228,9 @@ bump their pointer and inherit the discipline).</li>
 id="a24-constitution-submodule-11481-anchor--project-pointer-bump--resolved">A24.
 Constitution submodule §11.4.81 anchor + project pointer bump —
 <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.5 / versionCode 6 (2026-05-21).
-<strong>Trigger:</strong> user 2026-05-21 directive to add
-OS/platform-parity rule as a UNIVERSAL anchor in
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.5 /
+versionCode 6 (2026-05-21). <strong>Trigger:</strong> user 2026-05-21
+directive to add OS/platform-parity rule as a UNIVERSAL anchor in
 <code>HelixDevelopment/HelixConstitution</code> so all inheriting
 projects get the discipline.</p>
 <p><strong>Change:</strong></p>
@@ -1253,9 +1263,10 @@ the new constitution HEAD.</p>
 id="a23-11480-wiring--codegraph-regular-update--sync-deferred-honest-tracking--fixed--pending-follow-up">A23.
 §11.4.80 wiring — CodeGraph regular-update + sync (DEFERRED, honest
 tracking) — <code>Fixed — pending follow-up</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.5 / versionCode 6 (2026-05-21).
-<strong>Status:</strong> the CONFIG side is compliant (constitution
-provides <code>scripts/codegraph_update.sh</code> +
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.5 /
+versionCode 6 (2026-05-21). <strong>Status:</strong> the CONFIG side is
+compliant (constitution provides
+<code>scripts/codegraph_update.sh</code> +
 <code>codegraph_sync.sh</code>; this project provides
 <code>scripts/codegraph_validate.sh</code> invoked by them). The DAILY
 WIRING (cron / git hook) for automatic invocation per §11.4.80 weekly
@@ -1273,6 +1284,7 @@ follow-up cycle adds the automatic trigger + paired mutation.</p>
 id="a22-11481--universal-cross-platform-parity-anchor-landed-in-constitution-submodule--resolved">A22.
 §11.4.81 — Universal cross-platform-parity anchor LANDED in constitution
 submodule — <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <p>(Sibling to A24; A22 records the constitutional change, A24 records
 the project pointer bump. Kept as separate entries per §11.4.16 type
 tracking — A22 is a universal-governance change, A24 is a project- side
@@ -1293,14 +1305,14 @@ Constitution.</li>
 id="a21-audit-2-fix-tmx-kill-shorthand-resolves-to-kill-session--resolved">A21.
 AUDIT-2 fix: <code>tmx kill</code> shorthand resolves to
 <code>kill-session</code> — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.4 / versionCode 5 (2026-05-21).
-<strong>Reported:</strong> my own §11.4.6 audit (2026-05-21) —
-README/AGENTS commands table lists <code>tmx {new|attach|ls|kill}</code>
-as the friendly operator vocabulary, but the bare
-<code>tmx kill -t NAME</code> was passed through to tmux and rejected as
-ambiguous ("could be: kill-pane, kill-server, kill-session,
-kill-window"). A documented operator-path was silently broken — a §11.4
-UX-layer PASS-bluff at the doc layer.</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.4 /
+versionCode 5 (2026-05-21). <strong>Reported:</strong> my own §11.4.6
+audit (2026-05-21) — README/AGENTS commands table lists
+<code>tmx {new|attach|ls|kill}</code> as the friendly operator
+vocabulary, but the bare <code>tmx kill -t NAME</code> was passed
+through to tmux and rejected as ambiguous ("could be: kill-pane,
+kill-server, kill-session, kill-window"). A documented operator-path was
+silently broken — a §11.4 UX-layer PASS-bluff at the doc layer.</p>
 <p><strong>Fix:</strong></p>
 <ul>
 <li><code>scripts/tmx.template</code> — added a SUBCMD discovery hook
@@ -1333,11 +1345,11 @@ test 23 T3 FAILs; restores
 id="a20-audit-1-fix-m4m5-paired-mutations--darwin-topology-dispatch--resolved">A20.
 AUDIT-1 fix: M4/M5 paired mutations — Darwin topology dispatch —
 <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.4 / versionCode 5 (2026-05-21).
-<strong>Reported:</strong> my own §11.4.6 audit (2026-05-21) — M4/M5
-used raw GNU <code>sed -i 's|…|…|'</code> which silently SKIPped on
-Darwin BSD sed with the WRONG reason ("mutation command failed to
-apply").</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.4 /
+versionCode 5 (2026-05-21). <strong>Reported:</strong> my own §11.4.6
+audit (2026-05-21) — M4/M5 used raw GNU <code>sed -i 's|…|…|'</code>
+which silently SKIPped on Darwin BSD sed with the WRONG reason
+("mutation command failed to apply").</p>
 <p><strong>Root cause (forensic, no guessing per §11.4.6):</strong></p>
 <ol type="1">
 <li>Direct <code>sed -i</code> is GNU-only; BSD sed needs
@@ -1380,12 +1392,12 @@ wrapper-side regressions to the cgroup path.</p>
 id="a19-verbatim-anti-bluff-covenant-propagated-to-every-consumer-governance-file--resolved">A19.
 Verbatim anti-bluff covenant propagated to every consumer governance
 file — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.4 / versionCode 5 (2026-05-21).
-<strong>Requested:</strong> operator mandate, 2026-05-21 — "[the
-anti-bluff covenant] MUST BE part of Constitution of our project, its
-CLAUDE.MD and AGENTS.MD if it is not there already, and to be applied to
-all Submodules's Constitution, CLAUDE.MD and AGENTS.MD as well (if not
-there already)!"</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.4 /
+versionCode 5 (2026-05-21). <strong>Requested:</strong> operator
+mandate, 2026-05-21 — "[the anti-bluff covenant] MUST BE part of
+Constitution of our project, its CLAUDE.MD and AGENTS.MD if it is not
+there already, and to be applied to all Submodules's Constitution,
+CLAUDE.MD and AGENTS.MD as well (if not there already)!"</p>
 <p><strong>Pre-fix audit (captured this session per
 §11.4.2):</strong></p>
 <ul>
@@ -1447,13 +1459,13 @@ gate; M15.</p>
 id="a18-codegraph-code-intelligence-integration-11478--resolved">A18.
 CodeGraph code-intelligence integration (§11.4.78) —
 <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.4 / versionCode 5 (2026-05-21).
-<strong>Mandate:</strong> <code>constitution/Constitution.md</code>
-§11.4.78 + operator follow-up 2026-05-21 — "Incorporate / install
-codegraph into the our project … installed for Claude Code, OpenCode,
-Kimi CLI, Crush, Qwen Code … create comprehensive tests to validate and
-verify with anti-bluff approach that codegraph is working completely as
-expected!"</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.4 /
+versionCode 5 (2026-05-21). <strong>Mandate:</strong>
+<code>constitution/Constitution.md</code> §11.4.78 + operator follow-up
+2026-05-21 — "Incorporate / install codegraph into the our project …
+installed for Claude Code, OpenCode, Kimi CLI, Crush, Qwen Code … create
+comprehensive tests to validate and verify with anti-bluff approach that
+codegraph is working completely as expected!"</p>
 <p><strong>Change:</strong></p>
 <ul>
 <li>Installed <code>@colbymchenry/codegraph</code> v0.6.8 globally (npm
@@ -1536,13 +1548,13 @@ when a headless agent harness is wired).</li>
 id="a17-helixconstitution-governance-submodule--verified-inheritance--resolved">A17.
 HelixConstitution governance submodule + verified inheritance —
 <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.3 / versionCode 4 (2026-05-21).
-<strong>Requested:</strong> operator mandate, 2026-05-21 — "we now use
-and incorporate fully the HelixConstitution Submodule responsible for
-root definitions of the Constitution, CLAUDE.MD and AGENTS.MD which are
-inherited further". Follow-up clarification: the
-<code>constitution/</code> submodule is decoupled, reusable, and
-independent — never modified.</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.3 /
+versionCode 4 (2026-05-21). <strong>Requested:</strong> operator
+mandate, 2026-05-21 — "we now use and incorporate fully the
+HelixConstitution Submodule responsible for root definitions of the
+Constitution, CLAUDE.MD and AGENTS.MD which are inherited further".
+Follow-up clarification: the <code>constitution/</code> submodule is
+decoupled, reusable, and independent — never modified.</p>
 <p><strong>Change:</strong></p>
 <ul>
 <li>Added <code>HelixDevelopment/HelixConstitution</code> as a submodule
@@ -1591,11 +1603,11 @@ mandate 2026-05-21 (this cycle).</p>
 id="a16-scrolling-terminal-output-did-not-work-especially-in-the-claude-code-tui--resolved">A16.
 Scrolling terminal output did not work, especially in the Claude Code
 TUI — <code>RESOLVED</code></h3>
-<p><strong>Closure cycle:</strong> v1.0.3 / versionCode 4 (2026-05-21).
-<strong>Reported:</strong> operator research note, 2026-05-21 —
-scrolling terminal output up/down, especially inside the Claude Code
-TUI, did not work. Requirement: scroll vertically from any computer OR
-mobile phone (Termux on Android).</p>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.3 /
+versionCode 4 (2026-05-21). <strong>Reported:</strong> operator research
+note, 2026-05-21 — scrolling terminal output up/down, especially inside
+the Claude Code TUI, did not work. Requirement: scroll vertically from
+any computer OR mobile phone (Termux on Android).</p>
 <p><strong>Root cause (forensic, no guessing per §11.4.6):</strong></p>
 <ol type="1">
 <li><code>history-limit</code> default was 2000 — too small to retain
@@ -1651,6 +1663,7 @@ id="a15-bottom-left-status-bar-showed-claudeexe-instead-of-claude-cosmetic-opera
 Bottom-left status-bar showed <code>claude.exe</code> instead of
 <code>claude</code> (cosmetic, operator-reported) —
 <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><p><strong>Closure cycle:</strong> 2026-05-16.</p></li>
 <li><p><strong>Closure commit:</strong> (this commit).</p></li>
@@ -1776,6 +1789,7 @@ properly.").</p></li>
 id="a14-verification--validation-cycle-2026-05-13-operator-requested--resolved">A14.
 Verification + validation cycle 2026-05-13 (operator-requested) —
 <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><p><strong>Closure cycle:</strong> 2026-05-13.</p></li>
 <li><p><strong>Closure commit:</strong> (this commit).</p></li>
@@ -1896,6 +1910,7 @@ XNU memory-cap gap documented in setup.sh closing message + GUIDE.md
 id="a13-per-session-isolation-each-tmx-new--s-x-in-its-own-cgroup--constitution-1147--resolved">A13.
 Per-session isolation: each <code>tmx new -s X</code> in its own cgroup
 + Constitution §11.4.7 — <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2025,6 +2040,7 @@ closed by comprehensive in-session implementation.</li>
 id="a12-plan-doc-for-per-session-containerization-landed--resolved">A12.
 Plan-doc for per-session containerization landed —
 <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> <code>abb0af8</code>
@@ -2039,6 +2055,7 @@ A13.</li>
 id="a11-regression-protection-so-a10-cannot-re-occur-test-gap-closed--resolved">A11.
 Regression protection so A10 cannot re-occur (test gap closed) —
 <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2119,6 +2136,7 @@ A11 closes that gap.</li>
 id="a10-status-bar-colour-silently-defaulted-to-green--bridge-ignored-macos-hostname--resolved">A10.
 Status-bar colour silently defaulted to green + bridge ignored macOS
 hostname — <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2203,6 +2221,7 @@ session.</li>
 id="a9-interactive-tmx-new-not-a-terminal--full-e2e-automation--resolved">A9.
 Interactive <code>tmx new</code> "not a terminal" + full e2e automation
 — <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2289,6 +2308,7 @@ session.</li>
 id="a8-macos-tmx-operational--side-by-side-coexistence-end-to-end--resolved">A8.
 macOS <code>tmx</code> operational + side-by-side coexistence end-to-end
 — <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2390,6 +2410,7 @@ invoked setup.sh and asked for operational tmx.</li>
 id="a7-final-sweep-env-specific-wrapper--255-violations--sed-portability--resolved">A7.
 Final sweep: env-specific wrapper + §255 violations + sed portability —
 <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2510,6 +2531,7 @@ final-sweep cycle.</li>
 id="a6-install-mechanism-bluffs-that-broke-side-by-side-coexistence--resolved">A6.
 Install-mechanism bluffs that broke side-by-side coexistence —
 <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2587,6 +2609,7 @@ asked about the install/alias mechanism explicitly.</li>
 id="a5-full-destructive-test--meta-test-cycle-caught-6-fail-bluffs--resolved">A5.
 Full destructive test + meta-test cycle caught 6 FAIL-bluffs —
 <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2719,6 +2742,7 @@ run_mutation.</li>
 id="a4-build-pipeline-bluffs-caught-while-reproducing-on-macos--resolved">A4.
 Build pipeline bluffs caught while reproducing on macOS —
 <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2787,6 +2811,7 @@ audit cycle by attempting the actual build on the audit host.</li>
 <h3 id="a3-guidemd-severity-hierarchy-bluff-pre-existing--resolved">A3.
 GUIDE.md "severity hierarchy" bluff (pre-existing) —
 <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2821,6 +2846,7 @@ audit cycle while extending the existing prose.</li>
 id="a2-audit-cycle-2026-05-13--tmux-submodule-pin-drift-caught--governance-staleness-fixed--resolved">A2.
 Audit cycle 2026-05-13 — tmux submodule pin-drift caught + governance
 staleness fixed — <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-13.</li>
 <li><strong>Closure commit:</strong> (this commit).</li>
@@ -2885,6 +2911,7 @@ audit cycle.</li>
 <h3 id="a1-meta-test-paired-mutation-harness-meta-mut-001--resolved">A1.
 Meta-test paired-mutation harness (META-MUT-001) —
 <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-08 (final coverage
 cycle).</li>
@@ -2917,6 +2944,7 @@ regression guard. Run via
 id="a0-initial-migration-from-atmosphere-project-to-standalone-vasic-digitaltmux-repo">A0.
 Initial migration from ATMOSphere project to standalone
 <code>vasic-digital/tmux</code> repo</h3>
+<p><strong>Type:</strong> Bug</p>
 <ul>
 <li><strong>Closure cycle:</strong> 2026-05-07 (initial standalone repo
 bring-up).</li>

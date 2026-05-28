@@ -82,7 +82,12 @@ if [ -n "${TMUX:-}" ]; then
 fi
 
 # Non-interactive shell (scp, rsync, IDE pipe, cron) — do not prompt.
+# Distinctive marker (opt-in via TMX_INIT_DEBUG=1) so test 49 can assert this
+# branch fired. Without the marker, P5-M20 (strip guard) cannot be distinguished
+# from the legitimate empty-output path. End users never see the marker unless
+# they set the env var.
 if [ ! -t 0 ] || [ ! -t 1 ]; then
+    [ -n "${TMX_INIT_DEBUG:-}" ] && printf 'tmx-shell-init: non-TTY guard fired (stdin/stdout not a TTY) — skipping interactive prompt\n' >&2
     return 0 2>/dev/null || exit 0
 fi
 

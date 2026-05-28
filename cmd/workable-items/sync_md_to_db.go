@@ -23,8 +23,27 @@ type SyncResult struct {
 	ATMIDsAllocated int
 }
 
+// SyncMDToDBOptions controls SyncMDToDB behaviour.
+type SyncMDToDBOptions struct {
+	// RefreshRawBodies forces items.raw_body to be updated for EVERY parsed
+	// item, even when the structured fields look unchanged. Used as a
+	// one-time migration when an older DB (pre-PWU-Q3 schema) is opened
+	// and the operator wants raw_body populated from the source Markdown.
+	RefreshRawBodies bool
+}
+
 // SyncMDToDB reads issuesPath + fixedPath and upserts every parsed item into db.
+//
+// Behaviour: structured fields (type, status, severity, title, description) are
+// re-derived from the parsed body on every call. The verbatim raw_body
+// (PWU-Q3, §11.4.93 phase-6) is overwritten with the freshly-parsed text so
+// re-running md→db after a Markdown edit captures the new body.
 func SyncMDToDB(db *DB, issuesPath, fixedPath string) (*SyncResult, error) {
+	return SyncMDToDBOpts(db, issuesPath, fixedPath, SyncMDToDBOptions{})
+}
+
+// SyncMDToDBOpts is the options-aware variant of SyncMDToDB.
+func SyncMDToDBOpts(db *DB, issuesPath, fixedPath string, opts SyncMDToDBOptions) (*SyncResult, error) {
 	res := &SyncResult{}
 
 	var issuesItems, fixedItems []*ParsedItem
@@ -37,6 +56,16 @@ func SyncMDToDB(db *DB, issuesPath, fixedPath string) (*SyncResult, error) {
 				return nil, fmt.Errorf("parse %s: %w", issuesPath, err)
 			}
 			res.IssuesParsed = len(issuesItems)
+			// PWU-Q3 (§11.4.93 phase-6): persist the verbatim source so
+			// db→md can replay byte-identical including preamble + section
+			// separators + trailer that no per-item raw_body can capture.
+			raw, rerr := os.ReadFile(issuesPath)
+			if rerr != nil {
+				return nil, fmt.Errorf("read %s: %w", issuesPath, rerr)
+			}
+			if err := db.PutDocumentSource(LocationIssues, string(raw)); err != nil {
+				return nil, fmt.Errorf("put document_source issues: %w", err)
+			}
 		}
 	}
 	if fixedPath != "" {
@@ -46,6 +75,13 @@ func SyncMDToDB(db *DB, issuesPath, fixedPath string) (*SyncResult, error) {
 				return nil, fmt.Errorf("parse %s: %w", fixedPath, err)
 			}
 			res.FixedParsed = len(fixedItems)
+			raw, rerr := os.ReadFile(fixedPath)
+			if rerr != nil {
+				return nil, fmt.Errorf("read %s: %w", fixedPath, rerr)
+			}
+			if err := db.PutDocumentSource(LocationFixed, string(raw)); err != nil {
+				return nil, fmt.Errorf("put document_source fixed: %w", err)
+			}
 		}
 	}
 
@@ -106,7 +142,7 @@ func SyncMDToDB(db *DB, issuesPath, fixedPath string) (*SyncResult, error) {
 			// Check whether actual content changed before counting as Updated.
 			prior, _ := db.GetItem(existing)
 			it.ATMID = existing
-			if itemContentEqual(prior, it) {
+			if itemContentEqual(prior, it) && !opts.RefreshRawBodies {
 				res.UnchangedItems++
 			} else {
 				if err := db.UpsertItem(it); err != nil {
@@ -169,7 +205,8 @@ func itemContentEqual(a, b *Item) bool {
 		a.Title == b.Title &&
 		a.Description == b.Description &&
 		a.CurrentLocation == b.CurrentLocation &&
-		a.Category == b.Category
+		a.Category == b.Category &&
+		a.RawBody == b.RawBody
 }
 
 // deriveDescription picks an end-user-meaningful description for the item.

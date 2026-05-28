@@ -102,6 +102,9 @@ func runSync(args []string) {
 	issuesPath := fs.String("issues", "Issues.md", "path to Issues.md")
 	fixedPath := fs.String("fixed", "Fixed.md", "path to Fixed.md")
 	outDir := fs.String("out-dir", "docs/workable-items/regen", "output directory for db-to-md")
+	refreshRawBodies := fs.Bool("refresh-raw-bodies", false,
+		"PWU-Q3 §11.4.93 phase-6: force-repopulate items.raw_body from source Markdown "+
+			"even when structured fields look unchanged (one-time migration of pre-raw_body DBs)")
 	_ = fs.Parse(rest)
 
 	db, err := OpenDB(*dbPath)
@@ -117,13 +120,15 @@ func runSync(args []string) {
 
 	switch direction {
 	case "md-to-db":
-		res, err := SyncMDToDB(db, *issuesPath, *fixedPath)
+		res, err := SyncMDToDBOpts(db, *issuesPath, *fixedPath, SyncMDToDBOptions{
+			RefreshRawBodies: *refreshRawBodies,
+		})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "sync md-to-db: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("sync md-to-db OK: issues_parsed=%d fixed_parsed=%d inserted=%d updated=%d unchanged=%d allocated=%d\n",
-			res.IssuesParsed, res.FixedParsed, res.Inserted, res.Updated, res.UnchangedItems, res.ATMIDsAllocated)
+		fmt.Printf("sync md-to-db OK: issues_parsed=%d fixed_parsed=%d inserted=%d updated=%d unchanged=%d allocated=%d refresh_raw=%v\n",
+			res.IssuesParsed, res.FixedParsed, res.Inserted, res.Updated, res.UnchangedItems, res.ATMIDsAllocated, *refreshRawBodies)
 	case "db-to-md":
 		if err := SyncDBToMD(db, *outDir); err != nil {
 			fmt.Fprintf(os.Stderr, "sync db-to-md: %v\n", err)

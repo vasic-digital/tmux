@@ -239,6 +239,35 @@
 <h1
 id="vasic-digital-tmux--optimized--verified-containerized-build">vasic-digital
 tmux — optimized + verified containerized build</h1>
+<h2 id="whats-new-in-v1015--v1016-2026-05-28">What's new in v1.0.15 /
+v1.0.16 (2026-05-28)</h2>
+<ul>
+<li><strong>Multi-line copy + paste-IN + Claude Code TUI
+support.</strong> New <code>bind -n M-MouseDrag1Pane copy-mode -M</code>
+(Alt-drag, macOS) and <code>bind -n S-MouseDrag1Pane copy-mode -M</code>
+(Shift-drag, Linux) force tmux selection even when Claude Code / vim /
+less / htop hold the alt-screen with mouse tracking. New
+<code>@clip-read</code> user option + <code>prefix + P</code> paste-IN
+binding pulls the OS clipboard INTO the current pane through
+<code>tmux paste-buffer -p</code> (bracketed paste). See <a
+href="docs/guides/clipboard.md"><code>docs/guides/clipboard.md</code></a>
+for the operator recipe.</li>
+<li><strong>Workable-items SQLite SSoT
+(<code>cmd/workable-items/</code>).</strong> Project- local Go binary
+implementing the §11.4.93 SQLite single-source-of- truth for every
+workable item in <code>Issues.md</code> / <code>Fixed.md</code>. Pure-Go
+(no CGO) via <code>modernc.org/sqlite</code>. DB at
+<code>docs/workable_items.db</code> is <strong>TRACKED in git per
+§11.4.95</strong>. See <a
+href="docs/workable-items/README.md"><code>docs/workable-items/README.md</code></a>
+for the subcommand reference.</li>
+<li><strong>DOCX export on every Markdown sync.</strong>
+<code>scripts/sync_all_markdown_exports.sh</code> now produces
+<code>.docx</code> siblings alongside the existing <code>.html</code> +
+<code>.pdf</code> exports — verified across 44 candidate documents with
+pandoc-emitted "Microsoft Word 2007+" output.</li>
+</ul>
+<hr />
 <p>A reproducible, hardened build of <a
 href="https://github.com/tmux/tmux"><code>tmux</code></a> with built-in
 jemalloc support, OOM-protection helper, and a comprehensive
@@ -471,6 +500,19 @@ universal-Markdown-export.</p>
 <td>Operator guide</td>
 <td><a href="docs/guide/README.md"><code>docs/guide/README.md</code></a>
 — install, OS-by-OS notes, isolation comparison, troubleshooting</td>
+</tr>
+<tr>
+<td>v1.0.14 / v1.0.15 clipboard</td>
+<td><a
+href="docs/guides/clipboard.md"><code>docs/guides/clipboard.md</code></a>
+— multi-line copy + paste-IN + Alt/Shift-drag inside Claude Code</td>
+</tr>
+<tr>
+<td>v1.0.15 workable-items SSoT</td>
+<td><a
+href="docs/workable-items/README.md"><code>docs/workable-items/README.md</code></a>
+— <code>cmd/workable-items/</code> Go binary, subcommand reference,
+honest gaps</td>
 </tr>
 <tr>
 <td>v1.0.9 shell-session resume</td>

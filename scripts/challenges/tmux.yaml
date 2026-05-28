@@ -828,3 +828,131 @@ challenges:
       test 48 FAILs at T1 + T2.1. FEATURE RESTORED via harness
       backup.
     severity: blocker
+
+  - id: CME-WORKABLE-ITEMS-001
+    title: workable-items SQLite-SSoT end-to-end (§11.4.93 + §11.4.95)
+    description: |
+      Drives the workable-items Go binary through its full lifecycle
+      (sync md-to-db, sync db-to-md byte-identical round-trip on the
+      live corpus, validate clean, add a fresh ATM-NNN, close it with
+      evidence) on a throwaway fixture. Anti-bluff: no metadata-only
+      PASS — every assertion reads the SQLite DB directly OR diffs
+      regenerated Markdown against the source. Closes the v1.0.15
+      honest gap "CME-WORKABLE-ITEMS-001 end-to-end Challenge deferred".
+    test_script: scripts/tests/51_workable_items_db_integrity.sh
+    pass_condition: |
+      FAIL=0 from test 51 — binary builds, DB present + tracked,
+      schema-anchor present, validate clean (0 findings), round-trip
+      byte-identical (sha256 match), 3-iter §11.4.50 deterministic
+      reliability hash.
+    evidence: |
+      `workable-items report` row count + `workable-items validate`
+      `0 findings` line + sha256 of source vs regenerated Markdown
+      both files (byte-identical when fix Q3 lands per Constitution
+      §11.4.93 phase 6).
+    skip_conditions: |
+      §11.4.3 topology: SKIPs cleanly if Go toolchain absent (binary
+      cannot build on minimal hosts) — but in practice every supported
+      host has Go (Mistborn brew, nezha apt). No silent-degrade path.
+    mutation_targets: |
+      M-WI-001 (future cycle): strip the `raw_body` column on a
+      throwaway DB copy; assert TestRoundTrip_LiveCorpusByteIdentical
+      FAILs because the document_sources fallback can't reconstruct
+      free-form bodies. FEATURE RESTORED via harness backup.
+    severity: blocker
+
+  - id: TMUX-CH-49
+    title: tmx-shell-init non-TTY guard FIRED (P5-M20 layer-4 escape closure)
+    description: |
+      Closes the pre-existing v1.0.9 paired-mutation escape P5-M20
+      where stripping the [ -t 0 ] non-TTY guard from
+      tmx-shell-init.sh.template did NOT FAIL test 30 because Darwin
+      libc enforces POSIX TTY semantics independently. Test 49
+      asserts a DISTINCTIVE 'non-TTY guard fired' marker is emitted
+      (gated by TMX_INIT_DEBUG=1 so end users never see it). The
+      marker can ONLY come from the guard's body — strip the marker
+      and the test FAILs even on Darwin.
+    test_script: scripts/tests/49_tmx_shell_init_guard_specific.sh
+    pass_condition: |
+      FAIL=0. T1 template carries the marker text; T2 runtime
+      invocation with stdin=/dev/null + TMX_INIT_DEBUG=1 emits the
+      marker on stderr; T3 3-iter deterministic identical output.
+    evidence: |
+      Captured stderr `tmx-shell-init: non-TTY guard fired
+      (stdin/stdout not a TTY) — skipping interactive prompt`
+      across 3 iterations.
+    skip_conditions: |
+      §11.4.3 topology: SKIPs if the template or generated script is
+      absent (setup.sh not run). No silent-degrade path on present
+      hosts.
+    mutation_targets: |
+      P5-M20 (meta_test_false_positive_proof.sh): strip the marker
+      line; assert test 49 FAILs at T2. FEATURE RESTORED via backup.
+    severity: critical
+
+  - id: TMUX-CH-50
+    title: cwd-capture hook AUTO-INSTALL via tmx.template (P5-M21 closure)
+    description: |
+      Closes the pre-existing v1.0.9 paired-mutation escape P5-M21
+      where stripping the set-hook lines from tmx.template did NOT
+      FAIL test 27 because the test manually injected the hook via
+      `tmux run-shell 'set-hook …'`. Test 50 reads the LIVE server's
+      hooks via `tmux show-hooks -g` and asserts client-detached +
+      session-closed are present AS A RESULT of tmx.template loading
+      — not manual injection.
+    test_script: scripts/tests/50_cwd_hook_autoinstall.sh
+    pass_condition: |
+      FAIL=0. T1 structural — template contains the set-hook block;
+      T2 runtime — operator-path session, show-hooks lists both
+      hooks referencing `tmx-state record`; T3 3-iter §11.4.50
+      reliability hash identical.
+    evidence: |
+      `tmux -L tmx-NAME show-hooks -g` output containing
+      'client-detached' + 'session-closed' + 'tmx-state record'
+      across 3 iterations.
+    skip_conditions: |
+      §11.4.3 topology: SKIPs if wrapper or binary not built. No
+      silent-degrade.
+    mutation_targets: |
+      P5-M21 (meta_test_false_positive_proof.sh): strip the set-hook
+      lines from tmx.template; assert test 50 FAILs (show-hooks
+      empty for those hook names). FEATURE RESTORED via backup.
+    severity: critical
+
+  - id: TMUX-CH-51
+    title: workable-items DB integrity (anti-bluff §11.4.93/95)
+    description: |
+      DB-side anti-bluff guard: validate clean, schema drift-check
+      against constitution, round-trip byte-identical on live corpus,
+      §11.4.50 deterministic 3-iter reliability hash.
+    test_script: scripts/tests/51_workable_items_db_integrity.sh
+    pass_condition: |
+      FAIL=0 per test 51 assertion suite.
+    evidence: |
+      `workable-items validate` `0 findings`; `workable-items report`
+      row count + ATM-NNN sequence; sha256-byte-identical round-trip
+      against Issues.md + Fixed.md.
+    skip_conditions: |
+      SKIPs if Go binary not present.
+    severity: critical
+
+  - id: TMUX-CH-52
+    title: §11.4.99 Sources-verified footer enforcement
+    description: |
+      Enforces §11.4.99 mandate (Latest-Source Documentation
+      Cross-Reference) — every operator-facing instruction / guide
+      / manual MUST carry a `## Sources verified <DATE>` footer with
+      a date no older than 6 months (90 days for risk-classified
+      service families).
+    test_script: scripts/tests/52_docs_sources_verified.sh
+    pass_condition: |
+      FAIL=0. T1 enumerates operator-facing docs; T2 each has a
+      Sources-verified footer; T3 each date is ISO + ≤ 6 months old;
+      T4 3-iter deterministic.
+    evidence: |
+      Per-doc footer presence + parsed ISO date + freshness check
+      against the current date.
+    skip_conditions: |
+      §11.4.3 topology: SKIPs gracefully if docs/guides/ tree absent
+      (fresh checkout before setup.sh).
+    severity: critical

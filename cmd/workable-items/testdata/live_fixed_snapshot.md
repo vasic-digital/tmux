@@ -644,7 +644,7 @@ Three portability bugs identified live on Nezha and fixed:
 
 ### A29. setup.sh § 11.4.77 + § 11.4.80 wiring (codegraph bootstrap + auto-update) — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 **Closure cycle:** v1.0.7 / versionCode 8 (2026-05-21).
 
 §11.4.77 mandates regen mechanisms for gitignored artefacts; we had
@@ -666,7 +666,7 @@ the codegraph symlink.
 
 ### A28. §11.4.80 automatic-trigger wiring landed (DEFERRED → RESOLVED) — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 **Closure cycle:** v1.0.6 / versionCode 7 (2026-05-21).
 **Trigger:** v1.0.5 audit logged §11.4.80 cron/hook wiring as the one
 deferred item; this cycle closes it.
@@ -710,7 +710,7 @@ on the actual stamp content.
 
 ### A27. Containers/QWEN.md verbatim covenant + §11.4.81 reference — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 **Closure cycle:** v1.0.6 / versionCode 7 (2026-05-21).
 **Containers commit pushed:** `fbef9d6` (github + gitlab).
 **Parent pointer bump:** `4ca5491` → `fbef9d6` in this project commit.
@@ -744,7 +744,7 @@ PASSes that audit.
 
 ### A26. §11.4.79 compliance — own-org submodules removed from CodeGraph exclude list — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 **Closure cycle:** v1.0.5 / versionCode 6 (2026-05-21).
 **Trigger:** constitution submodule §11.4.79 anchor landed upstream
 (`19ce1b1`) 2026-05-21 mandating own-org submodules MUST be INCLUDED in
@@ -891,7 +891,7 @@ guards are correct: M4/M5 SKIP on Darwin with the §11.4.3 reason
 
 ### A24. Constitution submodule §11.4.81 anchor + project pointer bump — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 **Closure cycle:** v1.0.5 / versionCode 6 (2026-05-21).
 **Trigger:** user 2026-05-21 directive to add OS/platform-parity rule
 as a UNIVERSAL anchor in `HelixDevelopment/HelixConstitution` so all
@@ -921,7 +921,7 @@ CM-CONSTITUTION-INHERITANCE meta-mutation (temp-copy probe).
 
 ### A23. §11.4.80 wiring — CodeGraph regular-update + sync (DEFERRED, honest tracking) — `Fixed — pending follow-up`
 
-**Type:** Bug
+**Type:** Task
 **Closure cycle:** v1.0.5 / versionCode 6 (2026-05-21).
 **Status:** the CONFIG side is compliant (constitution provides
 `scripts/codegraph_update.sh` + `codegraph_sync.sh`; this project
@@ -938,7 +938,7 @@ trigger + paired mutation.
 
 ### A22. §11.4.81 — Universal cross-platform-parity anchor LANDED in constitution submodule — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 
 (Sibling to A24; A22 records the constitutional change, A24 records
 the project pointer bump. Kept as separate entries per §11.4.16 type
@@ -1030,7 +1030,7 @@ regressions to the cgroup path.
 
 ### A19. Verbatim anti-bluff covenant propagated to every consumer governance file — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 **Closure cycle:** v1.0.4 / versionCode 5 (2026-05-21).
 **Requested:** operator mandate, 2026-05-21 — "[the anti-bluff
 covenant] MUST BE part of Constitution of our project, its CLAUDE.MD
@@ -1085,7 +1085,7 @@ there already)!"
 
 ### A18. CodeGraph code-intelligence integration (§11.4.78) — `RESOLVED`
 
-**Type:** Bug
+**Type:** Feature
 **Closure cycle:** v1.0.4 / versionCode 5 (2026-05-21).
 **Mandate:** `constitution/Constitution.md` §11.4.78 +
 operator follow-up 2026-05-21 — "Incorporate / install codegraph into
@@ -1157,7 +1157,7 @@ expected!"
 
 ### A17. HelixConstitution governance submodule + verified inheritance — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 **Closure cycle:** v1.0.3 / versionCode 4 (2026-05-21).
 **Requested:** operator mandate, 2026-05-21 — "we now use and incorporate
 fully the HelixConstitution Submodule responsible for root definitions of
@@ -1344,7 +1344,7 @@ M12 + M13.
 
 ### A14. Verification + validation cycle 2026-05-13 (operator-requested) — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 
 * **Closure cycle:** 2026-05-13.
 * **Closure commit:** (this commit).
@@ -1451,7 +1451,7 @@ M12 + M13.
 
 ### A13. Per-session isolation: each `tmx new -s X` in its own cgroup + Constitution §11.4.7 — `RESOLVED`
 
-**Type:** Bug
+**Type:** Feature
 
 * **Closure cycle:** 2026-05-13.
 * **Closure commit:** (this commit).
@@ -1548,7 +1548,7 @@ M12 + M13.
 
 ### A12. Plan-doc for per-session containerization landed — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 
 * **Closure cycle:** 2026-05-13.
 * **Closure commit:** `abb0af8` (`Add docs/plans/per-session-isolation.md`).
@@ -1559,7 +1559,7 @@ M12 + M13.
 
 ### A11. Regression protection so A10 cannot re-occur (test gap closed) — `RESOLVED`
 
-**Type:** Bug
+**Type:** Task
 
 * **Closure cycle:** 2026-05-13.
 * **Closure commit:** (this commit).
@@ -2133,8 +2133,6 @@ M12 + M13.
 
 ### A3. GUIDE.md "severity hierarchy" bluff (pre-existing) — `RESOLVED`
 
-**Type:** Bug
-
 * **Closure cycle:** 2026-05-13.
 * **Closure commit:** (this commit).
 * **Discovery context:** while updating `docs/guide/README.md` §4 to add tests
@@ -2159,8 +2157,6 @@ M12 + M13.
   extending the existing prose.
 
 ### A2. Audit cycle 2026-05-13 — tmux submodule pin-drift caught + governance staleness fixed — `RESOLVED`
-
-**Type:** Bug
 
 * **Closure cycle:** 2026-05-13.
 * **Closure commit:** (this commit).
@@ -2210,8 +2206,6 @@ M12 + M13.
 
 ### A1. Meta-test paired-mutation harness (META-MUT-001) — `RESOLVED`
 
-**Type:** Bug
-
 * **Closure cycle:** 2026-05-08 (final coverage cycle).
 * **Closure commit:** (this commit).
 * **Source-side fix:** created `scripts/tests/meta_test_false_positive_proof.sh`
@@ -2232,8 +2226,6 @@ M12 + M13.
 * **Tracked task:** META-MUT-001 (Issues.md A1).
 
 ### A0. Initial migration from ATMOSphere project to standalone `vasic-digital/tmux` repo
-
-**Type:** Bug
 
 * **Closure cycle:** 2026-05-07 (initial standalone repo bring-up).
 * **Closure commit:** `08d4ba5` ("Initial vasic-digital/tmux —

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>workable-items</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1 id="workable-items--11493-sqlite-ssot-cli">workable-items — §11.4.93
+SQLite-SSoT CLI</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-28T11:55:00Z <strong>Authority:</strong>
+constitution/Constitution.md §11.4.93 (SQLite SSoT) + §11.4.95 (DB
+tracked in git) + §11.4.99 (regeneration mechanism cited sources)
+<strong>Scope:</strong> project tmux — <code>cmd/workable-items/</code>
+<strong>Maintainer:</strong> vasic-digital tmux</p>
+<h2 id="purpose">Purpose</h2>
+<p><code>workable-items</code> is the project's per-§11.4.93
+single-source-of-truth CLI for workable-item tracking. It bridges the
+Markdown trackers (<code>Issues.md</code> + <code>Fixed.md</code> at
+repo root) and the SQLite database at
+<code>docs/workable_items.db</code> (tracked in git per §11.4.95) so
+neither side can silently drift from the other. Both representations
+remain authoritative for human reading; the database is authoritative
+for mechanical queries, drift-detection gates, and metadata that doesn't
+fit naturally in Markdown (timestamps, evidence pointers, supersedence
+chains).</p>
+<p>The CLI is consumed by:</p>
+<ul>
+<li><code>commit_all.sh</code> — pre-<code>git add -A</code> drift gate
+(this doc + §11.4.93/95).</li>
+<li><code>scripts/sync_all_markdown_exports.sh</code> via the optional
+<code>--also-sync-workable-items-db</code> flag — runs
+<code>sync md-to-db</code> before the Markdown export sweep.</li>
+<li>Future challenge gates (CME-WORKABLE-ITEMS-001 per Q6) + paired §1.1
+mutations.</li>
+</ul>
+<p>Graceful-degrade is intentional: callers SKIP silently when the
+binary or DB is absent so historical branches without workable-items
+still build + commit normally.</p>
+<h2 id="usage">Usage</h2>
+<pre class="text"><code>workable-items sync md-to-db [--db PATH] [--issues PATH] [--fixed PATH]
+workable-items sync db-to-md [--db PATH] [--out-dir PATH]
+workable-items diff          [--db PATH] [--issues PATH] [--fixed PATH]
+workable-items validate      [--db PATH] [--schema-only]
+workable-items add           --type Bug|Feature|Task --severity HIGH|MEDIUM|LOW
+                             --title &quot;...&quot; --description &quot;...&quot; [--category A..E]
+workable-items close         ATM-NNN --status fixed|implemented|completed|obsolete
+                             --evidence PATH [--by AI|User] [--on YYYY-MM-DD]
+                             [--reason ...] [--superseding-item ...]
+                             [--triple-check-evidence PATH]
+workable-items report        [--type ...] [--status ...] [--obsolete-audit]
+workable-items --version</code></pre>
+<h3 id="defaults-when-the-flag-is-omitted">Defaults (when the flag is
+omitted)</h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--db</code></td>
+<td><code>docs/workable_items.db</code></td>
+<td>§11.4.95 canonical location</td>
+</tr>
+<tr>
+<td><code>--issues</code></td>
+<td><code>Issues.md</code></td>
+<td>repo-root canonical tracker</td>
+</tr>
+<tr>
+<td><code>--fixed</code></td>
+<td><code>Fixed.md</code></td>
+<td>repo-root canonical closure log</td>
+</tr>
+<tr>
+<td><code>--out-dir</code></td>
+<td>repo root</td>
+<td><code>db-to-md</code> writes alongside the originals</td>
+</tr>
+</tbody>
+</table>
+<h3 id="exit-codes">Exit codes</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>success — round-trip byte-identical OR sync completed cleanly</td>
+</tr>
+<tr>
+<td>1</td>
+<td>drift detected (for <code>diff</code>) OR validation failure</td>
+</tr>
+<tr>
+<td>2</td>
+<td>usage error / missing required flag</td>
+</tr>
+</tbody>
+</table>
+<h2 id="inputs">Inputs</h2>
+<ul>
+<li><code>Issues.md</code> (UTF-8 Markdown, §11.4.15 + §11.4.16 +
+§11.4.54 conformant).</li>
+<li><code>Fixed.md</code> (UTF-8 Markdown, §11.4.19 + §11.4.33 +
+§11.4.54 conformant).</li>
+<li><code>docs/workable_items.db</code> (SQLite ≥ 3.40, schema per
+<code>cmd/workable-items/schema.sql</code>).</li>
+</ul>
+<h2 id="outputs">Outputs</h2>
+<ul>
+<li><code>sync md-to-db</code> — writes rows into
+<code>workable_items</code> table; idempotent.</li>
+<li><code>sync db-to-md</code> — writes regenerated
+<code>Issues.md</code> + <code>Fixed.md</code> into
+<code>--out-dir</code>. Round-trip MUST be byte-identical per Q3
+acceptance criteria.</li>
+<li><code>diff</code> — unified-diff output on stdout, exit 1 on
+drift.</li>
+<li><code>validate</code> — schema + invariant report on stdout (exit 0
+GREEN, 1 FAIL).</li>
+<li><code>report</code> — markdown / text report for operator
+review.</li>
+</ul>
+<h2 id="side-effects">Side-effects</h2>
+<ul>
+<li>Writes to <code>docs/workable_items.db</code> for
+<code>sync md-to-db</code>, <code>add</code>, <code>close</code>.</li>
+<li>Temporary directories under <code>$TMPDIR/wi-*</code> for
+<code>diff</code>. Cleaned on exit.</li>
+<li>No network calls. No external process spawns. No filesystem mutation
+outside the paths named above.</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li>Go 1.22+ at build time.</li>
+<li><code>modernc.org/sqlite</code> — pure-Go SQLite driver (no CGO, no
+system <code>libsqlite3</code> required). Confirmed pure-Go per sources
+verification below.</li>
+<li>No runtime dependencies on the host other than the produced binary
+at <code>cmd/workable-items/workable-items</code>.</li>
+</ul>
+<h2 id="cross-references">Cross-references</h2>
+<ul>
+<li><code>Constitution.md</code> §11.4.93 — SQLite SSoT mandate.</li>
+<li><code>Constitution.md</code> §11.4.95 — DB tracked in git with
+regeneration path.</li>
+<li><code>Constitution.md</code> §11.4.99 — sources verification mandate
+(this doc).</li>
+<li><code>Constitution.md</code> §11.4.54 — ATM-NNN identifier
+discipline.</li>
+<li><code>Constitution.md</code> §11.4.18 — script documentation mandate
+(this doc).</li>
+<li><code>Constitution.md</code> §11.4.44 — revision header
+(above).</li>
+<li><code>commit_all.sh</code> — pre-commit drift gate caller.</li>
+<li><code>scripts/sync_all_markdown_exports.sh</code> —
+<code>--also-sync-workable-items-db</code> flag caller.</li>
+<li><code>cmd/workable-items/schema.sql</code> — DB schema (owned by
+PWU-Q3).</li>
+<li><code>cmd/workable-items/*.go</code> — implementation (owned by
+PWU-Q3).</li>
+</ul>
+<h2 id="edge-cases">Edge cases</h2>
+<ul>
+<li><strong>Empty Issues.md or Fixed.md.</strong> Both files MUST exist;
+an empty body is permitted (the parser handles zero-item trackers).</li>
+<li><strong>Binary built for wrong arch.</strong>
+<code>commit_all.sh</code> checks <code>-x</code> only; an ARM-binary on
+x86_64 will fail loudly at first invocation.</li>
+<li><strong>DB locked by another process.</strong> SQLite WAL keeps
+reads concurrent; writers serialize. <code>commit_all.sh</code>'s flock
+covers the parent.</li>
+<li><strong>Stale binary vs source.</strong>
+<code>scripts/setup.sh</code> rebuilds when sources are newer; the gate
+trusts whatever binary is present.</li>
+<li><strong>No <code>docs/workable_items.db</code>.</strong> Both
+callers SKIP silently — fresh clones / historical branches keep
+working.</li>
+</ul>
+<h2 id="sources-verified-2026-05-28">Sources verified 2026-05-28</h2>
+<ul>
+<li>Project-local <code>cmd/workable-items/</code> source — read in-tree
+as of <code>2026-05-28T11:53Z</code> (this PWU-Q4 session).</li>
+<li><code>constitution/Constitution.md</code> §11.4.93, §11.4.95,
+§11.4.99 — verified in <code>constitution/</code> submodule at the
+project's current pinned commit (per §11.4.78 CodeGraph index + §11.4.37
+fetch-before-edit).</li>
+<li><code>modernc.org/sqlite</code> package docs — fetched
+<code>https://pkg.go.dev/modernc.org/sqlite</code>
+<code>2026-05-28T11:54Z</code>. Confirmed pure-Go (CGo-free) port of
+SQLite 3.53.1; current displayed version v1.51.0 (BSD-3-Clause). Import
+path <code>modernc.org/sqlite</code> unchanged.</li>
+</ul>
+<h2 id="last-verified">Last verified</h2>
+<p>2026-05-28</p>
+</body>
+</html>

@@ -73,8 +73,20 @@ type Item struct {
 	LastModified    string
 
 	// Body is the full Markdown body BELOW the heading and metadata
-	// lines, preserved verbatim for byte-stable round-trip.
+	// lines, preserved in memory during parsing for description-derivation.
+	// Not persisted to DB. Use RawBody for round-trip persistence.
 	Body string
+
+	// RawBody (PWU-Q3, §11.4.93 phase-6) is the verbatim text BETWEEN the
+	// H3 heading and the next H3 heading, preserved EXACTLY so db→md can
+	// re-emit it byte-identical. Includes any leading blank lines, embedded
+	// blockquotes, code fences, and structured prefix lines (Type/Status/
+	// Severity/ATM-ID) — those are still parsed into the Item structured
+	// fields for DB indexing/querying, but the raw_body is the source of
+	// truth for regeneration. Empty for items created via `workable-items
+	// add` (no source body yet); the generator falls back to structured
+	// emission in that case.
+	RawBody string
 }
 
 // ItemHistoryEvent represents one row of item_history.

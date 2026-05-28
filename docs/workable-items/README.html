@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1 id="workable-items--operator-guide">workable-items — Operator
+Guide</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-28T17:00:00Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+Operator-facing guide for the v1.0.15 project-local
+<code>workable-items</code> Go binary — the §11.4.93 SQLite
+Single-Source-of-Truth for every workable item tracked in
+<code>Issues.md</code> / <code>Fixed.md</code>.</p>
+<hr />
+<h2 id="1-what-this-is">1. What this is</h2>
+<p><code>cmd/workable-items/</code> is a small Go binary that owns the
+canonical form of every workable item in the tmux project. The on-disk
+truth is <code>docs/workable_items.db</code> — a SQLite file
+<strong>tracked in git per §11.4.95</strong>. Markdown
+(<code>Issues.md</code> / <code>Fixed.md</code>) is regenerated FROM the
+DB; the DB is regenerated FROM the Markdown. Round-trip drift is
+detected by <code>workable-items diff</code>.</p>
+<p>Two design constraints govern the layout:</p>
+<ul>
+<li><strong>§11.4.93 SQLite-SSoT mandate.</strong> Workable items must
+live in a structured, queryable store — not free-form Markdown — so that
+validation (§11.4.33 closure vocabulary, §11.4.91 description clarity,
+§11.4.5 / §11.4.69 evidence-required-on-close) can be enforced
+mechanically.</li>
+<li><strong>§11.4.95 DB tracked in git mandate.</strong>
+<code>docs/workable_items.db</code> is checked into git on every commit.
+Operators inspecting the tracker get a deterministic snapshot per SHA;
+there is no "DB on the server, Markdown in git" split-brain.</li>
+</ul>
+<p>The constitution submodule
+(<code>constitution/scripts/workable-items/</code>) ships a Phase-2
+scaffold (stubs + canonical <code>schema.sql</code>). The Phase 3+
+implementation lives in THIS repo at <code>cmd/workable-items/</code>
+per the <code>feedback_no_modify_constitution</code> memory rule.
+Upstream PR to HelixDevelopment/HelixConstitution is tracked as a
+follow-up.</p>
+<hr />
+<h2 id="2-quick-start">2. Quick start</h2>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build (no CGO, no system SQLite required)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">go</span> build ./cmd/workable-items</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># → produces ./workable-items in CWD</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Show every item in the DB</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> report</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Validate the DB against §11.4 mandates</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> validate</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Detect Markdown ↔ DB drift (exits 1 on drift)</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> diff</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Sync DB → regenerated Markdown (writes under docs/workable-items/regen/)</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> sync db-to-md</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Sync Markdown → DB (re-parse Issues.md + Fixed.md, allocate ATM-NNNs)</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> sync md-to-db</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Add a new item</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> add <span class="dt">\</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">--type</span> Bug <span class="at">--severity</span> HIGH <span class="dt">\</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">--title</span> <span class="st">&quot;Wheel scroll broken on Termux&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">--description</span> <span class="st">&quot;Pinch-to-zoom intercepts touch before tmux sees wheel events; need explicit binding for Termux&#39;s gesture handler&quot;</span> <span class="dt">\</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">--category</span> A</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Close an item with evidence (§11.4.5 + §11.4.69)</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> close ATM-042 <span class="dt">\</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">--status</span> fixed <span class="dt">\</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">--evidence</span> qa-results/runs/2026-05-28T17-00-00Z/test_44.log <span class="dt">\</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">--by</span> AI <span class="at">--on</span> 2026-05-28</span></code></pre></div>
+<p>Run <code>workable-items --help</code> for the full subcommand
+reference.</p>
+<hr />
+<h2 id="3-where-things-live">3. Where things live</h2>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cmd/workable-items/</code></td>
+<td>Go source (11 files: model / parser / db / sync_md_to_db /
+sync_db_to_md / diff / validate / add / close / main + tests)</td>
+</tr>
+<tr>
+<td><code>cmd/workable-items/schema.sql</code></td>
+<td>Embedded schema — drift-checked verbatim copy of
+<code>constitution/scripts/workable-items/schema.sql@6828ff2</code></td>
+</tr>
+<tr>
+<td><code>cmd/workable-items/testdata/</code></td>
+<td>Golden corpus (<code>golden_issues.md</code> /
+<code>golden_fixed.md</code> + exports) for round-trip byte-identical
+tests</td>
+</tr>
+<tr>
+<td><code>docs/workable_items.db</code></td>
+<td>The canonical DB — <strong>TRACKED in git per §11.4.95</strong></td>
+</tr>
+<tr>
+<td><code>docs/workable-items/Status.md</code></td>
+<td>Project-local Status document (§11.4.45)</td>
+</tr>
+<tr>
+<td><code>docs/workable-items/Status_Summary.md</code></td>
+<td>Two-audience companion (§11.4.56)</td>
+</tr>
+<tr>
+<td><code>docs/workable-items/regen/</code></td>
+<td>Output of <code>sync db-to-md</code> (gitignored — re-generate on
+demand)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-subcommands">4. Subcommands</h2>
+<table>
+<thead>
+<tr>
+<th>Subcommand</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sync md-to-db</code></td>
+<td>Parse <code>Issues.md</code> + <code>Fixed.md</code>, upsert rows in
+the DB, allocate ATM-NNN IDs for new items. Idempotent: a second
+invocation with no Markdown changes allocates 0 new IDs.</td>
+</tr>
+<tr>
+<td><code>sync db-to-md</code></td>
+<td>Render the DB back to Markdown under <code>--out-dir</code>.
+Byte-identical to source for the golden testdata corpus; lossy for live
+free-form bodies (see §6).</td>
+</tr>
+<tr>
+<td><code>diff</code></td>
+<td>Open a temp DB, sync <code>Issues.md</code> + <code>Fixed.md</code>
+into it, compare against the live DB. Exits 1 on drift unless
+<code>--allow-drift</code>.</td>
+</tr>
+<tr>
+<td><code>validate</code></td>
+<td>Walk the DB and report violations: §11.4.33 type-aware closure
+vocabulary, §11.4.91 description-clarity floor (≥40 chars or ≥6 words),
+§11.4.5 + §11.4.69 evidence-required for closed items. Exits 1 if any
+findings.</td>
+</tr>
+<tr>
+<td><code>add</code></td>
+<td>Append a new item. ATM-NNN allocated monotonically. Required:
+<code>--type</code>, <code>--severity</code>, <code>--title</code>,
+<code>--description</code>.</td>
+</tr>
+<tr>
+<td><code>close</code></td>
+<td>Mark an item closed. Required:
+<code>--status fixed|implemented|completed|obsolete</code>,
+<code>--evidence PATH</code>. Per §11.4.90, <code>obsolete</code>
+additionally requires <code>--superseding-item</code> and
+<code>--triple-check-evidence</code>.</td>
+</tr>
+<tr>
+<td><code>report</code></td>
+<td>List items, optionally filtered by <code>--type</code>,
+<code>--status</code>, or <code>--obsolete-audit</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-why-a-go-binary-not-a-shell-script">5. Why a Go binary (not a
+shell script)</h2>
+<ul>
+<li><strong>No CGO.</strong> Uses <a
+href="https://pkg.go.dev/modernc.org/sqlite"><code>modernc.org/sqlite</code></a>
+— a pure-Go port of SQLite 3.53.1 (v1.51.0 as of 2026-05-28).
+Cross-compiles on Mistborn (Darwin arm64) and nezha (Linux x86_64) with
+no build-host SQLite dependency.</li>
+<li><strong>Atomic writes via WAL.</strong> <code>OpenDB</code> enables
+WAL mode; <code>Close</code> runs
+<code>PRAGMA wal_checkpoint(TRUNCATE)</code> so the on-disk file is
+always self-contained. Compatible with <code>git add</code> (no -wal /
+-shm files left behind for git to choke on).</li>
+<li><strong>Embedded schema.</strong>
+<code>cmd/workable-items/schema.sql</code> is <code>//go:embed</code>-ed
+into the binary. The DB applies the embedded schema on
+<code>OpenDB</code> if not already applied. A drift-check header on line
+1 records the upstream constitution SHA the schema was copied from.</li>
+<li><strong><code>go test ./cmd/workable-items/... -count=3</code></strong>
+runs deterministically per §11.4.50 — 10 tests × 3 iterations = 30
+PASS.</li>
+</ul>
+<hr />
+<h2 id="6-honest-gaps-1146--no-guessing">6. Honest gaps (§11.4.6 — no
+guessing)</h2>
+<p>The following are KNOWN gaps, tracked transparently. None of them is
+a §11.4 PASS-bluff: each is a documented topology / scope limitation
+with a follow-up plan.</p>
+<ol type="1">
+<li><p><strong>Live-corpus round-trip is NOT byte-identical.</strong>
+<code>Issues.md</code> / <code>Fixed.md</code> carry free-form bodies
+(forensic anchors, multi-paragraph "Source-side fix" + "Captured
+evidence" sections, blockquotes, code fences) that cannot be losslessly
+reconstructed from the structured <code>items</code> schema's flat
+<code>description</code> field. The §11.4.93 phase-6 migration plan
+addresses this; until then, round-trip byte-identical equivalence holds
+for the <strong>golden testdata corpus only</strong>, and
+<code>sync db-to-md</code> against live data produces simplified bodies
+under <code>docs/workable-items/regen/</code> that are intentionally not
+used to overwrite the canonical <code>Issues.md</code> /
+<code>Fixed.md</code>.</p></li>
+<li><p><strong>45 legacy items default to
+<code>Type=Task</code>.</strong> The tmux corpus predates §11.4.16 — no
+<code>**Type:**</code> lines exist in the original Issues / Fixed
+bodies. <code>workable-items validate</code> therefore reports §11.4.33
+violations for every closed item that used the <code>RESOLVED</code>
+heading hint (mapped to <code>Fixed (→ Fixed.md)</code>, the Bug closure
+word) while the row's <code>type</code> is <code>Task</code> (which
+would expect <code>Completed (→ Fixed.md)</code>). This is the
+<strong>expected initial state</strong> of the post-population DB, not a
+bug in the binary. PWU-Q5 (legacy-items Type=Bug cleanup) is the closure
+path.</p></li>
+<li><p><strong>Phase 3+ implementation is project-local.</strong> Per
+the <code>feedback_no_modify_constitution</code> memory rule (no
+project-local pushes into the constitution submodule), this
+implementation lives at <code>cmd/workable-items/</code>. Upstream PR to
+HelixDevelopment/HelixConstitution is operator-blocked pending explicit
+authorisation. The constitution's Phase-2 scaffold and the project's
+Phase-3+ implementation share the schema verbatim (drift-checked on
+<code>OpenDB</code>).</p></li>
+<li><p><strong><code>commit_all.sh</code> +
+<code>sync_issues_docs.sh</code> integration is owned by PWU-Q4</strong>
+(parallel cycle, 2026-05-28). Until that PWU lands, operators must
+invoke <code>workable-items sync md-to-db</code> manually after editing
+<code>Issues.md</code> / <code>Fixed.md</code> and re-commit the updated
+<code>docs/workable_items.db</code>.</p></li>
+</ol>
+<hr />
+<h2 id="7-anti-bluff-verification">7. Anti-bluff verification</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Mechanism</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 — pre-build gate</td>
+<td><code>verify.sh</code> greps for
+<code>cmd/workable-items/main.go</code> +
+<code>docs/workable_items.db</code> present</td>
+<td><code>scripts/verify.sh</code></td>
+</tr>
+<tr>
+<td>2 — runtime</td>
+<td><code>go test ./cmd/workable-items/... -count=3</code> (30 PASS / 0
+FAIL)</td>
+<td><code>cmd/workable-items/*_test.go</code></td>
+</tr>
+<tr>
+<td>3 — Challenge</td>
+<td><code>CME-WORKABLE-ITEMS-001</code> (planned, PWU-Q6)</td>
+<td><code>scripts/challenges/tmux.yaml</code></td>
+</tr>
+<tr>
+<td>4 — paired mutation</td>
+<td>M-WORKABLE-ITEMS (planned, PWU-Q6) — strips the §11.4.91 clarity
+floor and asserts <code>validate</code> no longer FAILs on a 1-word
+description</td>
+<td><code>scripts/tests/meta_test_false_positive_proof.sh</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-cross-references">8. Cross-references</h2>
+<ul>
+<li><a href="../../Constitution.md"><code>Constitution.md</code></a>
+§11.4.93 (SQLite-SSoT), §11.4.95 (DB TRACKED in git), §11.4.33
+(type-aware closure), §11.4.91 (description clarity), §11.4.50
+(deterministic <code>-count=3</code>), §11.4.69 (sink-side evidence
+applied to <code>--evidence</code>)</li>
+<li><a href="Status.md"><code>docs/workable-items/Status.md</code></a> —
+live status per §11.4.45</li>
+<li><a
+href="Status_Summary.md"><code>docs/workable-items/Status_Summary.md</code></a>
+— two-audience companion per §11.4.56</li>
+<li><a href="../../CHANGELOG.md"><code>CHANGELOG.md</code></a> v1.0.15 —
+A39 release notes</li>
+<li>Constitution scaffold (Phase 2):
+<code>constitution/scripts/workable-items/</code></li>
+</ul>
+<hr />
+<h2 id="sources-verified-2026-05-28">Sources verified 2026-05-28</h2>
+<ul>
+<li><strong>Constitution §11.4.93 / §11.4.95 / §11.4.50 / §11.4.33 /
+§11.4.69</strong> — <code>constitution/Constitution.md</code> @
+submodule pointer <code>6828ff2</code> (pulled 2026-05-28 per §11.4.37
+fetch-before-edit).</li>
+<li><strong><code>modernc.org/sqlite</code></strong> — <a
+href="https://pkg.go.dev/modernc.org/sqlite">https://pkg.go.dev/modernc.org/sqlite</a>
+(verified 2026-05-28). Latest published version v1.51.0 (2026-05-28),
+ships SQLite 3.53.1. Confirmed: pure-Go (CGo-free) driver, import path
+<code>modernc.org/sqlite</code>, driver name <code>sqlite</code> for
+<code>sql.Open</code>, WAL + <code>PRAGMA wal_checkpoint</code>
+supported via <code>_pragma</code> query param or via direct
+<code>PRAGMA</code> statements.</li>
+<li><strong>Constitution Phase-2 scaffold</strong> —
+<code>constitution/scripts/workable-items/schema.sql</code> @
+<code>6828ff2</code>; verbatim drift-checked copy at
+<code>cmd/workable-items/schema.sql</code> header line 1.</li>
+<li><strong>§11.4.99 sources-verification mandate</strong> — new clause
+landed in constitution <code>9e3bcc5</code> (2026-05-28), short-form
+mirror in this project's <code>Constitution.md</code> /
+<code>CLAUDE.md</code> / <code>AGENTS.md</code> / <code>QWEN.md</code>
+(PWU-Q5 owns the propagation row).</li>
+</ul>
+</body>
+</html>

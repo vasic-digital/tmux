@@ -214,6 +214,51 @@ Test 15 + e2e T7 in `scripts/tests/` automate these checks with OS-dispatched as
 
 ---
 
+## §5.7 Clipboard — multi-line copy + paste-IN + modifier-drag (v1.0.14 / v1.0.15)
+
+The shipped `~/.tmux.conf` (generated from `scripts/tmux.conf.template`) wires four cooperating mechanisms so every clipboard surface is reachable from every device — mouse, keyboard, and modifier-drag inside mouse-tracking TUIs (Claude Code, vim, less, htop).
+
+### Quick reference
+
+| Goal | Keystroke / mouse |
+|---|---|
+| Select & copy plain shell output | drag with mouse, release — read back via `pbpaste` / `wl-paste` / `xclip -o` / `termux-clipboard-get` |
+| Select & copy inside Claude Code et al. | **Alt-drag** (macOS) OR **Shift-drag** (Linux) |
+| Keyboard-only copy | `prefix + [` → `v` → arrows / `j` / `k` → `y` |
+| Paste OS clipboard INTO the pane | `prefix + P` (capital — lowercase is `previous-window`) |
+
+### The four mechanisms
+
+1. **`@clip` user option** — OS-adaptive WRITE pipeline (pbcopy → wl-copy → xclip → termux-clipboard-set → OSC-52 fallback). `copy-pipe-and-cancel "#{@clip}"` routes every `y` / `Enter` / `MouseDragEnd1Pane` selection through it.
+
+2. **`@clip-read` user option (v1.0.15)** — symmetric READ pipeline (pbpaste → wl-paste → xclip -o → termux-clipboard-get → empty). Drives `prefix + P`.
+
+3. **Modifier-drag overrides (v1.0.15)** — `bind -n M-MouseDrag1Pane copy-mode -M` + `bind -n S-MouseDrag1Pane copy-mode -M`. When a TUI captures mouse events (Claude Code's alt-screen + DECSET 1002/1003), the unmodified `MouseDrag1Pane` forwards the drag to the app via `send -M`. Holding Alt / Option (macOS) or Shift (Linux) prefixes the event with `M-` / `S-` and tmux routes it to copy-mode regardless of the app's mouse mode.
+
+4. **Bracketed-paste on paste-IN** — `bind P run -b 'tmux load-buffer - <<< "$(#{@clip-read})" \; tmux paste-buffer -p'`. The `-p` flag (per `man tmux`: *"paste bracket control codes are inserted around the buffer if the application has requested bracketed paste mode"*) makes shells / editors treat the inserted block as literal text — no accidental command execution from a stray newline.
+
+### Verification (positive evidence per §101)
+
+| Test | What it proves | Mutation |
+|---|---|---|
+| 44 — clipboard copy-OUT physical | `y` keystroke → `@clip` → `pbpaste` round-trip with unique marker | M44 strips `@clip` definition |
+| 45 — multi-line keyboard copy | `v` + arrows + `y` selects ≥3 lines; round-trip via `pbpaste` | — |
+| 46 — paste-IN physical | `prefix + P` reads `@clip-read` and inserts into the pane | M46 strips `@clip-read` |
+| 47 — modifier mouse surface | tmux observes `M-` / `S-` modifier on drag-start | — |
+| 48 — modifier-drag binding chain | `M-MouseDrag1Pane` + `M-MouseDragEnd1Pane` resolves through `@clip` end-to-end | M48 strips the modifier binding |
+
+The synthetic alt-screen surrogate at `scripts/tests/helpers/synthetic_alt_screen_app.py` substitutes for the Claude Code CLI in tests 47 / 48, avoiding §11.4.98 OAuth/interactive flake while still exercising the exact alt-screen + mouse-tracking surface.
+
+The dedicated operator-recipe document is [`docs/guides/clipboard.md`](../guides/clipboard.md) — quick recipes, OS-by-OS modifier choice, troubleshooting (Alt-drag captured by terminal, empty `@clip-read`, post-aborted-drag mouse weirdness).
+
+### Sources verified 2026-05-28
+
+- **tmux 3.6a man page** — `man tmux` on the host. Confirms `S-` / `M-` modifier prefixes apply to mouse events (`MouseDrag1Pane` is a key name; key names accept `C-` / `S-` / `M-` prefixes per the "KEY BINDINGS" section); confirms `paste-buffer -p` enables bracketed-paste; confirms `@`-prefixed user options accept arbitrary string values.
+- **tmux upstream man page mirror** — <https://man.openbsd.org/tmux.1> (OpenBSD ships the canonical upstream `tmux.1`).
+- **Anthropic Claude Code docs** — <https://code.claude.com/docs/en/> (verified 2026-05-28; no tmux-specific integration page is published; the alt-screen + mouse-tracking behaviour cited above is documented from direct observation against Claude Code CLI v2.x).
+
+---
+
 ## §6 Why we did this despite the data
 
 The forensic record (§12 incidents) does NOT name tmux as a root cause. The actual culprits were `soong_build`, `kotlinc`, `gradle`, `git pack-objects` — all already addressed by §12.6/§12.7/§12.8/§12.9. So the question naturally arises: why this work?

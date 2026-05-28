@@ -21,6 +21,31 @@ echo "[commit_all] git status..."
 git status --short
 echo ""
 
+# ─── §11.4.93/95 — workable-items DB drift gate ─────────────────────────
+# Before staging, verify the SQLite SSoT for workable items is in sync
+# with the Markdown trackers. Graceful-degrade: if the binary or DB is
+# missing (old branches, fresh clones pre-PWU-Q3), skip silently so this
+# wrapper still works.
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+WI_BIN="$REPO_ROOT/cmd/workable-items/workable-items"
+WI_DB="$REPO_ROOT/docs/workable_items.db"
+WI_ISSUES="$REPO_ROOT/Issues.md"
+WI_FIXED="$REPO_ROOT/Fixed.md"
+if [ -x "$WI_BIN" ] && [ -f "$WI_DB" ] && [ -f "$WI_ISSUES" ] && [ -f "$WI_FIXED" ]; then
+    echo "[commit_all] §11.4.93/95 workable-items: checking md↔db drift..."
+    if ! "$WI_BIN" diff --db "$WI_DB" --issues "$WI_ISSUES" --fixed "$WI_FIXED" 2>&1 | head -20; then
+        echo "[commit_all] WARN: workable-items DB drift detected; running sync md-to-db..."
+        "$WI_BIN" sync md-to-db \
+            --db "$WI_DB" \
+            --issues "$WI_ISSUES" \
+            --fixed "$WI_FIXED" || \
+            echo "[commit_all] WARN: workable-items sync md-to-db failed (non-fatal)"
+    fi
+else
+    # Honest-skip per §107: declare what's missing rather than silently pass.
+    echo "[commit_all] §11.4.93/95 workable-items: SKIP (binary/db/tracker absent)"
+fi
+
 # Stage everything (tracked + untracked, respecting .gitignore)
 git add -A
 

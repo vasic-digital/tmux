@@ -34,8 +34,45 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 FORCE=0
-if [ "${1:-}" = "--force" ]; then
-    FORCE=1
+ALSO_SYNC_WI_DB=0
+for arg in "$@"; do
+    case "$arg" in
+        --force)
+            FORCE=1
+            ;;
+        --also-sync-workable-items-db)
+            ALSO_SYNC_WI_DB=1
+            ;;
+        --help|-h)
+            sed -n '1,30p' "$0"
+            exit 0
+            ;;
+        *)
+            echo "WARN: unknown arg: $arg (continuing)" >&2
+            ;;
+    esac
+done
+
+# ─── §11.4.93/95 — optional workable-items DB sync ─────────────────────
+# When --also-sync-workable-items-db is passed, run `workable-items sync
+# md-to-db` BEFORE the Markdown export sweep so the SQLite SSoT reflects
+# any unstaged tracker edits. Graceful-degrade: if the binary or DB is
+# missing, surface a SKIP per §107 and continue with the export sweep.
+if [ "$ALSO_SYNC_WI_DB" -eq 1 ]; then
+    WI_BIN="$REPO_ROOT/cmd/workable-items/workable-items"
+    WI_DB="$REPO_ROOT/docs/workable_items.db"
+    WI_ISSUES="$REPO_ROOT/Issues.md"
+    WI_FIXED="$REPO_ROOT/Fixed.md"
+    if [ -x "$WI_BIN" ] && [ -f "$WI_DB" ] && [ -f "$WI_ISSUES" ] && [ -f "$WI_FIXED" ]; then
+        echo "[sync_all_markdown_exports] §11.4.93/95 workable-items sync md-to-db..."
+        "$WI_BIN" sync md-to-db \
+            --db "$WI_DB" \
+            --issues "$WI_ISSUES" \
+            --fixed "$WI_FIXED" || \
+            echo "WARN: workable-items sync md-to-db failed (non-fatal — continuing exports)" >&2
+    else
+        echo "[sync_all_markdown_exports] §11.4.93/95 workable-items: SKIP (binary/db/tracker absent)"
+    fi
 fi
 
 # ─── Tool detection ────────────────────────────────────────────────────
