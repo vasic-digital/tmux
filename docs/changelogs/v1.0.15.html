@@ -408,7 +408,101 @@ test-DESIGN gaps documented in <code>Issues.md</code> B3 since v1.0.9 —
 NOT v1.0.15 regressions.</p>
 <h2 id="verification-nezha-linux-alt-612-x86_64-2026-05-28">Verification
 (nezha Linux ALT 6.12 x86_64, 2026-05-28)</h2>
-<p>To be populated after PWU-E nezha deploy step.</p>
+<p>Multi-host deploy executed via <code>ssh nezha.local</code> (per the
+<code>~/nezha</code> SSH script). After
+<code>git pull --ff-only github main</code> (+ submodule update --init
+--recursive that brought constitution <code>6828ff2</code> + Containers
+<code>2e9ca0e</code> to nezha):</p>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bash scripts/setup.sh --rebuild</code></td>
+<td>GREEN</td>
+</tr>
+<tr>
+<td><code>bash scripts/setup.sh --verify-only</code></td>
+<td><strong>SUMMARY: PASS=38 FAIL=0 SKIP=10</strong></td>
+</tr>
+<tr>
+<td>Test 45 (multi-line copy)</td>
+<td>PASS=5/0/SKIP=1 (T5 honest — no clipboard tool on headless
+Linux)</td>
+</tr>
+<tr>
+<td>Test 46 (paste-IN)</td>
+<td>PASS=5/0/SKIP=2 (T0+T3 honest — no clipboard tool)</td>
+</tr>
+<tr>
+<td>Test 47 (alt-screen scroll)</td>
+<td><strong>PASS=8/0/0</strong> — Claude Code alt-screen scroll works on
+Linux too</td>
+</tr>
+<tr>
+<td>Test 48 (modifier-drag override)</td>
+<td>PASS=8/0/SKIP=1 (T5 honest)</td>
+</tr>
+<tr>
+<td><code>bash scripts/tests/meta_test_false_positive_proof.sh</code></td>
+<td>41 CAUGHT / 4 ESCAPED / 8 SKIPPED</td>
+</tr>
+<tr>
+<td><code>bash scripts/test_e2e.sh</code></td>
+<td><strong>PASS=9/0/0 GREEN</strong></td>
+</tr>
+<tr>
+<td><code>go test ./cmd/workable-items/... -count=3</code></td>
+<td>ok (Linux x86_64 build + all tests PASS)</td>
+</tr>
+</tbody>
+</table>
+<p>The 10 SKIPs in the full suite are §11.4.3 honest topology
+dispatches:</p>
+<ul>
+<li><code>08_oom_score_adj.sh</code>,
+<code>12_memory_pressure_under_cap.sh</code>,
+<code>13_tasksmax_stress.sh</code>,
+<code>14_concurrent_oom_independence.sh</code> — destructive/Linux-OOM
+tests gated by <code>TMX_TEST_DESTRUCTIVE=1</code>.</li>
+<li><code>32_ssh_dispatch_remote_nezha.sh</code> —
+nezha-self-reference.</li>
+<li><code>41_docs_user_guides_render.sh</code> — weasyprint
+dependency.</li>
+<li><code>44_clipboard_copy_out_physical.sh</code>,
+<code>45_multiline_copy_physical.sh</code>,
+<code>46_paste_in_physical.sh</code>,
+<code>48_modifier_drag_override.sh</code> — the PHYSICAL
+<code>pbpaste</code>-back step (T5) honestly SKIPs on headless Linux
+with no DISPLAY/Wayland/Termux clipboard. <strong>The binding-chain
+proof T1–T4 still PASSes</strong> — the tests are not inert; they assert
+exactly what is testable in this topology.</li>
+</ul>
+<p>The 4 mutation ESCAPES on nezha are the same pre-existing layer-4
+design gaps tracked in <code>Issues.md</code> B3:</p>
+<ul>
+<li><strong>P5-M20 + P5-M21</strong>: shared with Mistborn (pre-existing
+v1.0.9 shell-session-resume PWU layer-4 design gaps).</li>
+<li><strong>2 additional nezha-specific ESCAPES</strong>: environmental
+state on the nezha CodeGraph index/config (M22-class), per the v1.0.14
+cycle audit. Not v1.0.15 regressions; tracked transparently in
+<code>Issues.md</code> B3. Underlying features GREEN.</li>
+</ul>
+<p><strong>The libtinfo.so.6 warning</strong>
+(<code>no version information available</code>) visible in test output
+is a cosmetic libc symbol-version mismatch between the nezha ALT 6.12
+host's ncurses-bundled libtinfo and the locally-built tmux's
+compile-time recorded version. The wrapper script filters this in
+user-facing output via `exec 2&gt; &gt;(grep --line- buffered -v
+'libtinfo.so.[0-9]*: no version information available'</p>
+<blockquote>
+<p>&amp;2)` (per Fixed.md A30 / §11.4.81). Tests print the raw stderr;
+no functional impact.</p>
+</blockquote>
 <hr />
 <h2 id="honest-gaps-out-of-scope-tracked-per-1146">Honest gaps (out of
 scope, tracked per §11.4.6)</h2>
