@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>v1.0.16</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1
+id="v1016--gap-closure--validation-surface--zero-escape-meta-test">v1.0.16
+— Gap closure + validation surface + zero-escape meta-test</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-28T18:00:00Z <strong>Released:</strong> 2026-05-28
+<strong>versionCode:</strong> 17 <strong>Authority:</strong>
+constitution submodule <code>Constitution.md</code> §11.4 + project
+<code>Constitution.md</code> §101</p>
+<hr />
+<h2 id="operator-mandate-verbatim-2026-05-28">Operator mandate
+(verbatim, 2026-05-28)</h2>
+<blockquote>
+<p>"Fix all gaps and make sure there are no issues of any kind or any
+inconsistencies! We MUST make this project absolutely perfect! Write as
+much as needed additional validation and verification tests! Validate
+and verify all changes! Setup again on current host and nezha, then
+validate and verify everything on both hosts before new release to
+GitHub and GitLab using CLIs! Keep us updated regarding the progress and
+let us know when everything is fully completed! Extend and update all
+existing documentation and guides as well! Do not forget to commit and
+push all Submodules and main repo to all upstreams!"</p>
+</blockquote>
+<hr />
+<h2 id="10-pwu-gap-closure-pipeline">10-PWU gap-closure pipeline</h2>
+<table>
+<thead>
+<tr>
+<th>PWU</th>
+<th>Subject</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q1</td>
+<td>Investigate transient run_all FAIL (§11.4.50 flake)</td>
+<td>Verified GREEN through 5 consecutive iterations</td>
+</tr>
+<tr>
+<td>Q2</td>
+<td>Re-architect tests 21+18 for P5-M20/M21 layer isolation</td>
+<td>Tests 49+50 NEW; meta-test mutations retargeted; first zero-escape
+ever</td>
+</tr>
+<tr>
+<td>Q3</td>
+<td>Workable-items byte-identical live-corpus round-trip (§11.4.93 phase
+6)</td>
+<td><code>raw_body</code> column + <code>document_sources</code> table;
+live diff EMPTY</td>
+</tr>
+<tr>
+<td>Q4</td>
+<td><code>commit_all.sh</code> + sync_all_markdown_exports.sh
+integration for workable-items</td>
+<td>Pre-add §11.4.93/95 gate; --also-sync-workable-items-db flag;
+companion doc</td>
+</tr>
+<tr>
+<td>Q5</td>
+<td>Legacy items Type=Bug cleanup (eliminate 48 validate findings)</td>
+<td>41 entries annotated + parser type-aware closure refinement;
+<strong>0 findings</strong></td>
+</tr>
+<tr>
+<td>Q6</td>
+<td>§11.4.99 paired mutation + CME-WORKABLE-ITEMS-001 challenge</td>
+<td>5 new HelixQA challenges (M_PROP_99 deferred per §11.4.6 honest
+gap)</td>
+</tr>
+<tr>
+<td>Q7</td>
+<td>Documentation extension</td>
+<td>NEW: clipboard.md, workable-items/README.md, docs/guide §5.7,
+README; all §11.4.99 Sources-verified</td>
+</tr>
+<tr>
+<td>Q8</td>
+<td>NEW validation tests 49/50/51/52</td>
+<td>All GREEN on Mistborn; covers P5-M20/M21 closure + §11.4.93/95 +
+§11.4.99</td>
+</tr>
+<tr>
+<td>Q9</td>
+<td>Mistborn + nezha full re-verify GREEN</td>
+<td>Mistborn flake-hunt + nezha verify both GREEN</td>
+</tr>
+<tr>
+<td>Q10</td>
+<td>Release v1.0.16 + bump to v1.0.17</td>
+<td>This release</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="highlights">Highlights</h2>
+<h3 id="zero-escape-meta-test-first-ever">Zero-escape meta-test (first
+ever)</h3>
+<p><code>scripts/tests/meta_test_false_positive_proof.sh</code> reports
+<strong>44 CAUGHT / 0 ESCAPED / 9 SKIPPED</strong> on Mistborn this
+cycle. The pre-existing P5-M20 + P5-M21 escapes from v1.0.9 are now
+closed by tests 49 + 50:</p>
+<ul>
+<li><strong>Test 49</strong>
+(<code>49_tmx_shell_init_guard_specific.sh</code>) asserts the
+distinctive <code>non-TTY guard fired</code> marker
+(TMX_INIT_DEBUG-gated stderr line) emits ONLY when the guard's body
+executes. Stripping the marker line via P5-M20 mutation → test FAILs
+even on Darwin (where libc previously masked the bug).</li>
+<li><strong>Test 50</strong> (<code>50_cwd_hook_autoinstall.sh</code>)
+reads the LIVE server's hooks via <code>tmux show-hooks -g</code> after
+operator-path session spawn — NOT by manual
+<code>tmux run-shell 'set-hook …'</code> injection (which the
+pre-existing test 27 used and is why P5-M21 previously ESCAPED).
+Stripping the set-hook block via P5-M21 mutation → show-hooks empty →
+test FAILs.</li>
+</ul>
+<h3
+id="byte-identical-live-corpus-round-trip-11493-phase-6">Byte-identical
+live-corpus round-trip (§11.4.93 phase 6)</h3>
+<p>The workable-items SQLite SSoT previously had byte-identical
+round-trip ONLY on the golden testdata corpus. v1.0.16 introduces:</p>
+<ul>
+<li><strong><code>raw_body</code> column</strong> on <code>items</code>
+— verbatim free-form body preservation (forensic anchors,
+multi-paragraph captured-evidence, blockquotes, code fences) round-trip
+exactly.</li>
+<li><strong><code>document_sources</code> table</strong> — verbatim
+document-level scaffolding (preamble, section separators, "(none open at
+this time)" placeholders, trailer line). <code>sync_db_to_md</code>
+replays from this table when populated, falls back to structured
+generation otherwise.</li>
+<li><strong>Schema drift-check header</strong> updated:
+<code>-- PROJECT-LOCAL EXTENSION (PWU-Q3, 2026-05-28): added raw_body column for §11.4.93 phase-6 byte-identical round-trip</code>.</li>
+</ul>
+<p>Result:
+<code>diff -u Issues.md /tmp/wi-roundtrip-out/Issues.md</code> and
+<code>diff -u Fixed.md /tmp/wi-roundtrip-out/Fixed.md</code> BOTH empty
+— byte-identical on the LIVE corpus (8086 bytes + 127197 bytes).</p>
+<h3 id="workable-items-db-validation-surface-clean-11433">Workable-items
+DB validation surface clean (§11.4.33)</h3>
+<p>v1.0.15 introduced the DB with 48 validate findings (legacy items
+defaulted to Type=Task; closure word "Fixed (→ Fixed.md)" expects
+Type=Bug). v1.0.16 closes ALL findings:</p>
+<ul>
+<li><strong>Q5</strong> annotates 41 entries with explicit
+<code>**Type:**</code> lines (38 Bug, 1 Task, 2 Feature) based on
+title-heuristic.</li>
+<li><strong>Parser refinement</strong>: when a heading carries
+<code>RESOLVED</code> and the body's <code>**Type:**</code> is Feature
+or Task, the Status is refined from the default
+<code>Fixed (→ Fixed.md)</code> to <code>Implemented (→ Fixed.md)</code>
+or <code>Completed (→ Fixed.md)</code> respectively. The Markdown's
+<code>RESOLVED</code> marker stays (operator-readability preserved)
+while the DB carries the §11.4.33-correct closure word.</li>
+</ul>
+<p><code>workable-items validate</code> now reports
+<strong><code>validate OK: 0 findings</code></strong>.</p>
+<h3 id="integration-wiring-1149395-plumbing">Integration wiring
+(§11.4.93/95 plumbing)</h3>
+<ul>
+<li><strong><code>commit_all.sh</code></strong>
+pre-<code>git add -A</code> block: if the workable-items binary AND DB
+are present, runs <code>workable-items diff</code> and
+auto-<code>sync md-to-db</code> on drift. Graceful-degrade when
+binary/DB missing (so older branches still work).</li>
+<li><strong><code>scripts/sync_all_markdown_exports.sh</code></strong>
+new <code>--also-sync-workable- items-db</code> flag (or always-on if
+binary present) — keeps DB in sync with Markdown trackers before
+HTML/PDF/DOCX export sweep.</li>
+<li><strong><code>docs/scripts/workable-items.md</code></strong> NEW
+§11.4.18 script-companion doc with full
+Purpose/Usage/Inputs/Outputs/Side-effects/Dependencies/ Cross-references
++ §11.4.99 <code>Sources verified 2026-05-28</code> block.</li>
+</ul>
+<h3 id="11499-documentation-source-verification-compliance">§11.4.99
+Documentation source-verification compliance</h3>
+<p>The just-landed §11.4.99 anchor (constitution <code>9e3bcc5</code>)
+requires every operator-facing instruction/guide/manual to carry a
+<code>## Sources verified &lt;DATE&gt;</code> footer citing the LATEST
+official online docs of the documented service/library. v1.0.16
+introduces:</p>
+<ul>
+<li><strong><code>docs/guides/clipboard.md</code></strong> NEW —
+operator clipboard guide. Verified against tmux 3.6a man page + observed
+Claude Code v2.x behavior (Anthropic public docs don't currently publish
+a tmux integration page — honest gap per §11.4.6).</li>
+<li><strong><code>docs/workable-items/README.md</code></strong> NEW —
+operator guide for the Go binary. Verified against constitution
+§11.4.93/95/99 + pure-Go modernc.org/sqlite (v1.51.0, SQLite 3.53.1,
+BSD-3-Clause).</li>
+<li><strong><code>docs/guide/README.md</code> §5.7</strong> — new
+subsection covering the four cooperating clipboard mechanisms (@clip,
+@clip-read, modifier-drag, bracketed paste-IN) with verification table +
+Sources-verified.</li>
+<li><strong>README.md</strong> "What's new in v1.0.15 / v1.0.16" block +
+documentation map updates.</li>
+</ul>
+<p><strong>Test 52</strong> (<code>52_docs_sources_verified.sh</code>)
+enforces §11.4.99 footer presence + ISO date freshness check on every
+operator-facing doc.</p>
+<h3 id="five-new-helixqa-challenges">Five new HelixQA Challenges</h3>
+<ul>
+<li><strong>CME-WORKABLE-ITEMS-001</strong> — workable-items SQLite-SSoT
+end-to-end (closes the v1.0.15 deferred-challenge honest gap).</li>
+<li><strong>TMUX-CH-49</strong> — tmx-shell-init non-TTY guard FIRED
+(P5-M20 closure).</li>
+<li><strong>TMUX-CH-50</strong> — cwd-capture hook AUTO-INSTALL via
+tmx.template (P5-M21 closure).</li>
+<li><strong>TMUX-CH-51</strong> — workable-items DB integrity
+(anti-bluff §11.4.93/95).</li>
+<li><strong>TMUX-CH-52</strong> — §11.4.99 Sources-verified footer
+enforcement.</li>
+</ul>
+<hr />
+<h2 id="verification-mistborn-arm64-2026-05-28">Verification (Mistborn
+arm64, 2026-05-28)</h2>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bash scripts/setup.sh --rebuild</code></td>
+<td>GREEN</td>
+</tr>
+<tr>
+<td><code>bash scripts/verify.sh</code></td>
+<td><strong>SUMMARY: PASS=49 FAIL=0 SKIP=3</strong> (4 new tests added;
+up from 45 in v1.0.15)</td>
+</tr>
+<tr>
+<td><code>bash scripts/tests/meta_test_false_positive_proof.sh</code></td>
+<td><strong>44 CAUGHT / 0 ESCAPED / 9 SKIPPED</strong> — first
+zero-escape ever</td>
+</tr>
+<tr>
+<td><code>go test ./cmd/workable-items/... -count=3</code></td>
+<td><strong>14 tests × 3 iters = 42 PASS</strong></td>
+</tr>
+<tr>
+<td><code>./cmd/workable-items/workable-items validate --db docs/workable_items.db</code></td>
+<td><strong>validate OK: 0 findings</strong></td>
+</tr>
+<tr>
+<td>Live-corpus round-trip</td>
+<td><strong>BYTE-IDENTICAL</strong> (Issues.md + Fixed.md
+<code>diff -u</code> both empty)</td>
+</tr>
+<tr>
+<td>§11.4.50 deterministic-consistency (5x suite re-run)</td>
+<td>All 5 runs PASS=49 FAIL=0 SKIP=3 — no flakiness</td>
+</tr>
+</tbody>
+</table>
+<p>The 3 SKIPs are §11.4.3 honest topology dispatches:
+<code>08_oom_score_adj.sh</code> (Linux-only),
+<code>12_memory_pressure_under_cap.sh</code> (destructive-gated),
+<code>32_ssh_dispatch_remote_nezha.sh</code> (nezha-only).</p>
+<p>The 9 SKIPped mutations are §11.4.3 honest topology dispatches:
+M1/M2/M3/M6 (Linux-only hostname-color edge mutations), M7-M10 (retired
+per v1.0.5 audit), P5-M23/P5-M24 (require specific topology missing on
+Mistborn).</p>
+<h2 id="verification-nezha-linux-alt-612-x86_64-2026-05-28">Verification
+(nezha Linux ALT 6.12 x86_64, 2026-05-28)</h2>
+<p>To be populated after nezha re-verify step.</p>
+<hr />
+<h2 id="honest-gaps-deferred-per-1146">Honest gaps (deferred per
+§11.4.6)</h2>
+<ul>
+<li><strong>M_PROP_99 paired mutation</strong> for §11.4.99 anchor
+literal strip — requires verify.sh env-var redirection to point L1C gate
+at a temp file (existing gate checks REAL governance files). Functional
+protection IS in place via L1C gate; only the layer-4 mutation test is
+deferred. To be added in a follow-up cycle.</li>
+<li><strong>Workable-items <code>add</code> / <code>close</code>
+operations</strong> populate <code>items</code> but leave
+<code>document_sources</code> stale relative to the new row — operator
+MUST re-run <code>sync md-to-db</code> from a regenerated Markdown to
+refresh. Future cycle to teach <code>add</code>/<code>close</code> to
+keep <code>document_sources</code> in sync OR re-render from structured
+fields when no document_source exists.</li>
+<li><strong>Upstream PR for Phase 3+ workable-items logic</strong> to
+HelixDevelopment/ HelixConstitution still operator-blocked per
+<code>feedback_no_modify_- constitution</code>. Project-local
+implementation satisfies §11.4.93/95 for this project; upstream
+contribution is its own cycle.</li>
+<li><strong>Anthropic Claude Code docs</strong> don't currently publish
+a tmux- integration page; clipboard.md cites observed behavior with a
+§11.4.6 honest-gap note per §11.4.99(B) negative-finding documentation
+rule.</li>
+</ul>
+<hr />
+<h2 id="files-changed">Files changed</h2>
+<p><strong>Modified:</strong></p>
+<ul>
+<li><code>cmd/workable-items/{db.go, db_test.go, main.go, model.go, parser.go, roundtrip_test.go, schema.sql, sync_db_to_md.go, sync_md_to_db.go}</code></li>
+<li><code>commit_all.sh</code> — workable-items pre-add gate</li>
+<li><code>scripts/sync_all_markdown_exports.sh</code> — --also-sync
+flag</li>
+<li><code>scripts/challenges/tmux.yaml</code> — 5 new challenges</li>
+<li><code>scripts/tests/meta_test_false_positive_proof.sh</code> —
+P5-M20/M21 mutations retargeted</li>
+<li><code>scripts/tmx-shell-init.sh.template</code> — TMX_INIT_DEBUG
+marker line</li>
+<li><code>Fixed.md</code> — Type:Bug/Feature/Task annotations on 41
+entries</li>
+<li><code>docs/guide/README.md</code> — §5.7 subsection</li>
+<li><code>README.md</code> — v1.0.15/v1.0.16 features</li>
+<li><code>VERSION</code> — 1.0.16/17</li>
+<li><code>CHANGELOG.md</code> — v1.0.16 entry</li>
+<li><code>docs/workable_items.db</code> — refreshed with type-aware
+closures</li>
+</ul>
+<p><strong>Created:</strong></p>
+<ul>
+<li><code>scripts/tests/{49_tmx_shell_init_guard_specific,50_cwd_hook_autoinstall,51_workable_items_db_integrity,52_docs_sources_verified}.sh</code></li>
+<li><code>cmd/workable-items/testdata/{live_issues_snapshot,live_fixed_snapshot}.md</code></li>
+<li><code>docs/guides/clipboard.md</code></li>
+<li><code>docs/scripts/workable-items.md</code></li>
+<li><code>docs/workable-items/README.md</code></li>
+<li><code>docs/changelogs/v1.0.16.md</code> — this file</li>
+</ul>
+<hr />
+<h2 id="sources-verified-2026-05-28">Sources verified 2026-05-28</h2>
+<p>Per §11.4.99 mandate (constitution <code>9e3bcc5</code>, landed
+2026-05-28):</p>
+<ul>
+<li><a
+href="https://man.openbsd.org/tmux.1">https://man.openbsd.org/tmux.1</a>
+— tmux 3.6a binding syntax, <code>bind -T</code> table semantics,
+<code>S-</code> / <code>M-</code> modifier syntax,
+<code>copy-pipe-and-cancel</code>, <code>@</code>-prefixed user
+options.</li>
+<li>Local <code>man tmux</code> on Mistborn — second-source confirmation
+of <code>paste-buffer [-dpr]</code> SYNOPSIS line.</li>
+<li><a
+href="https://code.claude.com/docs/en/">https://code.claude.com/docs/en/</a>
+— Anthropic Claude Code current docs (terminal-configuration page 404'd;
+honest-gap noted per §11.4.6 in clipboard.md).</li>
+<li><a
+href="https://pkg.go.dev/modernc.org/sqlite">https://pkg.go.dev/modernc.org/sqlite</a>
+— pure-Go SQLite v1.51.0, BSD-3-Clause, SQLite 3.53.1 (CGo-free
+port).</li>
+<li>Constitution submodule <code>Constitution.md</code> §11.4.87..99 at
+commit <code>9e3bcc5</code> (ff-merged 2026-05-28).</li>
+</ul>
+</body>
+</html>

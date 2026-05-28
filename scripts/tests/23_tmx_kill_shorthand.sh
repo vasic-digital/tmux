@@ -78,18 +78,40 @@ else
 fi
 
 # T4 — session is gone (positive evidence: tmx ls no longer shows it).
-sleep 0.5
-if "$WRAPPER" ls 2>/dev/null | grep -q "$SESS"; then
-    _fail "T4: '$SESS' still appears in tmx ls after kill (kill did not take effect)"
+#       Q1 flake-fix (v1.0.16, 2026-05-28 per §11.4.50 deterministic-
+#       consistency + §11.4.1 source-layer fix): the original `sleep 0.5`
+#       was a §11.4.6 guess — under load (concurrent codegraph daemon,
+#       parallel test suite, large meta-test in flight) the kill takes
+#       longer than 0.5s to flush through the wrapper's systemd-run
+#       scope teardown. Poll for the session to disappear with a 6 s
+#       budget — same evidence shape, robust to load.
+T4_OK=0
+for _i in $(seq 1 30); do
+    if ! "$WRAPPER" ls 2>/dev/null | grep -q "$SESS"; then
+        T4_OK=1; break
+    fi
+    sleep 0.2
+done
+if [ "$T4_OK" -eq 1 ]; then
+    _pass "T4: '$SESS' removed from tmx ls within poll budget (positive evidence: post-kill listing absent)"
 else
-    _pass "T4: '$SESS' removed from tmx ls (positive evidence: post-kill listing absent)"
+    _fail "T4: '$SESS' still appears in tmx ls after 6 s poll — kill did not take effect"
 fi
 
 # T5 — server gone (positive evidence: tmux -L SOCK ls says no server).
-if "$TMUX_BIN" -L "$SOCK" ls 2>/dev/null | grep -q .; then
-    _fail "T5: tmux server on socket $SOCK still running after kill"
+#       Same flake-fix rationale as T4 — poll instead of relying on T4's
+#       sleep having been long enough.
+T5_OK=0
+for _i in $(seq 1 30); do
+    if ! "$TMUX_BIN" -L "$SOCK" ls 2>/dev/null | grep -q .; then
+        T5_OK=1; break
+    fi
+    sleep 0.2
+done
+if [ "$T5_OK" -eq 1 ]; then
+    _pass "T5: tmux server on socket $SOCK terminated within poll budget (positive evidence: direct -L socket query empty)"
 else
-    _pass "T5: tmux server on socket $SOCK terminated (positive evidence: direct -L socket query empty)"
+    _fail "T5: tmux server on socket $SOCK still running after 6 s poll"
 fi
 
 echo ""

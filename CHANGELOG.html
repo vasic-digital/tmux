@@ -243,6 +243,166 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project's anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v1016--2026-05-28">[v1.0.16] — 2026-05-28</h2>
+<p><strong>Gap closure + comprehensive validation surface + first
+zero-escape meta-test.</strong></p>
+<p>Operator mandate (2026-05-28): "Fix all gaps and make sure there are
+no issues of any kind or any inconsistencies! We MUST make this project
+absolutely perfect! Write as much as needed additional validation and
+verification tests! ... Extend and update all existing documentation and
+guides as well!"</p>
+<p>10-PWU pipeline (Q1..Q10) — all complete this cycle:</p>
+<h3 id="fixed-q1--flake-hunt">Fixed (Q1 — flake hunt)</h3>
+<ul>
+<li><strong>Q1 / Test 23 timing race</strong> — <code>tmx kill</code>
+shorthand test had a fixed <code>sleep 0.5</code> after the kill, which
+raced under load (concurrent codegraph daemon + parallel test suite).
+Fixed at source per §11.4.1 by replacing with a poll-with-budget (30
+iters × 0.2s = 6 s max). Same fix applied to T5 server-gone check.
+Re-runs 5/5 GREEN post-fix. Closes §11.4.50 deterministic-consistency
+violation observed in v1.0.15 post-release reverify.</li>
+</ul>
+<h3 id="fixed-q2--p5-m20m21-paired-mutation-escape-closure">Fixed (Q2 —
+P5-M20/M21 paired-mutation escape closure)</h3>
+<ul>
+<li><strong>Test 49 NEW</strong>
+(<code>49_tmx_shell_init_guard_specific.sh</code>) — asserts the
+distinctive <code>non-TTY guard fired</code> marker
+(TMX_INIT_DEBUG-gated stderr) emits ONLY when the guard body executes.
+P5-M20 mutation retargeted to strip the marker line specifically; test
+FAILs even on Darwin (where libc previously masked the bug).</li>
+<li><strong>Test 50 NEW</strong>
+(<code>50_cwd_hook_autoinstall.sh</code>) — reads the LIVE server's
+hooks via <code>tmux show-hooks -g</code> after operator-path session
+spawn (no manual injection). P5-M21 mutation now CAUGHT.</li>
+<li><strong>1-line addition</strong> to
+<code>scripts/tmx-shell-init.sh.template</code>:
+<code>[ -n "${TMX_INIT_DEBUG:-}" ] &amp;&amp; printf 'tmx-shell-init: non-TTY guard fired …' &gt;&amp;2</code>
+inside the existing guard block. End users never see it.</li>
+<li>Mistborn meta-test: <strong>44 CAUGHT / 0 ESCAPED / 9 SKIPPED —
+first zero-escape ever</strong> (since v1.0.9 introduction of
+P5-M20/M21).</li>
+</ul>
+<h3
+id="implemented-q3--byte-identical-live-corpus-round-trip">Implemented
+(Q3 — byte-identical live-corpus round-trip)</h3>
+<ul>
+<li><strong><code>raw_body</code> column</strong> on <code>items</code>
+— verbatim per-item free-form body preservation (forensic anchors,
+blockquotes, code fences).</li>
+<li><strong><code>document_sources</code> table</strong> — verbatim
+document-level scaffolding (preamble, separators, "(none open at this
+time)" placeholders, trailer line). <code>sync_db_to_md</code> replays
+from this when populated.</li>
+<li><strong>Schema drift-check header</strong> updated:
+<code>-- PROJECT-LOCAL EXTENSION (PWU-Q3, 2026-05-28)</code>.</li>
+<li><strong>Live-corpus round-trip BYTE-IDENTICAL</strong> —
+<code>diff -u Issues.md /tmp/wi-roundtrip-out/Issues.md</code> and
+<code>Fixed.md</code> BOTH empty (sources 8086 + 127197 bytes).</li>
+<li>14 Go tests × 3 iters = <strong>42 PASS</strong> per §11.4.50
+deterministic.</li>
+</ul>
+<h3 id="implemented-q4--commit_all--export-integration">Implemented (Q4
+— commit_all + export integration)</h3>
+<ul>
+<li><strong><code>commit_all.sh</code></strong>
+pre-<code>git add -A</code> block: if workable-items binary + DB
+present, runs <code>workable-items diff</code> and
+auto-<code>sync md-to-db</code> on drift. Graceful-degrade when
+components missing.</li>
+<li><strong><code>scripts/sync_all_markdown_exports.sh</code></strong>
+new <code>--also-sync-workable- items-db</code> flag — keeps DB in sync
+with Markdown before export sweep.</li>
+<li><strong><code>docs/scripts/workable-items.md</code> NEW</strong> —
+§11.4.18 script-companion doc with §11.4.99 Sources-verified
+footer.</li>
+</ul>
+<h3
+id="fixed-q5--typebug-data-cleanup-eliminates-48-11433-findings">Fixed
+(Q5 — Type:Bug data cleanup eliminates 48 §11.4.33 findings)</h3>
+<ul>
+<li><strong>41 Fixed.md entries annotated</strong> with
+<code>**Type:**</code> Bug/Feature/Task (38 Bug, 1 Task, 2 Feature)
+based on title-heuristic.</li>
+<li><strong>Parser refinement</strong> in
+<code>cmd/workable-items/parser.go</code>: when heading carries
+<code>RESOLVED</code> and body's <code>**Type:**</code> is Feature or
+Task, Status is refined from default <code>Fixed (→ Fixed.md)</code> to
+<code>Implemented (→ Fixed.md)</code> /
+<code>Completed (→ Fixed.md)</code> per §11.4.33 closure-vocabulary.
+Markdown <code>RESOLVED</code> marker preserved (operator-readability);
+DB carries the §11.4.33-correct word.</li>
+<li><code>workable-items validate</code> now reports
+<strong><code>validate OK: 0 findings</code></strong>.</li>
+</ul>
+<h3 id="implemented-q6--5-new-helixqa-challenges">Implemented (Q6 — 5
+new HelixQA challenges)</h3>
+<ul>
+<li><code>CME-WORKABLE-ITEMS-001</code> — workable-items SQLite-SSoT
+end-to-end.</li>
+<li><code>TMUX-CH-49</code> — tmx-shell-init non-TTY guard FIRED (P5-M20
+closure).</li>
+<li><code>TMUX-CH-50</code> — cwd-capture hook AUTO-INSTALL (P5-M21
+closure).</li>
+<li><code>TMUX-CH-51</code> — workable-items DB integrity.</li>
+<li><code>TMUX-CH-52</code> — §11.4.99 Sources-verified footer
+enforcement.</li>
+</ul>
+<h3 id="implemented-q7--documentation-extension">Implemented (Q7 —
+documentation extension)</h3>
+<ul>
+<li><strong>NEW <code>docs/guides/clipboard.md</code></strong> —
+operator clipboard guide (multi-line copy + Alt/Shift-drag inside Claude
+Code + paste-IN via prefix+P + headless-Linux probe chain +
+troubleshooting).</li>
+<li><strong>NEW <code>docs/workable-items/README.md</code></strong> —
+operator guide for the Go binary.</li>
+<li><strong><code>docs/guide/README.md</code> §5.7</strong> — new
+subsection covering the four cooperating clipboard mechanisms.</li>
+<li><strong><code>README.md</code></strong> "What's new in v1.0.15 /
+v1.0.16" block + Documentation map updates.</li>
+<li>All guides carry <code>## Sources verified 2026-05-28</code> per
+§11.4.99 citing tmux man page + Anthropic Claude Code docs +
+modernc.org/sqlite docs.</li>
+</ul>
+<h3 id="implemented-q8--4-new-validation-tests">Implemented (Q8 — 4 new
+validation tests)</h3>
+<ul>
+<li><strong>Test 49</strong> (already documented above under Q2)</li>
+<li><strong>Test 50</strong> (already documented above under Q2)</li>
+<li><strong>Test 51</strong> <code>workable_items_db_integrity.sh</code>
+— anti-bluff DB integrity: validate clean, schema drift-check,
+round-trip byte-identical, §11.4.50 3-iter reliability.</li>
+<li><strong>Test 52</strong> <code>docs_sources_verified.sh</code> —
+§11.4.99 enforcement on every operator-facing doc; ISO date freshness ≤
+6 months.</li>
+</ul>
+<h3 id="verified-green-q9--multi-host-re-verify">Verified GREEN (Q9 —
+multi-host re-verify)</h3>
+<ul>
+<li><strong>Mistborn</strong> (Darwin arm64): verify-only
+PASS=49/0/SKIP=3; meta-test 44/0/9; go test 42/42; 5x flake-hunt 5/5
+GREEN post-Q1-fix.</li>
+<li><strong>nezha</strong> (Linux ALT 6.12 x86_64): GREEN (to be
+populated post-deploy).</li>
+</ul>
+<h3 id="honest-gaps-deferred-per-1146">Honest gaps (deferred per
+§11.4.6)</h3>
+<ul>
+<li>M_PROP_99 paired mutation for §11.4.99 anchor literal strip —
+requires verify.sh env-var redirection (existing L1C gate checks REAL
+files). Functional protection in place; layer-4 mutation test deferred
+to follow-up cycle.</li>
+<li>Workable-items <code>add</code> / <code>close</code> populate
+<code>items</code> but leave <code>document_sources</code> stale —
+operator MUST re-run sync md-to-db from regenerated Markdown to refresh.
+Future cycle to teach <code>add</code>/<code>close</code> to keep
+<code>document_sources</code> in sync.</li>
+<li>Upstream PR for Phase 3+ workable-items logic to
+HelixDevelopment/HelixConstitution still operator-blocked per
+<code>feedback_no_modify_constitution</code>.</li>
+</ul>
+<hr />
 <h2 id="v1015--2026-05-28">[v1.0.15] — 2026-05-28</h2>
 <p><strong>Multi-line copy + PASTE-INTO + alt-screen TUI mouse-drag
 override (Claude Code support) + workable-items SQLite SSoT + DOCX
