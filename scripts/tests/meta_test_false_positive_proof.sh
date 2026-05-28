@@ -316,13 +316,32 @@ fi
 #        asserts codegraph_validate.sh V3 FAILs.
 M22_CFG="$REPO_ROOT/.codegraph/config.json"
 M22_TEST="$REPO_ROOT/scripts/codegraph_validate.sh"
+# §11.4.3 topology dispatch — M22 requires the `codegraph` CLI on PATH
+# to drive `codegraph_validate.sh` through its V1+V3 invariants. On
+# hosts where the CLI is absent (e.g. nezha headless production-style
+# host without npm-global PATH augmentation), V1 fails universally
+# regardless of whether the mutation has been applied. The harness
+# would then report ESCAPED for V3 even though the feature is intact
+# — exactly the §11.4 PASS-bluff INVERSE (a false-negative on the
+# mutation gate). v1.0.16 PWU-Q11 closes the asymmetry by SKIP-with-
+# reason when the topology cannot support the assertion.
 if [ ! -f "$M22_CFG" ] || [ ! -x "$M22_TEST" ]; then
     _skip "M22: codegraph config or validate not present"
+elif ! command -v codegraph >/dev/null 2>&1; then
+    _skip "M22: codegraph CLI not on PATH — topology cannot distinguish mutation-FAIL from environmental-FAIL at V1 (§11.4.3 honest SKIP per Q11)"
 else
-    echo ""
-    echo "--- MUTATION: M22: own-org submodule re-excluded from CodeGraph ---"
-    cp "$M22_CFG" "${M22_CFG}.bak.m22"
-    python3 - <<PYEOF
+    # Baseline gate: the test MUST PASS V3 BEFORE we mutate. If it
+    # doesn't (e.g. CLI present but stale index, mid-update state), the
+    # mutation+revert pair would falsely appear as ESCAPED. §11.4.3
+    # honest SKIP per Q11.
+    m22_baseline="$(bash "$M22_TEST" 2>&1)" || true
+    if ! echo "$m22_baseline" | grep -qE '^PASS.*V3'; then
+        _skip "M22: codegraph V3 baseline does not PASS pre-mutation — environmental issue (stale index / setup not run), not a feature regression"
+    else
+        echo ""
+        echo "--- MUTATION: M22: own-org submodule re-excluded from CodeGraph ---"
+        cp "$M22_CFG" "${M22_CFG}.bak.m22"
+        python3 - <<PYEOF
 import json
 p = '$M22_CFG'
 c = json.load(open(p))
@@ -332,20 +351,21 @@ if 'Containers/**' not in ex:
 c['exclude'] = ex
 json.dump(c, open(p,'w'), indent=2)
 PYEOF
-    m22_out="$(bash "$M22_TEST" 2>&1)" || true
-    if echo "$m22_out" | grep -qE '^FAIL.*V3'; then
-        _pass "M22: MUTATION CAUGHT — codegraph_validate V3 FAILed on re-excluded Containers/** (§11.4.79 violation detected)"
-    else
-        echo "  >>> validate (mutated): $(echo "$m22_out" | grep -E '^(PASS|FAIL)' | tr '\n' ';')"
-        _fail "M22: MUTATION ESCAPED — validate did not FAIL with Containers/** re-excluded"
-    fi
-    cp "${M22_CFG}.bak.m22" "$M22_CFG"
-    rm -f "${M22_CFG}.bak.m22"
-    m22_out="$(bash "$M22_TEST" 2>&1)" || true
-    if echo "$m22_out" | grep -qE '^PASS.*V3'; then
-        _pass "M22: FEATURE INTACT — validate V3 PASSes after revert"
-    else
-        _fail "M22: V3 does not PASS after revert"
+        m22_out="$(bash "$M22_TEST" 2>&1)" || true
+        if echo "$m22_out" | grep -qE '^FAIL.*V3'; then
+            _pass "M22: MUTATION CAUGHT — codegraph_validate V3 FAILed on re-excluded Containers/** (§11.4.79 violation detected)"
+        else
+            echo "  >>> validate (mutated): $(echo "$m22_out" | grep -E '^(PASS|FAIL)' | tr '\n' ';')"
+            _fail "M22: MUTATION ESCAPED — validate did not FAIL with Containers/** re-excluded"
+        fi
+        cp "${M22_CFG}.bak.m22" "$M22_CFG"
+        rm -f "${M22_CFG}.bak.m22"
+        m22_out="$(bash "$M22_TEST" 2>&1)" || true
+        if echo "$m22_out" | grep -qE '^PASS.*V3'; then
+            _pass "M22: FEATURE INTACT — validate V3 PASSes after revert"
+        else
+            _fail "M22: V3 does not PASS after revert"
+        fi
     fi
 fi
 
