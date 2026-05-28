@@ -372,6 +372,25 @@ days graduate to §11.4.90 Obsolete citing §11.4.98 as the reason.
 **Canonical authority:** constitution submodule `Constitution.md`
 §11.4.98 (6828ff2).
 
+### §11.4.99 — Latest-Source Documentation Cross-Reference Mandate
+
+Universal anchor inherited from `constitution/Constitution.md` §11.4.99
+(commit `9e3bcc5` ff 2026-05-28). Before committing any operator-facing
+instruction / guide / manual / setup walkthrough / troubleshooting
+cookbook / API how-to, the author MUST cross-reference each instruction
+against the LATEST official online documentation of the service /
+library being documented via WebFetch / MCP / direct browsing — NOT
+training data. A `## Sources verified <date>` section in the doc and
+a `Sources verified <date>: <urls>` footer in the commit message are
+MANDATORY. Re-verification cadence: every major-release boundary; ≤ 6
+months for general docs; ≤ 90 days for risk-classified service families
+(messengers, cloud APIs, payments, LLM/AI providers, code-hosting,
+OS/package managers). Stale docs → §11.4.90 Obsolete after the 30-day
+grace window. **Canonical authority:** constitution submodule
+`Constitution.md` §11.4.99 (`9e3bcc5`). Forensic anchor: Herald MTProto
+guide near-miss case study where stale guidance could have caused a
+Telegram account ban.
+
 ---
 
 *This Project Constitution governs the `vasic-digital/tmux` repository.

@@ -205,3 +205,13 @@ further human action after startup. Only exception: one-time credential
 bootstrap OUTSIDE test execution. Re-runnability proof = PASS at
 `-count=3` consecutive automated invocations. **Canonical authority:**
 §11.4.98.
+
+### §11.4.99 — Latest-Source Documentation Cross-Reference Mandate
+
+Inherited from `constitution/Constitution.md` §11.4.99 (commit `9e3bcc5`
+ff 2026-05-28). Operator-facing docs MUST cite LATEST official online
+sources verified via WebFetch / MCP / direct browsing. `## Sources
+verified <date>` section + commit-footer `Sources verified <date>:
+<urls>` MANDATORY. Re-verify cadence: ≤6 mo general / ≤90 d for risk-
+class (messengers, cloud, payments, LLM, code-host, package mgrs). Stale
+→ §11.4.90 Obsolete after 30-day grace. **Canonical authority:** §11.4.99.

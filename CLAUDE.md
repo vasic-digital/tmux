@@ -307,3 +307,22 @@ One-time credential bootstrap OUTSIDE test execution is the only
 permissible exception. Re-runnability = PASS at `-count=3` consecutive
 automated invocations. **Canonical authority:**
 `constitution/Constitution.md` §11.4.98.
+
+### §11.4.99 — Latest-Source Documentation Cross-Reference Mandate
+
+Inherited from `constitution/Constitution.md` §11.4.99 (commit
+`9e3bcc5` ff 2026-05-28). Before committing any operator-facing
+instruction / guide / manual / setup walkthrough / troubleshooting
+cookbook, the author MUST fetch the LATEST official online docs of
+the third-party service / library being documented (WebFetch, MCP
+server, direct browsing — NOT training data) and cross-reference
+each instruction. A `## Sources verified <date>` section at the
+bottom of the document + a `Sources verified <date>: <urls>` footer
+in the commit message are MANDATORY. Re-verification cadence: every
+major release boundary; ≤ 6 months for general docs; ≤ 90 days for
+risk-classified families (messengers, cloud APIs, payments, LLM
+providers, code-hosting, OS/package managers). Stale docs graduate
+to §11.4.90 Obsolete after the 30-day grace. **Canonical
+authority:** `constitution/Constitution.md` §11.4.99 (commit
+`9e3bcc5`). Forensic anchor: Herald MTProto guide near-miss case
+study where stale guidance could have caused Telegram account ban.

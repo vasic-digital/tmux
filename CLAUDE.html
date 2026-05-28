@@ -643,5 +643,27 @@ only permissible exception. Re-runnability = PASS at
 <code>-count=3</code> consecutive automated invocations.
 <strong>Canonical authority:</strong>
 <code>constitution/Constitution.md</code> §11.4.98.</p>
+<h3
+id="11499--latest-source-documentation-cross-reference-mandate">§11.4.99
+— Latest-Source Documentation Cross-Reference Mandate</h3>
+<p>Inherited from <code>constitution/Constitution.md</code> §11.4.99
+(commit <code>9e3bcc5</code> ff 2026-05-28). Before committing any
+operator-facing instruction / guide / manual / setup walkthrough /
+troubleshooting cookbook, the author MUST fetch the LATEST official
+online docs of the third-party service / library being documented
+(WebFetch, MCP server, direct browsing — NOT training data) and
+cross-reference each instruction. A
+<code>## Sources verified &lt;date&gt;</code> section at the bottom of
+the document + a
+<code>Sources verified &lt;date&gt;: &lt;urls&gt;</code> footer in the
+commit message are MANDATORY. Re-verification cadence: every major
+release boundary; ≤ 6 months for general docs; ≤ 90 days for
+risk-classified families (messengers, cloud APIs, payments, LLM
+providers, code-hosting, OS/package managers). Stale docs graduate to
+§11.4.90 Obsolete after the 30-day grace. <strong>Canonical
+authority:</strong> <code>constitution/Constitution.md</code> §11.4.99
+(commit <code>9e3bcc5</code>). Forensic anchor: Herald MTProto guide
+near-miss case study where stale guidance could have caused Telegram
+account ban.</p>
 </body>
 </html>

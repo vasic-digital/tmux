@@ -162,7 +162,7 @@ _l1c() {
         fi
     done
 }
-for n in 87 88 89 90 91 92 93 94 95 96 97 98; do
+for n in 87 88 89 90 91 92 93 94 95 96 97 98 99; do
     _l1c "11.4.$n"
 done
 if [ "$L1C_FAIL" -ne 0 ]; then
