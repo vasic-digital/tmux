@@ -4,96 +4,243 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>README</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-color: #aaaaaa;
-}
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
-div.sourceCode
-{ background-color: #f8f8f8; }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ef2929; } 
-code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.at { color: #204a87; } 
-code span.bn { color: #0000cf; } 
-code span.cf { color: #204a87; font-weight: bold; } 
-code span.ch { color: #4e9a06; } 
-code span.cn { color: #8f5902; } 
-code span.co { color: #8f5902; font-style: italic; } 
-code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.dt { color: #204a87; } 
-code span.dv { color: #0000cf; } 
-code span.er { color: #a40000; font-weight: bold; } 
-code span.ex { } 
-code span.fl { color: #0000cf; } 
-code span.fu { color: #204a87; font-weight: bold; } 
-code span.im { } 
-code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.kw { color: #204a87; font-weight: bold; } 
-code span.op { color: #ce5c00; font-weight: bold; } 
-code span.ot { color: #8f5902; } 
-code span.pp { color: #8f5902; font-style: italic; } 
-code span.sc { color: #ce5c00; font-weight: bold; } 
-code span.ss { color: #4e9a06; } 
-code span.st { color: #4e9a06; } 
-code span.va { color: #000000; } 
-code span.vs { color: #4e9a06; } 
-code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
-<h1 id="vasic-digital-tmux--optimized--verified-containerized-build">vasic-digital
+<h1
+id="vasic-digital-tmux--optimized--verified-containerized-build">vasic-digital
 tmux — optimized + verified containerized build</h1>
-<p>A reproducible, hardened build of <a href="https://github.com/tmux/tmux"><code>tmux</code></a> with built-in
+<p>A reproducible, hardened build of <a
+href="https://github.com/tmux/tmux"><code>tmux</code></a> with built-in
 jemalloc support, OOM-protection helper, and a comprehensive
 verification gate. <strong>Runs natively on any Linux host</strong>
 (Ubuntu, ALT, Fedora, Arch, openSUSE, Alpine) where podman or docker is
@@ -102,22 +249,24 @@ supported via a transparent bridge into the podman machine VM — the
 operator gets a working <code>tmx</code> command on the macOS shell with
 no manual SSH-juggling.</p>
 <p><strong>The 18 verification tests are why this matters</strong>: a
-typical &quot;build tmux from source&quot; guide assumes the build worked. This
+typical "build tmux from source" guide assumes the build worked. This
 project ships a hard wall — <code>bash scripts/setup.sh</code> will
 refuse to PATH-export the binary unless functional tests pass with
 positive runtime evidence (cgroup interface readbacks,
 <code>/proc</code> files, real session output), backed by a §11.4.4
-layer-4 paired-mutation harness that proves the gates aren&#39;t themselves
+layer-4 paired-mutation harness that proves the gates aren't themselves
 bluffs. SKIPs document precondition gates (CAP_SYS_RESOURCE, libjemalloc
 presence, destructive-test opt-in) explicitly. No PASS-bluffs.</p>
 <h2 id="quick-install-one-command">Quick install (one command)</h2>
 <p><strong>Linux host:</strong></p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> bash scripts/install_deps.sh    <span class="co"># one-time host build deps</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh                 <span class="co"># build + verify + install (no sudo)</span></span></code></pre></div>
 <p><strong>macOS host (Apple Silicon or Intel):</strong></p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install podman                   <span class="co"># one-time: container runtime</span></span>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install podman                   <span class="co"># one-time: container runtime</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> machine init <span class="kw">&amp;&amp;</span> <span class="ex">podman</span> machine start</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
@@ -176,7 +325,7 @@ session is contained to that scope — every other session AND
 <code>user.slice</code> survive (Constitution §1 invariant).</li>
 <li><strong>macOS (Darwin)</strong> — POSIX rlimit wrapper sets
 <code>RLIMIT_CPU</code> (CPU time) and <code>RLIMIT_NPROC</code>
-(per-user process count) before exec&#39;ing the operator&#39;s
+(per-user process count) before exec'ing the operator's
 <code>$SHELL</code>. The Darwin XNU kernel enforces these per-process.
 Children inherit. <strong><code>RLIMIT_AS</code> (virtual memory) is NOT
 enforced</strong> by XNU for unprivileged processes — this is a
@@ -185,7 +334,7 @@ with <code>HardResourceLimits</code> plist (root). See
 <code>docs/guide/README.md</code> §5.6 for the strength comparison.</li>
 </ul>
 <p>Both OS paths deliver the <strong>same operator UX</strong>:
-plain-vanilla tmux behaviour, the operator&#39;s shell with full host PATH
+plain-vanilla tmux behaviour, the operator's shell with full host PATH
 (Homebrew on macOS, /usr/local/bin on Linux, all system tools),
 per-session resource ceilings applied transparently. No VM. No bridge.
 No <code>core@localhost</code>. No bluff.</p>
@@ -232,7 +381,7 @@ are intentional)</td>
 <td><strong>Per-session cwd memory (v1.0.13+)</strong></td>
 <td><code>tmx-shell-init.sh</code> installs a
 <code>PROMPT_COMMAND</code> / <code>precmd</code> hook inside every
-pane; every command&#39;s cwd is recorded to <code>~/.tmx/state.json</code>.
+pane; every command's cwd is recorded to <code>~/.tmx/state.json</code>.
 Reopen the same session name → wrapper passes
 <code>-c &lt;last-pwd&gt;</code> to <code>tmux new-session</code>; the
 pane materialises where you left off. End-to-end guarantee verified by
@@ -249,24 +398,30 @@ same single source of truth).</td>
 </tbody>
 </table>
 <h2 id="verification-gate">Verification gate</h2>
-<pre><code>SUMMARY: PASS=13  FAIL=0  SKIP=5
+<pre><code>SUMMARY: PASS=41  FAIL=0  SKIP=3
 GREEN: tmux binary verified — safe to PATH-export.</code></pre>
-<p>The 18 tests cover: smoke (binary version), session lifecycle,
-jemalloc loaded, history-limit honored, clear-history releases memory
-(the &quot;apparent leak&quot;), 10 concurrent panes, 30-s sustained session
-no-leak, OOM-score wrapper applies -500, crash isolation scope
-(cgroup-v2 transient), hostname-derived status-bar colour (algorithm +
-wrapper integration), memory pressure under cap, TasksMax stress,
-concurrent OOM independence, per-session cgroup distinctness,
-window-name <code>.exe</code> strip, <strong>scrollback + copy-mode
-scrolling</strong> (operator-path: 3000 lines generated, proven scrolled
-off-screen, proven reachable via copy-mode), and
-<strong>HelixConstitution inheritance</strong> (the
-<code>constitution/</code> submodule + every governance doc&#39;s
-inheritance pointer).</p>
+<p>The 44 numbered tests cover (among others): smoke + binary version,
+session lifecycle, jemalloc loaded, history-limit honored, clear-history
+releases memory, 10 concurrent panes, sustained session no-leak,
+OOM-score wrapper, crash isolation scope (cgroup-v2 transient),
+hostname-derived status-bar colour (algorithm + integration), memory
+pressure under cap, TasksMax stress, concurrent OOM independence,
+per-session cgroup distinctness, window-name <code>.exe</code> strip,
+<strong>scrollback + copy-mode scrolling</strong> (operator-path: 3000
+lines generated, proven scrolled off-screen, reachable via copy-mode),
+HelixConstitution inheritance (submodule + every governance doc's
+pointer), CodeGraph index materialisation, cross-platform parity
+branches (macOS ↔︎ Linux), tmx-shell-init non-TTY guard, tmx-state cwd
+persistence end-to-end across exit + reopen, SSH dispatch to remote
+nezha, dispatcher session-name validation, setup install/uninstall E2E,
+and — new in <strong>v1.0.14</strong> — <strong>clipboard copy-OUT
+physically proven</strong> end-to-end (test 44: marker round-trip
+through <code>y</code> keystroke → <code>@clip</code> shell-pipe →
+<code>pbpaste</code> / <code>wl-paste</code> / <code>xclip</code> /
+<code>termux-clipboard-get</code> returns the marker).</p>
 <p>Four honest SKIPs document precondition gates:</p>
 <ul>
-<li><code>03_jemalloc_loaded</code> SKIPs if host doesn&#39;t have
+<li><code>03_jemalloc_loaded</code> SKIPs if host doesn't have
 libjemalloc — <code>sudo bash scripts/install_deps.sh</code> provides
 it</li>
 <li><code>08_oom_score_adj</code> SKIPs unless running as root OR the
@@ -287,7 +442,8 @@ mutations); the remainder run on Linux via
 <code>META=1 bash scripts/test_vm.sh</code>. The gate is not considered
 self-validating until every runnable mutation is caught.</p>
 <h2 id="roadmap">Roadmap</h2>
-<p>See <a href="docs/plans/containerization.md"><code>docs/plans/containerization.md</code></a>
+<p>See <a
+href="docs/plans/containerization.md"><code>docs/plans/containerization.md</code></a>
 for the <strong>per-session containerization plan</strong> — each tmux
 session running in its own cgroup-bounded container so that:</p>
 <ul>
@@ -299,7 +455,7 @@ transparently creates the container</li>
 </ul>
 <h2 id="documentation-map">Documentation map</h2>
 <p>Every project doc lives under a context-named subdirectory of
-<code>docs/</code> per <code>constitution/Constitution.md</code>&#39;s
+<code>docs/</code> per <code>constitution/Constitution.md</code>'s
 file-layout rule. Every Markdown has a synced HTML + PDF sibling
 generated by <code>scripts/export_docs.sh</code> per §11.4.65
 universal-Markdown-export.</p>
@@ -318,66 +474,79 @@ universal-Markdown-export.</p>
 </tr>
 <tr>
 <td>v1.0.9 shell-session resume</td>
-<td><a href="docs/manual/tmx-shell-integration.md"><code>docs/manual/tmx-shell-integration.md</code></a>
+<td><a
+href="docs/manual/tmx-shell-integration.md"><code>docs/manual/tmx-shell-integration.md</code></a>
 — end-user master manual with copy-paste worked examples</td>
 </tr>
 <tr>
 <td>v1.0.9 shell integration</td>
-<td><a href="docs/guides/tmx-shell-integration.md"><code>docs/guides/tmx-shell-integration.md</code></a>
+<td><a
+href="docs/guides/tmx-shell-integration.md"><code>docs/guides/tmx-shell-integration.md</code></a>
 — operator install/uninstall guide for
 <code>tmx-shell-init.sh</code></td>
 </tr>
 <tr>
 <td>v1.0.9 state daemon</td>
-<td><a href="docs/guides/tmx-state.md"><code>docs/guides/tmx-state.md</code></a>
+<td><a
+href="docs/guides/tmx-state.md"><code>docs/guides/tmx-state.md</code></a>
 — operator CLI reference + state-file schema for
 <code>tmx-state</code></td>
 </tr>
 <tr>
 <td>v1.0.9 SSH dispatch</td>
-<td><a href="docs/guides/tmx-ssh-dispatch.md"><code>docs/guides/tmx-ssh-dispatch.md</code></a>
+<td><a
+href="docs/guides/tmx-ssh-dispatch.md"><code>docs/guides/tmx-ssh-dispatch.md</code></a>
 — <code>ssh &lt;host&gt;-tmx &lt;session&gt;</code> install, security,
 troubleshooting</td>
 </tr>
 <tr>
 <td>Scrolling (Claude Code TUI + mobile)</td>
-<td><a href="docs/scrolling/README.md"><code>docs/scrolling/README.md</code></a></td>
+<td><a
+href="docs/scrolling/README.md"><code>docs/scrolling/README.md</code></a></td>
 </tr>
 <tr>
 <td>CodeGraph (§11.4.78)</td>
-<td><a href="docs/codegraph/README.md"><code>docs/codegraph/README.md</code></a>
+<td><a
+href="docs/codegraph/README.md"><code>docs/codegraph/README.md</code></a>
 — install, per-agent MCP wiring, anti-bluff verification</td>
 </tr>
 <tr>
 <td>Architecture plans</td>
-<td><a href="docs/plans/native-dual-os.md"><code>docs/plans/native-dual-os.md</code></a>
+<td><a
+href="docs/plans/native-dual-os.md"><code>docs/plans/native-dual-os.md</code></a>
 — current native-host design (no VM)</td>
 </tr>
 <tr>
 <td></td>
-<td><a href="docs/plans/per-session-isolation.md"><code>docs/plans/per-session-isolation.md</code></a>
+<td><a
+href="docs/plans/per-session-isolation.md"><code>docs/plans/per-session-isolation.md</code></a>
 — per-session OOM containment</td>
 </tr>
 <tr>
 <td></td>
-<td><a href="docs/plans/containerization.md"><code>docs/plans/containerization.md</code></a>
+<td><a
+href="docs/plans/containerization.md"><code>docs/plans/containerization.md</code></a>
 — original (now superseded) containerization plan</td>
 </tr>
 <tr>
 <td>Cycle plans</td>
 <td><a href="docs/plans/v1.0.4.md"><code>docs/plans/v1.0.4.md</code></a>
-— this cycle&#39;s plan (CodeGraph + covenant propagation + AUDIT
+— this cycle's plan (CodeGraph + covenant propagation + AUDIT
 fixes)</td>
 </tr>
 <tr>
 <td>Research notes</td>
-<td><a href="docs/research/customization/colors.md"><code>docs/research/customization/colors.md</code></a>
+<td><a
+href="docs/research/customization/colors.md"><code>docs/research/customization/colors.md</code></a>
 — hostname-derived status colour</td>
 </tr>
 <tr>
 <td>Governance</td>
 <td><a href="Constitution.md"><code>Constitution.md</code></a> — Project
-Articles §101–§109 (extends <code>constitution/</code>); <a href="CLAUDE.md"><code>CLAUDE.md</code></a>, <a href="AGENTS.md"><code>AGENTS.md</code></a>, <a href="QWEN.md"><code>QWEN.md</code></a> — per-agent inheritance pointers
+Articles §101–§109 (extends <code>constitution/</code>); <a
+href="CLAUDE.md"><code>CLAUDE.md</code></a>, <a
+href="AGENTS.md"><code>AGENTS.md</code></a>, <a
+href="QWEN.md"><code>QWEN.md</code></a> — per-agent inheritance pointers
 + project-specific overlay</td>
 </tr>
 <tr>
@@ -393,7 +562,8 @@ first on a fresh conversation</td>
 </tr>
 <tr>
 <td>Tracker</td>
-<td><a href="Issues.md"><code>Issues.md</code></a> (open) / <a href="Fixed.md"><code>Fixed.md</code></a> (closed with closure SHA +
+<td><a href="Issues.md"><code>Issues.md</code></a> (open) / <a
+href="Fixed.md"><code>Fixed.md</code></a> (closed with closure SHA +
 evidence)</td>
 </tr>
 <tr>
@@ -408,17 +578,20 @@ positive-evidence verification record</td>
 covenant</strong>: every test that PASSes carries positive evidence of
 the feature working; every SKIP documents its precondition; every gate
 has a paired mutation in <code>meta_test_*.sh</code> proving the gate
-isn&#39;t itself a bluff. The covenant is restated verbatim in
+isn't itself a bluff. The covenant is restated verbatim in
 <code>Constitution.md</code>, <code>CLAUDE.md</code>,
 <code>AGENTS.md</code>, and <code>QWEN.md</code> (per the 2026-05-21
-operator mandate) so that any tool which doesn&#39;t expand
-<code>@imports</code> still reads it. The upstream source lives in <a href="constitution/Constitution.md"><code>constitution/Constitution.md</code></a>
+operator mandate) so that any tool which doesn't expand
+<code>@imports</code> still reads it. The upstream source lives in <a
+href="constitution/Constitution.md"><code>constitution/Constitution.md</code></a>
 §11.4.</p>
 <h2 id="codegraph-code-intelligence">CodeGraph (code-intelligence)</h2>
-<p>This project is wired with <a href="https://github.com/colbymchenry/codegraph">CodeGraph</a> per
+<p>This project is wired with <a
+href="https://github.com/colbymchenry/codegraph">CodeGraph</a> per
 <code>constitution/Constitution.md</code> §11.4.78. The MCP server is
 configured for Claude Code, OpenCode, Kimi CLI, Crush, and Qwen Code —
-see <a href="docs/codegraph/README.md"><code>docs/codegraph/README.md</code></a>
+see <a
+href="docs/codegraph/README.md"><code>docs/codegraph/README.md</code></a>
 for the install + per-agent wiring contract.</p>
 <h2 id="license">License</h2>
 <p>Apache 2.0 — see <code>LICENSE</code>.</p>

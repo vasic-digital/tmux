@@ -87,6 +87,22 @@ _l1 "@clip user option"            '^set +-g +@clip '
 _l1 "copy-mode-vi y -> @clip"      '^bind +-T +copy-mode-vi +y .*copy-pipe-and-cancel.*@clip'
 _l1 "copy-mode-vi Enter -> @clip"  '^bind +-T +copy-mode-vi +Enter .*copy-pipe-and-cancel.*@clip'
 _l1 "MouseDragEnd1Pane -> @clip"   '^bind +-T +copy-mode-vi +MouseDragEnd1Pane .*copy-pipe-and-cancel.*@clip'
+# v1.0.15 additions — multi-line drag override + paste-IN. Forensic
+# anchor: operator mandate 2026-05-28 (copy/paste in Claude Code).
+# Paired runtime evidence: tests 45 / 46 / 47 / 48.
+_l1 "@clip-read user option"        '^set +-g +@clip-read '
+_l1 "prefix+P paste binding"        '^bind +P +.*@clip-read'
+_l1 "M-MouseDrag1Pane override"     '^bind +-n +M-MouseDrag1Pane +.*copy-mode'
+_l1 "S-MouseDrag1Pane override"     '^bind +-n +S-MouseDrag1Pane +.*copy-mode'
+_l1 "M-MouseDragEnd1Pane -> @clip"  '^bind +-T +copy-mode-vi +M-MouseDragEnd1Pane +.*copy-pipe-and-cancel.*@clip'
+_l1 "S-MouseDragEnd1Pane -> @clip"  '^bind +-T +copy-mode-vi +S-MouseDragEnd1Pane +.*copy-pipe-and-cancel.*@clip'
+# Synthetic alt-screen TUI helper for tests 47 / 48.
+if [ -f "$REPO_ROOT/scripts/tests/helpers/synthetic_alt_screen_app.py" ]; then
+    echo "    ✓ helper synthetic_alt_screen_app.py present"
+else
+    echo "    ✗ MISSING: scripts/tests/helpers/synthetic_alt_screen_app.py"
+    L1_FAIL=1
+fi
 if [ "$L1_FAIL" -ne 0 ]; then
     echo ""
     echo "RED: tmux.conf.template failed the Layer-1 static gate."
@@ -128,6 +144,100 @@ if [ "$L1B_FAIL" -ne 0 ]; then
     exit 1
 fi
 echo "  ✓ Layer-1 covenant-propagation gate GREEN"
+
+# ── Layer-1 — §11.4.87..98 anchor propagation (constitution 6828ff2) ────
+# Each anchor heading MUST appear (as a literal `11.4.NN` token) in
+# every consumer governance file. PWU-B v1.0.15 propagated all 12;
+# this gate refuses to install if any consumer drifts.
+echo ""
+echo "  Layer-1 static gate — §11.4.87..98 propagation across governance..."
+L1C_FAIL=0
+_l1c() {
+    local anchor="$1"
+    local f
+    for f in Constitution.md CLAUDE.md AGENTS.md QWEN.md; do
+        if ! grep -q "$anchor" "$REPO_ROOT/$f"; then
+            echo "    ✗ CM-COVENANT-114-${anchor#11.4.}-PROPAGATION missing in $f"
+            L1C_FAIL=1
+        fi
+    done
+}
+for n in 87 88 89 90 91 92 93 94 95 96 97 98; do
+    _l1c "11.4.$n"
+done
+if [ "$L1C_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: one or more §11.4.87..98 anchor literals missing from"
+    echo "     a governance consumer file. Run PWU-B propagation again."
+    exit 1
+fi
+echo "  ✓ Layer-1 §11.4.87..98 propagation gates (12) GREEN"
+
+# ── Layer-1 — §11.4.93/95 workable-items DB present + tracked ──────────
+# DB MUST exist at docs/workable_items.db AND be tracked in git
+# (§11.4.95 explicit carve-out from §11.4.30).
+echo ""
+echo "  Layer-1 static gate — §11.4.93/95 workable-items DB..."
+L1D_FAIL=0
+if [ -f "$REPO_ROOT/docs/workable_items.db" ]; then
+    echo "    ✓ docs/workable_items.db present"
+else
+    echo "    ✗ MISSING: docs/workable_items.db"
+    L1D_FAIL=1
+fi
+if git -C "$REPO_ROOT" ls-files --error-unmatch docs/workable_items.db >/dev/null 2>&1; then
+    echo "    ✓ docs/workable_items.db tracked in git (§11.4.95 carve-out honoured)"
+else
+    echo "    ✗ docs/workable_items.db NOT tracked in git (§11.4.95 violation)"
+    L1D_FAIL=1
+fi
+if [ -f "$REPO_ROOT/cmd/workable-items/main.go" ] && [ -f "$REPO_ROOT/cmd/workable-items/schema.sql" ]; then
+    echo "    ✓ cmd/workable-items/ scaffold present (project-local Phase 3+)"
+else
+    echo "    ✗ MISSING: cmd/workable-items/{main.go,schema.sql}"
+    L1D_FAIL=1
+fi
+if [ "$L1D_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: workable-items DB / scaffold incomplete. Build via:"
+    echo "       cd cmd/workable-items && go build && ./workable-items sync md-to-db ..."
+    exit 1
+fi
+echo "  ✓ Layer-1 workable-items DB gate GREEN"
+
+# ── Layer-1 — §11.4.65 DOCX export sibling presence ────────────────────
+# Every .md in the export allowlist MUST have a .docx sibling whose
+# mtime is ≥ source .md mtime. Sample-check (full check is in the
+# export script's exit code; this is a regression guard).
+echo ""
+echo "  Layer-1 static gate — §11.4.65 DOCX export siblings..."
+L1E_FAIL=0
+L1E_MISS=0
+for md in \
+    "$REPO_ROOT/README.md" \
+    "$REPO_ROOT/CLAUDE.md" \
+    "$REPO_ROOT/AGENTS.md" \
+    "$REPO_ROOT/QWEN.md" \
+    "$REPO_ROOT/Constitution.md" \
+    "$REPO_ROOT/docs/Issues.md" \
+    "$REPO_ROOT/docs/Fixed.md" \
+    "$REPO_ROOT/docs/CONTINUATION.md" \
+  ; do
+    [ -f "$md" ] || continue
+    docx="${md%.md}.docx"
+    if [ ! -f "$docx" ]; then
+        echo "    ✗ CM-DOCX-EXPORT-SYNC missing sibling: $docx"
+        L1E_FAIL=1
+        L1E_MISS=$((L1E_MISS + 1))
+    fi
+done
+if [ "$L1E_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: $L1E_MISS canonical doc(s) missing a .docx sibling. Run:"
+    echo "       bash scripts/sync_all_markdown_exports.sh"
+    exit 1
+fi
+echo "  ✓ Layer-1 DOCX export-sibling gate GREEN"
 
 # ── Layer-1 static gates for v1.0.9 shell-session-resume PWUs (P5) ──────
 # Spec: docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md §7.

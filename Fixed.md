@@ -54,6 +54,326 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A40. DOCX export extension — pandoc `.docx` siblings alongside `.html` + `.pdf` — `RESOLVED`
+
+**Closure cycle:** v1.0.15 / versionCode 16 (2026-05-28).
+**Reported:** operator mandate, 2026-05-28 — "all relevant docs around it
+(with them all being exported in all expected file types - PDF, HTML, DOCX)".
+
+**Forensic detail (no guessing per §11.4.6):** the project's existing
+markdown-sync wrapper produced `.html` (pandoc) + `.pdf` (weasyprint)
+siblings per §11.4.65. `.docx` was an honest documentation-format
+gap — the operator's mandate names DOCX explicitly, and pandoc
+already supports `.docx` output via `pandoc -o file.docx --standalone`.
+PWU-D added the parallel `.docx` emission to the wrapper.
+
+**Source-side fix:** new `scripts/sync_all_markdown_exports.sh`
+(~190 LOC) — HTML + DOCX dispatched as background jobs per `.md`,
+PDF joins after HTML completes (depends on HTML). Per-format 60s
+timeout via `timeout`/`gtimeout`. Resilient: missing `pandoc` →
+WARN + per-format SKIP, never global FAIL. Idempotent: mtime check
+per format; `--force` bypasses. Failure surface: `*_FAILED_FILES`
+arrays printed by name in summary.
+
+**Captured evidence (4-layer per §103):**
+
+- **Layer 1 (static gate):** `scripts/verify.sh` Layer-1 §11.4.65
+  gate verifies every canonical doc (README, CLAUDE, AGENTS, QWEN,
+  Constitution, Issues, Fixed, CONTINUATION) has a `.docx` sibling
+  whose mtime is ≥ source `.md` mtime. Refuses install if any
+  canonical `.docx` is missing.
+- **Layer 2 (runtime):** post-run `find` confirms 44/44 candidates
+  produced `.docx` siblings, all validated via `file` as
+  "Microsoft Word 2007+", 15–18 KB each.
+- **Layer 3 (Challenge):** existing universal-export Challenge
+  covers DOCX by extension (any `.docx` missing surfaces as
+  challenge FAIL).
+- **Layer 4 (paired mutation, future):** strip the pandoc DOCX
+  invocation; assert L1 gate fires — deferred to a follow-up
+  cycle for the mutation, but L1 already catches the regression
+  the mutation would simulate.
+
+**Multi-platform coverage:** pandoc is portable across Darwin
+(via Homebrew) + Linux (apt/dnf/pkg) + Termux. The script
+detects pandoc presence and SKIPs DOCX gracefully when absent.
+
+**Regression-protection:** L1 verify.sh §11.4.65 sibling gate.
+
+**Tracked task:** operator request 2026-05-28 (this cycle).
+
+### A39. SQLite-backed workable-items single-source-of-truth (Go binary, project-local Phase 3+) — `RESOLVED`
+
+**Closure cycle:** v1.0.15 / versionCode 16 (2026-05-28).
+**Reported:** operator mandate, 2026-05-28 — "We MUST NEVER forget
+the flow: workable item (with proper type and status and all relevant
+information) → SQLite database → all docs we have related to workable
+items! Document everything!"
+
+**Forensic detail (no guessing per §11.4.6):** constitution
+§11.4.93/95 (landed at 6828ff2 upstream this cycle, see A38)
+mandate a SQLite DB at `docs/workable_items.db` TRACKED in git as
+the authoritative source for all workable items, driven by a Go
+binary `workable-items` with subcommands sync/diff/validate/add/
+close/report. The constitution submodule ships a Phase-2 scaffold
+ONLY (stubs that exit code 2). Per memory `feedback_no_modify_-
+constitution`, this project cannot modify the constitution
+submodule. PWU-C implemented Phase 3+ locally.
+
+**Source-side fix:** new `cmd/workable-items/` package — 11 Go
+sources + embedded schema + 10 unit + round-trip tests:
+
+- `main.go` flag parsing + subcommand routing
+- `schema.sql` — verbatim copy from
+  `constitution/scripts/workable-items/schema.sql` with a
+  `-- DRIFT-CHECK:` header citing constitution sha `6828ff2`;
+  embedded via `go:embed`
+- `db.go` opens with WAL mode, applies schema on first open
+  (idempotent CREATE IF NOT EXISTS), `PRAGMA wal_checkpoint(TRUNCATE)`
+  on close per §11.4.95
+- `parser.go`, `sync_md_to_db.go`, `sync_db_to_md.go`,
+  `diff.go`, `validate.go`, `add.go`, `close.go` — all
+  subcommands implemented
+- `db_test.go` + `roundtrip_test.go` — 10 unit/round-trip tests
+- `testdata/golden_issues.md` + `golden_fixed.md` — golden corpus
+- `go.mod` at project root using **`modernc.org/sqlite`** (pure-Go,
+  no CGO) so cross-compile to Mistborn arm64 + nezha x86_64 is
+  trivial. Distinct from the constitution scaffold's
+  `mattn/go-sqlite3` which is CGO-based.
+- `.gitignore` carve-out per §11.4.95:
+  `docs/workable_items.db-wal` + `.db-shm` ignored (transient WAL),
+  but `docs/workable_items.db` itself is TRACKED.
+
+**Captured evidence (4-layer per §103):**
+
+- **Layer 1 (static gate):** `scripts/verify.sh` Layer-1
+  §11.4.93/95 gate verifies (a) `docs/workable_items.db`
+  present + tracked in git, (b) `cmd/workable-items/{main.go,
+  schema.sql}` scaffold present.
+- **Layer 2 (runtime):** `go test ./cmd/workable-items/... -count=3`
+  → 30 PASS / 0 FAIL / 0 SKIP (10 tests × 3 iterations for
+  §11.4.50 deterministic-consistency). Tests cover schema
+  application, ATM-NNN monotonic allocation, idempotent upsert,
+  §11.4.91 short-description detection, §11.4.33 type-aware
+  closure mismatch detection, add+close history events, golden-
+  corpus round-trip equivalence.
+- **Initial DB population:** `workable-items sync md-to-db`
+  parsed live `Issues.md` (1 item) + `Fixed.md` (44 items) →
+  45 inserted, 45 ATM-NNN allocated (ATM-001..ATM-045),
+  45 `item_history.Opened` events. DB size 104 KiB, tracked.
+- **Layer 3 (Challenge, future):** `CME-WORKABLE-ITEMS-001` —
+  deferred to a follow-up cycle when the HelixQA bank
+  integration lands.
+- **Layer 4 (paired mutation, future):** the constitution-
+  scaffold-based mutation pattern (corrupt schema → validate
+  FAIL) is deferred to a follow-up cycle.
+
+**Honest gaps logged per §11.4.6:**
+
+1. **45 legacy items default to `Type=Task`** because tmux
+   Issues.md/Fixed.md predates §11.4.16 — no `**Type:**` lines
+   anywhere. Validate reports §11.4.33 mismatches for items
+   closed under `RESOLVED` heading (maps to Bug/Fixed) while
+   row Type=Task expects Completed. This is data-import
+   limitation, not a binary bug. One-time data-cleanup PWU
+   recommended.
+2. **Live-corpus round-trip is NOT byte-identical.** Free-form
+   bodies (forensic anchors, multi-paragraph captured-evidence
+   sections, blockquotes, code fences) cannot be losslessly
+   reconstructed from the flat `description` column. Round-
+   trip byte-identical equivalence holds for the golden
+   testdata corpus only — explicitly per §11.4.93 phase-6
+   migration plan. The Markdown trackers remain the rich
+   source; the DB is the queryable index.
+3. **Upstream PR to HelixDevelopment/HelixConstitution** for
+   Phase 3+ logic in the constitution scaffold itself is a
+   separate future cycle (operator-blocked per
+   `feedback_no_modify_constitution`).
+4. **`scripts/commit_all.sh` + `scripts/testing/sync_issues_-
+   docs.sh` integration** of `workable-items diff` /
+   `workable-items sync db-to-md` is deferred to a follow-
+   up cycle so the v1.0.15 release scope stays focused on
+   the user's primary copy/paste ask.
+
+**Regression-protection:** L1 verify.sh §11.4.93/95 gate
++ `go test ./cmd/workable-items/... -count=3` (deterministic,
+re-runnable per §11.4.50/98).
+
+**Tracked task:** operator request 2026-05-28 (this cycle).
+
+### A38. Constitution submodule sync 84c948d→6828ff2 + §11.4.87–98 short-form propagation — `RESOLVED`
+
+**Closure cycle:** v1.0.15 / versionCode 16 (2026-05-28).
+**Reported:** operator mandate, 2026-05-28 — "Make sure that all
+these points / rules / mandatory constraints and details ... be
+part of Constitution.md of our project, its CLAUDE.MD, AGENTS.MD
+and QWEN.md if it is not there already, and to be applied to all
+Submodules's Constitution... Do not forget to first fetch and pull
+all latest changes before changing any of Submodules!"
+
+**Forensic detail (no guessing per §11.4.6):** the project's
+`constitution/` submodule pinned at `84c948d` was 19 commits
+behind upstream HelixDevelopment/HelixConstitution `main`
+(`6828ff2`). The unpulled commits include 12 new universal
+anchors (§11.4.87..§11.4.98) covering endless-loop autonomous
+work, background-push, background-test execution, Obsolete
+status, summary-doc clarity, multi-pass change-evaluation,
+SQLite SSoT for workable items, zero-idle parallel-by-default
+operating mode, SQLite DB TRACKED in git, safe-parallel-work-
+with-long-build catalogue, maximum-use-of-idle-time, and full-
+automation anti-bluff. Per §11.4.37 fetch-before-edit + §11.4.26
+constitution-submodule-update-workflow, these must land in the
+project's `constitution/` pointer + propagate to consumer
+governance files BEFORE any further constitution-affecting work.
+Containers submodule was also 17 commits behind (`fbef9d6` →
+`2e9ca0e`).
+
+**Source-side fix:**
+
+- `git -C constitution merge --ff-only origin/main` — pointer
+  advances to `6828ff2`. No conflicts (strict fast-forward).
+- `git -C Containers merge --ff-only origin/main` — pointer
+  advances to `2e9ca0e`. No conflicts.
+- PWU-B propagated short-form anchors §11.4.87–§11.4.98 into
+  project `Constitution.md`, `CLAUDE.md`, `AGENTS.md`, `QWEN.md`
+  (12 anchors × 4 files = 48 propagation rows, each with the
+  literal anchor token appearing ≥3 times per file — well over
+  the ≥2 minimum required by `CM-COVENANT-114-NN-PROPAGATION`
+  gates).
+
+**Captured evidence (4-layer per §103):**
+
+- **Layer 1 (static gate):** `scripts/verify.sh` Layer-1
+  §11.4.87..98 propagation gate (`L1C`) loops over 12 anchor
+  literals and asserts each appears in all 4 governance files.
+  Verified GREEN this cycle.
+- **Layer 2 (runtime):** governance-inheritance test 18 +
+  existing covenant test 19 continue to PASS — short-form
+  additions did not regress existing covenant assertions.
+- **Layer 3 (Challenge):** existing TMUX-CH-18 (constitution
+  inheritance) covers the propagation surface.
+- **Layer 4 (paired mutation, future):** strip a specific
+  §11.4.87..98 literal from a TEMP copy of CLAUDE.md, assert
+  verify.sh L1C gate fires. Deferred to a follow-up cycle —
+  existing M15 (verbatim-covenant strip) catches the broader
+  pattern.
+
+**Regression-protection:** L1 verify.sh §11.4.87..98
+propagation gate.
+
+**Tracked task:** operator mandate 2026-05-28 (this cycle).
+
+### A37. Multi-line copy + PASTE-INTO + alt-screen TUI mouse-drag override (Claude Code support) — `RESOLVED`
+
+**Closure cycle:** v1.0.15 / versionCode 16 (2026-05-28).
+**Reported:** operator mandate, 2026-05-28 — "Selecting multiple
+lines and copying of them does not work. We MUST BE able to scroll
+vertically everywhere and copy / past anything! Especially in
+Claude Code (claude command)!"
+
+**Forensic detail (no guessing per §11.4.6):** v1.0.14 (Fixed.md
+A35) proved single-line copy-OUT via `select-line` end-to-end
+with pbpaste readback. Three user-visible paths remained
+unproven/missing and matched the operator's report:
+
+1. **Multi-line drag selection inside Claude Code's TUI.** When
+   the app requests mouse tracking (`#{mouse_any_flag}`=1),
+   tmux's DEFAULT MouseDrag1Pane forwards the drag to the app
+   via `send -M`, bypassing tmux selection. The operator
+   CANNOT initiate a tmux selection with a plain drag inside
+   Claude Code. The multi-line KEYBOARD path (`v` +
+   `cursor-down -N 5` + `end-of-line` + `y`) was never
+   exercised by any test.
+2. **PASTE-INTO tmux from the OS clipboard.** `set-clipboard
+   external` is COPY-OUT only — OSC-52 paste is not
+   standardised. The conf had NO `@clip-read` (OS-adaptive
+   read counterpart) and NO `prefix + P` paste binding.
+3. **Scroll vertically inside an alt-screen + mouse-tracking
+   TUI.** v1.0.3's WheelUpPane override already drove copy-mode
+   in such environments — but no test ever asserted it under
+   `alternate_on=1 + mouse_any_flag=1` (the Claude Code surface).
+
+**Source-side fix (`scripts/tmux.conf.template`):**
+
+```tmux
+# Multi-line + alt-screen TUI selection overrides
+bind -n M-MouseDrag1Pane  copy-mode -M
+bind -n S-MouseDrag1Pane  copy-mode -M
+bind -T copy-mode-vi M-MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "#{@clip}"
+bind -T copy-mode-vi S-MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "#{@clip}"
+
+# Paste-INTO from OS clipboard
+set -g @clip-read 'sh -c "command -v pbpaste >/dev/null 2>&1 && exec pbpaste; ... fallbacks ..."'
+bind P run -b 'tmux load-buffer - <<< "$(#{@clip-read})" \; tmux paste-buffer -p'
+```
+
+**Captured evidence (4-layer per §103):**
+
+- **Layer 1 (static gate):** `scripts/verify.sh` Layer-1 gained
+  6 new `_l1` checks (`@clip-read`, prefix+P, M-MouseDrag1Pane,
+  S-MouseDrag1Pane, M-MouseDragEnd1Pane, S-MouseDragEnd1Pane)
+  + helper-script-present check. All GREEN.
+- **Layer 2 (runtime, operator-path):** 4 new tests —
+  - **Test 45** `45_multiline_copy_physical.sh` — PASS=6/0/0:
+    multi-line keyboard flow (v + cursor-down + end-of-line + y)
+    copies 6 markers via `printf '\n'`-delimited block;
+    `pbpaste` returns all 6 (PHYSICAL multi-line proof).
+  - **Test 46** `46_paste_in_physical.sh` — PASS=6/0/0:
+    seeds `PASTEMARK_<pid>_<ts>` in OS clipboard via pbcopy,
+    spawns operator-path session, drives the SAME command
+    sequence the `prefix + P` binding invokes
+    (`@clip-read` → `load-buffer -` → `paste-buffer -p`),
+    polls `capture-pane -p` for the marker — physical paste-IN
+    proof.
+  - **Test 47** `47_alt_screen_scroll.sh` — PASS=8/0/0:
+    spawns `helpers/synthetic_alt_screen_app.py` (issues
+    CSI ?1049h + ?1003h + ?1006h) inside the pane, asserts
+    `alternate_on=1` + `mouse_any_flag=1`, fires scroll-up
+    action, asserts `pane_in_mode=1` engages even in hostile
+    Claude-Code-like surface.
+  - **Test 48** `48_modifier_drag_override.sh` — PASS=9/0/0:
+    structural + live readback of all 4 modifier-drag bindings;
+    keyboard-equivalent flow routes 6 markers into OS clipboard;
+    M-MouseDrag1Pane bind survives mouse_any_flag=1 surface.
+- **Layer 3 (Challenge):** `TMUX-CH-45`, `46`, `47`, `48` in
+  `scripts/challenges/tmux.yaml`.
+- **Layer 4 (paired mutations):** `M46` strips `@clip-read` from
+  the template; test 46 catches at T1 (template grep) +
+  T2.1+T3 (runtime + physical). `M48` strips `bind -n
+  M-MouseDrag1Pane`; test 48 catches at T1 + T2.1 (live
+  readback). Both **MUTATION CAUGHT + FEATURE RESTORED**
+  verified by `meta_test_false_positive_proof.sh` this cycle
+  (43 CAUGHT / 2 ESCAPED / 8 SKIPPED — the 2 ESCAPES are the
+  pre-existing P5-M20/M21 from v1.0.9, transparently tracked
+  in Issues.md B3).
+
+**Multi-platform coverage (§11.4.81):** all 4 tests dispatch at
+runtime to the OS-native clipboard tool. T5 (system clipboard
+readback) honestly SKIPs with reason on headless Linux servers
+(no DISPLAY/Wayland/Termux); T1–T4 binding-chain proof still
+runs and asserts everywhere — no test becomes inert on any
+topology.
+
+**Synthetic alt-screen helper:** `scripts/tests/helpers/
+synthetic_alt_screen_app.py` (~80 LOC pure stdlib Python 3) is
+the surrogate for Claude Code in tests 47/48. It emits the same
+escape sequences (CSI ?1049h + ?1003h + ?1006h) that Claude Code
+emits, restoring on EXIT per §11.4.14. This avoids the §11.4.98
+full-automation anti-bluff risk of driving an actual `claude`
+subprocess (OAuth + interactive prompts).
+
+**§11.4.43 RED-first discipline:** tests 46 + 48 were verified
+to FAIL on stock v1.0.14 (5 + 6 FAILs respectively) BEFORE the
+conf change landed — proving they catch the bug. Captured RED
+logs at `qa-results/v1.0.15-red-state-mistborn-2026-05-28.txt`
+(per the conductor's notes). Post-fix all PASS as documented
+above.
+
+**Regression-protection:** L1 verify.sh gates + tests 45/46/47/48
++ M46 + M48 + TMUX-CH-45..48.
+
+**Tracked task:** operator request 2026-05-28 (this cycle —
+the primary user ask of v1.0.15).
+
 ### A36. `scripts/test_e2e.sh` T1.2 stale podman-machine prerequisite — `RESOLVED`
 
 **Closure cycle:** v1.0.14 / versionCode 15 (2026-05-22).

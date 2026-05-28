@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Status_Summary</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1 id="workable-items-sqlite-ssot--status-summary">Workable-items
+SQLite-SSoT — Status Summary</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-28T15:30:00Z</p>
+<h2 id="page-1--for-the-operator-non-developer">Page 1 — For the
+operator (non-developer)</h2>
+<p><strong>What works.</strong> A new local command-line tool
+(<code>workable-items</code>) lets us treat the project's Issues + Fixed
+trackers as one SQLite database instead of two free-form Markdown files.
+The database file lives at <code>docs/workable_items.db</code> and IS
+checked into git (it is the source of truth, not a temporary artefact).
+Forty-five existing items (1 open + 44 closed) were imported on first
+run with zero data loss and stable, never-changing <code>ATM-NNN</code>
+identifiers.</p>
+<p><strong>What's still pending.</strong> Two operator-visible
+follow-ups remain: (1) the existing closed items are tagged
+<code>Type=Task</code> by default and need a one-time review to mark the
+actual <code>Bug</code> / <code>Feature</code> ones; (2) the project's
+commit script (<code>commit_all.sh</code>) isn't yet wired to auto-sync
+the DB before each commit. Both are tracked as separate work units.</p>
+<p><strong>What you can do today.</strong> Add a new item with
+<code>./cmd/workable-items/workable-items add --type Bug --title "..." --description "..." --severity HIGH</code>.
+Close one with
+<code>./cmd/workable-items/workable-items close ATM-007 --status fixed --evidence /path/to/proof.log</code>.
+Audit the whole tracker with
+<code>./cmd/workable-items/workable-items validate</code>.</p>
+<h2 id="page-2--for-software-engineers">Page 2 — For software
+engineers</h2>
+<p><strong>Binary location.</strong>
+<code>cmd/workable-items/main.go</code> (Go 1.21+,
+<code>modernc.org/sqlite</code> pure-Go driver — no CGO so it
+cross-compiles to Mistborn <code>arm64</code> and nezha
+<code>x86_64</code> without C toolchains).</p>
+<p><strong>Schema.</strong> <code>cmd/workable-items/schema.sql</code>
+is <code>go:embed</code>-baked into the binary; header line 1 carries
+<code>DRIFT-CHECK: ... constitution 6828ff2</code>. Re-run
+<code>workable-items validate --schema-only</code> after any
+constitution submodule pull. Adds two project-local fields beyond the
+constitution scaffold: <code>category</code> (A..E heading-prefix
+letter) and <code>code_ordinal</code> (category-local ordinal) —
+preserved verbatim across round-trip so generator emits
+<code>### B3. ...</code> for a category=B code_ordinal=3 row.</p>
+<p><strong>Test coverage.</strong> 10 unit + invariant tests, all PASS
+at <code>-count=3</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Section enforced</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TestOpenDB_AppliesSchema</code></td>
+<td>schema bootstrap</td>
+</tr>
+<tr>
+<td><code>TestNextATMID_Monotonic</code></td>
+<td>§11.4.54 monotonic ATM-NNN</td>
+</tr>
+<tr>
+<td><code>TestUpsertItem_Idempotent</code></td>
+<td>DB-layer idempotency</td>
+</tr>
+<tr>
+<td><code>TestValidate_DetectsShortDescription</code></td>
+<td>§11.4.91 clarity floor</td>
+</tr>
+<tr>
+<td><code>TestValidate_DetectsTypeAwareClosureMismatch</code></td>
+<td>§11.4.33 closure vocab</td>
+</tr>
+<tr>
+<td><code>TestAddItem_AllocatesATMAndOpensHistory</code></td>
+<td>§11.4.54 + item_history Opened event</td>
+</tr>
+<tr>
+<td><code>TestCloseItem_RequiresEvidence</code></td>
+<td>§11.4.5 + §11.4.69 evidence-required</td>
+</tr>
+<tr>
+<td><code>TestRoundTrip_Issues_GoldenCorpus</code></td>
+<td>§11.4.93 byte-identical round-trip (Issues)</td>
+</tr>
+<tr>
+<td><code>TestRoundTrip_Fixed_GoldenCorpus</code></td>
+<td>§11.4.93 byte-identical round-trip (Fixed)</td>
+</tr>
+<tr>
+<td><code>TestRoundTrip_Idempotent</code></td>
+<td>second-sync allocates 0 new ATM-NNN</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Initial real-corpus stats.</strong> <code>45</code> items in
+<code>items</code> table; 1 row at
+<code>current_location='Issues'</code> (ATM-001 = B3 in Issues.md), 44
+rows at <code>current_location='Fixed'</code> (ATM-002..ATM-045 =
+A1..A36 Fixed.md). On seed the binary allocated ATM-NNN sequentially in
+source-order and wrote 45 <code>item_history.event_type='Opened'</code>
+rows with <code>by='AI', reason='initial md-to-db sync'</code>.</p>
+<p><strong>Honest §11.4.6 gaps.</strong> (a) 45 legacy items default to
+<code>Type=Task</code> — tmux corpus has no <code>**Type:**</code> lines
+anywhere. Validate reports §11.4.33 mismatches as a result; these are
+honest data-import limitations, not binary defects. (b) Live-corpus
+round-trip is NOT byte-identical — the free-form bodies (forensic
+anchors, multi-paragraph "Source-side fix" sections, blockquotes, code
+fences) cannot be losslessly reconstructed from the flat
+<code>description</code> column. Round-trip byte-identical equivalence
+is met for the <strong>golden testdata corpus only</strong> (per
+§11.4.93 phase-6 migration plan).</p>
+<p><strong>Composes with.</strong> §11.4.93 (SSoT mandate) · §11.4.95
+(tracked DB) · §11.4.54 (ATM-NNN) · §11.4.33 (closure vocab) · §11.4.91
+(clarity) · §11.4.50 (<code>-count=3</code>) · §11.4.69
+(evidence-required) · §11.4.74 (project-local extension per
+no-modify-constitution rule).</p>
+<p><strong>Out-of-scope (deferred to PWU-E + future cycles).</strong>
+<code>scripts/commit_all.sh</code> pre-commit <code>diff</code> gate;
+<code>scripts/verify.sh</code> schema-validate hook;
+<code>scripts/testing/sync_issues_docs.sh</code> Markdown regen
+invocation; upstream PR to HelixDevelopment/HelixConstitution landing
+the Phase-3+ Go code in the constitution submodule.</p>
+</body>
+</html>

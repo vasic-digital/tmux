@@ -180,3 +180,130 @@ Full forensic detail: `Fixed.md`.
 ## Project overrides of universal rules
 
 None. This project introduces no override of any universal clause.
+
+## §11.4.87–98 — newly-inherited anchors (constitution 6828ff2)
+
+The constitution submodule was ff-merged to `6828ff2` (2026-05-28).
+Twelve new universal anchors §11.4.87 through §11.4.98 apply
+unconditionally per §11.4.35. Long-form bodies live in
+`constitution/Constitution.md`; the short-form covenant mirrors below
+are operative.
+
+### §11.4.87 — Endless-loop autonomous work + zero-idle agent dispatch
+
+Inherited from `constitution/Constitution.md` §11.4.87. Agent work
+continues until ALL of: Issues.md has zero non-terminal entries,
+CONTINUATION.md §3 active-work empty, no in-flight subagent, no
+external dependency in-flight. Every closure carries §11.4.4(b)
+four-layer coverage + captured-evidence per §11.4.5/§11.4.69. Tests
+AND HelixQA Challenges bound equally per the §11.4 forensic anchor.
+**Canonical authority:** `constitution/Constitution.md` §11.4.87.
+
+### §11.4.88 — Background-push (commit-flock released immediately, push detached)
+
+Inherited from `constitution/Constitution.md` §11.4.88. `commit_all.sh`
+MUST release the commit flock as soon as `git commit` returns 0; the
+push runs detached via `nohup ... &` + `disown`. Per-remote
+`.git/.push.<remote>.lock` serialises same-remote concurrent pushes
+but allows different-remote parallelism. The only escape hatch is
+`--sync-push` for §11.4.41 force-push paths. **Canonical authority:**
+`constitution/Constitution.md` §11.4.88.
+
+### §11.4.89 — Background test execution
+
+Inherited from `constitution/Constitution.md` §11.4.89. Any test
+expected to exceed ~30 s (`run_all.sh`, `meta_test_false_positive_proof.sh`,
+`test_e2e.sh`, etc.) MUST spawn via `nohup ... > <log> 2>&1 &` + `disown`;
+main work stream returns to the §11.4.42 priority queue immediately.
+Hard-dependent next steps poll the exit-status file. **Canonical
+authority:** `constitution/Constitution.md` §11.4.89.
+
+### §11.4.90 — Obsolete status + per-item obsolescence audit
+
+Inherited from `constitution/Constitution.md` §11.4.90. The §11.4.15
+Status closed-set gains terminal value `Obsolete (→ Fixed.md)` with
+mandatory `**Obsolete-Details:**` audit-line (Since + Reason from a
+closed vocabulary + Superseding-item + Triple-check evidence). The
+§11.4.23 colorizer marks Obsolete rows light-gray + strikethrough.
+**Canonical authority:** `constitution/Constitution.md` §11.4.90.
+
+### §11.4.91 — Summary-doc clarity
+
+Inherited from `constitution/Constitution.md` §11.4.91. Every summary
+one-liner MUST be self-contained — ≥ 6 words OR ≥ 40 chars naming
+SUBJECT + PROBLEM/GOAL. Forbidden anti-patterns: section labels
+(`Composes with`, etc.), bare metadata (`Critical`, `Bug`, `In progress`),
+§-letter alone. Generators extract from the H1/H2 heading line per
+§11.4.54 ATM-NNN convention. **Canonical authority:**
+`constitution/Constitution.md` §11.4.91.
+
+### §11.4.92 — Multi-pass change-evaluation discipline
+
+Inherited from `constitution/Constitution.md` §11.4.92. Every
+non-trivial change passes 5 evaluation passes BEFORE commit:
+(1) main-task captured evidence; (2) regression blast radius;
+(3) cross-feature interaction; (4) deep research + CodeGraph queries;
+(5) anti-bluff confirmation. Trivial exemption applies only when zero
+source code is touched and the commit message cites it. **Canonical
+authority:** `constitution/Constitution.md` §11.4.92.
+
+### §11.4.93 — SQLite-backed single source of truth for workable items
+
+Inherited from `constitution/Constitution.md` §11.4.93. Text trackers
+(Issues / Fixed / Summary / CONTINUATION) become derived views of an
+authoritative SQLite DB at `docs/workable_items.db` with a Go binary
+at `cmd/workable-items/` providing bidirectional `md-to-db` / `db-to-md`
+sync. Round-trip must be byte-identical within tolerated whitespace.
+`commit_all.sh` refuses to commit while the diff is non-empty.
+**Canonical authority:** `constitution/Constitution.md` §11.4.93.
+
+### §11.4.94 — Zero-idle priority-first parallel-by-default operating mode
+
+Inherited from `constitution/Constitution.md` §11.4.94. Idle is
+permissible ONLY when every queued item is genuinely externally
+blocked, OR operator STOP, OR §12 host-safety demand. Before any
+wake/sleep the conductor MUST survey parallel-work feasibility per
+§11.4.42 / §11.4.72 / §11.4.87 and dispatch non-contending items via
+§11.4.20 / §11.4.70 subagent-driven default. **Canonical authority:**
+`constitution/Constitution.md` §11.4.94.
+
+### §11.4.95 — Workable-items SQLite DB TRACKED in git, NEVER gitignored
+
+Inherited from `constitution/Constitution.md` §11.4.95. Amends §11.4.93:
+`docs/workable_items.db` is authoritative source data, NOT a build
+artefact — TRACKED in git, never gitignored. Every md-to-db mutation
+stages + commits + pushes the DB alongside the MD regen per §11.4.19
+atomic-move + §2.1 multi-upstream push. **Canonical authority:**
+`constitution/Constitution.md` §11.4.95.
+
+### §11.4.96 — Safe-parallel-work-with-long-build catalogue
+
+Inherited from `constitution/Constitution.md` §11.4.96. Classifies
+parallel work during long builds as SAFE (docs/scripts/tests/submodule
+pushes per §11.4.88, research, DB ops, subagent dispatch per §11.4.20)
+vs UNSAFE (destructive git ops on source tree, mass deletes on hot
+subtrees, host-safety breaches). Conductor consults the catalogue at
+every pause point. **Canonical authority:**
+`constitution/Constitution.md` §11.4.96.
+
+### §11.4.97 — Maximum-use-of-idle-time + progress-update cadence
+
+Inherited from `constitution/Constitution.md` §11.4.97. Strengthens
+§11.4.87 + §11.4.94 + §11.4.96: any idle minute during which work
+could autonomously progress and is not genuinely blocked is a §11.4.97
+violation. Progress-update cadence: emit a 1-line operator-facing
+update at every commit landed / subagent return / anchor landing /
+captured-evidence acquisition / milestone closure. **Canonical
+authority:** `constitution/Constitution.md` §11.4.97.
+
+### §11.4.98 — Full-Automation Anti-Bluff: live tests re-runnable without manual intervention
+
+Inherited from `constitution/Constitution.md` §11.4.98. Closes the
+manual-intervention gap §11.4.85/§11.4.87/§11.4.89/§11.4.94 did not
+explicitly forbid: every test (unit / integration / e2e / Challenge /
+stress / chaos / live) MUST be fully self-driving end-to-end and emit
+PASS/FAIL/SKIP-with-reason without further human action after startup.
+One-time credential bootstrap OUTSIDE test execution is the only
+permissible exception. Re-runnability = PASS at `-count=3` consecutive
+automated invocations. **Canonical authority:**
+`constitution/Constitution.md` §11.4.98.

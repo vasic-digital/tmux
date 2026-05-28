@@ -785,6 +785,41 @@ run_mutation \
     "scripts/tests/44_clipboard_copy_out_physical.sh" \
     "FAIL.*T1"
 
+# ── M46: tmx.conf.template — strip the @clip-read user-option (v1.0.15) ─
+#        Test 46 proves PASTE-INTO from the OS clipboard via the
+#        `prefix + P` binding, which routes through `#{@clip-read}` to
+#        run pbpaste / wl-paste / xclip / termux-clipboard-get. Without
+#        the @clip-read user-option, tmux expands `#{@clip-read}` to
+#        empty; the bind's `load-buffer -` reads empty and paste-buffer
+#        emits nothing. Test 46 catches this at T1 (template grep) on
+#        every host. T3 (physical pbpaste-into-pane) catches it
+#        wherever a clipboard tool is reachable. Multi-layer = no
+#        false ESCAPE on any topology.
+run_mutation \
+    "M46: tmux.conf.template strip @clip-read user-option (v1.0.15 paste-IN)" \
+    "scripts/tmux.conf.template" \
+    "grep -v '^set -g @clip-read ' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/46_paste_in_physical.sh" \
+    "FAIL.*T1"
+
+# ── M48: tmx.conf.template — strip the M-MouseDrag1Pane override (v1.0.15) ─
+#        Test 48 proves the modifier-drag overrides (Alt-drag /
+#        Shift-drag) that allow tmux selection inside Claude-Code-like
+#        TUIs where mouse_any_flag=1 forwards the plain drag to the
+#        app. Stripping the M-MouseDrag1Pane bind means Alt-drag falls
+#        back to the default (forward to app). Test 48 T1 (template
+#        grep for the bind literal) catches this on every host. T2
+#        (live readback of the bind) catches it whenever a session
+#        spawns. Multi-layer catch.
+run_mutation \
+    "M48: tmux.conf.template strip M-MouseDrag1Pane override (v1.0.15 alt-drag selection)" \
+    "scripts/tmux.conf.template" \
+    "grep -v '^bind -n M-MouseDrag1Pane ' \"\$target_abs\" > \"\$target_abs.tmp\" && mv \"\$target_abs.tmp\" \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/48_modifier_drag_override.sh" \
+    "FAIL.*T1"
+
 # ═══════════════════════════════════════════════════════════════════════
 # v1.0.9 shell-session-resume PWUs (P5) — paired mutations
 # ═══════════════════════════════════════════════════════════════════════

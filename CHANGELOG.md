@@ -6,6 +6,114 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.15] — 2026-05-28
+
+**Multi-line copy + PASTE-INTO + alt-screen TUI mouse-drag override
+(Claude Code support) + workable-items SQLite SSoT + DOCX export +
+constitution sync to upstream tip 6828ff2.**
+
+User mandate (2026-05-28): "Selecting multiple lines and copying of
+them does not work. We MUST BE able to scroll vertically everywhere
+and copy / paste anything! Especially in Claude Code (claude command)!
+... we MUST for every issue or change, for any workable item create
+proper workable item in our Issues doc and all relevant docs around it
+(with them all being exported in all expected file types — PDF, HTML,
+DOCX)! We MUST NEVER forget the flow: workable item → SQLite database
+→ all docs we have related to workable items!"
+
+### Fixed
+
+- **A37 — Multi-line copy + PASTE-INTO + alt-screen TUI mouse-drag
+  override** (Fixed.md A37): v1.0.14 proved single-line copy-OUT but
+  multi-line drag, paste-INTO, and the alt-screen + mouse-tracking
+  Claude Code surface were uncovered. Added:
+  - `bind -n M-MouseDrag1Pane copy-mode -M` + `bind -n S-MouseDrag1Pane
+    copy-mode -M` — Alt-drag OR Shift-drag forces tmux selection even
+    when the app captures mouse events.
+  - Matching `M-MouseDragEnd1Pane` + `S-MouseDragEnd1Pane`
+    `copy-pipe-and-cancel "#{@clip}"` so the drag-end routes selection
+    through the OS clipboard.
+  - `@clip-read` user option (OS-adaptive pbpaste/wl-paste/xclip/termux)
+    + `bind P run -b '...'` paste-INTO from system clipboard.
+  - 4 new operator-path tests (45/46/47/48) — 6+6+8+9 = 29 PASS with
+    physical pbpaste evidence on Mistborn.
+  - Synthetic alt-screen surrogate `scripts/tests/helpers/
+    synthetic_alt_screen_app.py` (~80 LOC pure stdlib) substitutes for
+    Claude Code in tests, avoiding §11.4.98 OAuth/interactive flake.
+  - `verify.sh` Layer-1 gates extended (8 new `_l1` checks).
+  - Challenges TMUX-CH-45/46/47/48 + paired mutations M46 + M48
+    (CAUGHT + FEATURE RESTORED both directions).
+
+- **A38 — Constitution submodule sync 84c948d→6828ff2 + §11.4.87..98
+  short-form propagation** (Fixed.md A38): pulled 19 new commits from
+  HelixDevelopment/HelixConstitution (and Containers 17 commits) per
+  §11.4.37 fetch-before-edit + §11.4.26 update-workflow. New universal
+  anchors §11.4.87 (endless-loop), §11.4.88 (background-push),
+  §11.4.89 (background-test), §11.4.90 (Obsolete status), §11.4.91
+  (summary-doc clarity), §11.4.92 (multi-pass eval), §11.4.93 (SQLite
+  SSoT for workable items), §11.4.94 (zero-idle parallel-by-default),
+  §11.4.95 (DB TRACKED in git), §11.4.96 (safe-parallel-with-long-
+  build catalogue), §11.4.97 (max-idle-time), §11.4.98 (full-
+  automation anti-bluff). Short-form mirrors landed in project
+  Constitution.md / CLAUDE.md / AGENTS.md / QWEN.md. Layer-1 gate
+  CM-COVENANT-114-87..98-PROPAGATION (12 gates) enforce literal
+  presence in all 4 consumer files.
+
+- **A39 — SQLite-backed workable-items single-source-of-truth (Go
+  binary, project-local Phase 3+)** (Fixed.md A39): constitution
+  scaffold at `constitution/scripts/workable-items/` ships Phase-2
+  stubs only. Per `feedback_no_modify_constitution`, project
+  implemented Phase 3+ at `cmd/workable-items/` — 11 Go sources +
+  embedded schema (verbatim copy from constitution with drift-check
+  header) + 10 unit/round-trip tests passing 30/30 (10 × 3 iters
+  per §11.4.50 deterministic-consistency). Uses pure-Go
+  `modernc.org/sqlite` (no CGO; cross-compile works on Mistborn
+  arm64 + nezha x86_64). Initial DB seeded from live Issues.md +
+  Fixed.md = 45 items (ATM-001..ATM-045) at `docs/workable_items.db`
+  — TRACKED in git per §11.4.95.
+  - **Honest gaps logged per §11.4.6:** (1) legacy items default to
+    Type=Task (no `**Type:**` lines in current Issues/Fixed); (2)
+    live-corpus round-trip not byte-identical for free-form bodies
+    (per §11.4.93 phase-6 migration plan); (3) `commit_all.sh` +
+    `sync_issues_docs.sh` integration deferred to follow-up cycle;
+    (4) upstream PR for Phase 3+ logic to HelixDevelopment/
+    HelixConstitution deferred (operator-blocked per
+    `feedback_no_modify_constitution`).
+
+- **A40 — DOCX export extension** (Fixed.md A40): new
+  `scripts/sync_all_markdown_exports.sh` adds `.docx` siblings
+  alongside existing `.html` + `.pdf`. Parallel-dispatched via
+  pandoc, 60s per-format timeout, idempotent (mtime check), `--force`
+  flag, graceful degradation when pandoc absent. 44/44 candidates
+  produced valid DOCX (verified via `file` — "Microsoft Word 2007+",
+  15–18 KB each). Layer-1 gate `CM-DOCX-EXPORT-SYNC` enforces canonical-
+  doc DOCX siblings.
+
+### Honest gaps (out of scope this cycle per §11.4.6)
+
+- **B3 P5-M20 + P5-M21 paired-mutation ESCAPES** continue from v1.0.9
+  → v1.0.14 → v1.0.15. Pre-existing layer-4 test-design gaps in the
+  shell-session-resume PWUs; underlying features GREEN, tracked
+  transparently in `Issues.md` B3. Closure conditions documented;
+  not a v1.0.15 regression.
+
+### Verification (Mistborn arm64, 2026-05-28)
+
+- `bash scripts/setup.sh --rebuild` → GREEN.
+- `TMUX_BIN=tmux/build-darwin/bin/tmux bash scripts/verify.sh` →
+  **SUMMARY: PASS=45 FAIL=0 SKIP=3** (4 new tests added to the suite,
+  up from 41). SKIPs: 08_oom_score_adj (Linux-only),
+  12_memory_pressure_under_cap (destructive-gated),
+  32_ssh_dispatch_remote_nezha (nezha-required).
+- `bash scripts/tests/meta_test_false_positive_proof.sh` → **43 CAUGHT
+  / 2 ESCAPED (pre-existing P5-M20+P5-M21) / 8 SKIPPED**. M46 + M48
+  v1.0.15-new mutations both CAUGHT + FEATURE RESTORED.
+- `go test ./cmd/workable-items/... -count=3` → 30 PASS / 0 FAIL.
+- Tests 45/46/47/48 individually GREEN with pbpaste-back physical
+  evidence captured this run.
+
+---
+
 ## [v1.0.14] — 2026-05-22
 
 **Clipboard copy-OUT physically proven end-to-end; multi-host

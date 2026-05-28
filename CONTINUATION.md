@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-22T15:00Z
+**Last updated:** 2026-05-28T15:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -208,6 +208,97 @@ The `f4132aa Auto-commit` itself is a §12.10 / §11.4.6 violation — opaque co
 - Updated `Issues.md`: A1 removed (→ Fixed.md A1). Issues.md now has
   **zero open items** — all originally seeded items are closed.
 - Cleaned up `CONTINUATION.md` §3.6: removed stale "remaining open" note.
+
+### §3.16 — v1.0.15 multi-line + paste-IN + alt-screen Claude Code + workable-items SQLite + DOCX + constitution sync (2026-05-28)
+
+**Status:** IN PROGRESS — Mistborn build GREEN + Mistborn full suite
+GREEN + meta-test GREEN; nezha deploy pending; release tag pending.
+
+Triggering event: operator mandate (verbatim, 2026-05-28):
+
+> "In last iteration of work we did we have allegedly fixed copy /
+> paste from and to the tmux session window. Selecting multiple
+> lines and copying of them does not work. We MUST BE able to scroll
+> vertically everywhere and copy / paste anything! Especially in
+> Claude Code (claude command)! Do in depth investigation and
+> systematic debugging, reproduce issue and then apply comprehensive
+> fixes! ... Every bug / issue we report MUST BE first covered with
+> all supported tests which will actually confirm failure / problems
+> we report! Then, after we apply fixes, the same tests MUST CONFIRM
+> all changes and fixes really working! We MUST for every issue or
+> change, for any workable item create proper workable item in our
+> Issues doc and all relevant docs around it (with them all being
+> exported in all expected file types - PDF, HTML, DOCX)! We MUST
+> NEVER forget the flow: workable item → SQLite database → all docs
+> we have related to workable items!"
+
+Five-PWU pipeline executed per §11.4.58 + §11.4.94 (parallel-by-
+default + zero-idle). Phase 0 fetched + ff-merged `constitution/`
+from `84c948d` → `6828ff2` (19 commits) and `Containers/` from
+`fbef9d6` → `2e9ca0e` (17 commits). PWU-A (tmux conf + 4 tests +
+4-layer coverage) + PWU-B (§11.4.87..98 propagation) + PWU-C (Go
+binary FULL Phase 3+ project-local) + PWU-D (DOCX export) ran in
+parallel; PWU-E (commit + deploy) is the closing sequential PWU.
+
+- **A37 — Multi-line + PASTE-INTO + alt-screen TUI mouse-drag
+  override** (Fixed.md A37): the user's primary ask. Identified the
+  three uncovered surfaces vs v1.0.14: (1) multi-line drag in
+  Claude-Code-like TUIs (mouse_any_flag=1 forwards drag to app), (2)
+  paste-INTO from OS clipboard (set-clipboard external is copy-OUT
+  only), (3) the alt-screen + mouse-tracking surface never asserted
+  end-to-end. Added M-/S-MouseDrag1Pane overrides + matching drag-
+  end @clip-routed binds + @clip-read user-option + prefix+P paste
+  bind. Tests 45/46/47/48 land 4-layer coverage with pbpaste-back
+  physical evidence: PASS=6/0/0 + 6/0/0 + 8/0/0 + 9/0/0 = 29 PASS,
+  RED→GREEN proven for tests 46 + 48. Synthetic alt-screen surrogate
+  `synthetic_alt_screen_app.py` substitutes for Claude Code in tests
+  (no OAuth flake per §11.4.98). Mutations M46 + M48 CAUGHT +
+  RESTORED.
+- **A38 — Constitution + Containers sync + §11.4.87..98 propagation**
+  (Fixed.md A38): submodule pointers advanced via `--ff-only`; short-
+  form mirrors for 12 new universal anchors landed in project
+  Constitution.md / CLAUDE.md / AGENTS.md / QWEN.md (each anchor
+  appearing ≥3 times in each consumer per PWU-B audit). New Layer-1
+  gate `L1C` in verify.sh enforces literal presence.
+- **A39 — Workable-items SQLite SSoT (Go binary, project-local Phase
+  3+)** (Fixed.md A39): constitution scaffold ships Phase-2 stubs
+  only; project added `cmd/workable-items/` with full Phase 3+ logic
+  (sync md-to-db / sync db-to-md / diff / validate / add / close /
+  report). 11 Go sources + embedded schema (drift-check-cited from
+  constitution `6828ff2`) + 10 tests passing 30/30 (3 iters per
+  §11.4.50). Pure-Go `modernc.org/sqlite` (no CGO). Initial DB at
+  `docs/workable_items.db` seeded with 45 items (ATM-001..ATM-045)
+  from live Issues.md + Fixed.md. TRACKED in git per §11.4.95.
+  Honest gaps logged: (a) legacy items default to Type=Task (no
+  Type lines pre-§11.4.16); (b) live-corpus round-trip not byte-
+  identical for free-form bodies (per §11.4.93 phase 6); (c)
+  upstream PR + integration into commit_all.sh deferred.
+- **A40 — DOCX export** (Fixed.md A40): `scripts/sync_all_markdown_-
+  exports.sh` extended to emit `.docx` siblings alongside `.html` +
+  `.pdf` via pandoc. 44/44 candidates produced valid DOCX. Layer-1
+  gate `CM-DOCX-EXPORT-SYNC` enforces canonical-doc sibling presence.
+
+**Multi-host deploy + release plan (PWU-E, sequential):**
+
+1. ✓ Mistborn `setup.sh --rebuild` GREEN.
+2. ✓ Mistborn full suite via `verify.sh` — **PASS=45 FAIL=0 SKIP=3**
+   (3 honest topology SKIPs: oom_score_adj Linux-only, destructive-
+   gated, nezha-required).
+3. ✓ Mistborn meta-test — 43 CAUGHT / 2 ESCAPED (pre-existing
+   P5-M20+P5-M21 from v1.0.9) / 8 SKIPPED.
+4. ✓ Mistborn `go test ./cmd/workable-items/... -count=3` —
+   30 PASS / 0 FAIL.
+5. ⏳ commit_all.sh push (this commit).
+6. ⏳ Nezha SSH (`~/nezha` script) → `cd ~/Projects/tmux && git fetch
+   --all && git pull && bash scripts/setup.sh --rebuild && bash
+   scripts/setup.sh --verify-only` — full gate capture expected.
+   T5 honestly SKIPs on headless Linux per §11.4.3 — T2/T3/T4 still
+   PROVE the binding chain.
+7. ⏳ Release tag `v1.0.15` via GitHub + GitLab CLIs with
+   comprehensive `docs/changelogs/v1.0.15.md` referenced.
+8. ⏳ Post-release version bump (per operator mandate "After
+   releasing... increase version (version code) and commit and push
+   all work").
 
 ### §3.15 — v1.0.14 clipboard copy-OUT physical proof + e2e stale-prereq fix + multi-host deploy (2026-05-22)
 

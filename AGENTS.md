@@ -133,3 +133,115 @@ VM. macOS memory-cap gap documented honestly (XNU doesn't enforce
 ## Project overrides of universal rules
 
 None.
+
+## §11.4.87–98 — newly-inherited anchors (constitution 6828ff2)
+
+Twelve new universal anchors landed in `constitution/Constitution.md`
+at commit `6828ff2` (2026-05-28). They apply unconditionally per
+§11.4.35. Short-form mirrors follow.
+
+### §11.4.87 — Endless-loop autonomous work + zero-idle agent dispatch
+
+Inherited from `constitution/Constitution.md` §11.4.87. Continue work
+until all of: Issues.md has zero non-terminal items, CONTINUATION.md
+§3 active-work empty, no in-flight subagent, no external dependency
+in-flight. Every closure carries §11.4.4(b) four-layer coverage +
+captured-evidence per §11.4.5/§11.4.69. **Canonical authority:**
+`constitution/Constitution.md` §11.4.87.
+
+### §11.4.88 — Background-push: commit-flock release immediate, push detached
+
+Inherited from `constitution/Constitution.md` §11.4.88. `commit_all.sh`
+releases its commit flock as soon as `git commit` returns 0; push runs
+detached via `nohup ... &` + `disown`. Per-remote flock serialises
+same-remote concurrent pushes. Only escape: `--sync-push` for §11.4.41
+force-push paths. **Canonical authority:** `constitution/Constitution.md`
+§11.4.88.
+
+### §11.4.89 — Background test execution
+
+Inherited from `constitution/Constitution.md` §11.4.89. Any test
+> 30 s (`run_all.sh`, `meta_test_false_positive_proof.sh`, `test_e2e.sh`)
+MUST run detached via `nohup ... > <log> 2>&1 &` + `disown`; main
+stream returns to the §11.4.42 priority queue. **Canonical authority:**
+`constitution/Constitution.md` §11.4.89.
+
+### §11.4.90 — Obsolete status + per-item obsolescence audit
+
+Inherited from `constitution/Constitution.md` §11.4.90. New §11.4.15
+Status terminal value `Obsolete (→ Fixed.md)` with mandatory
+`**Obsolete-Details:**` (Since + Reason from closed vocabulary +
+Superseding-item + Triple-check evidence). Colorizer marks rows
+light-gray + strikethrough. **Canonical authority:**
+`constitution/Constitution.md` §11.4.90.
+
+### §11.4.91 — Summary-doc clarity
+
+Inherited from `constitution/Constitution.md` §11.4.91. Every summary
+one-liner ≥ 6 words OR ≥ 40 chars, naming SUBJECT + PROBLEM/GOAL.
+Anti-patterns forbidden: section labels, bare metadata fragments,
+§-letter alone. Generators extract from H1/H2 heading per §11.4.54
+ATM-NNN convention. **Canonical authority:**
+`constitution/Constitution.md` §11.4.91.
+
+### §11.4.92 — Multi-pass change-evaluation discipline
+
+Inherited from `constitution/Constitution.md` §11.4.92. 5 passes before
+commit: (1) main task evidence; (2) regression blast radius; (3) cross-
+feature interaction; (4) deep research + CodeGraph; (5) anti-bluff
+confirmation. Trivial exemption only for zero-source-touch commits
+that cite it. **Canonical authority:** `constitution/Constitution.md`
+§11.4.92.
+
+### §11.4.93 — SQLite-backed single source of truth for workable items
+
+Inherited from `constitution/Constitution.md` §11.4.93. Text trackers
+become views of `docs/workable_items.db`. Go binary `cmd/workable-items/`
+provides `md-to-db` / `db-to-md` / `diff` / `validate`. Round-trip is
+byte-identical within whitespace tolerance. `commit_all.sh` refuses
+non-empty diff. **Canonical authority:** `constitution/Constitution.md`
+§11.4.93.
+
+### §11.4.94 — Zero-idle priority-first parallel-by-default operating mode
+
+Inherited from `constitution/Constitution.md` §11.4.94. Idle only when
+genuinely externally blocked OR operator STOP OR §12 host-safety.
+Before any wake/sleep, survey parallel-work feasibility per §11.4.42 /
+§11.4.72 / §11.4.87 and dispatch non-contending items via §11.4.20 /
+§11.4.70. **Canonical authority:** `constitution/Constitution.md`
+§11.4.94.
+
+### §11.4.95 — Workable-items SQLite DB TRACKED in git, NEVER gitignored
+
+Inherited from `constitution/Constitution.md` §11.4.95. Amends §11.4.93:
+`docs/workable_items.db` is authoritative source data, TRACKED in git,
+never gitignored. Every mutation stages + commits + pushes alongside
+the MD regen. WAL-checkpoint before commit-stage. **Canonical
+authority:** `constitution/Constitution.md` §11.4.95.
+
+### §11.4.96 — Safe-parallel-work-with-long-build catalogue
+
+Inherited from `constitution/Constitution.md` §11.4.96. Operational
+catalogue classifies parallel work as SAFE (docs/scripts/tests/submodule
+pushes, research, DB ops, subagent dispatch) vs UNSAFE (destructive
+git ops, mass deletes, host-safety breaches). Conductor consults
+catalogue at every pause point. **Canonical authority:**
+`constitution/Constitution.md` §11.4.96.
+
+### §11.4.97 — Maximum-use-of-idle-time + progress-update cadence
+
+Inherited from `constitution/Constitution.md` §11.4.97. Idle minute
+during which work could progress and is not genuinely blocked =
+§11.4.97 violation. Emit 1-line operator-facing update on every commit
+landed / subagent return / anchor landing / evidence acquisition /
+milestone closure. **Canonical authority:**
+`constitution/Constitution.md` §11.4.97.
+
+### §11.4.98 — Full-Automation Anti-Bluff: live tests re-runnable without manual intervention
+
+Inherited from `constitution/Constitution.md` §11.4.98. Every test
+MUST be fully self-driving end-to-end and emit PASS/FAIL/SKIP-with-reason
+without further human action after startup. Only exception: one-time
+credential bootstrap OUTSIDE test execution. Re-runnability proof =
+PASS at `-count=3` consecutive automated invocations. **Canonical
+authority:** `constitution/Constitution.md` §11.4.98.

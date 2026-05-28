@@ -4,29 +4,174 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>Issues</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="vasic-digital-tmux--open-issues-tracker">vasic-digital tmux —
 Open Issues Tracker</h1>
 <blockquote>
@@ -36,7 +181,7 @@ covenant (<code>Constitution.md</code> §1 + §11.4.1 through
 §11.4.6).</strong></p>
 <p>Every PASS in this codebase MUST carry positive evidence captured
 live that the feature works for the end user. Metadata-only PASS,
-configuration-only PASS, &quot;absence-of-error&quot; PASS, and grep-based PASS
+configuration-only PASS, "absence-of-error" PASS, and grep-based PASS
 without runtime evidence are all critical defects regardless of how
 green the summary line looks. <strong>Tests AND HelixQA Challenges are
 bound equally.</strong></p>
@@ -44,18 +189,18 @@ bound equally.</strong></p>
 2026-05-07 + 2026-05-08, repeatedly reasserted from upstream
 <code>vasic-digital</code> projects):</p>
 <blockquote>
-<p>&quot;We had been in position that all tests do execute with success and
+<p>"We had been in position that all tests do execute with success and
 all Challenges as well, but in reality the most of the features does not
-work and can&#39;t be used! This MUST NOT be the case and execution of tests
+work and can't be used! This MUST NOT be the case and execution of tests
 and Challenges MUST guarantee the quality, the completion and full
-usability by end users of the product!&quot;</p>
+usability by end users of the product!"</p>
 </blockquote>
 <p>§11.4.6 forensic anchor (verbatim, 2026-05-08):</p>
 <blockquote>
-<p>&quot;&#39;LIKELY&#39; is guessing, we MUST NOT have guessing, since it can be or
+<p>"'LIKELY' is guessing, we MUST NOT have guessing, since it can be or
 may not be! No bluffing and uncertainity is allowed at any cost! We MUST
 always know exactly precisly what is happening exactly, in any context,
-under any conditions, everywhere!&quot;</p>
+under any conditions, everywhere!"</p>
 </blockquote>
 </blockquote>
 <p><strong>Compiled:</strong> 2026-05-08 (Phase B
@@ -121,7 +266,7 @@ survivor proof — never just script exit code).</li>
 blocking dependency resolves; it must NOT skip directly to closed.</li>
 <li>An <code>INVESTIGATED</code> item must record the captured forensic
 trace (file path / command output / log timestamp) — never speculation
-(&quot;likely&quot; / &quot;probably&quot; / &quot;appears to&quot; — see Constitution §11.4.6).</li>
+("likely" / "probably" / "appears to" — see Constitution §11.4.6).</li>
 </ul>
 <p>Categories:</p>
 <ul>
@@ -140,8 +285,75 @@ evidence</li>
 <hr />
 <h2 id="b-anti-bluff-completeness-across-the-existing-test-surface">B.
 Anti-bluff completeness across the existing test surface</h2>
-<p>(none open at this time — B1 CHAL-COVER-001, B2 TEST-AUDIT-001 landed
-in <code>Fixed.md</code>.)</p>
+<h3
+id="b3-p5-m20--p5-m21-paired-mutation-escapes--pre-existing-v109-layer-4-gaps--open">B3.
+P5-M20 + P5-M21 paired-mutation ESCAPES — pre-existing v1.0.9 layer-4
+gaps — <code>OPEN</code></h3>
+<p><strong>Status:</strong> <code>OPEN</code> — pre-existing from v1.0.9
+(shell-session-resume PWUs). <strong>Re-discovered:</strong> v1.0.14
+verification cycle, 2026-05-22 on Mistborn:
+<code>bash scripts/tests/meta_test_false_positive_proof.sh</code>
+reports
+<code>MUTATIONS CAUGHT (PASS): 39  MUTATIONS ESCAPED (FAIL): 2  SKIPPED: 8</code>.</p>
+<p><strong>Forensic detail (no guessing per §11.4.6):</strong></p>
+<ul>
+<li><strong>P5-M20</strong> ("strip non-TTY guard from
+tmx-shell-init.sh"): the mutation removes the explicit non-TTY guard
+from <code>scripts/tmx-shell-init.sh</code>. The target test still exits
+fast because Darwin / libc enforces POSIX TTY semantics that ALSO cause
+the script to early-exit on non-TTY stdin (the test sees
+<code>Darwin: POSIX TTY semantics enforced by libc iter=N elapsed_ms&lt;100</code>).
+The TEST verifies the END behaviour ("script exits fast") but the END
+behaviour is defended on TWO layers (script guard + libc semantics) and
+the test cannot distinguish which layer caught it. Mutation strips one
+layer; the other still saves the assertion.</li>
+<li><strong>P5-M21</strong> ("strip cwd-capture tmux hook block from
+tmx.template"): the mutation removes the hook installation from the
+generated wrapper, but the target test (test 18 cwd persistence
+end-to-end) passes anyway because its harness manually triggers the hook
+via <code>tmux run-shell</code> — bypassing the template's auto-install.
+The test proves the recall MECHANISM works, never that the auto-install
+RECORDING path works.</li>
+</ul>
+<p><strong>Why this is <code>OPEN</code>, not
+closed-by-disclosure:</strong> the FEATURES under test (shell-init
+non-TTY skip, cwd persistence) do work and are covered by the GREEN
+tests 18, 21, 43. The escape is a layer-4 test-DESIGN gap — the test
+assertions cannot distinguish "guard fired" from "fallback fired", so
+the mutation slips. Fixing requires tightening the test assertions to
+isolate the layer the mutation targets (e.g. test 21 should drive a
+build where the libc fallback is intentionally disabled; test 18 should
+drive ONLY the auto-install path without manually triggering the hook).
+Both require careful re-architecting of the test harnesses, not a
+one-line change.</p>
+<p><strong>Why not blocker for v1.0.14:</strong> these escapes have been
+present across v1.0.9 → v1.0.13 releases; the operative request for
+v1.0.14 (clipboard physical proof + multi-host deploy) is fully covered
+with GREEN tests and physical evidence. Test 44 + M44 close the cycle's
+own anti-bluff cycle cleanly. Transparency in the release notes per
+§11.4 / §101.</p>
+<p><strong>Companion finding — nezha environmental escape
+(M22):</strong> on nezha, the meta-test additionally reports
+<code>M22 MUTATION ESCAPED</code> AND
+<code>V3 does not PASS after revert</code>. M22 targets the CodeGraph
+<code>Containers/**</code> exclude path in
+<code>.codegraph/config.json</code>. Both the mutate-and-test-fail step
+and the revert-and-test-pass step fail — indicating the CodeGraph
+validate baseline itself is broken on nezha (the test cannot reach GREEN
+even with original config). This is an environmental state issue
+(CodeGraph index/config) on the remote host, not a v1.0.14 regression.
+Closure condition: bring nezha's CodeGraph state to the baseline
+<code>codegraph_validate</code> would PASS on; either re-run
+<code>bash scripts/codegraph_setup.sh</code> on nezha or document why
+M22 should SKIP on nezha-class hosts.</p>
+<p><strong>Closure conditions:</strong> test 21 design tightening so it
+specifically asserts the SCRIPT GUARD fired (not the libc fallback);
+test 18 re-architecture so it does NOT short-circuit the hook
+auto-install. Both close P5-M20 and P5-M21 in the meta-test in a future
+cycle.</p>
+<hr />
+<p>(no other items open at this time — B1 CHAL-COVER-001, B2
+TEST-AUDIT-001 landed in <code>Fixed.md</code>.)</p>
 <hr />
 <h2 id="c-per-session-containerization-features-pending-evidence">C.
 Per-session containerization features pending evidence</h2>
@@ -158,8 +370,8 @@ Continuation drift</h2>
 <p>(none open at this time; CONTINUATION.md §3 entries that resolve land
 in <code>Fixed.md</code> per Constitution §5 / §12.10.)</p>
 <hr />
-<p><strong>Last reviewed:</strong> 2026-05-13 (audit cycle: tmux
-submodule pin-drift caught + reverted; README/AGENTS/CLAUDE staleness
-fixed; CONTINUATION refreshed).</p>
+<p><strong>Last reviewed:</strong> 2026-05-22 (v1.0.14 cycle — clipboard
+physical-proof landing + multi-host deploy; opened B3 to track the
+pre-existing v1.0.9 P5-M20+P5-M21 layer-4 escapes transparently).</p>
 </body>
 </html>

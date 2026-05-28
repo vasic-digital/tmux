@@ -44,3 +44,14 @@ scripts/tmx-state-bin
 
 # Local-only Claude Code session/setting files (per-operator)
 .claude/
+
+# §11.4.95 — workable-items SQLite DB is TRACKED at docs/workable_items.db
+# (NOT a build artefact — it IS the authoritative single-source-of-truth
+# data per §11.4.93+§11.4.95). Sidecar WAL files ARE gitignored per
+# §11.4.95 ("transient WAL files"); PRAGMA wal_checkpoint(TRUNCATE) on
+# close folds them back into the main .db file so it stays whole.
+docs/workable_items.db-wal
+docs/workable_items.db-shm
+# §11.4.30 + §11.4.95 — Go build cache + ephemeral test outputs.
+/cmd/workable-items/workable-items
+/cmd/workable-items/testdata/.cache/

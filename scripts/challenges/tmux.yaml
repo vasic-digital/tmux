@@ -673,3 +673,158 @@ challenges:
       the marker). FEATURE RESTORED via the harness backup. Lives in
       meta_test_false_positive_proof.sh.
     severity: blocker
+
+  - id: TMUX-CH-45
+    title: MULTI-LINE copy physical end-user proof (operator-path)
+    description: |
+      The operator MUST be able to select MULTIPLE LINES in a tmx
+      session via the keyboard copy-mode flow (v + cursor-down +
+      end-of-line + y) and have ALL of those lines reach the
+      system clipboard. Test 44 (TMUX-CH-44) proved single-line
+      copy-OUT; this Challenge closes the multi-line gap with
+      physical proof — 6 distinct markers printed in a single
+      printf block, selected as a 6-line block, copied through
+      `#{@clip}`, and read back from the OS clipboard tool. All
+      6 markers MUST appear in the pbpaste / wl-paste / xclip
+      output.
+    test_script: scripts/tests/45_multiline_copy_physical.sh
+    pass_condition: |
+      FAIL=0. T1 conf-template carries the multi-line bindings
+      (v + y + @clip); T2 all 6 markers printed into the pane
+      scrollback; T3 copy-mode entered + cursor-down -N 5 +
+      end-of-line + copy-pipe-and-cancel "#{@clip}"; T4 tmux own
+      buffer carries all 6 markers (binding chain proven); T5 the
+      OS-native paste tool returns ALL 6 markers (physical
+      end-user proof) — or honestly SKIPs where no clipboard tool
+      is reachable (headless Linux).
+    evidence: |
+      `pbpaste` / `wl-paste -n` / `xclip -o` output containing
+      all 6 markers (printed in order via printf '\\n'-delimited).
+      Cleanup: operator's prior clipboard captured pre-test +
+      restored at exit.
+    skip_conditions: |
+      §11.4.3 topology: T5 honestly SKIPs on headless Linux with
+      no DISPLAY/Wayland/Termux clipboard tool — T4 binding-chain
+      proof still asserts. Whole test SKIPs only if binary or
+      wrapper absent.
+    mutation_targets: |
+      Coverage by composition: M12 (WheelUp override), M13
+      (history-limit), M44 (@clip user-option). Stripping any of
+      these breaks the multi-line flow; M44 specifically makes
+      both the @clip pipe and the multi-line selection target
+      tests FAIL at T1.
+    severity: blocker
+
+  - id: TMUX-CH-46
+    title: PASTE-INTO from OS clipboard physical end-user proof
+    description: |
+      The operator MUST be able to paste OS-clipboard contents INTO
+      a tmx pane via a tmux keystroke. v1.0.14's `set-clipboard
+      external` is COPY-OUT only — OSC-52 paste is not standardised.
+      v1.0.15 adds `@clip-read` (OS-adaptive read — pbpaste /
+      wl-paste -n / xclip -o / termux-clipboard-get) + `prefix + P`
+      that pipes the clipboard through `load-buffer -` then
+      `paste-buffer -p`. This Challenge proves the flow end-to-end
+      with physical evidence — a unique marker seeded via pbcopy
+      lands in the pane after invoking the binding mechanism.
+    test_script: scripts/tests/46_paste_in_physical.sh
+    pass_condition: |
+      FAIL=0. T1 conf-template carries @clip-read + prefix+P
+      bindings; T2 live readback of both confirm they exist;
+      T3 the marker seeded in the OS clipboard reaches the pane
+      via the binding mechanism (physical proof); T4 the prefix+P
+      bind body references @clip-read.
+    evidence: |
+      `tmux capture-pane -p -S -` output after the binding fires
+      contains the seeded marker; live `list-keys -T prefix P`
+      shows a paste-buffer-bearing command body referencing
+      @clip-read; live `show-options -gv @clip-read` returns the
+      non-empty OS-adaptive read command.
+    skip_conditions: |
+      §11.4.3 topology: T3 SKIPs honestly when no OS clipboard
+      tool is reachable; T1/T2 binding-presence assertions still
+      run. Whole test SKIPs only if binary or wrapper absent.
+    mutation_targets: |
+      M46 (meta_test_false_positive_proof.sh): strip the
+      `@clip-read` user-option definition from the template;
+      assert test 46 FAILs at T1 (and at T2.1 + T3 on hosts with
+      a clipboard tool). FEATURE RESTORED via harness backup.
+    severity: blocker
+
+  - id: TMUX-CH-47
+    title: Scroll inside alt-screen + mouse-tracking TUI (Claude Code-like)
+    description: |
+      The operator MUST be able to scroll vertically inside any
+      TUI app — vim, less, htop, AND Claude Code — even when the
+      app has alternate-screen + mouse-tracking enabled. tmux's
+      default WheelUpPane would forward the wheel to the app
+      (because `#{mouse_any_flag}`=1); v1.0.3's WheelUp override
+      drives copy-mode unconditionally. This Challenge proves the
+      override survives the hostile environment by spawning a
+      synthetic alt-screen+mouse-tracking surrogate
+      (helpers/synthetic_alt_screen_app.py) and confirming
+      `pane_in_mode` engages on a WheelUp scroll-up action.
+    test_script: scripts/tests/47_alt_screen_scroll.sh
+    pass_condition: |
+      FAIL=0. T1 helper script compiles; T2 conf-template carries
+      WheelUpPane override; T3 synthetic helper launches +
+      READY-marker captured; T4 pane alternate_on=1 +
+      mouse_any_flag=1 (hostile surface confirmed); T5
+      copy-mode engages on WheelUp scroll-up action; T6 live
+      WheelUpPane binding is the override (not the
+      mouse_any_flag-respecting default).
+    evidence: |
+      `display-message -p '#{alternate_on}'` = 1;
+      `display-message -p '#{mouse_any_flag}'` = 1;
+      `display-message -p '#{pane_in_mode}'` = 1 after scroll-up;
+      `list-keys -T root WheelUpPane` mentions copy-mode + scroll-up
+      AND not mouse_any_flag.
+    skip_conditions: |
+      SKIP if python3 is not on PATH (synthetic helper cannot
+      launch); SKIP if helper script absent. Whole test SKIPs
+      only if binary or wrapper absent.
+    mutation_targets: |
+      Coverage by composition: M12 (WheelUp override) catches
+      regressions in the binding the test depends on. Removing
+      the synthetic helper script triggers T0 SKIP (helper
+      absent) — not catchable as a feature regression but tracked
+      as Layer-1 verify.sh gate.
+    severity: critical
+
+  - id: TMUX-CH-48
+    title: Alt-drag + Shift-drag override for selection in mouse-tracking TUI
+    description: |
+      Inside Claude Code (mouse_any_flag=1), tmux's default
+      MouseDrag1Pane forwards the drag to the app — the operator
+      CANNOT drag-select in tmux without a modifier escape.
+      v1.0.15 adds `bind -n M-MouseDrag1Pane copy-mode -M` AND
+      `bind -n S-MouseDrag1Pane copy-mode -M` so EITHER Alt+drag
+      or Shift+drag forces tmux to take the drag for selection.
+      Matching drag-end bindings route the selection through
+      @clip. This Challenge proves all 4 bindings exist on the
+      live server AND survive the mouse_any_flag=1 surface, AND
+      that the keyboard-equivalent of the modifier-drag flow
+      lands 6 markers in the OS clipboard.
+    test_script: scripts/tests/48_modifier_drag_override.sh
+    pass_condition: |
+      FAIL=0. T1 conf-template carries the 4 bindings; T2 live
+      readbacks confirm all 4 routes are correct; T3 keyboard-
+      equivalent flow routes 6 markers into tmux buffer; T4
+      M-MouseDrag1Pane override survives mouse_any_flag=1
+      surface; T5 OS clipboard carries all 6 markers (physical
+      proof).
+    evidence: |
+      `list-keys -T root M-MouseDrag1Pane` mentions copy-mode;
+      `list-keys -T root S-MouseDrag1Pane` mentions copy-mode;
+      `list-keys -T copy-mode-vi M-MouseDragEnd1Pane` references
+      copy-pipe-and-cancel + @clip; same for S-MouseDragEnd1Pane;
+      `pbpaste` returns 6 distinct markers.
+    skip_conditions: |
+      §11.4.3 topology: T4 SKIPs if synthetic helper or python3
+      is absent; T5 SKIPs on headless Linux. T1-T3 always run.
+    mutation_targets: |
+      M48 (meta_test_false_positive_proof.sh): strip the
+      `bind -n M-MouseDrag1Pane` line from the template; assert
+      test 48 FAILs at T1 + T2.1. FEATURE RESTORED via harness
+      backup.
+    severity: blocker

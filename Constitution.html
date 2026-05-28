@@ -4,29 +4,174 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>Constitution</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="vasic-digital-tmux--project-constitution">vasic-digital tmux —
 Project Constitution</h1>
 <table>
@@ -70,7 +215,8 @@ verified by <code>scripts/tests/test_constitution_inheritance.sh</code>
 </tbody>
 </table>
 <p>This constitution <strong>extends</strong> the Helix Universal
-Constitution at <a href="constitution/Constitution.md"><code>constitution/Constitution.md</code></a>.
+Constitution at <a
+href="constitution/Constitution.md"><code>constitution/Constitution.md</code></a>.
 Every clause there — the anti-bluff covenant (§11.4), absolute data
 safety (§9), the 60 % host-memory budget, the continuation-document
 invariant (§12.10), the no-guessing mandate (§11.4.6), commit/push
@@ -99,19 +245,19 @@ Anti-bluff covenant binding (origin anchor)</h3>
 <p>This repository is one of the historical origins of the Helix
 anti-bluff covenant. The verbatim user mandate that the universal §11.4
 codifies is preserved here for forensic continuity — it MUST remain in
-this project&#39;s Constitution regardless of inheritance:</p>
+this project's Constitution regardless of inheritance:</p>
 <blockquote>
-<p>&quot;We had been in position that all tests do execute with success and
+<p>"We had been in position that all tests do execute with success and
 all Challenges as well, but in reality the most of the features does not
-work and can&#39;t be used! This MUST NOT be the case and execution of tests
+work and can't be used! This MUST NOT be the case and execution of tests
 and Challenges MUST guarantee the quality, the completion and full
-usability by end users of the product!&quot;</p>
+usability by end users of the product!"</p>
 </blockquote>
-<p><strong>The bar for shipping is &quot;users can use the feature,&quot; not
-&quot;tests pass.&quot;</strong> Every PASS in this codebase — unit test OR
+<p><strong>The bar for shipping is "users can use the feature," not
+"tests pass."</strong> Every PASS in this codebase — unit test OR
 HelixQA Challenge — MUST carry positive runtime evidence captured
 <em>during execution</em> that the feature works for the end user.
-Metadata-only PASS, configuration- only PASS, &quot;absence-of-error&quot; PASS,
+Metadata-only PASS, configuration- only PASS, "absence-of-error" PASS,
 and grep-only PASS are critical defects regardless of how green the
 summary line is. <strong>FAIL-bluffs</strong> (a test that exits FAIL
 for a script-internal reason, not a product defect) are equally
@@ -120,7 +266,8 @@ forbidden and MUST be fixed at the source layer.</p>
 prohibition, no-guessing mandate, test-interrupt-on-discovery — is
 universal §11.4.1 through §11.4.6. This article binds this project to it
 and adds the project-specific articles below.</p>
-<h3 id="102--operator-path-test-coverage-project-rule-user-mandate-2026-05-13">§102
+<h3
+id="102--operator-path-test-coverage-project-rule-user-mandate-2026-05-13">§102
 — Operator-path test coverage (project rule, User mandate
 2026-05-13)</h3>
 <p><strong>Forensic anchor:</strong> <code>Fixed.md</code> A12 + A13.
@@ -132,20 +279,20 @@ explicit-socket path; test 14 hand-spawned
 cgroup.</p>
 <p><strong>The mandate.</strong> Every gate test for a feature MUST
 exercise the SAME entry point an end-user would invoke in production.
-Tests that bypass the operator&#39;s wrapper / helper / install path and
+Tests that bypass the operator's wrapper / helper / install path and
 reproduce its effects with hand-crafted equivalents DO NOT satisfy the
-universal §11.4.2 captured-evidence requirement. When the operator&#39;s
-path and the test&#39;s path diverge:</p>
+universal §11.4.2 captured-evidence requirement. When the operator's
+path and the test's path diverge:</p>
 <ol type="1">
-<li>The test header MUST EXPLICITLY name the divergence (e.g. &quot;test
+<li>The test header MUST EXPLICITLY name the divergence (e.g. "test
 invokes <code>tmux</code> directly; operator path is
-<code>tmx new</code>&quot;).</li>
+<code>tmx new</code>").</li>
 <li>A SEPARATE end-to-end test MUST close that divergence with captured
 evidence on the operator-facing entry point.</li>
 </ol>
 <p><strong>Operative test:</strong> for every test under
-<code>scripts/tests/</code>, ask &quot;would an operator hit this code path
-in their normal workflow?&quot; If no, that test is supplementary; the
+<code>scripts/tests/</code>, ask "would an operator hit this code path
+in their normal workflow?" If no, that test is supplementary; the
 operator-path test must exist alongside it.</p>
 <p><strong>No grep-on-script-content alone.</strong> A <code>grep</code>
 on a script for a literal string is allowed AS A STATIC CHECK <em>in
@@ -156,7 +303,8 @@ code.</strong> Mutations target <code>scripts/tmx-vm</code> /
 <code>scripts/tmux.conf.template</code> (the code that runs in
 production), not synthetic-test code.</p>
 <p>Non-compliance is a release blocker.</p>
-<h3 id="103--four-layer-test-coverage-for-tmux-defects-user-mandate-2026-05-06">§103
+<h3
+id="103--four-layer-test-coverage-for-tmux-defects-user-mandate-2026-05-06">§103
 — Four-layer test coverage for tmux defects (User mandate
 2026-05-06)</h3>
 <p>Every defect found, fixed, or introduced in this repo MUST land all
@@ -181,7 +329,8 @@ feature is restored afterwards (RESTORED).</li>
 is rediscovered, re-produced, or newly identified during a test cycle,
 the cycle STOPS. Fix at root cause → land all four layers → full rebuild
 → repeat the full cycle from the beginning.</p>
-<h3 id="104--per-host-topology-test-dispatch-for-tmux-user-mandate-2026-05-05">§104
+<h3
+id="104--per-host-topology-test-dispatch-for-tmux-user-mandate-2026-05-05">§104
 — Per-host-topology test dispatch for tmux (User mandate
 2026-05-05)</h3>
 <p>Tests that depend on host topology (systemd version, cgroup v1 vs v2,
@@ -195,7 +344,8 @@ PASS-bluff. Silent degradation to a no-isolation path is forbidden.</p>
 <code>tmx-supported</code> / <code>tmx-degraded</code> /
 <code>tmx-unsupported</code> via <code>_probe_topology()</code> — the
 canonical dispatch seam.</p>
-<h3 id="105--per-session-isolation-architecture-default-since-2026-05-13">§105
+<h3
+id="105--per-session-isolation-architecture-default-since-2026-05-13">§105
 — Per-session isolation architecture (default since 2026-05-13)</h3>
 <p>Each <code>tmx new -s NAME</code> spawns its OWN tmux server on
 socket <code>tmx-NAME</code> inside its OWN OS-native isolation
@@ -214,10 +364,11 @@ overrides), <code>CPUQuota=200%</code>, <code>TasksMax=4096</code>,
 (memory) is NOT enforced by XNU for unprivileged processes — documented
 honestly per §101, see <code>docs/guide/README.md</code> §5.6.</li>
 </ul>
-<p>The session shell is the operator&#39;s host shell with full
+<p>The session shell is the operator's host shell with full
 <code>$PATH</code>. Plain-vanilla tmux UX with OS-native isolation as a
 safeguard.</p>
-<h3 id="106--tmx_mem-memory-budget-enforcement-project-enforcement-of-universal-126">§106
+<h3
+id="106--tmx_mem-memory-budget-enforcement-project-enforcement-of-universal-126">§106
 — TMX_MEM memory-budget enforcement (project enforcement of universal
 §12.6)</h3>
 <p>The universal 60 % host-memory budget is enforced in this project by
@@ -248,7 +399,7 @@ Anti-bluff verification gate (load-bearing)</h3>
 <p><code>scripts/verify.sh</code> is the single decision point for
 whether the binary is operator-safe. GREEN → <code>setup.sh</code>
 proceeds to PATH export; RED → <code>setup.sh</code> REFUSES to install.
-There is no &quot;force install&quot; mode and no flag that bypasses the gate.</p>
+There is no "force install" mode and no flag that bypasses the gate.</p>
 <hr />
 <h2 id="overrides-of-the-universal-constitution">Overrides of the
 Universal Constitution</h2>
@@ -278,13 +429,13 @@ the owned set; immutable per §107.</p>
 <tr>
 <td>Main — <code>vasic-digital/tmux</code></td>
 <td><code>github</code> + <code>gitlab</code></td>
-<td><code>bash commit_all.sh &quot;&lt;msg&gt;&quot;</code> — ONLY allowed
+<td><code>bash commit_all.sh "&lt;msg&gt;"</code> — ONLY allowed
 mechanism</td>
 </tr>
 <tr>
 <td><code>Containers</code></td>
 <td><code>github</code> + <code>gitlab</code></td>
-<td>the Containers repo&#39;s own commit wrapper</td>
+<td>the Containers repo's own commit wrapper</td>
 </tr>
 </tbody>
 </table>
@@ -292,6 +443,192 @@ mechanism</td>
 only — no HTTPS for Git. No CI/CD pipeline files. Force-push is never
 automatic and requires explicit per-operation authorization per
 universal §9.</p>
+<hr />
+<h2
+id="1148798--universal-anchors-inherited-from-constitution-6828ff2-cycle-2026-05-28">§11.4.87–98
+— universal anchors inherited from constitution 6828ff2 (cycle
+2026-05-28)</h2>
+<p>The constitution submodule was ff-merged from <code>84c948d</code> to
+<code>6828ff2</code> (2026-05-28). Anchors §11.4.87 through §11.4.98 are
+universal additions that apply to this project unconditionally per
+§11.4.35. Long-form bodies live in
+<code>constitution/Constitution.md</code>; short-form mirrors
+follow.</p>
+<h3
+id="11487--endless-loop-autonomous-work--zero-idle-agent-dispatch--anti-bluff-testing">§11.4.87
+— Endless-loop autonomous work + zero-idle agent dispatch + anti-bluff
+testing</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.87 (commit 6828ff2).
+Operative for this project: agent work continues autonomously until ALL
+of (a) Issues.md has no In-progress / Ready / In-testing / Reopened
+items, (b) CONTINUATION.md §3 active-work empty, (c) no in-flight
+subagent, (d) no external dependency in-flight. Every closed item
+carries §11.4.4(b) four-layer coverage + captured evidence per
+§11.4.5/§11.4.69. Tests AND HelixQA Challenges bound equally.
+<strong>Canonical authority:</strong> constitution submodule
+<code>Constitution.md</code> §11.4.87 (6828ff2).</p>
+<h3
+id="11488--background-push-commit-lock-release-immediately-push-detached">§11.4.88
+— Background-push: commit-lock release immediately, push detached</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.88 (commit 6828ff2).
+Operative: <code>commit_all.sh</code> MUST release its commit flock the
+moment <code>git commit</code> returns 0; <code>git push</code> runs
+detached via <code>nohup ... &amp;</code> + <code>disown</code>;
+per-remote <code>.git/.push.&lt;remote&gt;.lock</code> serialises
+same-remote concurrent pushes but allows different-remote parallelism.
+Backgrounded push failures land under
+<code>qa-results/push_failures/</code>. The only escape is
+<code>--sync-push</code> for §11.4.41 force-push paths.
+<strong>Canonical authority:</strong> constitution submodule
+<code>Constitution.md</code> §11.4.88 (6828ff2).</p>
+<h3
+id="11489--background-test-execution-long-tests-run-detached">§11.4.89 —
+Background test execution (long tests run detached)</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.89 (commit 6828ff2).
+Operative for this project's &gt;30 s tests
+(<code>bash scripts/tests/run_all.sh</code>,
+<code>meta_test_false_positive_proof.sh</code>,
+<code>test_e2e.sh</code>, etc.): MUST spawn via
+<code>nohup ... &gt; &lt;log&gt; 2&gt;&amp;1 &amp;</code> +
+<code>disown</code>; main work stream returns to the §11.4.42 priority
+queue; hard-dependent next steps poll exit-status. Per-script flock
+serialises same-script invocations. <strong>Canonical
+authority:</strong> constitution submodule <code>Constitution.md</code>
+§11.4.89 (6828ff2).</p>
+<h3 id="11490--obsolete-status--per-item-obsolescence-audit">§11.4.90 —
+Obsolete status + per-item obsolescence audit</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.90 (commit 6828ff2). The
+§11.4.15 Status closed-set gains terminal value
+<code>Obsolete (→ Fixed.md)</code> (orthogonal to Type). Reasons drawn
+from closed vocabulary:
+<code>superseded-by-design-change | superseded-by-later-mandate | feature-removed | duplicate-of | unsupported-topology</code>.
+Every Obsolete heading carries <code>**Obsolete-Details:**</code> (Since
++ Reason + Superseding-item</p>
+<ul>
+<li>Triple-check evidence) within 8 non-blank lines. §11.4.23 colorizer
+adds <code>cell-status-obsolete</code> class (light-gray +
+strikethrough). <strong>Canonical authority:</strong> constitution
+submodule <code>Constitution.md</code> §11.4.90 (6828ff2).</li>
+</ul>
+<h3 id="11491--summary-doc-clarity-mandate">§11.4.91 — Summary-doc
+clarity mandate</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.91 (commit 6828ff2).
+Every summary one-liner (Issues_Summary.md, Fixed_Summary.md, README
+doc-link, Status_Summary pages) MUST be self-contained — ≥ 6 words OR ≥
+40 chars naming SUBJECT + PROBLEM/GOAL. Forbidden anti-patterns: section
+labels (<code>Composes with</code>, etc.); bare metadata fragments
+(<code>Critical</code>, <code>Bug</code>, <code>In progress</code>);
+§-letter alone. Generators MUST extract from H1/H2 heading line per
+§11.4.54 ATM-NNN convention and refuse anti-pattern rows.
+<strong>Canonical authority:</strong> constitution submodule
+<code>Constitution.md</code> §11.4.91 (6828ff2).</p>
+<h3 id="11492--multi-pass-change-evaluation-discipline">§11.4.92 —
+Multi-pass change-evaluation discipline</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.92 (commit 6828ff2).
+Every non-trivial change passes 5 evaluation passes BEFORE commit-ready:
+(1) main-task captured-evidence verification; (2) regression
+blast-radius enumeration of every dependent file; (3) cross-feature
+interaction analysis (shared state/timing/hardware); (4) deep-research
+per §11.4.8 + CodeGraph queries per §11.4.78/§11.4.79; (5) anti-bluff
+confirmation. Per-pass written documentation required. Trivial exemption
+only for zero-source-touch revision-bump / typo commits citing the
+exemption. <strong>Canonical authority:</strong> constitution submodule
+<code>Constitution.md</code> §11.4.92 (6828ff2).</p>
+<h3
+id="11493--sqlite-backed-single-source-of-truth-for-workable-items">§11.4.93
+— SQLite-backed single source of truth for workable items</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.93 (commit 6828ff2).
+Text-based Issues/Fixed/Summary/CONTINUATION constellation converts to
+SQLite-DB-backed single source of truth at
+<code>docs/workable_items.db</code> (TRACKED per §11.4.95, not
+gitignored). A Go binary at <code>cmd/workable-items/</code> provides
+bidirectional sync (<code>md-to-db</code> / <code>db-to-md</code> /
+<code>diff</code> / <code>validate</code> / <code>add</code> /
+<code>close</code>). Round-trip MUST be byte-identical within
+whitespace-and-section-order tolerance. <code>commit_all.sh</code>
+refuses to commit while diff is non-empty. <strong>Canonical
+authority:</strong> constitution submodule <code>Constitution.md</code>
+§11.4.93 (6828ff2).</p>
+<h3
+id="11494--zero-idle-priority-first-parallel-by-default-operating-mode">§11.4.94
+— Zero-idle priority-first parallel-by-default operating mode</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.94 (commit 6828ff2).
+Binds §11.4.20+§11.4.42+§11.4.58+§11.4.70+§11.4.72+
+§11.4.82+§11.4.87+§11.4.88+§11.4.89 into a single always-on enforcement:
+idle ONLY when every queued item is genuinely externally blocked OR
+operator STOP OR §12 host-safety; before any wake/sleep the conductor
+MUST survey parallel-work feasibility, identify non-contending items,
+dispatch in parallel per §11.4.20/§11.4.70 subagent-driven default +
+§11.4.58 PWU disjoint scope + §11.4.89 background long tests.
+<strong>Canonical authority:</strong> constitution submodule
+<code>Constitution.md</code> §11.4.94 (6828ff2).</p>
+<h3
+id="11495--workable-items-sqlite-db-tracked-in-git-never-gitignored">§11.4.95
+— Workable-items SQLite DB TRACKED in git, NEVER gitignored</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.95 (commit 6828ff2).
+Amends §11.4.93: <code>docs/workable_items.db</code> IS authoritative
+source data, NOT a build artefact — it is TRACKED in git, NEVER
+gitignored. Every <code>workable-items sync md-to-db</code> mutation
+stages + commits + pushes the DB alongside the MD regen per §11.4.19
+atomic-move + §2.1 multi-upstream push. WAL-checkpoint
+(<code>PRAGMA wal_checkpoint(TRUNCATE)</code>) required before
+commit-stage. Destructive DB ops require §9.2 hardlinked-backup.
+<strong>Canonical authority:</strong> constitution submodule
+<code>Constitution.md</code> §11.4.95 (6828ff2).</p>
+<h3
+id="11496--safe-parallel-work-with-long-build-catalogue--mandate">§11.4.96
+— Safe-parallel-work-with-long-build catalogue + mandate</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.96 (commit 6828ff2).
+Operational catalogue for long-running build workloads classifies
+parallel work as SAFE (docs/scripts/tests/submodule pushes under
+§11.4.88 + research + DB ops + subagent dispatch) vs UNSAFE (destructive
+git ops on source tree, mass deletes under hot subtrees, container
+destruction, host-safety breaches). Conductor MUST consult catalogue at
+every pause point and dispatch ≥1 safe item per §11.4.20/ §11.4.70
+subagent default + §11.4.89 background. <strong>Canonical
+authority:</strong> constitution submodule <code>Constitution.md</code>
+§11.4.96 (6828ff2).</p>
+<h3
+id="11497--maximum-use-of-idle-time--progress-update-cadence">§11.4.97 —
+Maximum-use-of-idle-time + progress-update cadence</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.97 (commit 6828ff2).
+Strengthens §11.4.87+§11.4.94+§11.4.96: every idle minute during which
+work could autonomously progress and is not genuinely blocked = §11.4.97
+violation. Progress-update cadence: emit operator-facing 1-line update
+at every commit landed / subagent return / constitutional anchor landing
+/ captured-evidence acquisition / milestone closure — no operator prompt
+required. Continuous physical-proof gathering per
+§11.4.5+§11.4.6+§11.4.69. <strong>Canonical authority:</strong>
+constitution submodule <code>Constitution.md</code> §11.4.97
+(6828ff2).</p>
+<h3
+id="11498--full-automation-anti-bluff--live-tests-re-runnable-end-to-end-without-manual-intervention">§11.4.98
+— Full-Automation Anti-Bluff — live tests re-runnable end-to-end without
+manual intervention</h3>
+<p>Universal anchor inherited from
+<code>constitution/Constitution.md</code> §11.4.98 (commit 6828ff2).
+Closes the manual-intervention gap §11.4.85/§11.4.87/ §11.4.89/§11.4.94
+did not explicitly forbid: every test (unit / integration / e2e /
+Challenge / stress / chaos / live) MUST be fully self-driving end-to-end
+and report PASS/FAIL/SKIP-with-reason without any further human action
+after startup. One-time credential bootstrap OUTSIDE test execution is
+the only permissible exception. Re-runnability proof = PASS at
+<code>-count=3</code> consecutive automated invocations with
+self-cleaning state. Manual-dependency tests not rewritten within 30
+days graduate to §11.4.90 Obsolete citing §11.4.98 as the reason.
+<strong>Canonical authority:</strong> constitution submodule
+<code>Constitution.md</code> §11.4.98 (6828ff2).</p>
 <hr />
 <p><em>This Project Constitution governs the
 <code>vasic-digital/tmux</code> repository. It is subordinate to and
