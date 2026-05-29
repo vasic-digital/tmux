@@ -6,6 +6,56 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.18] — 2026-05-29
+
+**The real mouse-copy fix: a PLAIN drag now selects + copies inside Claude Code (proven with a real mouse, Linux + macOS).**
+
+Operator follow-up (2026-05-29): *"We still cannot select and copy anything
+in Claude Code … Start new terminal session … cd into the root dir … execute
+claude … Try to select some text and copy it. Not possible! This MUST BE
+achieved on both platforms Linux and macOS!"*
+
+The v1.0.17 `prefix m` toggle required the operator to know a magic keystroke
+and was NOT what "select and copy works" means. v1.0.18 makes the **natural
+gesture** work.
+
+### Fixed (A42 — completes the mouse-copy fix)
+
+- **Root cause confirmed by real-mouse reproduction:** inside a mouse-tracking
+  app (`#{mouse_any_flag}`=1, e.g. Claude Code) tmux's built-in root
+  `MouseDrag1Pane` forwards the drag to the app, so a plain drag selects
+  nothing. (The clipboard pipe + bindings were already fine.)
+- **Fix:** override the root binding so a plain left-drag ALWAYS enters
+  copy-mode and begins a selection, even in mouse-tracking apps:
+  `bind -n MouseDrag1Pane if -F '#{pane_in_mode}' 'send -M' 'copy-mode -M'`.
+  On release the selection is piped to the OS clipboard via `@clip`. A plain
+  CLICK and the WHEEL are NOT rebound, so Claude Code keeps its click + scroll
+  interactivity — only click-DRAG is repurposed for select-and-copy (Claude
+  Code's TUI does not use drag). No terminal-specific modifier, so it behaves
+  identically on macOS and Linux. The `prefix m` toggle + Shift/Alt-drag remain
+  as alternatives.
+- **PROVEN with a real mouse (not a binding-presence bluff):**
+  - **Cross-platform headless** (`scripts/tests/56_real_mouse_drag_copy.sh`):
+    injects a REAL SGR-1006 left-button drag into an attached tmux client while
+    a mouse-tracking app holds the pane with `mouse_any_flag=1` (the exact
+    Claude Code condition) and asserts the dragged token reached the `@clip`
+    sink. Regression-discriminating: stripping the override makes it FAIL
+    (sink empty). 3/3 deterministic.
+  - **macOS GUI layer** (opt-in `TMX_GUI_TESTS=1`): a genuine `cliclick` cursor
+    drag over a real iTerm2 window → token in `pbpaste`.
+  - `scripts/tests/55` asserts the override resolves to copy-mode (not
+    app-forward). Meta-test mutation `M-PLAINDRAG` strips it → test 56 FAILs
+    (CAUGHT).
+
+### Validation
+
+- Mistborn (Darwin arm64): full suite GREEN; meta-test 0 escapes incl. `M-PLAINDRAG`;
+  real `cliclick` GUI drag → `pbpaste` proven.
+- nezha (ALT Linux x86_64): headless SGR real-mouse-drag proof PASS (same
+  binding, no terminal-specific modifier) — select+copy works on Linux too.
+
+---
+
 ## [v1.0.17] — 2026-05-29
 
 **Two user-reported product bug fixes (mouse copy + double prompt) + B3 anti-bluff closure + dual-host re-validation.**

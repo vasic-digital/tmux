@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>v1.0.18</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1 id="vasic-digital-tmux--v1018-release-notes">vasic-digital tmux —
+v1.0.18 Release Notes</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-29T12:25:00Z <strong>Version:</strong> 1.0.18 / versionCode 19
+<strong>Released:</strong> 2026-05-29 <strong>Hosts validated:</strong>
+Mistborn (Darwin arm64) + nezha (ALT Linux 6.12 x86_64)</p>
+<hr />
+<h2 id="summary">Summary</h2>
+<p>v1.0.18 delivers the <strong>real</strong> fix for the operator's
+mouse-copy report: a PLAIN left-drag now selects and copies text
+<strong>inside Claude Code</strong> (and any mouse-tracking TUI), on
+<strong>both Linux and macOS</strong>, with no modifier and no toggle.
+It is proven with a <strong>real mouse</strong> — not a binding-presence
+check.</p>
+<p>This corrects a v1.0.17 shortcoming honestly: the
+<code>prefix m</code> toggle shipped in v1.0.17 required the operator to
+know a keystroke and did not make the natural gesture work. The operator
+re-reported the failure; this release reproduces it with a real mouse,
+fixes the root binding, and proves the fix with captured clipboard
+evidence.</p>
+<blockquote>
+<p>Operator (2026-05-29): <em>"We still cannot select and copy anything
+in Claude Code … execute claude … Try to select some text and copy it.
+Not possible! This MUST BE achieved on both platforms Linux and
+macOS!"</em></p>
+</blockquote>
+<hr />
+<h2
+id="a42-completed--plain-mouse-drag-selects--copies-in-mouse-tracking-apps">A42
+(completed) — plain mouse-drag selects + copies in mouse-tracking
+apps</h2>
+<p><strong>Root cause (reproduced with a real mouse).</strong> Inside a
+mouse-tracking app (<code>#{mouse_any_flag}</code>=1 — Claude Code
+requests alt-screen + <code>?1003h</code> any-event tracking +
+<code>?1006h</code> SGR encoding), tmux's built-in root
+<code>MouseDrag1Pane</code> forwards the drag to the application
+(<code>send -M</code>), so a plain drag never reaches tmux copy-mode and
+selects nothing. The clipboard pipe
+(<code>@clip</code>→<code>pbcopy</code>/
+<code>wl-copy</code>/<code>xclip</code>) and the copy-mode bindings were
+already correct — the gap was purely that the drag was being handed to
+the app.</p>
+<p><strong>Fix.</strong> Override the root drag binding in
+<code>scripts/tmux.conf.template</code>:</p>
+<pre class="tmux"><code>bind -n MouseDrag1Pane if -F &#39;#{pane_in_mode}&#39; &#39;send -M&#39; &#39;copy-mode -M&#39;</code></pre>
+<p>A plain left-drag now ALWAYS enters copy-mode and begins a selection,
+even when the foreground app requests mouse tracking. On release, the
+existing <code>MouseDragEnd1Pane</code> binding pipes the selection to
+the OS clipboard via <code>@clip</code>. <code>#{pane_in_mode}</code>
+guard: once already in copy-mode, the drag is passed through
+(<code>send -M</code>) so copy-mode's own handler extends the
+selection.</p>
+<p>Plain CLICK (<code>MouseDown</code>/<code>Up</code>) and the WHEEL
+are deliberately NOT rebound, so Claude Code keeps its click + scroll
+interactivity — only click-DRAG is repurposed for select-and-copy (the
+Claude Code TUI does not use drag). The fix uses no terminal-specific
+modifier, so it behaves identically on macOS and Linux. The
+<code>prefix m</code> toggle and Shift/Alt-drag remain as
+alternatives.</p>
+<p><strong>Captured physical proof (real mouse, no bluff).</strong></p>
+<ul>
+<li><strong>Cross-platform headless</strong> —
+<code>scripts/tests/56_real_mouse_drag_copy.sh</code> starts a tmux
+server with the shipped config, runs a mouse-tracking app that enables
+the exact modes Claude Code uses, attaches a client on a PTY,
+<strong>waits until <code>mouse_any_flag</code>=1</strong>, then
+<strong>injects a real SGR-1006 left-button drag</strong> (press →
+motion → motion → release) and asserts the dragged token reached the
+<code>@clip</code> sink. Asserting <code>mouse_any_flag</code>=1 makes
+the proof meaningful — at flag=0 even the old forwarding binding would
+copy. Regression-discriminating: removing the override makes the test
+FAIL (sink empty). 3/3 deterministic (§11.4.50). Works on macOS AND
+Linux (no GUI required → runs on headless nezha).</li>
+<li><strong>macOS GUI layer</strong> (opt-in
+<code>TMX_GUI_TESTS=1</code>) — opens a real iTerm2 window, runs the
+mouse-tracking app inside a tmux session, performs a genuine
+<code>cliclick</code> cursor drag across the window, and asserts the
+token landed in <code>pbpaste</code>. Proven on Mistborn.</li>
+<li><code>scripts/tests/55_mouse_toggle_and_copy.sh</code> asserts the
+override resolves to <code>copy-mode</code> (not the default
+<code>mouse_any_flag</code> app-forward).</li>
+<li>Meta-test mutation <code>M-PLAINDRAG</code> strips the override and
+asserts test 56 FAILs — CAUGHT.</li>
+</ul>
+<hr />
+<h2 id="validation-dual-host">Validation (dual-host)</h2>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>mouse-drag copy proof</th>
+<th>suite</th>
+<th>meta-test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mistborn (Darwin arm64)</td>
+<td>headless SGR PASS + real <code>cliclick</code> GUI drag →
+<code>pbpaste</code> PASS</td>
+<td>full GREEN</td>
+<td>0 escapes incl. <code>M-PLAINDRAG</code></td>
+</tr>
+<tr>
+<td>nezha (ALT Linux x86_64)</td>
+<td>headless SGR real-mouse-drag PASS (same binding)</td>
+<td>full GREEN</td>
+<td>M-PLAINDRAG CAUGHT</td>
+</tr>
+</tbody>
+</table>
+<p>Both platforms: a plain mouse drag in a mouse-tracking app selects +
+copies.</p>
+<hr />
+<h2 id="files-changed">Files changed</h2>
+<ul>
+<li><code>scripts/tmux.conf.template</code> — root
+<code>MouseDrag1Pane</code> plain-drag copy-mode override (+ corrected
+comments; <code>prefix m</code> / Shift / Alt retained as
+alternatives).</li>
+<li><code>scripts/tests/56_real_mouse_drag_copy.sh</code> — rewritten:
+cross-platform headless SGR real-mouse-drag proof + opt-in macOS
+<code>cliclick</code> GUI layer.</li>
+<li><code>scripts/tests/55_mouse_toggle_and_copy.sh</code> — assert
+plain-drag override present.</li>
+<li><code>scripts/tests/meta_test_false_positive_proof.sh</code> —
+<code>M-PLAINDRAG</code> mutation.</li>
+<li><code>VERSION</code>, <code>CHANGELOG.md</code>,
+<code>CONTINUATION.md</code>.</li>
+</ul>
+<h2 id="sources-verified-2026-05-29">Sources verified 2026-05-29</h2>
+<ul>
+<li>tmux upstream man page — <a
+href="https://man.openbsd.org/tmux.1">https://man.openbsd.org/tmux.1</a>:
+<code>-M</code> "passes through a mouse event (only valid if bound to a
+mouse key binding)"; <code>copy-mode -M</code> begins a mouse drag;
+<code>if-shell -F</code> conditional binding;
+<code>#{pane_in_mode}</code> / <code>#{mouse_any_flag}</code> formats.
+SGR-1006 mouse encoding (<code>CSI &lt; b ; x ; y M/m</code>) is the
+modern xterm extended mouse protocol used by the test harness.</li>
+</ul>
+</body>
+</html>

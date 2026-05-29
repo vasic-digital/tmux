@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-29T12:10Z
+**Last updated:** 2026-05-29T12:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,25 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.18 — v1.0.18 REAL mouse-copy fix: plain drag selects+copies in Claude Code, proven with a real mouse (2026-05-29)
+
+**Status:** IN PROGRESS (fix + Mistborn proof done; dual-host setup + release pending).
+
+Operator re-reported that select+copy still failed in Claude Code and demanded
+it work on BOTH Linux + macOS. The v1.0.17 `prefix m` toggle was insufficient
+(required a magic keystroke). Root cause reproduced with a REAL mouse: in a
+mouse-tracking app (`mouse_any_flag=1`) tmux's built-in root `MouseDrag1Pane`
+forwards the drag to the app → no selection. **Fix:** override
+`bind -n MouseDrag1Pane if -F '#{pane_in_mode}' 'send -M' 'copy-mode -M'` in
+`scripts/tmux.conf.template` — plain drag always enters copy-mode + copies on
+release; click+wheel still reach the app; no terminal-specific modifier
+(works Linux + macOS). PROVEN with a real mouse: headless SGR-1006 drag
+injection (mouse_any_flag=1) → @clip sink, regression-discriminating, 3/3
+(test 56, cross-platform); + real `cliclick` cursor drag over iTerm2 →
+`pbpaste` (macOS GUI layer). Meta-test `M-PLAINDRAG` CAUGHT; meta `48 caught /
+0 escaped`; suite `51/0/4`. Commit 5c667cc. Pending: dual-host setup.sh
+(refresh ~/.tmux.conf), nezha headless test-56 proof, v1.0.18 release.
 
 ### §3.17 — v1.0.17 two user-reported bug fixes + B3 closure + dual-host re-validation (2026-05-29)
 
