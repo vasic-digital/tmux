@@ -1044,6 +1044,23 @@ v109_run_mutation \
     "scripts/tests/55_mouse_toggle_and_copy.sh" \
     "FAIL"
 
+# ── M-PLAINDRAG: strip the plain-drag copy-mode override from
+#    tmux.conf.template — the PRIMARY fix for "cannot select/copy with the
+#    mouse in Claude Code" (forensic anchor: user report 2026-05-29; the
+#    prefix-m toggle alone was insufficient — a PLAIN drag must select+copy).
+# Without the override, tmux's built-in root MouseDrag1Pane forwards the drag
+# to the app when #{mouse_any_flag}=1, so a plain drag in a mouse-tracking app
+# copies nothing. Test 56 injects a REAL SGR-1006 mouse drag with
+# mouse_any_flag=1 and asserts the token reached the @clip sink — with the
+# override stripped it FAILs (sink empty).
+v109_run_mutation \
+    "M-PLAINDRAG" \
+    "strip plain-drag copy-mode override from tmux.conf.template (test 56 real SGR mouse-drag catches loss of select+copy in mouse-tracking apps)" \
+    "scripts/tmux.conf.template" \
+    "inplace_sed '/^bind -n MouseDrag1Pane if /d' \"\$target_abs\"" \
+    "scripts/tests/56_real_mouse_drag_copy.sh" \
+    "FAIL"
+
 # ── P5-M23: strip session-name regex validation from dispatcher template
 # Spec §7 Layer 4: the POSIX `case "$session" in *[!A-Za-z0-9_.-]*)`
 # block at lines 77-82 of tmx-ssh-dispatch.sh.template rejects names

@@ -96,14 +96,30 @@ bind -T copy-mode-vi MouseDragEnd1Pane  send-keys -X copy-pipe-and-cancel "#{@cl
 # (`#{mouse_any_flag}`=1), tmux's DEFAULT MouseDrag1Pane forwards the
 # drag to the app via `send -M`, so a normal click+drag inside the
 # app never reaches tmux copy-mode and the user cannot select text.
-# The two overrides below give the operator a DEDICATED modifier
-# path that ALWAYS enters tmux copy-mode regardless of the app's
-# mouse mode — Alt-drag on macOS (Terminal.app / iTerm2 / WezTerm
-# all pass through M- modifiers), Shift-drag on Linux (the natural
-# muscle-memory modifier for "select even in mouse-tracking apps").
-# A plain (unmodified) drag still goes to the app, preserving its
-# native interactivity. See tests 48 (binding chain) + 47 (mouse
-# surface confirmation) + 45 (multi-line keyboard regression guard).
+# PRIMARY fix (v1.0.18, forensic anchor: user report 2026-05-29 — "we still
+# cannot select and copy anything in Claude Code … MUST work on Linux AND
+# macOS"). A PLAIN left-drag ALWAYS enters tmux copy-mode and begins a
+# selection, EVEN when the foreground app requests mouse tracking
+# (`#{mouse_any_flag}`, e.g. Claude Code / vim / less / htop). On release the
+# `MouseDragEnd1Pane` binding (above) pipes the selection to the OS clipboard
+# via @clip. This is the override of tmux's default root `MouseDrag1Pane`,
+# which otherwise forwards the drag to the app (`send -M`) so selection is
+# impossible. `#{pane_in_mode}` guard: once already in copy-mode, pass the
+# drag through (`send -M`) so copy-mode's own MouseDrag1Pane extends the
+# selection. A plain CLICK (MouseDown/Up, no drag) and the WHEEL are NOT
+# rebound here, so they still reach the app — Claude Code keeps its click +
+# scroll interactivity; only click-DRAG is repurposed for select-and-copy
+# (Claude Code's TUI does not use drag). Works identically on macOS + Linux
+# because it depends on no terminal-specific modifier. Proven with a REAL
+# mouse drag → OS clipboard in tests 55 + 56.
+bind -n MouseDrag1Pane if -F '#{pane_in_mode}' 'send -M' 'copy-mode -M'
+
+# DEDICATED modifier paths (retained as alternatives): Alt-drag (macOS
+# terminals that pass M- through) / Shift-drag (terminal-agnostic) also force
+# copy-mode. Note: on iTerm2 with default "Option Key Sends = Normal",
+# Option-drag is consumed by iTerm2's own native-selection bypass and never
+# reaches tmux — Shift-drag and the plain-drag override above are the reliable
+# paths there.
 bind -n M-MouseDrag1Pane  copy-mode -M
 bind -n S-MouseDrag1Pane  copy-mode -M
 

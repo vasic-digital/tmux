@@ -72,6 +72,17 @@ else
     echo "FAIL: 55 — no Shift-drag root override"; fail=1
 fi
 
+# (c2) PRIMARY plain-drag override: root MouseDrag1Pane must enter copy-mode
+# (NOT forward to the app on #{mouse_any_flag}). It resolves to copy-mode and
+# is gated on #{pane_in_mode}, never on #{mouse_any_flag} (the default-forward
+# behaviour we replaced so a plain drag selects+copies even in Claude Code).
+PD="$("$BIN" -L "$L" list-keys -T root 2>/dev/null | grep -E '[[:space:]]MouseDrag1Pane[[:space:]]' | head -1)"
+if printf '%s' "$PD" | grep -q 'copy-mode -M' && ! printf '%s' "$PD" | grep -q 'mouse_any_flag'; then
+    echo "EVIDENCE: plain-drag override present (root MouseDrag1Pane -> copy-mode, not app-forward)"
+else
+    echo "FAIL: 55 — plain-drag override missing (root MouseDrag1Pane: $PD)"; fail=1
+fi
+
 # (b) copy-pipe delivers the selection to an external command (real mechanism)
 SINK=$(mktemp)
 "$BIN" -L "$L" set -g @cliptest "cat > $SINK"
