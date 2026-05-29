@@ -15,6 +15,22 @@ WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 EXPECTED_VERSION="${EXPECTED_VERSION:-3.6a}"
 export TMUX_BIN WRAPPER EXPECTED_VERSION
 
+# Augment PATH from npm's reported prefix so the codegraph tests (20/22) and
+# codegraph_reindex.sh resolve `codegraph` even when run_all.sh is invoked from
+# a NON-INTERACTIVE shell (SSH-batch, cron, CI). On hosts whose .bashrc adds
+# ~/.npm-global/bin only AFTER an interactive-guard (`case $- in *i*) ;; *)
+# return ;;`), a non-interactive shell never reaches that line, so codegraph is
+# invisible and tests 20/22 FAIL spuriously while real (interactive) agent
+# usage works. Mirrors the same A31 probe in setup.sh (Nezha fix 2026-05-21,
+# generalised to run_all.sh 2026-05-29). Idempotent: no-op if already resolved.
+if ! command -v codegraph >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    NPM_PREFIX="$(npm config get prefix 2>/dev/null | tr -d '\r\n' || true)"
+    if [ -n "$NPM_PREFIX" ] && [ -x "${NPM_PREFIX}/bin/codegraph" ]; then
+        export PATH="${NPM_PREFIX}/bin:$PATH"
+        echo "[run_all] PATH augmented with ${NPM_PREFIX}/bin (codegraph resolved)"
+    fi
+fi
+
 if [ ! -x "$TMUX_BIN" ]; then
     echo "ERROR: TMUX_BIN $TMUX_BIN not executable. Did you run build_containerized.sh?"
     exit 2
