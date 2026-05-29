@@ -454,6 +454,17 @@ case "$SUBCMD" in
         ;;
 
     attach|attach-session|a)
+        # Re-apply the shipped config into the session BEFORE attaching, so
+        # attaching to a PRE-EXISTING session (e.g. a long-running session, or
+        # one created before a config update) always gets the current bindings
+        # — mouse select/copy, paste, etc. A tmux server loads its config only
+        # at start, so without this an old session keeps stale bindings even
+        # after the operator re-opens it via the shell-init prompt. Forensic
+        # anchor: user report 2026-05-29 (select/copy "not possible" when
+        # re-attaching a session predating the mouse-copy fix). Non-fatal +
+        # silent if the session/config is absent.
+        TMUX_CONF_ATTACH="$TMX_DIR/tmux.conf.template"
+        [ -f "$TMUX_CONF_ATTACH" ] && "$TMUX_BIN" -L "$SOCK_LABEL" source-file "$TMUX_CONF_ATTACH" 2>/dev/null || true
         exec "$TMUX_BIN" -L "$SOCK_LABEL" "$@"
         ;;
 

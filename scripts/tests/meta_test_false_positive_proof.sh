@@ -1087,6 +1087,20 @@ v109_run_mutation \
     "scripts/tests/57_reload_select_copy_paste.sh" \
     "FAIL"
 
+# ── M-TMX-ATTACH-RELOAD: strip the source-file-on-attach line from the
+# GENERATED scripts/tmx wrapper. Forensic anchor: user report 2026-05-29 —
+# re-opening a session that predates the mouse-copy fix kept stale bindings
+# ("select/copy not possible"). `tmx attach` now source-files the config so a
+# pre-existing session always gets current bindings. Removing the line makes
+# test 58(2) FAIL (stale binding not refreshed on attach).
+v109_run_mutation \
+    "M-TMX-ATTACH-RELOAD" \
+    "strip source-file-on-attach from scripts/tmx (test 58 catches stale bindings on re-attach of an old session)" \
+    "scripts/tmx" \
+    "inplace_sed '/source-file \"\$TMUX_CONF_ATTACH\"/d' \"\$target_abs\"" \
+    "scripts/tests/58_operator_path_select_copy_ls.sh" \
+    "FAIL"
+
 # ── P5-M23: strip session-name regex validation from dispatcher template
 # Spec §7 Layer 4: the POSIX `case "$session" in *[!A-Za-z0-9_.-]*)`
 # block at lines 77-82 of tmx-ssh-dispatch.sh.template rejects names
