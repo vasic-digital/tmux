@@ -158,7 +158,19 @@ bind m set -g mouse \; display-message 'mouse #{?mouse,ON (tmux selection: drag,
 # previous-window). See test 46 for the physical paste-IN proof.
 set -g @clip-read 'sh -c "command -v pbpaste >/dev/null 2>&1 && exec pbpaste; command -v wl-paste >/dev/null 2>&1 && exec wl-paste -n; command -v xclip >/dev/null 2>&1 && exec xclip -o -selection clipboard; command -v termux-clipboard-get >/dev/null 2>&1 && exec termux-clipboard-get; printf \"\""'
 
-bind P run -b 'tmux load-buffer - <<< "$(#{@clip-read})" \; tmux paste-buffer -p'
+# prefix + P — paste the OS clipboard INTO the current pane.
+# Forensic anchor: user report 2026-05-29 — "we cannot paste into tmux session
+# … it gets a completely new value from the one we had to paste!". The prior
+# binding `run -b 'tmux load-buffer - <<< "$(#{@clip-read})" ...'` was broken
+# THREE ways: (1) `#{@clip-read}` expands a DOUBLE-quoted sh command inside an
+# already-quoted `$(...)` → nested-quote collision → mangled/garbage content
+# (the "completely new value"); (2) `<<<` is a bash herestring that FAILS under
+# `/bin/sh` (dash) on Linux — `run-shell` uses /bin/sh; (3) `\;` was passed
+# literally to sh. Rewritten POSIX-clean + collision-free: a SINGLE-quoted
+# run-shell arg wraps a double-quoted inline clipboard probe, PIPED to
+# `tmux load-buffer -`, then `paste-buffer -p` (bracketed paste). No format
+# nesting, no `<<<`, no `\;`. Works identically on macOS + Linux + Termux.
+bind P run -b 'sh -c "pbpaste 2>/dev/null || wl-paste -n 2>/dev/null || xclip -o -selection clipboard 2>/dev/null || termux-clipboard-get 2>/dev/null" | tmux load-buffer - && tmux paste-buffer -p'
 
 # ════════════════════════════════════════════════════════════════════════════
 # ── CLAUDE CODE TUI PASSTHROUGH (official Claude Code tmux recommendations) ─

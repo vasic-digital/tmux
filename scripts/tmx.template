@@ -457,6 +457,41 @@ case "$SUBCMD" in
         exec "$TMUX_BIN" -L "$SOCK_LABEL" "$@"
         ;;
 
+    reload)
+        # Re-apply the shipped tmux.conf into RUNNING sessions so config
+        # changes (updated mouse/copy/paste bindings, etc.) take effect
+        # WITHOUT killing the session or losing pane content. A tmux server
+        # loads its config only once at start, so long-running sessions keep
+        # stale bindings until reloaded — this is exactly why a just-updated
+        # mouse-copy fix appeared "not working" in a session started before
+        # the update (forensic anchor: user report 2026-05-29).
+        #   tmx reload            → reload EVERY running tmx session
+        #   tmx reload -t NAME    → reload only session NAME
+        TMUX_CONF="$TMX_DIR/tmux.conf.template"
+        if [ ! -f "$TMUX_CONF" ]; then
+            echo "tmx: config $TMUX_CONF not found" >&2
+            exit 1
+        fi
+        if [ -n "$TARGET_ARG" ]; then
+            if "$TMUX_BIN" -L "$SOCK_LABEL" source-file "$TMUX_CONF" 2>/dev/null; then
+                echo "tmx: reloaded config into session '$NAME'"
+            else
+                echo "tmx: no running session '$NAME' to reload" >&2
+                exit 1
+            fi
+        else
+            _reloaded_any=0
+            while IFS= read -r sock; do
+                [ -z "$sock" ] && continue
+                if "$TMUX_BIN" -L "$sock" source-file "$TMUX_CONF" 2>/dev/null; then
+                    echo "tmx: reloaded ${sock#${TMX_SOCK_PREFIX}}"
+                    _reloaded_any=1
+                fi
+            done < <(_our_sockets)
+            [ "$_reloaded_any" -eq 1 ] || echo "tmx: no running tmx sessions to reload"
+        fi
+        ;;
+
     *)
         if [ -n "$TARGET_ARG" ]; then
             exec "$TMUX_BIN" -L "$SOCK_LABEL" "$@"

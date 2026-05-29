@@ -1073,6 +1073,20 @@ v109_run_mutation \
     "scripts/tests/56_real_mouse_drag_copy.sh" \
     "FAIL"
 
+# ── M-PASTE: strip the POSIX `prefix P` paste binding from tmux.conf.template.
+# Forensic anchor: user report 2026-05-29 — "we cannot paste … it gets a
+# completely new value". The fixed binding pipes an inline clipboard probe to
+# `tmux load-buffer -` (POSIX, no `<<<`, no #{@clip-read} nested-quote
+# collision). Deleting it makes test 57 FAIL — (D) no exact-value paste and
+# (E) the POSIX-binding regression guard both fire.
+v109_run_mutation \
+    "M-PASTE" \
+    "strip the POSIX prefix-P paste binding from tmux.conf.template (test 57 catches loss of OS-clipboard paste-into-pane)" \
+    "scripts/tmux.conf.template" \
+    "inplace_sed \"/^bind P run -b 'sh -c/d\" \"\$target_abs\"" \
+    "scripts/tests/57_reload_select_copy_paste.sh" \
+    "FAIL"
+
 # ── P5-M23: strip session-name regex validation from dispatcher template
 # Spec §7 Layer 4: the POSIX `case "$session" in *[!A-Za-z0-9_.-]*)`
 # block at lines 77-82 of tmx-ssh-dispatch.sh.template rejects names
