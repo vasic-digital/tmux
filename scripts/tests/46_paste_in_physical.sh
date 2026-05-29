@@ -195,13 +195,24 @@ else
     _skip "T3: no OS clipboard tool — paste-IN physical proof cannot run (T1/T2 binding-presence still verify the wiring)"
 fi
 
-# T4 — verify the prefix+P binding's command body matches the
-#      @clip-read mechanism (defensive: catches drift where the bind
-#      changes to a non-@clip-read paste).
-if printf '%s' "$P_BIND" | grep -q '@clip-read'; then
-    _pass "T4: prefix+P bind body references @clip-read (mechanism wired end-to-end at binding layer)"
+# T4 — verify the prefix+P binding performs an OS-ADAPTIVE clipboard read
+#      and pastes via load/paste-buffer. The mechanism may be wired EITHER as
+#      a `#{@clip-read}` reference OR (since 2026-05-29) as an equivalent
+#      INLINE probe (pbpaste / wl-paste / xclip / termux-clipboard-get) piped
+#      to `tmux load-buffer -`. The inline form is the FIX for the prior
+#      `<<< "$(#{@clip-read})"` binding, which collided nested quotes (mangled
+#      "completely new value") and used a bash-only `<<<` herestring that fails
+#      under /bin/sh on Linux. T3 above is the load-bearing PHYSICAL proof;
+#      T4 is the structural defense against drift to a NON-adaptive paste.
+if printf '%s' "$P_BIND" | grep -Eq '@clip-read|pbpaste|wl-paste|xclip|termux-clipboard-get'; then
+    if printf '%s' "$P_BIND" | grep -q '<<<'; then
+        _fail "T4: prefix+P bind uses '<<<' (bash herestring) — breaks under /bin/sh (dash) on Linux"
+        echo "  observed: $P_BIND"
+    else
+        _pass "T4: prefix+P bind performs an OS-adaptive clipboard read (POSIX, no '<<<') and pastes via buffer"
+    fi
 else
-    _fail "T4: prefix+P bind does not reference @clip-read — paste-IN bypasses the OS-adaptive read"
+    _fail "T4: prefix+P bind does not perform an OS-adaptive clipboard read — paste-IN routing broken"
     echo "  observed: $P_BIND"
 fi
 
