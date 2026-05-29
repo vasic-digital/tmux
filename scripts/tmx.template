@@ -483,6 +483,10 @@ case "$SUBCMD" in
             _reloaded_any=0
             while IFS= read -r sock; do
                 [ -z "$sock" ] && continue
+                # Skip dead socket FILES (server already exited) — only reload
+                # sockets with a live server, so a tree of stale socket files
+                # left by prior runs does not slow or noise the reload.
+                "$TMUX_BIN" -L "$sock" has-session 2>/dev/null || continue
                 if "$TMUX_BIN" -L "$sock" source-file "$TMUX_CONF" 2>/dev/null; then
                     echo "tmx: reloaded ${sock#${TMX_SOCK_PREFIX}}"
                     _reloaded_any=1
