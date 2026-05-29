@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-28T15:00Z
+**Last updated:** 2026-05-29T11:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,41 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.17 — v1.0.17 two user-reported bug fixes + B3 closure + dual-host re-validation (2026-05-29)
+
+**Status:** IN PROGRESS (fixes + Mistborn validation done; dual-host setup + release pending).
+
+Operator reported two product defects 2026-05-29: (1) mouse select/copy
+unusable in tmx panes, especially under Claude Code; (2) double
+session-name prompt on new bash-login terminals. Plus directive to
+validate every fix with autonomous physical-proof tests, run `setup.sh`
+on Mistborn + nezha, document, and release via gh/glab.
+
+- **A41 (double-prompt) — FIXED.** Root cause (reproduced: nezha
+  `bash -l -i`→PROMPT_COUNT=2): `.bash_profile` carries the
+  tmx-shell-init source line AND sources `.bashrc` which also carries it
+  → one process double-sources; the blank/return path re-prompts. Fix:
+  per-process non-exported `_TMX_SHELL_INIT_PROMPTED` guard in
+  `scripts/tmx-shell-init.sh.template`. Test 54 RED→GREEN (3/3) +
+  meta-test `M-DBLPROMPT`.
+- **A42 (mouse copy) — FIXED.** Config was correct & live (not stale);
+  copy pipe works. Cause: in mouse-tracking apps plain drag forwards to
+  the app; iTerm2 `Option Key Sends=Normal` eats Alt-drag → only
+  Shift-drag reached tmux (undiscoverable). Fix: `prefix m` mouse-toggle
+  (native-terminal selection escape hatch) + Shift-drag docs in
+  `scripts/tmux.conf.template`. Test 55 RED→GREEN (3/3) + meta-test
+  `M-MOUSETOGGLE`; test 56 real-mouse honest SKIP (§11.4.3).
+- **B3 (P5-M20/M21 escapes) — CLOSED + migrated to Fixed.md §B3.**
+  State-verified `MUTATIONS CAUGHT 45 / ESCAPED 0` on Mistborn (tests
+  49/50 close the layer-4 gaps). M22 nezha CodeGraph baseline repaired
+  via `codegraph_setup.sh` during dual-host setup.
+- **Mistborn validation:** full suite `PASS=51 FAIL=0 SKIP=4`; meta-test
+  `45 CAUGHT / 0 ESCAPED`. Evidence in `qa-results/` + plan at
+  `docs/superpowers/plans/2026-05-29-tmx-mouse-doubleprompt-b3-release.md`.
+- **Pending:** dual-host `setup.sh` (Mistborn redeploy + nezha pull+setup,
+  nezha double-prompt re-prove, M22 repair), CHANGELOG/changelog-doc with
+  both-host evidence, VERSION bump (1.0.17/18), gh+glab release.
 
 ### §3.1 Governance bring-up — Issues.md / Fixed.md / explicit §11.4.x anchors landed
 

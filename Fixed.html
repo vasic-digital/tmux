@@ -324,6 +324,130 @@ layer (c) met by challenge entries CH-01 through CH-14</td>
 <h2 id="a-tooling--harness-gaps--resolved">A. Tooling / harness gaps —
 RESOLVED</h2>
 <h3
+id="a42-mouse-selectcopy-unusable-in-tmx-panes-especially-inside-claude-code--resolved">A42.
+Mouse select/copy unusable in tmx panes (especially inside Claude Code)
+— <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.17 /
+versionCode 18 (2026-05-29). <strong>Reported:</strong> operator,
+2026-05-29 — "we cannot still copy from any tmux / tmx window (session),
+especially when in claude code (claude command), nothing can be selected
+and copied using mouse!".</p>
+<p><strong>Forensic detail (no guessing per §11.4.6):</strong> the live
+config was NOT stale — the running <code>Herald</code> server (and
+<code>~/.tmux.conf</code>, byte-identical to
+<code>scripts/tmux.conf.template</code>) already carried
+<code>mouse on</code>, the root
+<code>M-/S-MouseDrag1Pane → copy-mode -M</code> overrides, and a working
+<code>@clip</code> pipe (the <code>@clip</code>→<code>pbcopy</code>
+round-trip + an in-tmux keyboard copy both delivered to the macOS
+clipboard under test). The real defect was a discoverability /
+cross-terminal gap: inside a mouse-tracking app
+(<code>#{mouse_any_flag}</code>=1, e.g. Claude Code) the root
+<code>MouseDrag1Pane</code> forwards a PLAIN drag to the app by design
+(so the app keeps its own mouse), and on iTerm2 with the default
+<code>Option Key Sends = Normal</code> (verified via
+<code>defaults read com.googlecode.iterm2</code>) Option/Alt-drag is
+consumed by iTerm2's OWN native-selection bypass and never reaches
+tmux's <code>M-MouseDrag1Pane</code>. That left only Shift-drag reaching
+tmux — a gesture the operator had no way to discover. There was no
+single, reliable, terminal-agnostic way to "just select and copy with
+the mouse".</p>
+<p><strong>Source-side fix:</strong> added a <code>prefix m</code>
+mouse-toggle to <code>scripts/tmux.conf.template</code> —
+<code>bind m set -g mouse \; display-message …</code>. With mouse OFF
+the OUTER terminal's NATIVE selection (drag → Cmd-C / right-click →
+Copy) works EVERYWHERE, including inside Claude Code; the status line
+confirms the new state. Expanded the adjacent comment block to document
+the reliable gestures (Shift-drag for in-tmux selection in tracking
+apps; <code>prefix m</code> for native selection). Loaded directly by
+the <code>tmx</code> wrapper
+(<code>-f .../tmux.conf.template</code>).</p>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li><strong>Layer 1 (config-load gate):</strong> test 55 boots a server
+with the template; asserts the <code>prefix m</code> binding is
+present.</li>
+<li><strong>Layer 3 (runtime):</strong> test 55
+(<code>55_mouse_toggle_and_copy.sh</code>) PASS, 3/3 deterministic
+(§11.4.50) — EVIDENCE: <code>prefix+m</code> binding present; mouse
+option flips <code>on→off</code>; Shift-drag root override present;
+copy-pipe delivered the selection to an external sink. Full suite
+<code>PASS=51 FAIL=0 SKIP=4</code>.</li>
+<li><strong>Layer 4 (paired mutation):</strong>
+<code>M-MOUSETOGGLE</code> in
+<code>meta_test_false_positive_proof.sh</code> strips the
+<code>prefix m</code> binding and asserts test 55 FAILs (validated:
+strip→FAIL, restore→PASS).</li>
+<li><strong>Real-mouse layer (best-effort):</strong> test 56
+(<code>56_real_mouse_drag_copy.sh</code>) drives a genuine Shift-drag
+via <code>cliclick</code> over a real iTerm2 window when available;
+honest §11.4.3 SKIP where the GUI-automation topology (cliclick /
+Accessibility) is absent.</li>
+</ul>
+<p><strong>Multi-platform (§11.4.81):</strong> the toggle + Shift-drag
+are terminal-agnostic (iTerm2 / Terminal.app / WezTerm / Linux
+terminals); <code>@clip</code> already dispatches <code>pbcopy</code> /
+<code>wl-copy</code> / <code>xclip</code> /
+<code>termux-clipboard-set</code> at runtime.</p>
+<p><strong>Regression-protection:</strong> L1 config-load + L3 test 55 +
+L4 <code>M-MOUSETOGGLE</code> paired mutation.</p>
+<hr />
+<h3
+id="a41-double-session-name-prompt-on-new-bash-login-terminals--resolved">A41.
+Double session-name prompt on new bash-login terminals —
+<code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.17 /
+versionCode 18 (2026-05-29). <strong>Reported:</strong> operator,
+2026-05-29 — "opening new terminal asks us for session name, if we
+decide just to press enter and go with no session, we are asked again —
+so twice in a row. one enter is enough, we must not repeat the input
+question!".</p>
+<p><strong>Forensic detail (no guessing per §11.4.6) — reproduced on the
+affected host:</strong> on Linux/bash hosts a single login-shell PROCESS
+sources <code>tmx-shell-init.sh</code> TWICE —
+<code>.bash_profile</code> carries the source line AND sources
+<code>.bashrc</code>
+(<code>if [ -f ~/.bashrc ]; then . ~/.bashrc; fi</code>), which ALSO
+carries it. The blank/<code>default</code> path RETURNS (it does not
+<code>exec</code>), so <code>.bash_profile</code> then continues,
+sources <code>.bashrc</code>, and the SECOND source re-prompts — "asked
+twice in a row". The name-entry path <code>exec</code>s and replaces the
+process before <code>.bashrc</code> is reached, which is exactly why the
+operator only saw it on the press-Enter / no-session path. Reproduced
+via PTY harness: nezha <code>bash -l -i</code> → PROMPT_COUNT=2; macOS
+zsh <code>-l -i</code> → 1 (zsh sources only <code>.zshrc</code> once
+per process, which is why it never manifested on Mistborn).</p>
+<p><strong>Source-side fix (§11.4.1 — at source, not at the rc call
+sites):</strong> added a per-process idempotency guard to
+<code>scripts/tmx-shell-init.sh.template</code> immediately before the
+prompt — a NON-exported marker <code>_TMX_SHELL_INIT_PROMPTED</code> set
+on first prompt; a second source in the SAME process returns early.
+Non-exported so each NEW shell process (every new terminal) still
+prompts exactly once. The legitimate single-source case still prompts
+once (verified — the guard does not suppress the first prompt).</p>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li><strong>Layer 1 (parseability):</strong> <code>sh -n</code> clean
+(§11.4.67), template + generated.</li>
+<li><strong>Layer 3 (runtime):</strong> test 54
+(<code>54_double_prompt_idempotent.sh</code>) — PTY harness reproducing
+the <code>.bash_profile</code>→<code>.bashrc</code> double-source in one
+process — RED <code>prompt_count=2</code> (pre-fix) → GREEN
+<code>prompt_count=1</code> (post-fix), 3/3 deterministic (§11.4.50).
+Full suite <code>PASS=51 FAIL=0 SKIP=4</code>.</li>
+<li><strong>Layer 4 (paired mutation):</strong> <code>M-DBLPROMPT</code>
+strips the guard from the generated script and asserts test 54 FAILs —
+CAUGHT (meta-test <code>45 CAUGHT / 0 ESCAPED</code>).</li>
+<li><strong>On-affected-host (§11.4.39):</strong> re-proven on nezha
+after deploy (<code>bash -l -i</code> → PROMPT_COUNT=1).</li>
+</ul>
+<p><strong>Multi-platform (§11.4.81):</strong> the guard is POSIX, works
+under bash / zsh / dash; the bug is bash-login-specific but the fix is
+shell-agnostic and harmless on zsh (single-source already = 1).</p>
+<p><strong>Regression-protection:</strong> L3 test 54 + L4
+<code>M-DBLPROMPT</code> paired mutation.</p>
+<hr />
+<h3
 id="a40-docx-export-extension--pandoc-docx-siblings-alongside-html--pdf--resolved">A40.
 DOCX export extension — pandoc <code>.docx</code> siblings alongside
 <code>.html</code> + <code>.pdf</code> — <code>RESOLVED</code></h3>
@@ -2970,6 +3094,50 @@ to install per Constitution §4.</li>
 <hr />
 <h2 id="b-anti-bluff-completeness--resolved">B. Anti-bluff completeness
 — RESOLVED</h2>
+<h3
+id="b3-p5-m20--p5-m21-paired-mutation-escapes-v109-layer-4-gaps--resolved">B3.
+P5-M20 + P5-M21 paired-mutation ESCAPES (v1.0.9 layer-4 gaps) —
+<code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> closed in
+v1.0.16 (tests 49/50 + meta-test retarget); state-verified + migrated
+v1.0.17 / versionCode 18 (2026-05-29). <strong>Re-discovery →
+closure:</strong> the v1.0.14 cycle re-observed two meta-test escapes
+(P5-M20 non-TTY guard, P5-M21 cwd-capture hook). v1.0.16 closed them at
+the test-design layer; this entry records the migration after
+<strong>state-verification with current evidence</strong> per
+§11.4.7.</p>
+<p><strong>Forensic detail (no guessing per §11.4.6):</strong></p>
+<ul>
+<li><strong>P5-M20</strong> ("strip non-TTY guard"): the original escape
+was a layer-4 PASS-bluff — on Darwin libc enforces POSIX TTY semantics
+independently, so stripping the script's outer <code>[ -t 0 ]</code>
+guard did not FAIL the old test. <strong>Closed</strong> by test 49
+(<code>49_tmx_shell_init_guard_specific.sh</code>), which asserts the
+distinctive <code>non-TTY guard fired</code> marker (a
+<code>TMX_INIT_DEBUG</code>-gated stderr line) is emitted — present ONLY
+when the guard body runs. The mutation now strips the marker
+specifically and the test FAILs even on Darwin.</li>
+<li><strong>P5-M21</strong> ("strip cwd-capture hook"): the old test
+injected the hook manually via <code>tmux run-shell</code>, so it never
+proved the AUTO-INSTALL path. <strong>Closed</strong> by test 50
+(<code>50_cwd_hook_autoinstall.sh</code>), which reads the LIVE server's
+hooks via <code>tmux show-hooks -g</code> after an operator-path session
+spawn (no manual injection).</li>
+</ul>
+<p><strong>Captured evidence (state-verified 2026-05-29):</strong>
+meta-test <code>MUTATIONS CAUGHT 45 / ESCAPED 0</code> on Mistborn
+(P5-M20 + P5-M21 both CAUGHT; tests 49 + 50 PASS 3/3 deterministic in
+the full suite <code>PASS=51 FAIL=0 SKIP=4</code>).</p>
+<p><strong>M22 (companion — CodeGraph own-org submodule
+exclusion):</strong> CAUGHT + FEATURE INTACT on Mistborn (codegraph
+baseline healthy). On hosts whose CodeGraph baseline is not yet
+established the meta-test SKIPs M22 WITH REASON (§11.4.3 honest topology
+dispatch) rather than escaping; nezha's baseline is (re)established by
+<code>scripts/codegraph_setup.sh</code> during the v1.0.17 dual-host
+setup.</p>
+<p><strong>Regression-protection:</strong> tests 49 + 50 + meta-test
+P5-M20 / P5-M21 / M22 paired mutations.</p>
+<hr />
 <h3
 id="b0-constitution-1-covenant-verbatim-user-mandate-quote-propagated">B0.
 Constitution §1 covenant verbatim user-mandate quote propagated</h3>

@@ -113,6 +113,23 @@ bind -n S-MouseDrag1Pane  copy-mode -M
 bind -T copy-mode-vi M-MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "#{@clip}"
 bind -T copy-mode-vi S-MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "#{@clip}"
 
+# ── Quick mouse toggle: prefix + m ────────────────────────────────────
+# Forensic anchor: user report 2026-05-29 — "cannot select/copy with the
+# mouse in any tmx window, especially inside Claude Code". Two facts make
+# a single muscle-memory gesture unreliable across terminals: (1) inside a
+# mouse-tracking app a PLAIN drag is forwarded to the app (by design, so the
+# app's own mouse keeps working); (2) on iTerm2 with the default
+# "Option Key Sends = Normal", Option/Alt-drag is consumed by iTerm2's OWN
+# native-selection bypass and never reaches tmux's M-MouseDrag1Pane. That
+# leaves Shift-drag (above) as the reliable IN-TMUX select gesture.
+#
+# `prefix m` is the robust, terminal-AGNOSTIC escape hatch: it toggles
+# `mouse` off, so the OUTER terminal's NATIVE selection (iTerm2 / Terminal.app
+# / WezTerm drag -> Cmd-C / right-click -> Copy) works EVERYWHERE, including
+# inside Claude Code. Press `prefix m` again to restore tmux mouse scrollback
+# + copy-mode. The status line confirms the new state.
+bind m set -g mouse \; display-message 'mouse #{?mouse,ON (tmux selection: drag, or Shift-drag in apps),OFF (use native terminal selection: drag + Cmd-C)}'
+
 # ── Paste-INTO from OS clipboard (v1.0.15) ────────────────────────────
 # `set-clipboard external` (set above) is COPY-OUT only — OSC-52 is
 # not standardised for paste. To paste OS clipboard contents INTO a

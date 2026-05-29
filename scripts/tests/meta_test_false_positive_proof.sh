@@ -1012,6 +1012,38 @@ v109_run_mutation \
     "scripts/tests/31_ssh_dispatch_local.sh" \
     "FAIL"
 
+# ── M-DBLPROMPT: strip the per-process idempotency guard from the
+#    GENERATED tmx-shell-init.sh — closes the bash-login double-prompt.
+# Forensic anchor: user report 2026-05-29; nezha `bash -l -i` reproduced
+# PROMPT_COUNT=2 because .bash_profile sources tmx-shell-init AND sources
+# .bashrc which sources it again (same process). The guard
+# `_TMX_SHELL_INIT_PROMPTED` makes the prompt fire at most once per process.
+# Target the GENERATED script (the real .bashrc/.zshrc-sourced artefact, and
+# what test 51 sources). The sed range deletes the whole guard block (the
+# `if [ -n "${_TMX_SHELL_INIT_PROMPTED:-}" ]` line through the
+# `_TMX_SHELL_INIT_PROMPTED=1` assignment). With the guard gone the double-
+# source re-prompts and test 51 reports prompt_count=2 → FAIL.
+v109_run_mutation \
+    "M-DBLPROMPT" \
+    "strip per-process idempotency guard from generated tmx-shell-init.sh (test 54 catches the bash-login double-prompt)" \
+    "scripts/tmx-shell-init.sh" \
+    "inplace_sed '/_TMX_SHELL_INIT_PROMPTED:-/,/_TMX_SHELL_INIT_PROMPTED=1/d' \"\$target_abs\"" \
+    "scripts/tests/54_double_prompt_idempotent.sh" \
+    "FAIL"
+
+# ── M-MOUSETOGGLE: strip the `prefix m` mouse-toggle from tmux.conf.template
+# Forensic anchor: user report 2026-05-29 — mouse select/copy unusable,
+# especially in Claude Code. `prefix m` is the terminal-agnostic copy escape
+# hatch (mouse off -> native terminal selection works inside tracking apps).
+# Delete the toggle binding and test 52's first assertion FAILs.
+v109_run_mutation \
+    "M-MOUSETOGGLE" \
+    "strip the 'prefix m' mouse-toggle binding from tmux.conf.template (test 55 catches loss of the copy escape hatch)" \
+    "scripts/tmux.conf.template" \
+    "inplace_sed '/^bind m set -g mouse/d' \"\$target_abs\"" \
+    "scripts/tests/55_mouse_toggle_and_copy.sh" \
+    "FAIL"
+
 # ── P5-M23: strip session-name regex validation from dispatcher template
 # Spec §7 Layer 4: the POSIX `case "$session" in *[!A-Za-z0-9_.-]*)`
 # block at lines 77-82 of tmx-ssh-dispatch.sh.template rejects names

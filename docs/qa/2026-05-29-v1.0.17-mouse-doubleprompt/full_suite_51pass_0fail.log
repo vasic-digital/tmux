@@ -1,0 +1,510 @@
+════════════════════════════════════════════════════════════════
+  tmux validation suite (against /Users/milosvasic/Projects/tmux/tmux/build-darwin/bin/tmux)
+════════════════════════════════════════════════════════════════
+
+── Test 01: smoke ──
+  binary reports: tmux 3.6a
+PASS
+
+── Test 02: session lifecycle ──
+  listed: tmx_test_10748: 1 windows (created Fri May 29 11:04:29 2026)
+PASS
+
+── Test 03: jemalloc loaded ──
+  using jemalloc preload: /opt/homebrew/opt/jemalloc/lib/libjemalloc.dylib
+  ✓ tmux server PID 10804 has jemalloc mapped (positive evidence: vmmap)
+PASS
+
+── Test 04: history-limit respect ──
+  ✓ history-limit reports 1500 as configured
+PASS
+
+── Test 05: clear-history releases memory ──
+  RSS after history fill: 16864 kB
+  RSS after clear-history: 8544 kB
+  drop: 8320 kB (49.3%)
+PASS
+
+── Test 06: 10 concurrent panes — RSS bounded ──
+  RSS with 1 pane: 3504 kB
+  RSS with 10 panes: 3568 kB
+  growth: 64 kB
+PASS (growth < 20 MB)
+
+── Test 07: 30s sustained session, no runaway growth ──
+  RSS at T+5s: 3520 kB
+  RSS at T+30s: 3520 kB
+  growth in 25 s: 0 kB (0%)
+PASS (growth < 50% over 25 s)
+
+── Test 08: wrapper sets oom_score_adj=-500 ──
+SKIP: oom_score_adj is a Linux-specific /proc interface; not applicable on Darwin
+       On macOS, sessions are bounded by POSIX rlimit (RLIMIT_AS) instead — see test 15.
+
+════════════════════════════════════════════════════════════════
+  Test 09 — crash isolation invariants (per-platform per §11.4.81)
+════════════════════════════════════════════════════════════════
+
+--- Darwin branch (POSIX rlimit wrapper, per §11.4.81 cross-platform parity) ---
+PASS: D-T1: tmx wrapper present at /Users/milosvasic/Projects/tmux/scripts/tmx (positive evidence: -x check)
+PASS: D-T2: tmx wrapper invokes scripts/tmx-rlimit-wrapper.sh (macOS equivalent of Linux systemd-run --user --scope per §11.4.81 catalogue)
+PASS: D-T3: distinct tmux server PIDs A=11328 B=11427 (positive evidence: independent server processes per session)
+PASS: D-T4: session A rlimits applied — TMXLIMITS:cpu=86400:nproc=2666 (positive evidence: ulimit -t/-u captured inside session)
+PASS: D-T5.0: session A's tmux server terminated by SIGKILL (positive evidence: tmux -L tmx-t09_d_a_11303 ls = no server)
+PASS: D-T5.1: session B survived A's SIGKILL with ORIGINAL PID 11427 (positive evidence: cross-session independence per §11.4.81)
+
+════════════════════════════════════════════════════════════════
+  09_crash_isolation_scope.sh summary (Darwin branch)
+════════════════════════════════════════════════════════════════
+  PASS:  6
+  FAIL:  0
+  SKIP:  0
+
+── Test 10: hostname→color algorithm ──
+PASS: T1: deterministic — 'testhost-001' → colour87 (twice)
+PASS: T2: 'colour46' is a valid tmux 256-colour
+PASS: T3: 16/16 hostnames produced unique colours (good spread)
+PASS: T4: 'colour201' is a member of the curated palette (27 colours)
+PASS: T5: empty argument uses system hostname (→ colour201)
+
+  Tests: PASS=5  FAIL=0
+
+── Test 11: hostname colour applied by wrapper (operator-path) ──
+PASS: T1: tmx wrapper includes _apply_host_color
+PASS: T2: tmx wrapper calls hostname_color.sh
+  expected status-bg: colour44 (host: Mistborn)
+PASS: T4.0: status-style bg='colour44' read from session A's server (positive evidence: tmux -L tmx-tmx_t11_a_11715 show -g status-style)
+PASS: T4.1: status-bg 'colour44' matches expected 'colour44' (hostname-derived colour applied)
+PASS: T5: second session on different socket has SAME colour 'colour44' (positive evidence: same-host-same-colour invariant holds across servers)
+PASS: T6: wrapper did not silently produce tmux's default bg=green (positive evidence: ACTUAL='colour44' from T4)
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+
+── Test 12: memory pressure under cgroup cap ──
+SKIP: TMX_TEST_DESTRUCTIVE=1 not set — this test OOM-kills a process
+      Set TMX_TEST_DESTRUCTIVE=1 on a dedicated test host to run.
+
+── Test 13: RLIMIT_NPROC fork bound (Darwin branch per §11.4.81) ──
+PASS: D-T1: session has RLIMIT_NPROC=2666 applied (positive evidence: ulimit -u readback)
+PASS: D-T2: kernel-enforced EAGAIN observed 5 times after ulimit -u 64 (positive evidence per §11.4.5: 'bash: fork: Resource temporarily unavailable' = XNU enforcing RLIMIT_NPROC)
+
+  Tests: PASS=2 FAIL=0 SKIP=0
+
+── Test 14: concurrent session-independence (Darwin branch per §11.4.81) ──
+PASS: D-T1: three distinct server PIDs A=12363 B=12462 C=12575 (positive evidence: independent server processes via operator path)
+PASS: D-T3: session A's server confirmed dead (positive evidence: tmux -L tmx-t14_d_a_12339 ls fails)
+PASS: D-T4.B: session B survived with ORIGINAL PID 12462 (positive evidence: independence — A's death did NOT cascade)
+PASS: D-T4.C: session C survived with ORIGINAL PID 12575 (positive evidence: independence — A's death did NOT cascade)
+PASS: D-T5: tmx ls shows both surviving sessions B and C (positive evidence: operator-visible list)
+
+  Tests: PASS=5 FAIL=0 SKIP=0
+
+── Test 15: per-session isolation (Darwin) ──
+
+--- Darwin: per-session rlimit verification ---
+PASS: T1: both sessions A and B visible in tmx ls (positive evidence: aggregated listing across distinct sockets)
+PASS: T2: distinct tmux server PIDs A=12865 B=12964 (positive evidence: independent server processes per session)
+PASS: T3: session A rlimits applied: TMXLIMITS:cpu=86400:nproc=2666 (positive evidence: ulimit -t and -u via send-keys + capture-pane)
+PASS: T4: session B rlimits applied: TMXLIMITS:cpu=86400:nproc=2666
+PASS: T5: TMX_CPU_HARD_SEC=3600 override applied: TMXLIMITS:cpu=3600 (positive evidence: ulimit -t readback = 3600)
+PASS: T6: session shell is operator's host shell (milosvasic) — full host environment access (positive evidence: id -un inside session = milosvasic)
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+
+── Test 16: window-name strips .exe suffix (operator-path) ──
+PASS: T1: tmux.conf.template carries literal-dot-anchored .exe strip ('\\.exe$')
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t16_a_13560 ls' succeeded)
+  observed: pane_current_command='t16_target.exe'  #W='t16_target'
+PASS: T2.1: pane_current_command='t16_target.exe' confirmed (defect surface is reachable in this run)
+PASS: T2.2: window name 't16_target' has .exe stripped (positive evidence: live #W read from tmx-tmx_t16_a_13560)
+PASS: T3.0: operator-path session B created
+  observed (no-dot): pane_current_command='t16_bashexe'  #W='t16_bashexe'
+PASS: T3.1: regression guard — 't16_bashexe' (no dot) preserved as-is (positive evidence: unescaped-dot bug NOT shipping)
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+
+── Test 17: scrollback + copy-mode scrolling (operator-path) ──
+  ✓ template: history-limit 50000
+  ✓ template: mode-keys vi
+  ✓ template: WheelUpPane -> copy-mode
+  ✓ template: WheelUpPane scroll-up cmd
+  ✓ template: allow-passthrough on
+  ✓ template: extended-keys on
+PASS: T1: tmux.conf.template carries all scrollback + copy-mode + passthrough settings
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t17_13851 ls' succeeded)
+PASS: T2.1: live server history-limit = 50000 (readback from tmx-tmx_t17_13851)
+PASS: T2.2: live server mode-keys = vi (readback from tmx-tmx_t17_13851)
+PASS: T2.3: live server mouse = on (readback from tmx-tmx_t17_13851)
+PASS: T2.4: live server allow-passthrough = on (Claude Code TUI passthrough)
+PASS: T2.5: live server extended-keys = on (Shift+Enter reaches the app)
+PASS: T3: live WheelUpPane binding drives copy-mode scroll-up (override active, not tmux default)
+PASS: T4.1: SCROLLMARK_FIRST scrolled off the visible screen (defect surface real; LAST is visible)
+PASS: T4.2: scrollback buffer retains line 1 of 3000 (history-limit bump is functional; poll-ingest captured)
+PASS: T4.3a: copy-mode entered (pane_in_mode=1)
+PASS: T4.3b: copy-mode search reached the old content (scroll_position=2980 lines up)
+PASS: T4.4: operator scrolled to + copied line 1 of 3000 via copy-mode (show-buffer carries SCROLLMARK_FIRST)
+
+  Tests: PASS=13  FAIL=0  SKIP=0
+
+── Test 18: HelixConstitution inheritance gate ──
+  constitution dir: /Users/milosvasic/Projects/tmux/constitution
+PASS: T1: constitution submodule populated (Constitution.md + CLAUDE.md + AGENTS.md present)
+PASS: T2: .gitmodules records constitution submodule with an SSH URL (no-HTTPS rule honored)
+PASS: T2b: constitution submodule initialized at 3f4d690c326da86a94ed2c4bfab17764192c9a8d
+PASS: T3: §11.4 End-user Quality Guarantee anchor present in constitution/Constitution.md
+PASS: T4: verbatim anti-bluff user mandate present in constitution/Constitution.md
+PASS: T5: project Constitution.md declares it extends constitution/Constitution.md
+PASS: T6: project CLAUDE.md carries the INHERITED-FROM block and @constitution/CLAUDE.md import
+PASS: T7: project AGENTS.md references constitution/AGENTS.md
+PASS: T8: project QWEN.md present and references constitution/QWEN.md
+PASS: T9: project Constitution.md §101 anti-bluff covenant binding intact
+
+  Tests: PASS=10  FAIL=0  SKIP=0
+
+PASS: T1: verbatim covenant present in /Users/milosvasic/Projects/tmux/Constitution.md
+PASS: T2: verbatim covenant present in /Users/milosvasic/Projects/tmux/CLAUDE.md
+PASS: T3: verbatim covenant present in /Users/milosvasic/Projects/tmux/AGENTS.md
+PASS: T4: verbatim covenant present in /Users/milosvasic/Projects/tmux/QWEN.md
+PASS: T5: §11.4 / §101 authority cross-reference present in all 4 files (positive evidence: 4/4 grep hits)
+PASS: T6: upstream constitution/Constitution.md retains verbatim covenant
+  §11.4.65 export-sync soft check (governance docs):
+    ✗ Constitution.html missing or stale (vs Constitution.md)
+    ✗ Constitution.pdf missing or stale (vs Constitution.md)
+  NOTE: T7 reports 2 export-sync deltas; tracked in CONTINUATION §3.10
+PASS: T7: governance export-sync drift noted (soft check; tracked separately)
+
+  Tests: PASS=7  FAIL=0  SKIP=0
+
+PASS: T1: codegraph CLI on PATH, version=0.9.6 ≥ 0.6.0 (positive evidence: codegraph --version)
+PASS: T2: /Users/milosvasic/Projects/tmux/.codegraph/config.json present and valid JSON (positive evidence: python3 json.load)
+PASS: T3: §11.4.10 secret/third-party patterns excluded; §11.4.79 own-org submodules NOT excluded (positive evidence: 12 must-exclude + 2 must-include patterns verified via python json parse)
+PASS: T4: .gitignore covers .codegraph/codegraph.db (positive evidence: grep hit on literal line)
+PASS: T5: §11.4.77 manifest + executable regen script scripts/codegraph_reindex.sh (positive evidence: file readable, declared script path resolves)
+
+  Tests: PASS=5  FAIL=0  SKIP=0
+
+PASS: T1: codegraph.db present (positive evidence: file exists)
+PASS: T2: codegraph.db size = 19566592 bytes > 4 KB SQLite minimum (positive evidence: wc -c readback)
+PASS: T3: codegraph status reports 10 nodes (positive runtime evidence per §11.4.5)
+PASS: T4: §11.4.77 regen stamp present, recorded node_count=10 (positive evidence: stamp file)
+
+  Tests: PASS=4  FAIL=0  SKIP=0
+
+=== CodeGraph MCP wiring per CLI agent (§11.4.78) ===
+PASS: T1 Claude Code (project): codegraph MCP server wired in /Users/milosvasic/Projects/tmux/.mcp.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T2 OpenCode (host): codegraph MCP server wired in /Users/milosvasic/.config/opencode/opencode.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T3 Kimi CLI (host): codegraph MCP server wired in /Users/milosvasic/.kimi/mcp.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T4 Crush (project): codegraph MCP server wired in /Users/milosvasic/Projects/tmux/.crush.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T5 Qwen Code (project): codegraph MCP server wired in /Users/milosvasic/Projects/tmux/.qwen/settings.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T6: bare 'codegraph' resolves on PATH to /opt/homebrew/bin/codegraph (positive evidence: command -v)
+PASS: T7: codegraph serve --mcp spawns + stays alive (positive evidence: process alive after 400ms then terminated cleanly)
+
+  Tests: PASS=7  FAIL=0  SKIP=0
+
+PASS: T1: tmx new -s t23_kill_14278 -d succeeded
+PASS: T2: tmx ls shows 't23_kill_14278' (positive evidence: tmx ls output)
+PASS: T3: tmx kill -t t23_kill_14278 resolved (no 'ambiguous' stderr; AUDIT-2 fix active)
+PASS: T4: 't23_kill_14278' removed from tmx ls within poll budget (positive evidence: post-kill listing absent)
+PASS: T5: tmux server on socket tmx-t23_kill_14278 terminated within poll budget (positive evidence: direct -L socket query empty)
+
+  Tests: PASS=5  FAIL=0  SKIP=0
+
+── Test 24: Darwin RLIMIT_CPU enforcement (§11.4.81 (C) adjacent to test 12) ──
+PASS: D-T1: CPU-bound process killed by signal 24 after 2s wall (positive evidence per §11.4.5: ulimit -t 2 → kernel SIGXCPU/SIGKILL; rc=152)
+PASS: D-T2: TMX_CPU_HARD_SEC=7200 propagated to RLIMIT_CPU=7200 inside session (positive evidence: ulimit -t readback = 7200)
+
+  Tests: PASS=2 FAIL=0 SKIP=0
+
+  nezha    → colour88 = [135, 0, 0]
+  Mistborn → colour44 = [0, 215, 215]
+PASS: T1: nezha=colour88 vs Mistborn=colour44 — RGB distance=332.7 ≥ 80 (positive evidence per §11.4.5: operator-reported pair now perceptually distinct)
+PASS: T2: 16-synthetic-hostname pairwise — min=0.0, mean=226.0, collisions=4/120 ≤ 6 pigeonhole tolerance (positive evidence: palette spreads ≤ ceil(C(16,2)/27)+margin)
+PASS: T3: palette adjacency — size=27, min-adjacent-distance=120.0 ≥ 80 (positive evidence: no consecutive palette entries collide)
+
+  Tests: PASS=3 FAIL=0 SKIP=0
+
+  expected colour: colour44 (from hostname Mistborn)
+PASS: T1: status-style live carries bg=colour44 (positive evidence: 'bg=colour44')
+PASS: T2: pane-active-border-style live carries fg=colour44 (positive evidence: 'fg=colour44')
+PASS: T3: clock-mode-colour live = colour44 (positive evidence: prefix+t clock face matches hostname colour)
+PASS: T4: window-status-current-style live carries bg=colour44 (positive evidence: 'bg=colour44,fg=black')
+PASS: T5: ALL four default-green tmux UI surfaces carry the hostname-derived colour44 — UI uniformly recoloured per operator mandate (positive evidence: four independent show -gv readbacks above)
+
+  Tests: PASS=5 FAIL=0 SKIP=0
+
+[evidence] iter=1 iter=1 recall1=/tmp/tmx-test-18-target-15221 pane_path=/private/tmp/tmx-test-18-target-15221 recall2=/tmp/tmx-test-18-hook-15221-1
+[evidence] iter=2 iter=2 recall1=/tmp/tmx-test-18-target-15221 pane_path=/private/tmp/tmx-test-18-target-15221 recall2=/tmp/tmx-test-18-hook-15221-2
+[evidence] iter=3 iter=3 recall1=/tmp/tmx-test-18-target-15221 pane_path=/private/tmp/tmx-test-18-target-15221 recall2=/tmp/tmx-test-18-hook-15221-3
+[evidence] HOST_OS=Darwin reliability_hash=0a31dbf9d4d94d77bb35753c8551444e7066ab9b
+PASS 18 tmx-state cwd persistence end-to-end (3/3 iterations identical, hook updated state)
+
+[evidence] iter=1 rc=0 before=0 after=0 stdout_empty=no
+[evidence] iter=2 rc=0 before=0 after=0 stdout_empty=no
+[evidence] iter=3 rc=0 before=0 after=0 stdout_empty=no
+[evidence] reliability_hash=fa7d7f27d7d0b412acffa8472ba36d66e2cf040c
+PASS 19 tmx-shell-init: 'default' input skips tmx cleanly (3/3 iterations)
+
+[evidence] iter=1 rc=0 before=0 after=0 stdout_empty=no
+[evidence] iter=2 rc=0 before=0 after=0 stdout_empty=no
+[evidence] iter=3 rc=0 before=0 after=0 stdout_empty=no
+[evidence] reliability_hash=020584a6e481e39a9a929d7b98e318cfd8089555
+PASS 20 tmx-shell-init: blank input skips tmx cleanly (3/3 iterations)
+
+[evidence] Darwin: POSIX TTY semantics enforced by libc iter=1 elapsed_ms=44 rc=0 no_prompt=yes no_session=yes
+[evidence] Darwin: POSIX TTY semantics enforced by libc iter=2 elapsed_ms=50 rc=0 no_prompt=yes no_session=yes
+[evidence] Darwin: POSIX TTY semantics enforced by libc iter=3 elapsed_ms=49 rc=0 no_prompt=yes no_session=yes
+[evidence] HOST_OS=Darwin reliability_hash=f47384843d753c1e15005ed10c2529a8d54f89ae
+PASS 21 tmx-shell-init: non-TTY stdin silent-skips fast (3/3 iterations, Darwin)
+
+[evidence] iter=1 would_exec=ok session_listed='tmx-test-22-work: 1 windows (created Fri May 29 11:06:45 2026)' install_script_command_prefix=ok
+[evidence] iter=2 would_exec=ok session_listed='tmx-test-22-work: 1 windows (created Fri May 29 11:06:48 2026)' install_script_command_prefix=ok
+[evidence] iter=3 would_exec=ok session_listed='tmx-test-22-work: 1 windows (created Fri May 29 11:06:51 2026)' install_script_command_prefix=ok
+[evidence] HOST_OS=Darwin reliability_hash=fe35d7c196a02e46f63331d980f72bb2e684ef50
+PASS 22 tmx-ssh-dispatch: local loopback creates session (3/3 iterations)
+
+SKIP 23: remote tests require TMX_TEST_REMOTE=1 (opt-in, network-heavy)
+
+[evidence] iter=1 list_count=10 json_ok n=10 keys=k1,k10,k2,k3,k4,k5,k6,k7,k8,k9
+[evidence] iter=2 list_count=10 json_ok n=10 keys=k1,k10,k2,k3,k4,k5,k6,k7,k8,k9
+[evidence] iter=3 list_count=10 json_ok n=10 keys=k1,k10,k2,k3,k4,k5,k6,k7,k8,k9
+[evidence] HOST_OS=Darwin reliability_hash=ed93e8e75fc1ffe923fabfddeef13c1fe0015f40
+PASS 24 tmx-state-bin: 10 concurrent record writes serialised, JSON intact (3/3 iterations)
+
+[evidence] iter=1 run1_bytes=2596 run2_bytes=2596 filtered_diff_empty=yes
+[evidence] iter=2 run1_bytes=2596 run2_bytes=2596 filtered_diff_empty=yes
+[evidence] iter=3 run1_bytes=2596 run2_bytes=2596 filtered_diff_empty=yes
+[evidence] reliability_hash=dace162d798dd063215ae5618f0491d80da30a57
+PASS 25 tmx-ssh-install --dry-run idempotent (3/3 iterations)
+
+[evidence] iter=1 bad_names_tested=7 all_rejected=both_paths
+[evidence] iter=2 bad_names_tested=7 all_rejected=both_paths
+[evidence] iter=3 bad_names_tested=7 all_rejected=both_paths
+[evidence] reliability_hash=59175d32421576e407a0315ebb62aa8e22233582
+PASS 26 session-name validation rejects 7 bad names on init+dispatcher (3/3 iterations)
+
+[evidence] iter=1 bad_cmds_tested=8 all_rejected=yes no_exec_branch=yes
+[evidence] iter=2 bad_cmds_tested=8 all_rejected=yes no_exec_branch=yes
+[evidence] iter=3 bad_cmds_tested=8 all_rejected=yes no_exec_branch=yes
+[evidence] reliability_hash=563077f91712a22417c0a80310406b7dd77bc605
+PASS 27 dispatcher rejects 8 multi-word/injection commands (3/3 iterations)
+
+[evidence] iter=1 rc=0 out_empty=yes session_count=0
+[evidence] iter=2 rc=0 out_empty=yes session_count=0
+[evidence] iter=3 rc=0 out_empty=yes session_count=0
+[evidence] reliability_hash=4fdee34ee3891761500433e7c3367a35263cbc68
+PASS 28 tmx-shell-init: $TMUX set → silent skip (3/3 iterations)
+
+[evidence] iter=1 stale_notice=present pane_path=/Users/milosvasic home_real=/Users/milosvasic match=yes
+[evidence] iter=2 stale_notice=present pane_path=/Users/milosvasic home_real=/Users/milosvasic match=yes
+[evidence] iter=3 stale_notice=present pane_path=/Users/milosvasic home_real=/Users/milosvasic match=yes
+[evidence] HOST_OS=Darwin reliability_hash=45cb2863a3af254eb7245ed01af3191f908114cf
+PASS 29 wrapper falls back to $HOME when stale recalled cwd missing (3/3 iterations)
+
+[evidence] Darwin: chmod 000 denies even owner read/write on APFS iter=1 state_rc=1 state_err='tmx-state record: mkdir /Users/milosvasic/.tmx-test-30-guard-21353/leaf: mkdir /Users/milosvasic/.tmx-test-30-guard-21353/leaf: permission denied' wrapper_intact=yes
+[evidence] Darwin: chmod 000 denies even owner read/write on APFS iter=2 state_rc=1 state_err='tmx-state record: mkdir /Users/milosvasic/.tmx-test-30-guard-21353/leaf: mkdir /Users/milosvasic/.tmx-test-30-guard-21353/leaf: permission denied' wrapper_intact=yes
+[evidence] Darwin: chmod 000 denies even owner read/write on APFS iter=3 state_rc=1 state_err='tmx-state record: mkdir /Users/milosvasic/.tmx-test-30-guard-21353/leaf: mkdir /Users/milosvasic/.tmx-test-30-guard-21353/leaf: permission denied' wrapper_intact=yes
+[evidence] HOST_OS=Darwin reliability_hash=bd19785fdde724f45ae3a7b698142da63a36dd75 iters_passed=3 iters_skipped=0
+PASS 30 tmx-state errors on unwritable dir, wrapper unaffected (3/3 iterations)
+
+[evidence] iter=1 HOST_OS=Darwin Darwin rlimit_wrapper=present state_bin_ver='tmx-state v1.0.9'
+[evidence] iter=2 HOST_OS=Darwin Darwin rlimit_wrapper=present state_bin_ver='tmx-state v1.0.9'
+[evidence] iter=3 HOST_OS=Darwin Darwin rlimit_wrapper=present state_bin_ver='tmx-state v1.0.9'
+[evidence] uname=Darwin reliability_hash=29e05e083e26180c14d6b508d7f5a1098fdd8551
+PASS 31 §11.4.81 cross-platform parity: per-OS positive evidence captured (3/3 iterations, Darwin)
+
+[evidence] iter=1 doc=docs/guides/tmx-shell-integration.md md_mtime=1779453643 html_mtime=1779454239 pdf_mtime=1779454240 md_size=11567 html_size=24869 pdf_size=49001
+[evidence] iter=1 doc=docs/guides/tmx-state.md md_mtime=1779453620 html_mtime=1779454240 pdf_mtime=1779454241 md_size=9944 html_size=28009 pdf_size=48142
+[evidence] iter=1 doc=docs/guides/tmx-ssh-dispatch.md md_mtime=1779438071 html_mtime=1779438397 pdf_mtime=1779438397 md_size=15736 html_size=31504 pdf_size=53985
+[evidence] iter=1 doc=docs/manual/tmx-shell-integration.md md_mtime=1779453566 html_mtime=1779454241 pdf_mtime=1779454242 md_size=19907 html_size=46673 pdf_size=64735
+[evidence] iter=2 doc=docs/guides/tmx-shell-integration.md md_mtime=1779453643 html_mtime=1779454239 pdf_mtime=1779454240 md_size=11567 html_size=24869 pdf_size=49001
+[evidence] iter=2 doc=docs/guides/tmx-state.md md_mtime=1779453620 html_mtime=1779454240 pdf_mtime=1779454241 md_size=9944 html_size=28009 pdf_size=48142
+[evidence] iter=2 doc=docs/guides/tmx-ssh-dispatch.md md_mtime=1779438071 html_mtime=1779438397 pdf_mtime=1779438397 md_size=15736 html_size=31504 pdf_size=53985
+[evidence] iter=2 doc=docs/manual/tmx-shell-integration.md md_mtime=1779453566 html_mtime=1779454241 pdf_mtime=1779454242 md_size=19907 html_size=46673 pdf_size=64735
+[evidence] iter=3 doc=docs/guides/tmx-shell-integration.md md_mtime=1779453643 html_mtime=1779454239 pdf_mtime=1779454240 md_size=11567 html_size=24869 pdf_size=49001
+[evidence] iter=3 doc=docs/guides/tmx-state.md md_mtime=1779453620 html_mtime=1779454240 pdf_mtime=1779454241 md_size=9944 html_size=28009 pdf_size=48142
+[evidence] iter=3 doc=docs/guides/tmx-ssh-dispatch.md md_mtime=1779438071 html_mtime=1779438397 pdf_mtime=1779438397 md_size=15736 html_size=31504 pdf_size=53985
+[evidence] iter=3 doc=docs/manual/tmx-shell-integration.md md_mtime=1779453566 html_mtime=1779454241 pdf_mtime=1779454242 md_size=19907 html_size=46673 pdf_size=64735
+[evidence] HOST_OS=Darwin doc_count=4 reliability_hash=83f58ae5c9e68be39b8ccf946337fdf4b434f438
+PASS 41 v1.0.9 user guides + master manual render (4 docs × {md,html,pdf} verified, 3/3 iterations identical, §11.4.65)
+
+PASS: iter=1 A1: tmx-shell-init.sh present + exec + placeholders resolved
+PASS: iter=1 A2: rc has exactly 1 source line for tmx-shell-init.sh
+PASS: iter=1 A3: rc has exactly 1 fenced block
+PASS: iter=1 A4: init reached tmx invocation (       1 call(s) logged)
+PASS: iter=1 B1: rc fenced block removed
+PASS: iter=1 B2: legacy unfenced snippet removed
+PASS: iter=1 B3: init file removed
+PASS: iter=2 A1: tmx-shell-init.sh present + exec + placeholders resolved
+PASS: iter=2 A2: rc has exactly 1 source line for tmx-shell-init.sh
+PASS: iter=2 A3: rc has exactly 1 fenced block
+PASS: iter=2 A4: init reached tmx invocation (       1 call(s) logged)
+PASS: iter=2 B1: rc fenced block removed
+PASS: iter=2 B2: legacy unfenced snippet removed
+PASS: iter=2 B3: init file removed
+PASS: iter=3 A1: tmx-shell-init.sh present + exec + placeholders resolved
+PASS: iter=3 A2: rc has exactly 1 source line for tmx-shell-init.sh
+PASS: iter=3 A3: rc has exactly 1 fenced block
+PASS: iter=3 A4: init reached tmx invocation (       1 call(s) logged)
+PASS: iter=3 B1: rc fenced block removed
+PASS: iter=3 B2: legacy unfenced snippet removed
+PASS: iter=3 B3: init file removed
+[evidence] iters_completed=3 reliability_hash=af56b14cc670a45aeb16d426ae96c09b51a1f8d9
+
+  Tests: PASS=21  FAIL=0  SKIP=0
+PASS 42 setup install/uninstall E2E — tmx-shell-init.sh present, rc snippet 1×, fake-tmx invoked, uninstall removes all 3 artefacts (3/3 iterations)
+
+PASS: iter=1 A1: tmx new spawned session, PID=22641
+PASS: iter=1 A2+A3: cd took effect, PROMPT_COMMAND fired, tmx-state recall='/tmp/t43-target-22604'
+PASS: iter=1 A4: shell exit destroyed the session as expected
+PASS: iter=1 A5: state file preserved cwd after session death (recall='/tmp/t43-target-22604')
+PASS: iter=1 B1+B3: reopened session, pane_current_path='/private/tmp/t43-target-22604' (cwd correctly restored)
+PASS: iter=2 A1: tmx new spawned session, PID=22788
+PASS: iter=2 A2+A3: cd took effect, PROMPT_COMMAND fired, tmx-state recall='/tmp/t43-target-22604'
+PASS: iter=2 A4: shell exit destroyed the session as expected
+PASS: iter=2 A5: state file preserved cwd after session death (recall='/tmp/t43-target-22604')
+PASS: iter=2 B1+B3: reopened session, pane_current_path='/private/tmp/t43-target-22604' (cwd correctly restored)
+PASS: iter=3 A1: tmx new spawned session, PID=22933
+PASS: iter=3 A2+A3: cd took effect, PROMPT_COMMAND fired, tmx-state recall='/tmp/t43-target-22604'
+PASS: iter=3 A4: shell exit destroyed the session as expected
+PASS: iter=3 A5: state file preserved cwd after session death (recall='/tmp/t43-target-22604')
+PASS: iter=3 B1+B3: reopened session, pane_current_path='/private/tmp/t43-target-22604' (cwd correctly restored)
+[evidence] HOST_OS=Darwin iters_completed=3 reliability_hash=2d051411b7d2b51344301794e9127682c48075a6
+
+  Tests: PASS=15  FAIL=0  SKIP=0
+PASS 43 cwd persistence across exit+reopen — operator scenario verified end-to-end (3/3 iterations identical hash)
+
+── Test 44: clipboard copy-OUT physical proof (operator-path) ──
+  marker: CLIPMARK_23076_1780034842
+  clipboard tool: pbcopy/pbpaste
+  ✓ template: @clip user option present
+  ✓ template: copy-mode-vi y -> copy-pipe
+  ✓ template: copy-mode-vi Enter -> copy-pipe
+  ✓ template: MouseDragEnd1Pane -> copy-pipe
+PASS: T1: tmux.conf.template carries @clip + y / Enter / MouseDragEnd1Pane bindings
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t44_23076 ls' succeeded)
+PASS: T2.1: live copy-mode-vi y binding routes selection through @clip (operator key path active)
+PASS: T2.2: live MouseDragEnd1Pane routes selection through @clip (operator mouse path active)
+PASS: T3: direct @clip copy-pipe routed selection into tmux's own buffer (binding chain proven)
+PASS: T4: pressing the 'y' key in copy-mode routed the selection (bind table active end-to-end)
+PASS: T5: SYSTEM CLIPBOARD (pbcopy/pbpaste) carries the marker — physical end-user proof copy worked
+
+  Tests: PASS=7  FAIL=0  SKIP=0
+
+── Test 45: MULTI-LINE copy physical proof (operator-path) ──
+  markers: MLMARK_23284_1780034848_A MLMARK_23284_1780034848_B MLMARK_23284_1780034848_C MLMARK_23284_1780034848_D MLMARK_23284_1780034848_E MLMARK_23284_1780034848_F
+  clipboard tool: pbcopy/pbpaste
+  ✓ template: @clip user option
+  ✓ template: copy-mode-vi v -> begin-sel
+  ✓ template: copy-mode-vi y -> copy-pipe
+PASS: T1: tmux.conf.template carries multi-line selection bindings (v + y + @clip)
+PASS: T2.0: operator-path session created
+PASS: T2.1: all 6 markers printed into the pane scrollback
+PASS: T3.1: copy-mode entered (pane_in_mode=1)
+PASS: T4: multi-line @clip copy-pipe routed all 6 markers into tmux buffer (binding chain proven)
+PASS: T5: SYSTEM CLIPBOARD (pbcopy/pbpaste) carries all 6 markers — PHYSICAL multi-line copy proven
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+
+── Test 46: PASTE-INTO from OS clipboard physical proof (operator-path) ──
+  marker: PASTEMARK_23504_1780034853
+  clipboard tool: pbcopy/pbpaste
+  ✓ template: @clip-read user option
+  ✓ template: prefix+P bind to paste
+PASS: T1: tmux.conf.template carries @clip-read + prefix+P paste binding
+PASS: T2.0: operator-path session created
+PASS: T2.1: live server has @clip-read user-option set
+PASS: T2.2: live prefix+P binding present (paste-IN keystroke path active)
+PASS: T3: PHYSICAL paste-IN proven — clipboard marker reached the tmux pane via @clip-read + paste-buffer
+PASS: T4: prefix+P bind body references @clip-read (mechanism wired end-to-end at binding layer)
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+
+── Test 47: scroll inside alt-screen + mouse-tracking TUI (operator-path) ──
+PASS: T1: synthetic_alt_screen_app.py compiles (helper structurally valid)
+PASS: T2: tmux.conf.template carries WheelUpPane copy-mode override
+PASS: T3.0: operator-path session created
+PASS: T3.1: synthetic alt-screen helper running (READY marker captured from alt buffer)
+PASS: T4.1: pane alternate_on=1 — alt-screen surface confirmed
+PASS: T4.2: pane mouse_any_flag=1 — Claude-Code-like mouse tracking surface confirmed
+PASS: T5: copy-mode engaged inside alt-screen+mouse-any-flag pane (WheelUp override action works in hostile environment)
+PASS: T6: live WheelUpPane binding overrides tmux default — drives copy-mode unconditionally even under mouse-tracking
+
+  Tests: PASS=8  FAIL=0  SKIP=0
+
+── Test 48: Alt-drag + Shift-drag override for selection (operator-path) ──
+  markers: DRAGMARK_23850_1780034860_A DRAGMARK_23850_1780034860_B DRAGMARK_23850_1780034860_C DRAGMARK_23850_1780034860_D DRAGMARK_23850_1780034860_E DRAGMARK_23850_1780034860_F
+  clipboard tool: pbcopy/pbpaste
+  ✓ template: M-MouseDrag1Pane override
+  ✓ template: S-MouseDrag1Pane override
+  ✓ template: M-MouseDragEnd1Pane pipe
+  ✓ template: S-MouseDragEnd1Pane pipe
+PASS: T1: tmux.conf.template carries Alt-drag + Shift-drag overrides (both modifier paths)
+PASS: T2.0: operator-path session created
+PASS: T2.1: live M-MouseDrag1Pane binding drives copy-mode
+PASS: T2.2: live S-MouseDrag1Pane binding drives copy-mode
+PASS: T2.3: live M-MouseDragEnd1Pane binding routes selection through @clip
+PASS: T2.4: live S-MouseDragEnd1Pane binding routes selection through @clip
+PASS: T3: keyboard-equivalent of modifier-drag (v + cursor-down -N 5 + copy-pipe @clip) routes 6 markers into tmux buffer
+PASS: T4: M-MouseDrag1Pane override survives mouse_any_flag=1 surface (Claude-Code-like)
+PASS: T5: SYSTEM CLIPBOARD (pbcopy/pbpaste) carries all 6 markers from the keyboard-equivalent modifier-drag flow
+
+  Tests: PASS=9  FAIL=0  SKIP=0
+
+── Test 49: tmx-shell-init non-TTY guard SPECIFIC layer-4 isolation ──
+PASS 49: T0 template present at /Users/milosvasic/Projects/tmux/scripts/tmx-shell-init.sh.template
+PASS 49: T1 template guard + marker present
+[evidence 49] iter=1 rc=0 marker="tmx-shell-init: non-TTY guard fired (stdin/stdout not a TTY) — skipping interactive prompt"
+[evidence 49] iter=2 rc=0 marker="tmx-shell-init: non-TTY guard fired (stdin/stdout not a TTY) — skipping interactive prompt"
+[evidence 49] iter=3 rc=0 marker="tmx-shell-init: non-TTY guard fired (stdin/stdout not a TTY) — skipping interactive prompt"
+PASS 49: T2 + T3 marker fired on 3/3 iterations (identical evidence) on Darwin
+── summary 49: PASS=3 FAIL=0 SKIP=0 ──
+
+── Test 50: cwd-capture hook AUTO-INSTALL via tmx.template ──
+PASS 50: T0 wrapper + tmux + tmx-state-bin all present
+PASS 50: T1 tmx.template auto-install block + tmx-state-bin record present
+PASS 50: T1 generated wrapper carries the auto-install block
+[evidence 50] iter=1 client-detached: client-detached[0] run-shell "/Users/milosvasic/Projects/tmux/scripts/tmx-state-bin record tmx_t50_24147 #{pane_current_path}"
+[evidence 50] iter=1 session-closed:  session-closed[0] run-shell "/Users/milosvasic/Projects/tmux/scripts/tmx-state-bin record tmx_t50_24147 #{pane_current_path}"
+[evidence 50] iter=2 client-detached: client-detached[0] run-shell "/Users/milosvasic/Projects/tmux/scripts/tmx-state-bin record tmx_t50_24147 #{pane_current_path}"
+[evidence 50] iter=2 session-closed:  session-closed[0] run-shell "/Users/milosvasic/Projects/tmux/scripts/tmx-state-bin record tmx_t50_24147 #{pane_current_path}"
+[evidence 50] iter=3 client-detached: client-detached[0] run-shell "/Users/milosvasic/Projects/tmux/scripts/tmx-state-bin record tmx_t50_24147 #{pane_current_path}"
+[evidence 50] iter=3 session-closed:  session-closed[0] run-shell "/Users/milosvasic/Projects/tmux/scripts/tmx-state-bin record tmx_t50_24147 #{pane_current_path}"
+PASS 50: T2 + T3 both hooks auto-installed on 3/3 iterations (identical evidence) on Darwin
+── summary 50: PASS=4 FAIL=0 SKIP=0 ──
+
+── Test 51: workable-items DB integrity (§11.4.93 / §11.4.95) ──
+PASS 51: T0 binary executable at /Users/milosvasic/Projects/tmux/cmd/workable-items/workable-items
+PASS 51: T1 docs/workable_items.db present + git-tracked (size=413696 bytes)
+PASS 51: T2 schema applies cleanly: schema OK: embedded schema applied cleanly
+PASS 51: T3 validate clean: validate OK: 0 findings
+[evidence 51] iter=1 Issues.md=8086b Fixed.md=127172b byte-identical=yes
+[evidence 51] iter=2 Issues.md=8086b Fixed.md=127172b byte-identical=yes
+[evidence 51] iter=3 Issues.md=8086b Fixed.md=127172b byte-identical=yes
+PASS 51: T4 + T5 round-trip byte-identical on 3/3 iterations (hash=83db0e1e0705cab9e2d4d4b5f5efc95b9993a7ac)
+── summary 51: PASS=5 FAIL=0 SKIP=0 ──
+
+── Test 52: §11.4.99 Sources-verified footer presence ──
+PASS 52: T0 docs/ root present
+PASS 52: T1 + T2 + T3 all 3 guarded docs carry valid Sources-verified footer (≤180d)
+[evidence 52] docs/guides/clipboard.md verified=2026-05-28 age=1d
+[evidence 52] docs/workable-items/README.md verified=2026-05-28 age=1d
+[evidence 52] docs/scripts/workable-items.md verified=2026-05-28 age=1d
+PASS 52: T4 §11.4.50 deterministic across 3 iterations (hash=dc9cad89cb5b5f42f54c99021f24889345660659)
+── summary 52: PASS=3 FAIL=0 SKIP=0 (threshold=2025-11-30) ──
+
+EVIDENCE prompt_count=1
+PASS: 54 double-prompt idempotent — exactly 1 prompt per shell process
+
+EVIDENCE: prefix+m mouse-toggle binding present
+EVIDENCE: mouse option flips ('mouse on' -> 'mouse off')
+EVIDENCE: Shift-drag root override present
+EVIDENCE: copy-pipe delivered selection (echo MOUSE52_COPY_PROOF_8675309)
+PASS: 55 mouse toggle + copy usable (prefix+m flips mouse; Shift-drag override; copy-pipe delivers)
+
+SKIP: 56 — cliclick not installed (GUI mouse automation topology absent, §11.4.3). Binding chain + copy pipe proven by tests 48 + 55.
+
+════════════════════════════════════════════════════════════════
+  SUMMARY: PASS=51  FAIL=0  SKIP=4
+  SKIPped: 08_oom_score_adj.sh 12_memory_pressure_under_cap.sh 32_ssh_dispatch_remote_nezha.sh 56_real_mouse_drag_copy.sh
+════════════════════════════════════════════════════════════════
+RUNALL_EXIT=0

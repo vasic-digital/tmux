@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-05-28T15:00Z</p>
+<p><strong>Last updated:</strong> 2026-05-29T11:30Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -270,6 +270,50 @@ user-mandate quote)</li>
 sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
+<h3
+id="317--v1017-two-user-reported-bug-fixes--b3-closure--dual-host-re-validation-2026-05-29">§3.17
+— v1.0.17 two user-reported bug fixes + B3 closure + dual-host
+re-validation (2026-05-29)</h3>
+<p><strong>Status:</strong> IN PROGRESS (fixes + Mistborn validation
+done; dual-host setup + release pending).</p>
+<p>Operator reported two product defects 2026-05-29: (1) mouse
+select/copy unusable in tmx panes, especially under Claude Code; (2)
+double session-name prompt on new bash-login terminals. Plus directive
+to validate every fix with autonomous physical-proof tests, run
+<code>setup.sh</code> on Mistborn + nezha, document, and release via
+gh/glab.</p>
+<ul>
+<li><strong>A41 (double-prompt) — FIXED.</strong> Root cause
+(reproduced: nezha <code>bash -l -i</code>→PROMPT_COUNT=2):
+<code>.bash_profile</code> carries the tmx-shell-init source line AND
+sources <code>.bashrc</code> which also carries it → one process
+double-sources; the blank/return path re-prompts. Fix: per-process
+non-exported <code>_TMX_SHELL_INIT_PROMPTED</code> guard in
+<code>scripts/tmx-shell-init.sh.template</code>. Test 54 RED→GREEN (3/3)
++ meta-test <code>M-DBLPROMPT</code>.</li>
+<li><strong>A42 (mouse copy) — FIXED.</strong> Config was correct &amp;
+live (not stale); copy pipe works. Cause: in mouse-tracking apps plain
+drag forwards to the app; iTerm2 <code>Option Key Sends=Normal</code>
+eats Alt-drag → only Shift-drag reached tmux (undiscoverable). Fix:
+<code>prefix m</code> mouse-toggle (native-terminal selection escape
+hatch) + Shift-drag docs in <code>scripts/tmux.conf.template</code>.
+Test 55 RED→GREEN (3/3) + meta-test <code>M-MOUSETOGGLE</code>; test 56
+real-mouse honest SKIP (§11.4.3).</li>
+<li><strong>B3 (P5-M20/M21 escapes) — CLOSED + migrated to Fixed.md
+§B3.</strong> State-verified
+<code>MUTATIONS CAUGHT 45 / ESCAPED 0</code> on Mistborn (tests 49/50
+close the layer-4 gaps). M22 nezha CodeGraph baseline repaired via
+<code>codegraph_setup.sh</code> during dual-host setup.</li>
+<li><strong>Mistborn validation:</strong> full suite
+<code>PASS=51 FAIL=0 SKIP=4</code>; meta-test
+<code>45 CAUGHT / 0 ESCAPED</code>. Evidence in <code>qa-results/</code>
++ plan at
+<code>docs/superpowers/plans/2026-05-29-tmx-mouse-doubleprompt-b3-release.md</code>.</li>
+<li><strong>Pending:</strong> dual-host <code>setup.sh</code> (Mistborn
+redeploy + nezha pull+setup, nezha double-prompt re-prove, M22 repair),
+CHANGELOG/changelog-doc with both-host evidence, VERSION bump
+(1.0.17/18), gh+glab release.</li>
+</ul>
 <h3
 id="31-governance-bring-up--issuesmd--fixedmd--explicit-114x-anchors-landed">§3.1
 Governance bring-up — Issues.md / Fixed.md / explicit §11.4.x anchors

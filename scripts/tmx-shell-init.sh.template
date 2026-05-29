@@ -101,6 +101,21 @@ if ! command -v tmx >/dev/null 2>&1; then
     return 0 2>/dev/null || exit 0
 fi
 
+# Per-process idempotency guard. A single shell PROCESS can source this
+# script more than once — notably bash LOGIN shells where .bash_profile
+# carries the tmx-shell-init source line AND sources .bashrc, which carries
+# it too (forensic anchor: nezha `bash -l -i` double-prompt, user report
+# 2026-05-29, reproduced PROMPT_COUNT=2). The blank/`default` path below
+# RETURNS (it does not exec), so .bash_profile then continues, sources
+# .bashrc, and the SECOND source re-prompts — "asked twice in a row". A
+# NON-exported marker persists across sources WITHIN this process but resets
+# for each NEW shell process, so every new terminal still prompts exactly
+# once. Fixed at the source layer here, never at the rc call sites (§11.4.1).
+if [ -n "${_TMX_SHELL_INIT_PROMPTED:-}" ]; then
+    return 0 2>/dev/null || exit 0
+fi
+_TMX_SHELL_INIT_PROMPTED=1
+
 # Prompt + read. printf, not echo -e (POSIX).
 printf '[tmx] Enter session name (blank or "default" = bare shell): ' >&2
 # shellcheck disable=SC2034  # session_name read below

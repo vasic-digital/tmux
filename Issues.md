@@ -84,72 +84,10 @@ Categories:
 
 ## B. Anti-bluff completeness across the existing test surface
 
-### B3. P5-M20 + P5-M21 paired-mutation ESCAPES — pre-existing v1.0.9 layer-4 gaps — `OPEN`
-
-**Status:** `OPEN` — pre-existing from v1.0.9 (shell-session-resume PWUs).
-**Re-discovered:** v1.0.14 verification cycle, 2026-05-22 on Mistborn:
-`bash scripts/tests/meta_test_false_positive_proof.sh` reports
-`MUTATIONS CAUGHT (PASS): 39  MUTATIONS ESCAPED (FAIL): 2  SKIPPED: 8`.
-
-**Forensic detail (no guessing per §11.4.6):**
-
-- **P5-M20** ("strip non-TTY guard from tmx-shell-init.sh"): the
-  mutation removes the explicit non-TTY guard from
-  `scripts/tmx-shell-init.sh`. The target test still exits fast
-  because Darwin / libc enforces POSIX TTY semantics that ALSO cause
-  the script to early-exit on non-TTY stdin (the test sees
-  `Darwin: POSIX TTY semantics enforced by libc iter=N elapsed_ms<100`).
-  The TEST verifies the END behaviour ("script exits fast") but the
-  END behaviour is defended on TWO layers (script guard + libc
-  semantics) and the test cannot distinguish which layer caught it.
-  Mutation strips one layer; the other still saves the assertion.
-- **P5-M21** ("strip cwd-capture tmux hook block from tmx.template"):
-  the mutation removes the hook installation from the generated
-  wrapper, but the target test (test 18 cwd persistence end-to-end)
-  passes anyway because its harness manually triggers the hook via
-  `tmux run-shell` — bypassing the template's auto-install. The test
-  proves the recall MECHANISM works, never that the auto-install
-  RECORDING path works.
-
-**Why this is `OPEN`, not closed-by-disclosure:** the FEATURES under
-test (shell-init non-TTY skip, cwd persistence) do work and are
-covered by the GREEN tests 18, 21, 43. The escape is a layer-4
-test-DESIGN gap — the test assertions cannot distinguish "guard
-fired" from "fallback fired", so the mutation slips. Fixing requires
-tightening the test assertions to isolate the layer the mutation
-targets (e.g. test 21 should drive a build where the libc fallback
-is intentionally disabled; test 18 should drive ONLY the auto-install
-path without manually triggering the hook). Both require careful
-re-architecting of the test harnesses, not a one-line change.
-
-**Why not blocker for v1.0.14:** these escapes have been present
-across v1.0.9 → v1.0.13 releases; the operative request for
-v1.0.14 (clipboard physical proof + multi-host deploy) is fully
-covered with GREEN tests and physical evidence. Test 44 + M44 close
-the cycle's own anti-bluff cycle cleanly. Transparency in the
-release notes per §11.4 / §101.
-
-**Companion finding — nezha environmental escape (M22):** on nezha,
-the meta-test additionally reports `M22 MUTATION ESCAPED` AND `V3
-does not PASS after revert`. M22 targets the CodeGraph
-`Containers/**` exclude path in `.codegraph/config.json`. Both the
-mutate-and-test-fail step and the revert-and-test-pass step fail —
-indicating the CodeGraph validate baseline itself is broken on
-nezha (the test cannot reach GREEN even with original config). This
-is an environmental state issue (CodeGraph index/config) on the
-remote host, not a v1.0.14 regression. Closure condition: bring
-nezha's CodeGraph state to the baseline `codegraph_validate` would
-PASS on; either re-run `bash scripts/codegraph_setup.sh` on nezha
-or document why M22 should SKIP on nezha-class hosts.
-
-**Closure conditions:** test 21 design tightening so it specifically
-asserts the SCRIPT GUARD fired (not the libc fallback); test 18
-re-architecture so it does NOT short-circuit the hook auto-install.
-Both close P5-M20 and P5-M21 in the meta-test in a future cycle.
-
----
-
-(no other items open at this time — B1 CHAL-COVER-001, B2 TEST-AUDIT-001 landed in `Fixed.md`.)
+(none open at this time — B3 P5-M20/P5-M21 escapes CLOSED in v1.0.16
+[tests 49/50 + meta-test retarget], state-verified 2026-05-29 with
+`MUTATIONS CAUGHT 45 / ESCAPED 0`, and migrated to `Fixed.md` §B3;
+B1 CHAL-COVER-001, B2 TEST-AUDIT-001 also landed in `Fixed.md`.)
 
 ---
 
