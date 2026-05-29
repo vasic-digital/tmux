@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-29T11:30Z
+**Last updated:** 2026-05-29T12:10Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,7 +15,7 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.14** (versionCode 15) — A35 clipboard copy-OUT physical proof (test 44 + M44 + TMUX-CH-44 + verify.sh Layer-1 extension) + A36 e2e stale-podman-prereq fix + B3 P5 escape transparency; multi-host deploy (Mistborn + nezha), 2026-05-22 |
+| Version | **1.0.17** (versionCode 18) — A41 bash-login double session-name prompt fixed (per-process `_TMX_SHELL_INIT_PROMPTED` guard; nezha real-HOME `bash -l -i` 2→1) + A42 mouse select/copy `prefix m` toggle (terminal-agnostic native-selection escape hatch for Claude Code) + B3 P5-M20/M21 escapes closed & migrated to Fixed.md (meta 47 caught/0 escaped). Dual-host deploy GREEN (Mistborn + nezha), 2026-05-29. Released on GitHub + GitLab. |
 | Verification (this cycle) | **Multi-host deploy GREEN.** Mistborn (Darwin arm64): `bash scripts/setup.sh --rebuild` → GREEN; suite `PASS=41 FAIL=0 SKIP=3`. NEW test 44 PASS=7/0/0 with T5 `pbpaste` returning the marker — physical end-user clipboard proof. e2e PASS=9/0/0 (after A36 fix). Meta-test `39 caught / 2 escaped / 8 skipped` (escapes pre-existing P5-M20/M21, see `Issues.md` B3). Nezha (Linux ALT 6.12 x86_64): `bash scripts/setup.sh --rebuild` → GREEN; suite `PASS=37 FAIL=0 SKIP=7` (SKIP 44 because T5 honestly SKIPs on headless server with no DISPLAY/Wayland; T1-T4 binding-chain proof all PASS — exactly the §104 topology dispatch the test was designed for). e2e PASS=9/0/0 including T7 distinct cgroup scopes for two operator-path sessions. Meta-test `37 caught / 4 escaped / 8 skipped` (P5-M20/M21 same pre-existing + M22 environmental-CodeGraph-state issue, see B3 — neither introduced by v1.0.14). Captured 2026-05-22 on both hosts. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `84c948d`); `Containers/` submodule (pinned `fbef9d6`); project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
@@ -36,7 +36,7 @@ Paste this prompt:
 
 ### §3.17 — v1.0.17 two user-reported bug fixes + B3 closure + dual-host re-validation (2026-05-29)
 
-**Status:** IN PROGRESS (fixes + Mistborn validation done; dual-host setup + release pending).
+**Status:** DONE — RELEASED v1.0.17 (2026-05-29). GitHub: <https://github.com/vasic-digital/tmux/releases/tag/v1.0.17> · GitLab: <https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.17>. Dual-host setup GREEN (Mistborn suite 51/0/4 + meta 47/0; nezha 43/0/12, double-prompt real-HOME 2→1). CodeGraph 0.9.7 validate PASS both hosts. Commits 1de20c5 → a6a81df → bbb1467.
 
 Operator reported two product defects 2026-05-29: (1) mouse select/copy
 unusable in tmx panes, especially under Claude Code; (2) double

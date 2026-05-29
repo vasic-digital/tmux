@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-05-29T11:30Z</p>
+<p><strong>Last updated:</strong> 2026-05-29T12:10Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -211,10 +211,14 @@ current state. Update this document as you work.</p>
 </tr>
 <tr>
 <td>Version</td>
-<td><strong>1.0.14</strong> (versionCode 15) — A35 clipboard copy-OUT
-physical proof (test 44 + M44 + TMUX-CH-44 + verify.sh Layer-1
-extension) + A36 e2e stale-podman-prereq fix + B3 P5 escape
-transparency; multi-host deploy (Mistborn + nezha), 2026-05-22</td>
+<td><strong>1.0.17</strong> (versionCode 18) — A41 bash-login double
+session-name prompt fixed (per-process
+<code>_TMX_SHELL_INIT_PROMPTED</code> guard; nezha real-HOME
+<code>bash -l -i</code> 2→1) + A42 mouse select/copy
+<code>prefix m</code> toggle (terminal-agnostic native-selection escape
+hatch for Claude Code) + B3 P5-M20/M21 escapes closed &amp; migrated to
+Fixed.md (meta 47 caught/0 escaped). Dual-host deploy GREEN (Mistborn +
+nezha), 2026-05-29. Released on GitHub + GitLab.</td>
 </tr>
 <tr>
 <td>Verification (this cycle)</td>
@@ -274,8 +278,14 @@ sacred invariant</li>
 id="317--v1017-two-user-reported-bug-fixes--b3-closure--dual-host-re-validation-2026-05-29">§3.17
 — v1.0.17 two user-reported bug fixes + B3 closure + dual-host
 re-validation (2026-05-29)</h3>
-<p><strong>Status:</strong> IN PROGRESS (fixes + Mistborn validation
-done; dual-host setup + release pending).</p>
+<p><strong>Status:</strong> DONE — RELEASED v1.0.17 (2026-05-29).
+GitHub: <a
+href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.17">https://github.com/vasic-digital/tmux/releases/tag/v1.0.17</a>
+· GitLab: <a
+href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.17">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.17</a>.
+Dual-host setup GREEN (Mistborn suite 51/0/4 + meta 47/0; nezha 43/0/12,
+double-prompt real-HOME 2→1). CodeGraph 0.9.7 validate PASS both hosts.
+Commits 1de20c5 → a6a81df → bbb1467.</p>
 <p>Operator reported two product defects 2026-05-29: (1) mouse
 select/copy unusable in tmx panes, especially under Claude Code; (2)
 double session-name prompt on new bash-login terminals. Plus directive
