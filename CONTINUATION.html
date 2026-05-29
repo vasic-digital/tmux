@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-05-29T16:35Z</p>
+<p><strong>Last updated:</strong> 2026-05-29T16:55Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -278,14 +278,19 @@ sacred invariant</li>
 id="320--tmux-paste-fix--tmx-reload--attach-reload--v1020-2026-05-29">§3.20
 — tmux PASTE fix + tmx reload + attach-reload → v1.0.20
 (2026-05-29)</h3>
-<p><strong>Status:</strong> RESOLVED + operator-confirmed (drag-select +
-Cmd-V pastes the selected content). Releasing v1.0.20; dual-host
-setup/validate in progress. Root cause of the long copy/paste saga: a
-tmux server loads config only at startup, so re-opened long-lived
-sessions kept stale bindings — fixed by <code>tmx attach</code>
-auto-reload + <code>tmx reload</code> + plain-drag override + POSIX
-paste binding. Tests 56/57/58 (real-mouse SGR + clipboard) + meta
-50/0.</p>
+<p><strong>Status:</strong> DONE — RELEASED v1.0.20 (2026-05-29).
+GitHub: <a
+href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.20">https://github.com/vasic-digital/tmux/releases/tag/v1.0.20</a>
+· GitLab: <a
+href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.20">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.20</a>.
+Operator-confirmed (drag-select + Cmd-V pastes selected content).
+Dual-host validated at release commit 0205b44: Mistborn run_all 53/0/4 +
+meta 50/0; nezha run_all 44/0/13 + test 58 PASS. Root cause of the long
+copy/paste saga: a tmux server loads config only at startup, so
+re-opened long-lived sessions kept stale bindings — fixed by
+<code>tmx attach</code> auto-reload + <code>tmx reload</code> +
+plain-drag override + POSIX paste binding. Tests 56/57/58 (real-mouse
+SGR + clipboard) + meta 50/0.</p>
 <ul>
 <li><strong>Root cause of "still can't copy"</strong>: the live Herald
 session was started BEFORE the mouse fix and a tmux server loads config

@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-29T16:35Z
+**Last updated:** 2026-05-29T16:55Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -36,8 +36,7 @@ Paste this prompt:
 
 ### §3.20 — tmux PASTE fix + tmx reload + attach-reload → v1.0.20 (2026-05-29)
 
-**Status:** RESOLVED + operator-confirmed (drag-select + Cmd-V pastes the
-selected content). Releasing v1.0.20; dual-host setup/validate in progress.
+**Status:** DONE — RELEASED v1.0.20 (2026-05-29). GitHub: <https://github.com/vasic-digital/tmux/releases/tag/v1.0.20> · GitLab: <https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.20>. Operator-confirmed (drag-select + Cmd-V pastes selected content). Dual-host validated at release commit 0205b44: Mistborn run_all 53/0/4 + meta 50/0; nezha run_all 44/0/13 + test 58 PASS.
 Root cause of the long copy/paste saga: a tmux server loads config only at
 startup, so re-opened long-lived sessions kept stale bindings — fixed by
 `tmx attach` auto-reload + `tmx reload` + plain-drag override + POSIX paste
