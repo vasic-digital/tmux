@@ -6,6 +6,43 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.19] — 2026-05-29
+
+**CodeGraph CLI resolves in non-interactive shells for `run_all.sh` + meta-test (dual-host full-verify hardening).**
+
+While bringing both hosts to the latest codebase and running a full
+test/verify, the standalone full suite on nezha (Linux) failed
+`20_codegraph_installed.sh` + `22_codegraph_mcp_wired.sh` — codegraph 0.9.7
+is installed and all MCP configs are wired, but nezha's `.bashrc` adds
+`~/.npm-global/bin` to PATH only *after* an interactive-guard
+(`case $- in *i*) ;; *) return ;;`), so a NON-interactive invocation
+(ssh-batch / CI) never gets `codegraph` on PATH and the tests fail spuriously
+while real interactive agent usage works.
+
+### Fixed
+
+- **`scripts/tests/run_all.sh`** + **`scripts/tests/meta_test_false_positive_proof.sh`**
+  — added the same npm-prefix PATH probe that `setup.sh` already carried (the
+  A31 nezha fix), so codegraph resolves in any invocation context. Idempotent
+  no-op when codegraph is already on PATH. Now the codegraph tests (20/22) pass
+  and the M22 CodeGraph mutation runs CAUGHT (not honest-SKIP) on nezha — the
+  nezha meta-test rose from 46→48 mutations caught.
+
+### Validation (dual-host, latest HEAD)
+
+- **Mistborn (Darwin arm64):** `run_all` PASS=51 FAIL=0 SKIP=4; meta-test
+  48 CAUGHT / 0 ESCAPED (M22 CAUGHT); setup gate GREEN.
+- **nezha (ALT Linux x86_64):** `run_all` PASS=43 FAIL=0 SKIP=12; meta-test
+  48 CAUGHT / 0 ESCAPED (M22 CAUGHT); setup gate GREEN.
+- Both hosts on the identical latest commit; CodeGraph 0.9.7 validate PASS on
+  both.
+
+This release carries no product/runtime change — it is a test-harness +
+verification robustness fix (the v1.0.18 mouse + double-prompt fixes are
+unchanged and remain GREEN).
+
+---
+
 ## [v1.0.18] — 2026-05-29
 
 **The real mouse-copy fix: a PLAIN drag now selects + copies inside Claude Code (proven with a real mouse, Linux + macOS).**
