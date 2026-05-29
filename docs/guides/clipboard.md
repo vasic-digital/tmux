@@ -1,10 +1,10 @@
 # tmx Clipboard — Operator Guide
 
-**Revision:** 1
-**Last modified:** 2026-05-28T17:00:00Z
+**Revision:** 2
+**Last modified:** 2026-05-29T11:40:00Z
 **Authority:** vasic-digital tmux project
 **Maintainer:** milosvasic
-**Scope:** Operator-facing guide for the v1.0.14 / v1.0.15 clipboard surface — multi-line copy-OUT, paste-IN, and modifier-drag selection inside mouse-tracking TUIs (especially Claude Code, vim, less, htop).
+**Scope:** Operator-facing guide for the v1.0.14 / v1.0.15 / v1.0.17 clipboard surface — multi-line copy-OUT, paste-IN, modifier-drag selection, and the `prefix m` mouse-toggle escape hatch inside mouse-tracking TUIs (especially Claude Code, vim, less, htop).
 
 ---
 
@@ -13,7 +13,8 @@
 | Goal | Keystroke / mouse |
 |---|---|
 | Select & copy a few lines of plain shell output | drag with mouse, release — then `pbpaste` / `wl-paste` / `xclip -o` |
-| Select & copy inside Claude Code, vim, less, htop | **Alt-drag** (macOS) OR **Shift-drag** (Linux) — then paste as above |
+| Select & copy inside Claude Code, vim, less, htop | **Shift-drag** (works on every terminal) — then paste as above |
+| **Just let me select with the mouse like a normal terminal** | **`prefix + m`** to toggle tmux mouse OFF, then drag normally and `Cmd-C` / right-click → Copy; `prefix + m` again to restore tmux scrollback |
 | Copy without a mouse | `prefix + [` → `v` → arrows / `j` / `k` → `y` |
 | Paste OS clipboard INTO the current pane | `prefix + P` (capital P; lowercase `p` is `previous-window`) |
 | Scroll back through history | wheel up (any device, including Termux touch) |
@@ -47,11 +48,22 @@ Effect: **hold Alt (`Option` on macOS) or Shift while you drag** and tmux forces
 
 | OS | Recommended modifier | Why |
 |---|---|---|
-| macOS (Terminal.app, iTerm2, WezTerm, Ghostty, Alacritty) | **Alt-drag** (hold Option) | Option passes through cleanly on every macOS terminal we tested |
-| Linux (gnome-terminal, konsole, xterm, kitty, foot, alacritty) | **Shift-drag** | The natural "select even in mouse-tracking apps" modifier on X11/Wayland; also the modifier most terminals already use to bypass their own mouse handling |
+| **Any OS / any terminal** | **Shift-drag** | The most reliable in-tmux gesture: no mainstream terminal claims Shift as a bypass modifier, so Shift-mouse events are forwarded to tmux, which forces copy-mode via `S-MouseDrag1Pane`. Works on macOS AND Linux. |
+| macOS (Terminal.app, WezTerm, Ghostty, Alacritty) | Alt-drag (hold Option) also works | Option passes through to tmux on these terminals → `M-MouseDrag1Pane` |
+| Linux (gnome-terminal, konsole, xterm, kitty, foot, alacritty) | Alt-drag also works | Option/Meta forwarded to tmux on X11/Wayland |
 | Termux on Android | long-press → "Select text" (terminal-native), then drag | Termux's gesture handler intercepts before tmux sees the event |
 
-Either modifier works on either OS — pick whichever your terminal forwards correctly.
+> **iTerm2 caveat (forensic anchor: user report 2026-05-29).** With iTerm2's default *Option Key Sends = Normal*, iTerm2 treats **Option-drag as its OWN native-selection bypass** — the drag never reaches tmux, so `M-MouseDrag1Pane` does NOT fire. That native iTerm2 selection still works (copy it with `Cmd-C`), but if you want tmux's copy-mode selection, **use Shift-drag** (or the `prefix m` toggle below). This is why Shift is the recommended cross-terminal gesture.
+
+### The simplest, always-works escape: `prefix + m` (v1.0.17)
+
+If you just want to **select and copy with the mouse like a normal terminal** — no modifier gymnastics, works identically in Claude Code, vim, plain shell, every terminal:
+
+```tmux
+bind m set -g mouse \; display-message 'mouse #{?mouse,ON …,OFF (use native terminal selection: drag + Cmd-C)}'
+```
+
+Press **`prefix m`** to toggle tmux's mouse handling **OFF**. With mouse off, tmux stops capturing drags entirely, so the **outer terminal's own selection** (iTerm2 / Terminal.app / WezTerm / any Linux terminal: click-drag → `Cmd-C` or right-click → Copy) works **everywhere, including inside Claude Code**. Press `prefix m` again to turn mouse back ON and restore tmux scrollback + copy-mode. The status line shows the new state each time. (tmux toggles a flag option when its value is omitted — see Sources verified.)
 
 ---
 
@@ -156,6 +168,10 @@ Each test follows Constitution §101 (positive captured evidence) and §11.4.69 
 - [`CHANGELOG.md`](../../CHANGELOG.md) v1.0.14 + v1.0.15 sections
 
 ---
+
+## Sources verified 2026-05-29
+
+- **tmux upstream man page** — <https://man.openbsd.org/tmux.1> (re-verified 2026-05-29 via WebFetch, OpenBSD ships the upstream tmux man page). Confirmed for the v1.0.17 `prefix m` addition: modifier prefixes "Ctrl keys may be prefixed with `C-` or `^`, Shift keys with `S-` and Alt (meta) with `M-`" (validates `S-MouseDrag1Pane` / `M-MouseDrag1Pane`); `-M` "passes through a mouse event (only valid if bound to a mouse key binding, see MOUSE SUPPORT)"; flag/choice options "can be omitted … to toggle its value" (validates `set -g mouse` with no value as a toggle); `#{?condition,true,false}` is the standard FORMATS conditional used in the `display-message` status hint.
 
 ## Sources verified 2026-05-28
 

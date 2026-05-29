@@ -42,10 +42,21 @@ trap 'rm -rf "$SANDBOX"' EXIT
 # Reproduce the nezha double-source topology in ONE process:
 #   .bash_profile sources tmx-shell-init  AND  sources .bashrc
 #   .bashrc       sources tmx-shell-init  (again, same process)
+# Each rc puts the scripts dir on PATH BEFORE sourcing the init — exactly as
+# the real deployment does (the VDIGITAL_TMUX_DIR block in the operator's
+# .bashrc/.zshrc). This is mandatory because a LOGIN shell sources
+# /etc/profile, which on some distros (e.g. ALT Linux on nezha) RESETS PATH
+# and would otherwise drop an inherited-env scripts dir, making `tmx`
+# unreachable so the init returns at its `command -v tmx` guard before the
+# prompt (observed 2026-05-29). Mirroring the rc PATH-add keeps the test
+# faithful + portable across macOS and Linux login-shell PATH handling.
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$INIT")" && pwd)
 cat > "$SANDBOX/.bashrc" <<RC
+export PATH="$SCRIPTS_DIR:\$PATH"
 [ -r "$INIT" ] && . "$INIT"
 RC
 cat > "$SANDBOX/.bash_profile" <<RC
+export PATH="$SCRIPTS_DIR:\$PATH"
 [ -r "$INIT" ] && . "$INIT"
 if [ -f "\$HOME/.bashrc" ]; then . "\$HOME/.bashrc"; fi
 RC
