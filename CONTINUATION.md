@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-29T15:20Z
+**Last updated:** 2026-05-29T16:35Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -34,9 +34,14 @@ Paste this prompt:
 
 ## §3 — Active work
 
-### §3.20 — tmux PASTE fix + tmx reload + Mistborn install/validate (2026-05-29)
+### §3.20 — tmux PASTE fix + tmx reload + attach-reload → v1.0.20 (2026-05-29)
 
-**Status:** Mistborn DONE; nezha PENDING operator manual-validation gate.
+**Status:** RESOLVED + operator-confirmed (drag-select + Cmd-V pastes the
+selected content). Releasing v1.0.20; dual-host setup/validate in progress.
+Root cause of the long copy/paste saga: a tmux server loads config only at
+startup, so re-opened long-lived sessions kept stale bindings — fixed by
+`tmx attach` auto-reload + `tmx reload` + plain-drag override + POSIX paste
+binding. Tests 56/57/58 (real-mouse SGR + clipboard) + meta 50/0.
 
 - **Root cause of "still can't copy"**: the live Herald session was started
   BEFORE the mouse fix and a tmux server loads config only at start → stale

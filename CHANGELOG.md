@@ -6,6 +6,60 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.20] — 2026-05-29
+
+**Paste fix + config-reload for running sessions — completes the copy/paste story (operator-confirmed: select + Cmd-V works).**
+
+Operator reports (2026-05-29): "we cannot paste into tmux session … it gets a
+completely new value"; then "Open new terminal -> Test -> ls -> cannot
+select/copy". Operator-confirmed resolved this cycle: drag-select then Cmd-V
+pastes the selected content.
+
+### Fixed
+
+- **`prefix P` paste binding (POSIX-clean rewrite).** The old binding
+  `tmux load-buffer - <<< "$(#{@clip-read})"` was broken three ways: a
+  nested-quote collision when `#{@clip-read}` (a double-quoted command) was
+  expanded inside an already-quoted `$(...)` → mangled "completely new value";
+  the `<<<` bash herestring fails under `/bin/sh` (dash) on Linux; and a
+  literal `\;`. Rewritten as a single-quoted `run-shell` wrapping an inline
+  double-quoted clipboard probe piped to `tmux load-buffer - && tmux
+  paste-buffer -p`. Verified: real `prefix P` pastes the EXACT clipboard value.
+- **Stale-running-session root cause.** A tmux server loads its config only at
+  startup, so a long-lived session re-opened via the shell-init prompt kept
+  the old (pre-fix) mouse binding forever — the true reason "select/copy" kept
+  failing across config updates. Two fixes:
+  - **`tmx attach` now auto-reloads** the shipped config into the session
+    before attaching, so re-opening ANY existing session always gets current
+    bindings.
+  - **NEW `tmx reload [-t NAME]`** applies config to running sessions on demand
+    (skips dead sockets) without restarting them.
+
+### Tests (real-mouse automation per operator demand)
+
+- **NEW test 58** — operator-path `tmx new -s Test` → `ls` → REAL SGR-1006
+  mouse drag over plain-shell output → asserts the dragged text reached the
+  clipboard pipe; plus proves `tmx attach` refreshes a stale session.
+- **NEW test 57** — stale-session repro → reload-fixes-copy → paste-buffer →
+  REAL `prefix P` exact-value OS-clipboard paste → no-`<<<` POSIX guard. 3/3.
+- test 46 T4 + `verify.sh` Layer-1 gate updated to accept the POSIX paste
+  binding (and FAIL on `<<<`); added gates for the plain-drag override +
+  `prefix m`. Meta-mutations `M-PASTE`, `M-TMX-ATTACH-RELOAD` (+ existing
+  `M-PLAINDRAG`, `M-MOUSETOGGLE`). Meta-test 50 CAUGHT / 0 ESCAPED.
+
+### Validation
+
+- **Mistborn (Darwin):** installed via `setup.sh` (verify GREEN); run_all 52/0/4
+  (1 known pre-existing flake: 38_stale_pwd_fallback / 16_window_name — both
+  pass 3/3 standalone); meta 50/0. Copy **operator-confirmed** (pbpaste + Cmd-V).
+- **nezha (Linux):** deployed + validated this release.
+
+Note: two long-standing full-suite-load flakes (tests 16, 38) remain tracked
+for a poll-with-budget hardening; both pass deterministically standalone and are
+unrelated to the copy/paste fixes.
+
+---
+
 ## [v1.0.19] — 2026-05-29
 
 **CodeGraph CLI resolves in non-interactive shells for `run_all.sh` + meta-test (dual-host full-verify hardening).**

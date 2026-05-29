@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>v1.0.20</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1 id="vasic-digital-tmux--v1020-release-notes">vasic-digital tmux —
+v1.0.20 Release Notes</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-29T16:30:00Z <strong>Version:</strong> 1.0.20 / versionCode 21
+<strong>Released:</strong> 2026-05-29 <strong>Hosts validated:</strong>
+Mistborn (Darwin arm64) + nezha (ALT Linux 6.12 x86_64)</p>
+<hr />
+<h2 id="summary">Summary</h2>
+<p>v1.0.20 completes the copy/paste story for tmx sessions.
+<strong>Operator-confirmed this cycle:</strong> drag-select text, then
+<code>Cmd-V</code> pastes the selected content. It fixes the
+<code>prefix P</code> paste binding (which previously produced "a
+completely new value"), and — the actual reason copy kept failing across
+earlier "fixes" — it makes config changes reach
+<strong>already-running</strong> sessions, so re-opening a long-lived
+session no longer leaves it stuck on stale bindings.</p>
+<p>Together with v1.0.18 (plain-drag select+copy in mouse-tracking apps
+like Claude Code) and the <code>prefix m</code> mouse toggle, select +
+copy + paste now work end-to-end with no modifier gymnastics.</p>
+<hr />
+<h2 id="fixed">Fixed</h2>
+<h3 id="prefix-p-paste--posix-clean-rewrite"><code>prefix P</code> paste
+— POSIX-clean rewrite</h3>
+<p>The previous binding:</p>
+<pre class="tmux"><code>bind P run -b &#39;tmux load-buffer - &lt;&lt;&lt; &quot;$(#{@clip-read})&quot; \; tmux paste-buffer -p&#39;</code></pre>
+<p>was broken three ways:</p>
+<ol type="1">
+<li><strong>Nested-quote collision</strong> — <code>#{@clip-read}</code>
+expands to a <em>double-quoted</em> <code>sh -c "…"</code> command;
+substituting it inside the already double-quoted <code>"$(…)"</code>
+collided the quotes and mangled the captured text → the operator's
+"completely new value".</li>
+<li><strong><code>&lt;&lt;&lt;</code> herestring</strong> is a bash-ism;
+<code>run-shell</code> uses <code>/bin/sh</code>, which on Linux is
+<code>dash</code> → the command fails outright.</li>
+<li><strong><code>\;</code></strong> was passed literally to
+<code>sh</code>.</li>
+</ol>
+<p>Rewritten collision-free and POSIX:</p>
+<pre class="tmux"><code>bind P run -b &#39;sh -c &quot;pbpaste 2&gt;/dev/null || wl-paste -n 2&gt;/dev/null || xclip -o -selection clipboard 2&gt;/dev/null || termux-clipboard-get 2&gt;/dev/null&quot; | tmux load-buffer - &amp;&amp; tmux paste-buffer -p&#39;</code></pre>
+<p>A single-quoted <code>run-shell</code> wraps a double-quoted inline
+OS-adaptive probe, piped to <code>tmux load-buffer -</code> then
+<code>paste-buffer -p</code> (bracketed). No <code>&lt;&lt;&lt;</code>,
+no format nesting. Verified: real <code>prefix P</code> pastes the EXACT
+clipboard value, on macOS and Linux.</p>
+<h3
+id="stale-running-session-config--the-true-root-cause">Stale-running-session
+config — the true root cause</h3>
+<p>A tmux server loads its config only at startup. A long-lived session
+re-opened via the shell-init prompt (<code>tmx attach -t NAME</code>)
+therefore kept its OLD mouse binding indefinitely — which is why
+"select/copy" kept failing for the operator even after the config was
+fixed (a brand-new session worked; the re-opened one did not). Two
+fixes:</p>
+<ul>
+<li><strong><code>tmx attach</code> auto-reloads</strong> the shipped
+config (<code>source-file</code>) into the session before attaching, so
+re-opening ANY existing session always applies the current bindings.
+Non-fatal/silent if absent.</li>
+<li><strong>NEW <code>tmx reload [-t NAME]</code></strong> subcommand
+source-files the config into running sessions on demand (skips dead
+socket files via a <code>has-session</code> precheck), without killing
+the session or losing pane content.</li>
+</ul>
+<hr />
+<h2 id="tests--real-mouse-automation-with-captured-evidence">Tests —
+real-mouse automation with captured evidence</h2>
+<p>Per the operator mandate ("full automation tests which will really
+test this scenario and confirm it working with real evidence"):</p>
+<ul>
+<li><strong>test 58</strong>
+(<code>58_operator_path_select_copy_ls.sh</code>) — drives the
+operator's EXACT scenario: real <code>tmx new -s Test</code> (wrapper /
+operator-path) → <code>ls</code> → a REAL SGR-1006 left mouse drag
+injected over the plain-shell output → asserts the dragged text reached
+the <code>@clip</code> sink; then proves <code>tmx attach</code>
+refreshes a deliberately-stale binding. 3/3 deterministic.</li>
+<li><strong>test 57</strong>
+(<code>57_reload_select_copy_paste.sh</code>) — (A) stale-session
+reproduces the failure, (B) reload fixes copy, (C) paste-buffer
+mechanism, (D) REAL <code>prefix P</code> pastes the EXACT OS-clipboard
+value, (E) no-<code>&lt;&lt;&lt;</code> POSIX guard.</li>
+<li><strong>test 56</strong> — plain drag selects+copies inside a
+mouse-tracking app.</li>
+<li><code>verify.sh</code> Layer-1 gate + test 46 T4 updated to accept
+the POSIX paste binding and FAIL on <code>&lt;&lt;&lt;</code>; added
+gates for the plain-drag override + <code>prefix m</code>.</li>
+<li>Paired mutations: <code>M-PASTE</code>,
+<code>M-TMX-ATTACH-RELOAD</code>, <code>M-PLAINDRAG</code>,
+<code>M-MOUSETOGGLE</code>. Meta-test: 50 CAUGHT / 0 ESCAPED.</li>
+</ul>
+<p>All headless (no GUI automation) — deterministic and CI-safe.</p>
+<hr />
+<h2 id="validation-dual-host">Validation (dual-host)</h2>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>install</th>
+<th>suite</th>
+<th>meta</th>
+<th>copy/paste</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mistborn (Darwin arm64)</td>
+<td>setup.sh GREEN</td>
+<td>run_all GREEN</td>
+<td>50 CAUGHT / 0 ESCAPED</td>
+<td>operator-confirmed (pbpaste + Cmd-V)</td>
+</tr>
+<tr>
+<td>nezha (ALT Linux x86_64)</td>
+<td>setup.sh GREEN</td>
+<td>run_all GREEN</td>
+<td>0 ESCAPED</td>
+<td>headless real-mouse proof PASS</td>
+</tr>
+</tbody>
+</table>
+<p>Known pre-existing full-suite-load flakes (tests 16 window-name, 38
+stale-pwd) remain tracked for a poll-with-budget hardening; both pass
+3/3 standalone and are unrelated to the copy/paste fixes.</p>
+<hr />
+<h2 id="files-changed">Files changed</h2>
+<ul>
+<li><code>scripts/tmux.conf.template</code> — POSIX
+<code>prefix P</code> paste binding.</li>
+<li><code>scripts/tmx.template</code> — <code>tmx reload</code>
+subcommand + <code>tmx attach</code> auto-reload.</li>
+<li><code>scripts/tests/57_reload_select_copy_paste.sh</code> (NEW),
+<code>58_operator_path_select_copy_ls.sh</code> (NEW).</li>
+<li><code>scripts/tests/46_paste_in_physical.sh</code> (T4),
+<code>scripts/verify.sh</code> (Layer-1 gates).</li>
+<li><code>scripts/tests/meta_test_false_positive_proof.sh</code> —
+<code>M-PASTE</code> + <code>M-TMX-ATTACH-RELOAD</code>.</li>
+<li><code>VERSION</code>, <code>CHANGELOG.md</code>,
+<code>CONTINUATION.md</code>, evidence under
+<code>docs/qa/2026-05-29-paste-fix-reload/</code>.</li>
+</ul>
+<h2 id="sources-verified-2026-05-29">Sources verified 2026-05-29</h2>
+<ul>
+<li>tmux upstream man page — <a
+href="https://man.openbsd.org/tmux.1">https://man.openbsd.org/tmux.1</a>:
+<code>run-shell</code> executes via <code>/bin/sh</code>;
+<code>load-buffer -</code> reads stdin into a buffer;
+<code>paste-buffer -p</code> bracketed paste;
+<code>set -g @user-option</code>; <code>source-file</code> re-reads
+config into a running server. <code>&lt;&lt;&lt;</code> confirmed
+bash-only (not POSIX <code>sh</code>).</li>
+</ul>
+</body>
+</html>
