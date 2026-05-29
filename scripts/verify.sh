@@ -91,7 +91,14 @@ _l1 "MouseDragEnd1Pane -> @clip"   '^bind +-T +copy-mode-vi +MouseDragEnd1Pane .
 # anchor: operator mandate 2026-05-28 (copy/paste in Claude Code).
 # Paired runtime evidence: tests 45 / 46 / 47 / 48.
 _l1 "@clip-read user option"        '^set +-g +@clip-read '
-_l1 "prefix+P paste binding"        '^bind +P +.*@clip-read'
+# prefix+P paste binding: POSIX inline OS-adaptive probe piped to load-buffer
+# (the 2026-05-29 fix) OR a legacy @clip-read reference. Must paste via buffer.
+_l1 "prefix+P paste binding"        '^bind +P +run.*paste-buffer'
+# v1.0.18: plain-drag ALWAYS enters copy-mode (select+copy in mouse-tracking
+# apps like Claude Code). Forensic anchor: user report 2026-05-29.
+_l1 "plain-drag copy-mode override" '^bind +-n +MouseDrag1Pane +if.*copy-mode'
+# v1.0.17: prefix+m mouse toggle (native-terminal selection escape hatch).
+_l1 "prefix+m mouse toggle"         '^bind +m +set +-g +mouse'
 _l1 "M-MouseDrag1Pane override"     '^bind +-n +M-MouseDrag1Pane +.*copy-mode'
 _l1 "S-MouseDrag1Pane override"     '^bind +-n +S-MouseDrag1Pane +.*copy-mode'
 _l1 "M-MouseDragEnd1Pane -> @clip"  '^bind +-T +copy-mode-vi +M-MouseDragEnd1Pane +.*copy-pipe-and-cancel.*@clip'
