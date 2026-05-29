@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-29T12:30Z
+**Last updated:** 2026-05-29T12:45Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -36,7 +36,7 @@ Paste this prompt:
 
 ### §3.18 — v1.0.18 REAL mouse-copy fix: plain drag selects+copies in Claude Code, proven with a real mouse (2026-05-29)
 
-**Status:** IN PROGRESS (fix + Mistborn proof done; dual-host setup + release pending).
+**Status:** DONE — RELEASED v1.0.18 (2026-05-29). GitHub: <https://github.com/vasic-digital/tmux/releases/tag/v1.0.18> · GitLab: <https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.18>. Real-mouse PROVEN on BOTH platforms: Mistborn (suite 51/0/4 + meta 48/0 + real cliclick cursor drag over iTerm2 → pbpaste) AND nezha Linux (verify 43/0/12 GREEN + headless SGR real-mouse-drag → @clip sink, after the TERM=xterm-256color test-harness fix). Commits 5c667cc → 06e43d0 → 69d1418. NOTE: test 16 (window-name) flaked once under full-suite load on nezha (passes 3/3 standalone + GREEN on retry) — pre-existing §11.4.50 reliability issue, unrelated to the mouse fix; tracked for a future poll-with-budget fix.
 
 Operator re-reported that select+copy still failed in Claude Code and demanded
 it work on BOTH Linux + macOS. The v1.0.17 `prefix m` toggle was insufficient

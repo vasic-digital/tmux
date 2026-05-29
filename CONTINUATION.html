@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-05-29T12:30Z</p>
+<p><strong>Last updated:</strong> 2026-05-29T12:45Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -278,8 +278,19 @@ sacred invariant</li>
 id="318--v1018-real-mouse-copy-fix-plain-drag-selectscopies-in-claude-code-proven-with-a-real-mouse-2026-05-29">§3.18
 — v1.0.18 REAL mouse-copy fix: plain drag selects+copies in Claude Code,
 proven with a real mouse (2026-05-29)</h3>
-<p><strong>Status:</strong> IN PROGRESS (fix + Mistborn proof done;
-dual-host setup + release pending).</p>
+<p><strong>Status:</strong> DONE — RELEASED v1.0.18 (2026-05-29).
+GitHub: <a
+href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.18">https://github.com/vasic-digital/tmux/releases/tag/v1.0.18</a>
+· GitLab: <a
+href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.18">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.18</a>.
+Real-mouse PROVEN on BOTH platforms: Mistborn (suite 51/0/4 + meta 48/0
++ real cliclick cursor drag over iTerm2 → pbpaste) AND nezha Linux
+(verify 43/0/12 GREEN + headless SGR real-mouse-drag → @clip sink, after
+the TERM=xterm-256color test-harness fix). Commits 5c667cc → 06e43d0 →
+69d1418. NOTE: test 16 (window-name) flaked once under full-suite load
+on nezha (passes 3/3 standalone + GREEN on retry) — pre-existing
+§11.4.50 reliability issue, unrelated to the mouse fix; tracked for a
+future poll-with-budget fix.</p>
 <p>Operator re-reported that select+copy still failed in Claude Code and
 demanded it work on BOTH Linux + macOS. The v1.0.17
 <code>prefix m</code> toggle was insufficient (required a magic
