@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-29T13:30Z
+**Last updated:** 2026-05-29T13:55Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -34,9 +34,9 @@ Paste this prompt:
 
 ## §3 — Active work
 
-### §3.19 — Dual-host update to latest HEAD + full test/verify (2026-05-29)
+### §3.19 — Dual-host update + full test/verify + v1.0.19 release (2026-05-29)
 
-**Status:** DONE. Both hosts pulled to HEAD `a0a3f85` and fully verified.
+**Status:** DONE — RELEASED v1.0.19 (2026-05-29). GitHub: <https://github.com/vasic-digital/tmux/releases/tag/v1.0.19> · GitLab: <https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.19>. §11.4.40 full retest at the release commit `c5235f8`: Mistborn run_all 51/0/4 + meta 48/0; nezha run_all 43/0/12 + meta 48/0; M22 CAUGHT on both. v1.0.19 = the codegraph non-interactive PATH probe in run_all + meta-test (no product/runtime change). Both hosts verified at the release commit.
 Mistborn (Darwin): run_all `PASS=51 FAIL=0 SKIP=4`, meta `48 CAUGHT / 0
 ESCAPED` (M22 CAUGHT). nezha (Linux): run_all `PASS=43 FAIL=0 SKIP=12`, meta
 `48 CAUGHT / 0 ESCAPED` (M22 CAUGHT). Fix landed this round: added the A31
