@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-05-29T12:45Z</p>
+<p><strong>Last updated:</strong> 2026-05-29T13:30Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -274,6 +274,25 @@ user-mandate quote)</li>
 sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
+<h3
+id="319--dual-host-update-to-latest-head--full-testverify-2026-05-29">§3.19
+— Dual-host update to latest HEAD + full test/verify (2026-05-29)</h3>
+<p><strong>Status:</strong> DONE. Both hosts pulled to HEAD
+<code>a0a3f85</code> and fully verified. Mistborn (Darwin): run_all
+<code>PASS=51 FAIL=0 SKIP=4</code>, meta
+<code>48 CAUGHT / 0 ESCAPED</code> (M22 CAUGHT). nezha (Linux): run_all
+<code>PASS=43 FAIL=0 SKIP=12</code>, meta
+<code>48 CAUGHT / 0 ESCAPED</code> (M22 CAUGHT). Fix landed this round:
+added the A31 npm-prefix PATH probe to
+<code>scripts/tests/run_all.sh</code> +
+<code>meta_test_false_positive_proof.sh</code> (commits 5d6196c,
+a0a3f85) so the codegraph tests (20/22) + M22 mutation resolve the CLI
+in NON-INTERACTIVE shells too — nezha's <code>.bashrc</code> adds
+<code>~/.npm-global/bin</code> only behind an interactive-guard, so
+standalone run_all over ssh-batch previously failed 20/22 spuriously
+while real interactive agent usage worked. test 16 nezha full-suite
+flake ((window-name test, passes standalone)) did not recur this
+round.</p>
 <h3
 id="318--v1018-real-mouse-copy-fix-plain-drag-selectscopies-in-claude-code-proven-with-a-real-mouse-2026-05-29">§3.18
 — v1.0.18 REAL mouse-copy fix: plain drag selects+copies in Claude Code,

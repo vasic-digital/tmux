@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-29T12:45Z
+**Last updated:** 2026-05-29T13:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,20 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.19 — Dual-host update to latest HEAD + full test/verify (2026-05-29)
+
+**Status:** DONE. Both hosts pulled to HEAD `a0a3f85` and fully verified.
+Mistborn (Darwin): run_all `PASS=51 FAIL=0 SKIP=4`, meta `48 CAUGHT / 0
+ESCAPED` (M22 CAUGHT). nezha (Linux): run_all `PASS=43 FAIL=0 SKIP=12`, meta
+`48 CAUGHT / 0 ESCAPED` (M22 CAUGHT). Fix landed this round: added the A31
+npm-prefix PATH probe to `scripts/tests/run_all.sh` + `meta_test_false_positive_proof.sh`
+(commits 5d6196c, a0a3f85) so the codegraph tests (20/22) + M22 mutation
+resolve the CLI in NON-INTERACTIVE shells too — nezha's `.bashrc` adds
+`~/.npm-global/bin` only behind an interactive-guard, so standalone run_all
+over ssh-batch previously failed 20/22 spuriously while real interactive agent
+usage worked. test 16 nezha full-suite flake ((window-name test, passes standalone))
+did not recur this round.
 
 ### §3.18 — v1.0.18 REAL mouse-copy fix: plain drag selects+copies in Claude Code, proven with a real mouse (2026-05-29)
 
