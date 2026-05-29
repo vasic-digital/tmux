@@ -83,13 +83,22 @@ sleep 1
 # headless capture sink (the copy mechanism is identical to @clip->pbcopy)
 "$BIN" -L "$SOCK" set -g @clip "cat > $SINK"
 MAF=$("$BIN" -L "$SOCK" display-message -p -t "$NAME" '#{mouse_any_flag}')
-"$BIN" -L "$SOCK" send-keys -t "$NAME" "ls -la /etc | head -12" Enter
-sleep 0.8
+# Run `ls` (the operator's scenario) then print a deterministic, OS-INDEPENDENT
+# token at the TOP of the screen via `clear` + a POSIX loop, so the drag has a
+# guaranteed target regardless of shell-startup banners (oh-my-bash on Linux
+# prints a banner at the top) or `ls` output differences (macOS /etc symlink vs
+# a Linux dir). The token-fill is plain-shell output (mouse_any_flag=0) — the
+# operator's exact case. Forensic: nezha 2026-05-29 — the macOS-specific
+# `grep /etc` matched the symlink target on Darwin but not Linux ls rows, and
+# the drag hit the oh-my-bash banner.
+LSTOK="LSCOPY58_$$"
+"$BIN" -L "$SOCK" send-keys -t "$NAME" "ls -la / >/dev/null 2>&1; clear; for i in 1 2 3 4 5 6 7 8; do echo ${LSTOK}; done" Enter
+sleep 1.0
 : > "$SINK"
 inject_drag "$SOCK" "$NAME"
 sleep 0.3
-if [ "$MAF" = "0" ] && grep -q '/etc' "$SINK" 2>/dev/null; then
-    echo "EVIDENCE (1): operator-path 'tmx new -s $NAME' PLAIN shell (mouse_any_flag=0) — real mouse drag over ls output SELECTED+COPIED ($(tr -d '\n' < "$SINK" | head -c 40))"
+if [ "$MAF" = "0" ] && grep -q "$LSTOK" "$SINK" 2>/dev/null; then
+    echo "EVIDENCE (1): operator-path 'tmx new -s $NAME' PLAIN shell (mouse_any_flag=0) — real mouse drag over shell output SELECTED+COPIED ($(tr -d '\n' < "$SINK" | head -c 40))"
 else
     echo "FAIL: 58(1) — plain-shell ls drag did not copy (mouse_any_flag=$MAF, sink=$(tr -d '\n' < "$SINK" | head -c 30))"; fail=1
 fi
