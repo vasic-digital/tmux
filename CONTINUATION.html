@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-05-29T13:55Z</p>
+<p><strong>Last updated:</strong> 2026-05-29T15:20Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -274,6 +274,46 @@ user-mandate quote)</li>
 sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
+<h3
+id="320--tmux-paste-fix--tmx-reload--mistborn-installvalidate-2026-05-29">§3.20
+— tmux PASTE fix + tmx reload + Mistborn install/validate
+(2026-05-29)</h3>
+<p><strong>Status:</strong> Mistborn DONE; nezha PENDING operator
+manual-validation gate.</p>
+<ul>
+<li><strong>Root cause of "still can't copy"</strong>: the live Herald
+session was started BEFORE the mouse fix and a tmux server loads config
+only at start → stale forwarding binding. Fix is
+reload-of-running-sessions. Added <code>tmx reload [-t NAME]</code>
+(source-file into running sessions; skips dead sockets).</li>
+<li><strong>PASTE FIX</strong>: <code>prefix P</code> binding
+<code>tmux load-buffer - &lt;&lt;&lt; "$(#{@clip-read})"</code> was
+broken 3 ways — #{@clip-read} nested-quote collision ("completely new
+value"), <code>&lt;&lt;&lt;</code> bash-herestring fails under /bin/sh
+(dash/Linux), literal <code>\;</code>. Rewritten POSIX-clean
+(single-quoted run-shell wrapping inline double-quoted probe
+<code>| tmux load-buffer - &amp;&amp; tmux paste-buffer -p</code>). Real
+prefix-P now pastes the EXACT clipboard value.</li>
+<li><strong>Tests</strong>: NEW test 57 (A stale-repro / B
+reload-fixes-copy / C paste-buffer / D REAL prefix-P exact-value / E
+no-<code>&lt;&lt;&lt;</code> POSIX guard), 3/3. test 46 T4 + verify.sh
+Layer-1 gate updated to accept the POSIX paste binding + ADDED gates for
+plain-drag override + prefix+m. Meta mutations M-PASTE + M-PLAINDRAG
+<ul>
+<li>M-MOUSETOGGLE. Evidence: docs/qa/2026-05-29-paste-fix-reload/.</li>
+</ul></li>
+<li><strong>Mistborn</strong>: installed via setup.sh (verify GREEN),
+run_all 52/0/4, meta 49 CAUGHT / 0 ESCAPED. Copy + paste + reload all
+proven on the installed host.</li>
+<li><strong>HONEST NOTE</strong>: during socket cleanup the live
+<code>Herald</code> tmux server ended (no tmux servers running
+afterward); exact cause undetermined (NOT guessed). Aggressive
+socket-file pruning around a live session was careless — stopped. Stale
+Herald socket removed.</li>
+<li><strong>PENDING (operator gate)</strong>: operator to manually
+validate copy+paste in a FRESH <code>tmx new -s X</code> session; THEN
+nezha setup + validation; THEN next release.</li>
+</ul>
 <h3
 id="319--dual-host-update--full-testverify--v1019-release-2026-05-29">§3.19
 — Dual-host update + full test/verify + v1.0.19 release

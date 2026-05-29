@@ -1,0 +1,15 @@
+# tmux copy+paste+reload evidence (Fri May 29 15:14:56 +05 2026) HEAD=5cb06e1
+
+## test 56 — plain-drag select+copy in mouse-tracking app (real SGR mouse)
+EVIDENCE: mouse_any_flag=1 at drag time (mouse-tracking app active — Claude Code scenario)
+EVIDENCE: plain drag copied the token to @clip sink (AGPROOF_54313_1780049696 DRAGPROOF_54313_1780049)
+SKIP-layer: 56 GUI cliclick proof not run (opt-in TMX_GUI_TESTS=1 on macOS w/ cliclick); headless SGR proof is the cross-platform authority (§11.4.3)
+PASS: 56 plain mouse-drag selects+copies inside a mouse-tracking app (Claude Code scenario), cross-platform
+
+## test 57 — reload + select + copy + paste (real prefix-P exact-value)
+EVIDENCE (A): STALE session (old binding) — plain drag copied NOTHING (reproduces the reported failure)
+EVIDENCE (B): after reload — plain drag SELECTED+COPIED (D_54480 RELOADED_54480 RELOADED_); binding now copy-mode override
+EVIDENCE (C): PASTE — tmux buffer pasted into the live pane (capture-pane shows 'PASTEPROOF_54480')
+EVIDENCE (D): real 'prefix P' pasted the EXACT OS-clipboard value 'OSPASTE_54480_1780049707' into the pane
+EVIDENCE (E): paste binding is POSIX (pipe to load-buffer, no '<<<', no #{@clip-read} nesting)
+PASS: 57 reload + select + copy + paste — stale session repro, reload-fixes-copy, and paste all proven

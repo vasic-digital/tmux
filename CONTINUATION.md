@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-29T13:55Z
+**Last updated:** 2026-05-29T15:20Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,34 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.20 — tmux PASTE fix + tmx reload + Mistborn install/validate (2026-05-29)
+
+**Status:** Mistborn DONE; nezha PENDING operator manual-validation gate.
+
+- **Root cause of "still can't copy"**: the live Herald session was started
+  BEFORE the mouse fix and a tmux server loads config only at start → stale
+  forwarding binding. Fix is reload-of-running-sessions. Added `tmx reload
+  [-t NAME]` (source-file into running sessions; skips dead sockets).
+- **PASTE FIX**: `prefix P` binding `tmux load-buffer - <<< "$(#{@clip-read})"`
+  was broken 3 ways — #{@clip-read} nested-quote collision ("completely new
+  value"), `<<<` bash-herestring fails under /bin/sh (dash/Linux), literal `\;`.
+  Rewritten POSIX-clean (single-quoted run-shell wrapping inline double-quoted
+  probe `| tmux load-buffer - && tmux paste-buffer -p`). Real prefix-P now
+  pastes the EXACT clipboard value.
+- **Tests**: NEW test 57 (A stale-repro / B reload-fixes-copy / C paste-buffer /
+  D REAL prefix-P exact-value / E no-`<<<` POSIX guard), 3/3. test 46 T4 +
+  verify.sh Layer-1 gate updated to accept the POSIX paste binding + ADDED
+  gates for plain-drag override + prefix+m. Meta mutations M-PASTE + M-PLAINDRAG
+  + M-MOUSETOGGLE. Evidence: docs/qa/2026-05-29-paste-fix-reload/.
+- **Mistborn**: installed via setup.sh (verify GREEN), run_all 52/0/4, meta
+  49 CAUGHT / 0 ESCAPED. Copy + paste + reload all proven on the installed host.
+- **HONEST NOTE**: during socket cleanup the live `Herald` tmux server ended
+  (no tmux servers running afterward); exact cause undetermined (NOT guessed).
+  Aggressive socket-file pruning around a live session was careless — stopped.
+  Stale Herald socket removed.
+- **PENDING (operator gate)**: operator to manually validate copy+paste in a
+  FRESH `tmx new -s X` session; THEN nezha setup + validation; THEN next release.
 
 ### §3.19 — Dual-host update + full test/verify + v1.0.19 release (2026-05-29)
 
