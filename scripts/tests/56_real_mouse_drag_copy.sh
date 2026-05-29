@@ -87,6 +87,13 @@ import os,pty,select,time,sys,subprocess
 BIN,L,APP,TOK=sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4]
 pid,fd=pty.fork()
 if pid==0:
+    # A mouse-capable TERM is REQUIRED on the attach client: tmux does not
+    # parse incoming mouse (SGR) sequences for a "dumb" terminal, and over
+    # `ssh host 'bash -s'` the inherited TERM is "dumb" — which silently made
+    # this proof fail on Linux until set explicitly (forensic anchor: nezha
+    # 2026-05-29). Real desktop terminals set xterm-256color, so end users are
+    # unaffected; the test just must not inherit "dumb".
+    os.environ["TERM"]="xterm-256color"
     os.execvp(BIN,[BIN,"-L",L,"attach","-t","s"]); os._exit(127)
 time.sleep(1.0)
 subprocess.run([BIN,"-L",L,"send-keys","-t","s","python3 "+APP+" "+TOK,"Enter"])
