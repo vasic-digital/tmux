@@ -243,6 +243,113 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project's anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v1017--2026-05-29">[v1.0.17] — 2026-05-29</h2>
+<p><strong>Two user-reported product bug fixes (mouse copy + double
+prompt) + B3 anti-bluff closure + dual-host re-validation.</strong></p>
+<p>Operator reports (2026-05-29): (1) "we cannot still copy from any
+tmux / tmx window … especially when in claude code … nothing can be
+selected and copied using mouse!"; (2) "opening new terminal asks us for
+session name, if we … press enter and go with no session, we are asked
+again — so twice in a row. one enter is enough."</p>
+<h3
+id="fixed-a42--mouse-selectcopy-unusable-in-tmx-panes-esp-claude-code">Fixed
+(A42 — mouse select/copy unusable in tmx panes, esp. Claude Code)</h3>
+<ul>
+<li>Root cause was NOT a stale config (the live server already had
+<code>mouse on</code>, the <code>M-/S-MouseDrag1Pane</code> overrides,
+and a working <code>@clip</code>→<code>pbcopy</code> pipe). It was a
+discoverability / cross-terminal gap: inside a mouse-tracking app
+(<code>#{mouse_any_flag}</code>, e.g. Claude Code) a PLAIN drag is
+forwarded to the app by design, and on iTerm2 with the default
+<em>Option Key Sends = Normal</em> Option/Alt-drag is consumed by
+iTerm2's OWN native-selection bypass and never reaches tmux — leaving
+only Shift-drag, which the operator had no way to discover.</li>
+<li><strong>Fix:</strong> added a <code>prefix m</code> mouse-toggle to
+<code>scripts/tmux.conf.template</code>
+(<code>bind m set -g mouse \; display-message …</code>). With mouse OFF,
+the outer terminal's NATIVE selection (drag → Cmd-C / right-click →
+Copy) works EVERYWHERE, including inside Claude Code — the robust,
+terminal-agnostic copy escape hatch. Documented the reliable gestures
+(Shift-drag for in-tmux selection; <code>prefix m</code> for native
+selection) in the config + <code>docs/guides/clipboard.md</code>.</li>
+<li><strong>Tests:</strong> NEW <code>55_mouse_toggle_and_copy.sh</code>
+(binding present + mouse flips
+<ul>
+<li>Shift-drag override + copy-pipe delivers; 3/3 deterministic) + NEW
+<code>56_real_mouse_drag_copy.sh</code> (real Shift-drag via
+<code>cliclick</code>, honest §11.4.3 SKIP where GUI-automation topology
+absent) + meta-test mutation <code>M-MOUSETOGGLE</code> (strip toggle →
+test 55 FAILs, CAUGHT).</li>
+</ul></li>
+</ul>
+<h3
+id="fixed-a41--double-session-name-prompt-on-bash-login-terminals">Fixed
+(A41 — double session-name prompt on bash-login terminals)</h3>
+<ul>
+<li>Root cause (reproduced on the affected host): on Linux/bash a single
+login PROCESS sources <code>tmx-shell-init.sh</code> TWICE —
+<code>.bash_profile</code> carries the source line AND sources
+<code>.bashrc</code> which also carries it. The
+blank/<code>default</code> path RETURNS (doesn't <code>exec</code>), so
+<code>.bash_profile</code> continues and the second source re-prompts —
+exactly the "twice in a row, only on press-Enter" symptom. nezha
+<code>bash -l -i</code> → PROMPT_COUNT=2; macOS zsh → 1 (zsh sources
+<code>.zshrc</code> once per process, so it never showed on
+Mistborn).</li>
+<li><strong>Fix (§11.4.1, at source):</strong> per-process NON-exported
+idempotency guard <code>_TMX_SHELL_INIT_PROMPTED</code> in
+<code>scripts/tmx-shell-init.sh.template</code> — prompts at most once
+per shell process; resets per new terminal. The legitimate single-source
+first prompt is preserved.</li>
+<li><strong>Tests:</strong> NEW
+<code>54_double_prompt_idempotent.sh</code> (PTY harness reproducing the
+<code>.bash_profile</code>→<code>.bashrc</code> double-source; RED
+count=2 → GREEN count=1, 3/3 deterministic) + meta-test mutation
+<code>M-DBLPROMPT</code> (strip guard → test 54 FAILs, CAUGHT).
+<strong>On-affected-host proof:</strong> nezha real-HOME
+<code>bash -l -i</code> PROMPT_COUNT 2 → 1 after deploy.</li>
+</ul>
+<h3
+id="fixed-b3--p5-m20p5-m21-paired-mutation-escapes-migrated-to-fixedmd-b3">Fixed
+(B3 — P5-M20/P5-M21 paired-mutation escapes, migrated to Fixed.md
+§B3)</h3>
+<ul>
+<li>State-verified with current evidence (§11.4.7): the v1.0.9 layer-4
+escapes are CLOSED (tests 49/50 added in v1.0.16 catch them
+universally). Meta-test now <code>MUTATIONS CAUGHT 47 / ESCAPED 0</code>
+on Mistborn. The stale <code>Issues.md</code> B3 entry is removed and
+migrated to <code>Fixed.md</code>. M22 (CodeGraph own-org exclusion)
+CAUGHT on Mistborn; nezha CodeGraph baseline re-established via
+<code>codegraph_setup.sh</code> during this cycle's dual-host
+setup.</li>
+</ul>
+<h3
+id="validation-dual-host-captured-evidence-under-docsqa2026-05-29-v1017-mouse-doubleprompt">Validation
+(dual-host, captured evidence under
+<code>docs/qa/2026-05-29-v1.0.17-mouse-doubleprompt/</code>)</h3>
+<ul>
+<li><strong>Mistborn (Darwin arm64):</strong> <code>setup.sh</code>
+GREEN; full suite <code>PASS=51 FAIL=0 SKIP=4</code>; meta-test
+<code>47 CAUGHT / 0 ESCAPED</code>; CodeGraph 0.9.7
+<code>codegraph_validate</code> PASS=4/0/1.</li>
+<li><strong>nezha (ALT Linux 6.12 x86_64):</strong>
+<code>setup.sh</code> GREEN <code>PASS=43 FAIL=0 SKIP=12</code>;
+double-prompt re-proven real-HOME <code>bash -l -i</code> 2 → 1; rc
+snippet re-installed; CodeGraph baseline repaired.</li>
+<li>CodeGraph upgraded to 0.9.6 on both hosts (operator-installed);
+validation green on both.</li>
+</ul>
+<h3 id="tooling">Tooling</h3>
+<ul>
+<li><code>qa-results/</code> added to <code>.gitignore</code> (§11.4.30
+transient test output); curated captured evidence committed under
+<code>docs/qa/</code>.</li>
+<li><code>docs/guides/clipboard.md</code> Revision 2, §11.4.99 sources
+re-verified 2026-05-29 against the upstream tmux man page (mouse toggle
+/ <code>S-</code>/<code>M-</code> modifiers / flag-toggle
+semantics).</li>
+</ul>
+<hr />
 <h2 id="v1016--2026-05-28">[v1.0.16] — 2026-05-28</h2>
 <p><strong>Gap closure + comprehensive validation surface + first
 zero-escape meta-test.</strong></p>

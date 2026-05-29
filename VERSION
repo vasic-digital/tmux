@@ -1,6 +1,6 @@
 version=1.0.17
 versionCode=18
-released=2026-05-28
+released=2026-05-29
 
 # This file is the single source of truth for the project's version.
 # `version=` is the semver string (display + tag); `versionCode=` is the

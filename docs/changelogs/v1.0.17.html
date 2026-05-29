@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>v1.0.17</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1 id="vasic-digital-tmux--v1017-release-notes">vasic-digital tmux —
+v1.0.17 Release Notes</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-05-29T12:00:00Z <strong>Version:</strong> 1.0.17 / versionCode 18
+<strong>Released:</strong> 2026-05-29 <strong>Hosts validated:</strong>
+Mistborn (Darwin arm64) + nezha (ALT Linux 6.12 x86_64)</p>
+<hr />
+<h2 id="summary">Summary</h2>
+<p>Two operator-reported product defects fixed end-to-end with
+autonomous physical-proof tests, the stale B3 anti-bluff item closed and
+migrated, and the build re-deployed + re-validated on both supported
+hosts. CodeGraph upgraded to 0.9.6→0.9.7 on both hosts
+(operator-installed) with validation green.</p>
+<p>Operator mandates (2026-05-29):</p>
+<ol type="1">
+<li><em>"we cannot still copy from any tmux / tmx window … especially
+when in claude code … nothing can be selected and copied using
+mouse!"</em></li>
+<li><em>"opening new terminal asks us for session name, if we … press
+enter and go with no session, we are asked again — so twice in a row.
+one enter is enough …"</em></li>
+<li><em>"every change … MUST BE covered with validation and verification
+tests which will fully automatically repeat all issues … produce real
+evidence … run setup on current host and remote nezha host … release new
+version using GitHub and GitLab CLIs."</em></li>
+</ol>
+<hr />
+<h2 id="a41--double-session-name-prompt-on-bash-login-terminals-bug">A41
+— Double session-name prompt on bash-login terminals (Bug)</h2>
+<p><strong>Symptom.</strong> On a new terminal the operator is asked for
+a session name; pressing Enter for no session prompts AGAIN — twice in a
+row.</p>
+<p><strong>Root cause (reproduced on the affected host, no guessing per
+§11.4.6).</strong> On Linux/bash a single login-shell PROCESS sources
+<code>tmx-shell-init.sh</code> TWICE: <code>.bash_profile</code> carries
+the source line AND sources <code>.bashrc</code>, which also carries it.
+The blank/<code>default</code> branch RETURNS (it does not
+<code>exec</code>), so <code>.bash_profile</code> then continues,
+sources <code>.bashrc</code>, and the second source re-prompts. The
+name-entry branch <code>exec</code>s and replaces the process before
+<code>.bashrc</code> is reached — which is exactly why the operator only
+saw it on the press-Enter / no-session path. Measured: nezha
+<code>bash -l -i</code> → PROMPT_COUNT=2; macOS zsh <code>-l -i</code> →
+1 (zsh sources <code>.zshrc</code> once per process, so Mistborn never
+showed it).</p>
+<p><strong>Fix (§11.4.1 — at source, not at the rc call sites).</strong>
+A per-process, NON-exported idempotency guard
+<code>_TMX_SHELL_INIT_PROMPTED</code> was added to
+<code>scripts/tmx-shell-init.sh.template</code> immediately before the
+prompt. It makes the interactive prompt fire at most once per shell
+process while resetting for each new shell process, so every new
+terminal still prompts exactly once. The legitimate single-source first
+prompt is preserved (verified).</p>
+<p><strong>Captured evidence (4-layer).</strong></p>
+<ul>
+<li>L1 parseability: <code>sh -n</code> clean (§11.4.67).</li>
+<li>L3 runtime:
+<code>scripts/tests/54_double_prompt_idempotent.sh</code> — PTY harness
+reproducing the <code>.bash_profile</code>→<code>.bashrc</code>
+double-source in one process — RED <code>prompt_count=2</code> → GREEN
+<code>prompt_count=1</code>, 3/3 deterministic (§11.4.50).</li>
+<li>L4 paired mutation: <code>M-DBLPROMPT</code> strips the guard and
+asserts test 54 FAILs — CAUGHT.</li>
+<li>On-affected-host (§11.4.39): nezha real-HOME <code>bash -l -i</code>
+PROMPT_COUNT 2 → 1 after deploy.</li>
+</ul>
+<hr />
+<h2
+id="a42--mouse-selectcopy-unusable-in-tmx-panes-especially-claude-code-bug">A42
+— Mouse select/copy unusable in tmx panes, especially Claude Code
+(Bug)</h2>
+<p><strong>Symptom.</strong> Cannot select/copy with the mouse in any
+tmx/tmux window, especially inside the <code>claude</code> TUI.</p>
+<p><strong>Root cause (evidence-based).</strong> NOT a stale config —
+the live server already had <code>mouse on</code>, the
+<code>M-/S-MouseDrag1Pane → copy-mode -M</code> overrides, and a working
+<code>@clip</code>→<code>pbcopy</code> pipe (verified via round-trip +
+in-tmux keyboard copy). The defect was discoverability + a
+cross-terminal trap: inside a mouse-tracking app
+(<code>#{mouse_any_flag}</code>, e.g. Claude Code) a PLAIN drag is
+forwarded to the app by design (so the app keeps its own mouse), and on
+iTerm2 with the default <em>Option Key Sends = Normal</em> (confirmed
+via <code>defaults read com.googlecode.iterm2</code>) Option/Alt-drag is
+consumed by iTerm2's OWN native-selection bypass and never reaches
+tmux's <code>M-MouseDrag1Pane</code>. That left only Shift-drag reaching
+tmux — undiscoverable.</p>
+<p><strong>Fix.</strong> Added a terminal-agnostic mouse-toggle to
+<code>scripts/tmux.conf.template</code>:</p>
+<pre class="tmux"><code>bind m set -g mouse \; display-message &#39;mouse #{?mouse,ON …,OFF (use native terminal selection: drag + Cmd-C)}&#39;</code></pre>
+<p><code>prefix m</code> toggles tmux mouse OFF, so the outer terminal's
+NATIVE selection (drag → Cmd-C / right-click → Copy) works EVERYWHERE —
+including inside Claude Code; <code>prefix m</code> again restores tmux
+scrollback + copy-mode. The reliable gestures (Shift-drag for in-tmux
+selection; <code>prefix m</code> for native selection) are documented in
+the config and <code>docs/guides/clipboard.md</code>.</p>
+<p><strong>Captured evidence (4-layer).</strong></p>
+<ul>
+<li>L1 config-load:
+<code>scripts/tests/55_mouse_toggle_and_copy.sh</code> asserts the
+<code>prefix m</code> binding loads.</li>
+<li>L3 runtime: test 55 PASS, 3/3 deterministic — toggle flips
+<code>mouse on→off</code>, Shift-drag override present, copy-pipe
+delivers the selection to an external sink.</li>
+<li>L4 paired mutation: <code>M-MOUSETOGGLE</code> strips the binding
+and asserts test 55 FAILs — CAUGHT.</li>
+<li>Real-mouse layer:
+<code>scripts/tests/56_real_mouse_drag_copy.sh</code> drives a genuine
+Shift-drag via <code>cliclick</code> over a real iTerm2 window when
+available; honest §11.4.3 SKIP where the GUI-automation topology
+(cliclick / Accessibility) is absent.</li>
+</ul>
+<hr />
+<h2 id="b3--p5-m20--p5-m21-paired-mutation-escapes-closed--migrated">B3
+— P5-M20 / P5-M21 paired-mutation escapes (closed + migrated)</h2>
+<p>State-verified with current evidence (§11.4.7): the v1.0.9 layer-4
+escapes are CLOSED — tests 49
+(<code>49_tmx_shell_init_guard_specific.sh</code>) and 50
+(<code>50_cwd_hook_autoinstall.sh</code>), landed in v1.0.16, catch them
+universally. The stale <code>Issues.md</code> B3 entry is removed and
+migrated to <code>Fixed.md</code> §B3. M22 (CodeGraph own-org-submodule
+exclusion) is CAUGHT + FEATURE INTACT on Mistborn; on hosts without an
+established CodeGraph baseline the meta-test SKIPs M22 with reason
+(§11.4.3) instead of escaping. nezha's baseline was re-established via
+<code>codegraph_setup.sh</code> this cycle. Post-fix meta-test:
+<code>MUTATIONS CAUGHT 47 / ESCAPED 0</code>.</p>
+<hr />
+<h2 id="dual-host-validation">Dual-host validation</h2>
+<p>Evidence committed under
+<code>docs/qa/2026-05-29-v1.0.17-mouse-doubleprompt/</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>setup.sh</th>
+<th>full suite</th>
+<th>meta-test</th>
+<th>CodeGraph</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mistborn (Darwin arm64)</td>
+<td>GREEN</td>
+<td>PASS=51 FAIL=0 SKIP=4</td>
+<td>47 CAUGHT / 0 ESCAPED</td>
+<td>0.9.7 validate PASS=4/0/1</td>
+</tr>
+<tr>
+<td>nezha (ALT Linux x86_64)</td>
+<td>GREEN PASS=43 FAIL=0 SKIP=12</td>
+<td>M22 CAUGHT/SKIP-reason</td>
+<td>(full suite GREEN)</td>
+<td>latest baseline re-established</td>
+</tr>
+</tbody>
+</table>
+<p>Decisive on-host proof: nezha real-HOME <code>bash -l -i</code>
+double-prompt 2 → 1.</p>
+<hr />
+<h2 id="tooling--hygiene">Tooling / hygiene</h2>
+<ul>
+<li><code>qa-results/</code> added to <code>.gitignore</code> (§11.4.30
+transient test output); curated captured evidence kept under
+<code>docs/qa/</code>.</li>
+<li><code>docs/guides/clipboard.md</code> Revision 2; §11.4.99 sources
+re-verified 2026-05-29 against the upstream tmux man page (mouse toggle,
+<code>S-</code>/<code>M-</code> modifier prefixes, flag-option
+toggle-by-omitting-value semantics).</li>
+</ul>
+<hr />
+<h2 id="files-changed">Files changed</h2>
+<ul>
+<li><code>scripts/tmx-shell-init.sh.template</code> — A41 per-process
+prompt guard.</li>
+<li><code>scripts/tmux.conf.template</code> — A42 <code>prefix m</code>
+mouse-toggle + gesture docs.</li>
+<li><code>scripts/tests/54_double_prompt_idempotent.sh</code> (NEW) —
+A41 regression.</li>
+<li><code>scripts/tests/55_mouse_toggle_and_copy.sh</code> (NEW) — A42
+regression.</li>
+<li><code>scripts/tests/56_real_mouse_drag_copy.sh</code> (NEW) — A42
+real-mouse proof.</li>
+<li><code>scripts/tests/meta_test_false_positive_proof.sh</code> —
+<code>M-DBLPROMPT</code> + <code>M-MOUSETOGGLE</code>.</li>
+<li><code>Issues.md</code> / <code>Fixed.md</code> — B3 migration + A41
+/ A42 closure records.</li>
+<li><code>docs/guides/clipboard.md</code> — gesture docs + §11.4.99
+re-verification.</li>
+<li><code>CONTINUATION.md</code> §3.17, <code>VERSION</code>,
+<code>CHANGELOG.md</code>, <code>.gitignore</code>.</li>
+</ul>
+<h2 id="sources-verified-2026-05-29">Sources verified 2026-05-29</h2>
+<ul>
+<li>tmux upstream man page — <a
+href="https://man.openbsd.org/tmux.1">https://man.openbsd.org/tmux.1</a>
+(WebFetch, 2026-05-29): <code>S-</code>/<code>M-</code>/<code>C-</code>
+key-modifier prefixes incl. mouse events; <code>-M</code> mouse
+passthrough ("only valid if bound to a mouse key binding"); flag/choice
+options "can be omitted … to toggle its value" (validates
+<code>set -g mouse</code> toggle); <code>#{?condition,true,false}</code>
+FORMATS conditional for the <code>display-message</code> hint.</li>
+</ul>
+</body>
+</html>

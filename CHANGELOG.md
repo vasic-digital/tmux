@@ -6,6 +6,87 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.17] — 2026-05-29
+
+**Two user-reported product bug fixes (mouse copy + double prompt) + B3 anti-bluff closure + dual-host re-validation.**
+
+Operator reports (2026-05-29): (1) "we cannot still copy from any tmux /
+tmx window … especially when in claude code … nothing can be selected and
+copied using mouse!"; (2) "opening new terminal asks us for session name,
+if we … press enter and go with no session, we are asked again — so twice
+in a row. one enter is enough."
+
+### Fixed (A42 — mouse select/copy unusable in tmx panes, esp. Claude Code)
+
+- Root cause was NOT a stale config (the live server already had `mouse on`,
+  the `M-/S-MouseDrag1Pane` overrides, and a working `@clip`→`pbcopy` pipe).
+  It was a discoverability / cross-terminal gap: inside a mouse-tracking app
+  (`#{mouse_any_flag}`, e.g. Claude Code) a PLAIN drag is forwarded to the
+  app by design, and on iTerm2 with the default *Option Key Sends = Normal*
+  Option/Alt-drag is consumed by iTerm2's OWN native-selection bypass and
+  never reaches tmux — leaving only Shift-drag, which the operator had no way
+  to discover.
+- **Fix:** added a `prefix m` mouse-toggle to `scripts/tmux.conf.template`
+  (`bind m set -g mouse \; display-message …`). With mouse OFF, the outer
+  terminal's NATIVE selection (drag → Cmd-C / right-click → Copy) works
+  EVERYWHERE, including inside Claude Code — the robust, terminal-agnostic
+  copy escape hatch. Documented the reliable gestures (Shift-drag for in-tmux
+  selection; `prefix m` for native selection) in the config + `docs/guides/clipboard.md`.
+- **Tests:** NEW `55_mouse_toggle_and_copy.sh` (binding present + mouse flips
+  + Shift-drag override + copy-pipe delivers; 3/3 deterministic) + NEW
+  `56_real_mouse_drag_copy.sh` (real Shift-drag via `cliclick`, honest §11.4.3
+  SKIP where GUI-automation topology absent) + meta-test mutation
+  `M-MOUSETOGGLE` (strip toggle → test 55 FAILs, CAUGHT).
+
+### Fixed (A41 — double session-name prompt on bash-login terminals)
+
+- Root cause (reproduced on the affected host): on Linux/bash a single login
+  PROCESS sources `tmx-shell-init.sh` TWICE — `.bash_profile` carries the
+  source line AND sources `.bashrc` which also carries it. The blank/`default`
+  path RETURNS (doesn't `exec`), so `.bash_profile` continues and the second
+  source re-prompts — exactly the "twice in a row, only on press-Enter"
+  symptom. nezha `bash -l -i` → PROMPT_COUNT=2; macOS zsh → 1 (zsh sources
+  `.zshrc` once per process, so it never showed on Mistborn).
+- **Fix (§11.4.1, at source):** per-process NON-exported idempotency guard
+  `_TMX_SHELL_INIT_PROMPTED` in `scripts/tmx-shell-init.sh.template` — prompts
+  at most once per shell process; resets per new terminal. The legitimate
+  single-source first prompt is preserved.
+- **Tests:** NEW `54_double_prompt_idempotent.sh` (PTY harness reproducing
+  the `.bash_profile`→`.bashrc` double-source; RED count=2 → GREEN count=1,
+  3/3 deterministic) + meta-test mutation `M-DBLPROMPT` (strip guard → test
+  54 FAILs, CAUGHT). **On-affected-host proof:** nezha real-HOME `bash -l -i`
+  PROMPT_COUNT 2 → 1 after deploy.
+
+### Fixed (B3 — P5-M20/P5-M21 paired-mutation escapes, migrated to Fixed.md §B3)
+
+- State-verified with current evidence (§11.4.7): the v1.0.9 layer-4 escapes
+  are CLOSED (tests 49/50 added in v1.0.16 catch them universally). Meta-test
+  now `MUTATIONS CAUGHT 47 / ESCAPED 0` on Mistborn. The stale `Issues.md` B3
+  entry is removed and migrated to `Fixed.md`. M22 (CodeGraph own-org
+  exclusion) CAUGHT on Mistborn; nezha CodeGraph baseline re-established via
+  `codegraph_setup.sh` during this cycle's dual-host setup.
+
+### Validation (dual-host, captured evidence under `docs/qa/2026-05-29-v1.0.17-mouse-doubleprompt/`)
+
+- **Mistborn (Darwin arm64):** `setup.sh` GREEN; full suite `PASS=51 FAIL=0
+  SKIP=4`; meta-test `47 CAUGHT / 0 ESCAPED`; CodeGraph 0.9.7 `codegraph_validate`
+  PASS=4/0/1.
+- **nezha (ALT Linux 6.12 x86_64):** `setup.sh` GREEN `PASS=43 FAIL=0 SKIP=12`;
+  double-prompt re-proven real-HOME `bash -l -i` 2 → 1; rc snippet re-installed;
+  CodeGraph baseline repaired.
+- CodeGraph upgraded to 0.9.6 on both hosts (operator-installed); validation
+  green on both.
+
+### Tooling
+
+- `qa-results/` added to `.gitignore` (§11.4.30 transient test output); curated
+  captured evidence committed under `docs/qa/`.
+- `docs/guides/clipboard.md` Revision 2, §11.4.99 sources re-verified
+  2026-05-29 against the upstream tmux man page (mouse toggle / `S-`/`M-`
+  modifiers / flag-toggle semantics).
+
+---
+
 ## [v1.0.16] — 2026-05-28
 
 **Gap closure + comprehensive validation surface + first zero-escape meta-test.**
