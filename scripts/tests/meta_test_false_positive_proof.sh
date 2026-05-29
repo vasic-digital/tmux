@@ -20,6 +20,18 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TMUX_BIN="${TMUX_BIN:-$REPO_ROOT/tmux/build/bin/tmux}"
 
+# Augment PATH from npm's reported prefix so the M22 codegraph mutation
+# resolves `codegraph` (and runs CAUGHT rather than honest-SKIP) even when the
+# meta-test is invoked from a NON-INTERACTIVE shell whose .bashrc adds
+# ~/.npm-global/bin only behind an interactive-guard. Mirrors the A31 probe in
+# setup.sh + run_all.sh. Idempotent: no-op when codegraph already on PATH.
+if ! command -v codegraph >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    _NPM_PREFIX="$(npm config get prefix 2>/dev/null | tr -d '\r\n' || true)"
+    if [ -n "$_NPM_PREFIX" ] && [ -x "${_NPM_PREFIX}/bin/codegraph" ]; then
+        export PATH="${_NPM_PREFIX}/bin:$PATH"
+    fi
+fi
+
 MUT_PASS=0
 MUT_FAIL=0
 MUT_SKIP=0
