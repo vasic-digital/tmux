@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-13T12:30Z
+**Last updated:** 2026-06-13T16:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,32 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.22 — Apple `container` integration: on-demand containerized Linux under macOS for testing → v1.0.22 (2026-06-13)
+
+**Status:** DONE — RELEASED v1.0.22 (2026-06-13). Testing-capability addition
+(no tmux source/wrapper change — shipped binary + `tmx` wrapper unchanged from
+v1.0.21).
+
+Apple `container` 1.0.0 incorporated into the `vasic-digital/Containers`
+submodule as a new generic `pkg/crossbuild/apple_container.go` backend +
+`RunInLinuxContainer` (unit + integration tests + challenge). Proven on this
+macOS 15.5/arm64 host: real `container run` returns `Linux aarch64` (host is
+Darwin), host-dir mount round-trips, paired mutation (strip `--mount` → exit
+99). Consumed extend-don't-reimplement per §11.4.74 / §11.4.76.
+
+tmx harness `scripts/test_apple_container.sh` builds tmux 3.6a INSIDE an
+Apple-container Linux VM (genuine Linux ELF: `osdep-linux.o` +
+`libjemalloc.so.2` + `libevent_core`) and runs the suite. **Evidence**
+`docs/qa/2026-06-13-apple-container/`: `uname.txt`=`Linux aarch64`;
+`tmux-version.txt`=`tmux 3.6a`; `elf-proof.txt` (ELF magic + jemalloc ldd);
+`build.log`; `run_all.log` + `summary.txt` = **PASS=30 / FAIL=0 / SKIP=28**
+(base image `ubuntu:22.04`). 28 SKIPs are honest §11.4.3/§11.4.81 topology gaps
+(no systemd-cgroup, no physical terminal/clipboard/mouse, no host tooling); the
+30 core tmux tests RAN + PASSED. Release notes for GitHub + GitLab at
+`docs/qa/2026-06-13-apple-container/RELEASE_NOTES.md`. Fixed.md A44; CHANGELOG
+v1.0.22 (Sources verified 2026-06-13 against apple.github.io/container/
+documentation/); VERSION 1.0.22/23.
 
 ### §3.21 — Copy/paste ARCHITECTURE fix (mouse off default) + HelixCode crash forensics → v1.0.21 (2026-06-13)
 

@@ -243,6 +243,125 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project's anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v1022--2026-06-13">[v1.0.22] — 2026-06-13</h2>
+<p><strong>Apple <code>container</code> integration: on-demand
+containerized Linux under macOS for testing — build tmux 3.6a inside a
+real Linux VM and run the suite, no remote Linux host
+required.</strong></p>
+<p>The project is native dual-OS (Linux + macOS), but on a macOS
+workstation there was previously no host-local way to exercise the
+<strong>Linux</strong> build of tmux — Linux validation depended on the
+remote <code>nezha</code> host. This release adds on-demand
+containerized Linux under macOS using Apple's native
+<code>container</code> runtime (1.0.0), so a developer on Apple Silicon
+can build the Linux ELF tmux binary inside a real Linux VM and run the
+project's own test suite against it with one command.</p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>Containers-submodule backend (extended, not reimplemented —
+§11.4.76).</strong> The Apple <code>container</code> 1.0.0 runtime was
+incorporated into the <code>vasic-digital/Containers</code> submodule as
+a new generic <code>pkg/crossbuild/apple_container.go</code> backend
+exposing <code>RunInLinuxContainer</code>, with unit + integration tests
+and a challenge. Proven on this macOS 15.5 / arm64 host: a real
+<code>container run</code> returns <code>Linux aarch64</code> (while the
+host is Darwin), a host-directory mount round-trips, and a paired
+mutation that strips the <code>--mount</code> flag exits 99. The
+cross-build capability lives in the reusable submodule per §11.4.74
+(catalogue-first) — the project consumes it, it is not duplicated
+in-tree.</li>
+<li><strong>tmx-side harness
+<code>scripts/test_apple_container.sh</code>.</strong> Builds tmux 3.6a
+INSIDE an Apple-<code>container</code> Linux VM (genuine Linux build:
+<code>osdep-linux.o</code> + <code>libjemalloc.so.2</code> +
+<code>libevent_core</code>) and runs <code>run_all.sh</code> against
+that Linux binary, capturing real PASS/FAIL/SKIP evidence. Stops +
+removes the transient container on every exit path. Honest exit codes:
+<code>0</code> PASS, <code>1</code> real FAIL, <code>2</code> build
+defect, <code>3</code> SKIP (runtime/kernel absent or not macOS).</li>
+</ul>
+<h3
+id="proven-evidence-real-captured-runtime-no-guessing-per-1146">Proven
+evidence (real captured runtime, no guessing per §11.4.6)</h3>
+<p>Captured under
+<code>docs/qa/2026-06-13-apple-container/linux-run/</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Proof</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>uname.txt</code></td>
+<td>in-container <code>uname -s -m</code> =
+<strong><code>Linux aarch64</code></strong> (host is Darwin/arm64)</td>
+</tr>
+<tr>
+<td><code>tmux-version.txt</code></td>
+<td>built binary reports <strong><code>tmux 3.6a</code></strong></td>
+</tr>
+<tr>
+<td><code>elf-proof.txt</code></td>
+<td>ELF magic <code>7f 45 4c 46</code> + <code>ldd</code> shows
+<code>libjemalloc.so.2</code>, <code>libtinfo</code>,
+<code>libevent_core</code>, <code>libc</code> — a real Linux ELF,
+jemalloc-linked</td>
+</tr>
+<tr>
+<td><code>build.log</code></td>
+<td>full in-VM configure+compile transcript (Linux gcc,
+<code>osdep-linux.o</code>)</td>
+</tr>
+<tr>
+<td><code>run_all.log</code> / <code>summary.txt</code></td>
+<td>suite result <strong>PASS=30 / FAIL=0 / SKIP=28</strong> against the
+Linux binary</td>
+</tr>
+</tbody>
+</table>
+<p>Host: Darwin arm64. Container OS: Linux aarch64. Base image:
+<code>docker.io/library/ubuntu:22.04</code>.</p>
+<h3 id="honest-topology-skips-1143--11481--not-pass-not-fail">Honest
+topology SKIPs (§11.4.3 / §11.4.81 — not pass, not fail)</h3>
+<p>The 28 SKIPs are honest topology gaps, never silent passes: the
+minimal container VM has no user systemd session, so cgroup/scope tests
+SKIP-with- reason (<code>08_oom_score_adj</code>,
+<code>09_crash_isolation_scope</code>,
+<code>12_memory_pressure_under_cap</code>,
+<code>13_tasksmax_stress</code>,
+<code>14_concurrent_oom_independence</code>,
+<code>15_per_session_cgroup_distinct</code>,
+<code>24_cpu_cap_enforcement</code>); physical-terminal / real-clipboard
+/ real-mouse tests SKIP (no DISPLAY/PTY tty in the VM —
+<code>44</code>–<code>48</code>, <code>55</code>–<code>59</code>); and
+host-tooling / cross-host tests SKIP
+(<code>16_window_name_strips_exe</code>,
+<code>18_constitution_inheritance</code>,
+<code>20</code>–<code>22</code> CodeGraph,
+<code>32_ssh_dispatch_remote_nezha</code>,
+<code>39_state_unwritable</code>, <code>40_macos_linux_parity</code>,
+<code>41_docs_user_guides_render</code>,
+<code>43_e2e_cwd_persist_real_shell</code>,
+<code>51_workable_items_db_integrity</code>). The 30 core tmux tests
+(smoke, session lifecycle, jemalloc-mapped proof, history-limit,
+clear-history, scrollback, hostname-colour, …) RAN and PASSED.</p>
+<h3 id="notes">Notes</h3>
+<ul>
+<li>No tmux source or wrapper behaviour changed in this release — this
+is a testing-capability addition (the Linux-under-macOS harness + the
+Containers-submodule backend it consumes). The shipped tmux 3.6a binary
+and <code>tmx</code> wrapper are byte-for-byte the v1.0.21 product.</li>
+</ul>
+<h2 id="sources-verified-2026-06-13">Sources verified 2026-06-13</h2>
+<p>Apple <code>container</code> documentation cross-referenced before
+publishing the harness usage + requirements (per §11.4.99):</p>
+<ul>
+<li>Apple <code>container</code> documentation — <a
+href="https://apple.github.io/container/documentation/">https://apple.github.io/container/documentation/</a></li>
+</ul>
+<hr />
 <h2 id="v1021--2026-06-13">[v1.0.21] — 2026-06-13</h2>
 <p><strong>Copy/paste root-cause fix — the terminal owns the mouse by
 default (native multi-line select + right-click→Copy + scroll work
@@ -1007,7 +1126,7 @@ correctly retrieves the cwd and passes <code>-c $START_DIR</code> to
 <code>tmux new-session</code>. The legacy tmux session-end hooks remain
 installed as best-effort fallback but are no longer the primary capture
 mechanism.</p>
-<h3 id="added">Added</h3>
+<h3 id="added-1">Added</h3>
 <ul>
 <li><strong><code>scripts/tests/43_e2e_cwd_persist_real_shell.sh</code></strong>
 — end-to-end test that reproduces the EXACT operator scenario from the
@@ -1137,7 +1256,7 @@ audit (2026-05-22): "if any missing details are not in docs please fill
 any gaps we have and release new version". Three doc gaps surfaced + one
 nezha test flake that was costing first-install operators a setup
 retry.</p>
-<h3 id="added-1">Added</h3>
+<h3 id="added-2">Added</h3>
 <ul>
 <li><strong>Manual §7a (Uninstall, v1.0.11+)</strong> —
 <code>docs/manual/tmx-shell-integration.md</code> now documents the
@@ -1221,7 +1340,7 @@ tmux session being created!".</p>
 <p>This release: (a) generates the file, (b) ships a proper uninstall
 entry point, (c) makes setup self-cleaning, (d) adds a regression test
 that would have caught the original bug.</p>
-<h3 id="added-2">Added</h3>
+<h3 id="added-3">Added</h3>
 <ul>
 <li><strong><code>scripts/setup.sh</code> step 3a</strong> — generates
 <code>scripts/tmx-shell-init.sh</code> from
@@ -1382,7 +1501,7 @@ fixed-sleep timing window that flaked under load; tests 31 and 35 used
 bare <code>tmx</code> and assumed it was on PATH which fails on hosts
 where setup is RED. All six fixed, all 41 tests now GREEN on both macOS
 and nezha-Linux.</p>
-<h3 id="added-3">Added</h3>
+<h3 id="added-4">Added</h3>
 <ul>
 <li><strong><code>scripts/setup.sh</code> step 3d</strong> — Go-build
 <code>scripts/tmx-state-bin</code> for the HOST OS on every setup.
@@ -1499,7 +1618,7 @@ and blocked non-TTY shells; an SSH dispatcher
 session with the right cwd; and the existing <code>tmx</code> wrapper
 gains tmux hooks that record cwd on detach + a
 <code>-c &lt;recalled-pwd&gt;</code> on <code>tmx new</code>.</p>
-<h3 id="added-4">Added</h3>
+<h3 id="added-5">Added</h3>
 <ul>
 <li><strong><code>scripts/tmx-state/</code> (Go module)</strong> —
 <code>tmx-state</code> binary with subcommands
@@ -1721,7 +1840,7 @@ recoloured — they default to yellow not green, and yellow provides the
 most accessible contrast against any palette-derived
 background.</p></li>
 </ul>
-<h3 id="added-5">Added</h3>
+<h3 id="added-6">Added</h3>
 <ul>
 <li><p><strong>NEW test 26
 (<code>26_ui_color_uniformity.sh</code>)</strong> — spawns an
@@ -1841,7 +1960,7 @@ Palette rebalanced across the hue spectrum: red / orange / yellow /
 green / teal / blue / purple / pink / magenta / brown / cyan / lime — no
 two consecutive entries within RGB Euclidean distance 80.</p></li>
 </ul>
-<h3 id="added-6">Added</h3>
+<h3 id="added-7">Added</h3>
 <ul>
 <li><p><strong>NEW test 25
 (<code>25_hostname_color_perceptual_distance.sh</code>)</strong> — three
@@ -2190,7 +2309,7 @@ anti-bluff covenant propagated verbatim to every consumer governance
 file, audit follow-up fixes (M4/M5 portability + <code>tmx kill</code>
 shorthand), docs reorganised under context subdirectories per the
 constitution rule.</strong></p>
-<h3 id="added-7">Added</h3>
+<h3 id="added-8">Added</h3>
 <ul>
 <li><p><strong>A18 — CodeGraph integration (§11.4.78).</strong>
 Installed <code>@colbymchenry/codegraph</code> v0.6.8 globally (npm
@@ -2376,7 +2495,7 @@ escape sequences reach the application;</li>
 termux-clipboard-set, detected at copy time) plus OSC-52.</li>
 </ul></li>
 </ul>
-<h3 id="added-8">Added</h3>
+<h3 id="added-9">Added</h3>
 <ul>
 <li><strong>A17 — HelixConstitution governance submodule + verified
 inheritance.</strong> The universal engineering rules (anti-bluff

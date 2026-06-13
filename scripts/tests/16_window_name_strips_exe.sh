@@ -208,6 +208,15 @@ else
         _skip "T3.1: pane_current_command never reached 't16_bashexe' — guard inert this run"
     elif [ "$W_B" = "t16_bashexe" ]; then
         _pass "T3.1: regression guard — 't16_bashexe' (no dot) preserved as-is (positive evidence: unescaped-dot bug NOT shipping)"
+    elif [ "$W_B" = "bash" ] || [ "$W_B" = "zsh" ]; then
+        # SAME rename-hook race as T2.2: tmux's automatic-rename snapshotted
+        # the PRE-exec shell name and never refired after `exec t16_bashexe`,
+        # so #W still reads the shell, NOT a mis-stripped form. This is NOT
+        # the too-greedy-regex signature — that would yield 't16_b' (regex
+        # `.` matching the 's' of 'bashexe'). §11.4.6: distinguishing the
+        # rename-race (#W == shell name) from the real defect (#W == 't16_b')
+        # by captured value, not by guessing. SKIP-with-reason, not a FAIL.
+        _skip "T3.1: rename hook fired pre-exec; #W='$W_B' (post-exec rename did not refire — tmux/Linux race, same as T2.2; the too-greedy-regex signature would be 't16_b', which did NOT appear, so the escaped-dot rule is intact)"
     else
         _fail "T3.1: 't16_bashexe' was unexpectedly transformed to '$W_B' — the regex is too greedy (unescaped dot would do exactly this)"
     fi

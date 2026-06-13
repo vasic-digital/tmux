@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>RELEASE_NOTES</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1
+id="vasic-digitaltmux--v1022-versioncode-23--2026-06-13">vasic-digital/tmux
+— v1.0.22 (versionCode 23) — 2026-06-13</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-13T16:30:00Z</p>
+<p><strong>Apple <code>container</code> integration: on-demand
+containerized Linux under macOS for testing — build tmux 3.6a inside a
+real Linux VM and run the suite, no remote Linux host
+required.</strong></p>
+<hr />
+<h2 id="what-shipped">What shipped</h2>
+<p>This release adds a host-local way to build and test the
+<strong>Linux</strong> build of tmux from a <strong>macOS</strong>
+workstation, using Apple's native <code>container</code> runtime
+(1.0.0). It is a <em>testing-capability</em> release — the shipped tmux
+3.6a binary and the <code>tmx</code> wrapper are byte-for-byte identical
+to v1.0.21; no product behaviour changed.</p>
+<p>Two pieces:</p>
+<ol type="1">
+<li><p><strong>Containers-submodule backend</strong> — Apple
+<code>container</code> 1.0.0 was incorporated into the
+<code>vasic-digital/Containers</code> submodule as a new generic
+<code>pkg/crossbuild/apple_container.go</code> backend exposing
+<code>RunInLinuxContainer</code>, with unit tests, an integration test,
+and a challenge. This is reusable by any consuming project, not
+tmux-specific.</p></li>
+<li><p><strong>tmx-side harness</strong> —
+<code>scripts/test_apple_container.sh</code> builds tmux 3.6a inside an
+Apple-<code>container</code> Linux VM and runs the project's own
+<code>run_all.sh</code> suite against that Linux binary, capturing real
+PASS/FAIL/SKIP evidence.</p></li>
+</ol>
+<h2 id="why-motivation">Why (motivation)</h2>
+<p>The project is native dual-OS (runs as a host process on Linux
+<strong>and</strong> macOS). But on an Apple-Silicon macOS workstation
+there was previously no host-local way to exercise the
+<strong>Linux</strong> build — Linux validation depended on the remote
+<code>nezha</code> host being reachable. This release gives on-demand
+Linux-under-macOS so a developer can build the genuine Linux ELF tmux
+binary and run the suite with one command, on their own machine, with no
+remote host.</p>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>macOS 15+ on Apple Silicon.</li>
+<li>Apple <code>container</code> 1.0.0 or newer, installed and running:
+<ul>
+<li><code>brew install container</code></li>
+<li><code>container system start</code> (the harness verifies
+<code>container system status</code> is running and that a Linux kernel
+image is present).</li>
+</ul></li>
+<li>Network access to pull the base image
+(<code>docker.io/library/ubuntu:22.04</code> by default). On a
+macOS-behind-VPN host with no outbound network inside the VM, the
+harness downloads apt <code>.deb</code> build-deps host-side and injects
+them.</li>
+</ul>
+<h2 id="how-to-use">How to use</h2>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Ensure the Apple container runtime is running:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">container</span> system start</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Build tmux 3.6a inside a Linux VM and run the suite against it:</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/test_apple_container.sh</span></code></pre></div>
+<p>Options:</p>
+<ul>
+<li><code>--image IMG</code> (or <code>TMX_AC_IMAGE</code>) — base Linux
+image (default <code>docker.io/library/ubuntu:22.04</code>).</li>
+<li><code>--keep</code> — leave the transient container in place for
+debugging.</li>
+<li><code>--no-build</code> — skip the build (expects a prior
+<code>--keep</code> run's binary).</li>
+</ul>
+<p>Honest exit codes:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>suite ran and reported PASS (FAIL=0) — real success</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>suite ran and reported ≥1 FAIL — real product defect</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>build failed inside the container — toolchain/source defect</td>
+</tr>
+<tr>
+<td><code>3</code></td>
+<td>SKIP — Apple <code>container</code> runtime / kernel absent, or not
+macOS (safe no-op)</td>
+</tr>
+</tbody>
+</table>
+<p>The harness stops and removes the transient container on
+<strong>every</strong> exit path (unless <code>--keep</code>).</p>
+<h2 id="proven-evidence">Proven evidence</h2>
+<p>Captured this cycle on a macOS 15.5 / arm64 host, under
+<code>docs/qa/2026-06-13-apple-container/linux-run/</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Artifact</th>
+<th>Proof</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>uname.txt</code></td>
+<td>in-container <code>uname -s -m</code> =
+<strong><code>Linux aarch64</code></strong> (host is Darwin/arm64 — a
+genuine Linux VM)</td>
+</tr>
+<tr>
+<td><code>tmux-version.txt</code></td>
+<td>built binary reports <strong><code>tmux 3.6a</code></strong></td>
+</tr>
+<tr>
+<td><code>elf-proof.txt</code></td>
+<td>ELF magic <code>7f 45 4c 46</code> + <code>ldd</code> shows
+<code>libjemalloc.so.2</code>, <code>libtinfo</code>,
+<code>libevent_core</code>, <code>libc</code> — a real Linux ELF,
+jemalloc-linked</td>
+</tr>
+<tr>
+<td><code>build.log</code></td>
+<td>full in-VM configure + compile transcript (Linux gcc,
+<code>osdep-linux.o</code>)</td>
+</tr>
+<tr>
+<td><code>run_all.log</code> / <code>summary.txt</code></td>
+<td>suite result <strong>PASS=30 / FAIL=0 / SKIP=28</strong> against the
+Linux binary</td>
+</tr>
+</tbody>
+</table>
+<p>Run context:</p>
+<ul>
+<li><strong>Host:</strong> Darwin arm64</li>
+<li><strong>Container OS:</strong> Linux aarch64</li>
+<li><strong>Base image:</strong>
+<code>docker.io/library/ubuntu:22.04</code></li>
+<li><strong>Built binary:</strong> tmux 3.6a (jemalloc-mapped, verified
+via <code>/proc/&lt;pid&gt;/maps</code>)</li>
+</ul>
+<p>Containers-submodule backend (proven separately):</p>
+<ul>
+<li>Real <code>container run</code> returns <code>Linux aarch64</code>
+on this Darwin host.</li>
+<li>Host-directory mount round-trip works.</li>
+<li>Paired mutation that strips the <code>--mount</code> flag exits 99
+(mount contract mechanically enforced).</li>
+</ul>
+<h2 id="honest-limitations--skips">Honest limitations / SKIPs</h2>
+<p>The 28 SKIPs are honest topology gaps (§11.4.3 / §11.4.81) — never
+silent passes, never failures. The minimal container VM intentionally
+lacks several host capabilities:</p>
+<ul>
+<li><strong>No user systemd session</strong> → cgroup/scope tests
+SKIP-with-reason: <code>08_oom_score_adj</code>,
+<code>09_crash_isolation_scope</code>,
+<code>12_memory_pressure_under_cap</code>,
+<code>13_tasksmax_stress</code>,
+<code>14_concurrent_oom_independence</code>,
+<code>15_per_session_cgroup_distinct</code>,
+<code>24_cpu_cap_enforcement</code>.</li>
+<li><strong>No DISPLAY / PTY tty</strong> → physical-terminal,
+real-clipboard, real-mouse tests SKIP: <code>44</code>–<code>48</code>,
+<code>55</code>–<code>59</code>.</li>
+<li><strong>No host tooling / cross-host context</strong> → SKIP:
+<code>16_window_name_strips_exe</code>,
+<code>18_constitution_inheritance</code>,
+<code>20</code>–<code>22</code> (CodeGraph),
+<code>32_ssh_dispatch_remote_nezha</code>,
+<code>39_state_unwritable</code>, <code>40_macos_linux_parity</code>,
+<code>41_docs_user_guides_render</code>,
+<code>43_e2e_cwd_persist_real_shell</code>,
+<code>51_workable_items_db_integrity</code>.</li>
+</ul>
+<p>The 30 core tmux tests — smoke, session lifecycle, jemalloc-mapped
+proof, history-limit respect, clear-history, scrollback,
+hostname-colour, and the rest of the Linux-relevant set — RAN and
+PASSED. For the full cgroup/systemd isolation suite, use the dedicated
+Linux host (<code>nezha</code>); this harness covers the core tmux
+behaviour under Linux on a macOS workstation.</p>
+<h2 id="constitution-compliance">Constitution compliance</h2>
+<ul>
+<li><strong>§11.4.76 (Containers-submodule mandate):</strong> the
+containerization capability was added to the
+<code>vasic-digital/Containers</code> submodule and consumed from there
+— not reimplemented in this project.</li>
+<li><strong>§11.4.74 (catalogue-first,
+extend-don't-reimplement):</strong> the Apple <code>container</code>
+backend extends the existing submodule rather than duplicating an
+orchestration layer in-tree.</li>
+<li><strong>§11.4.3 / §11.4.81 (topology dispatch + cross-platform
+parity):</strong> absent capabilities SKIP-with-reason; the harness
+never PASS-by-defaults.</li>
+<li><strong>§11.4.6 (no-guessing):</strong> every claim above is backed
+by a captured artefact in
+<code>docs/qa/2026-06-13-apple-container/linux-run/</code>.</li>
+</ul>
+<h2 id="links">Links</h2>
+<ul>
+<li>Changelog entry: <code>CHANGELOG.md</code> →
+<code>## [v1.0.22] — 2026-06-13</code></li>
+<li>Closed-item record: <code>Fixed.md</code> → A44 (Type: Feature,
+Implemented)</li>
+<li>Harness: <code>scripts/test_apple_container.sh</code></li>
+<li>Design notes:
+<code>docs/qa/2026-06-13-apple-container/DESIGN.md</code></li>
+<li>Evidence:
+<code>docs/qa/2026-06-13-apple-container/linux-run/</code></li>
+</ul>
+<h2 id="sources-verified-2026-06-13">Sources verified 2026-06-13</h2>
+<ul>
+<li>Apple <code>container</code> documentation — <a
+href="https://apple.github.io/container/documentation/">https://apple.github.io/container/documentation/</a></li>
+</ul>
+</body>
+</html>

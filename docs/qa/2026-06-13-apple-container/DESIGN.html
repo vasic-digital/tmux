@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>DESIGN</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1
+id="apple-container--containers-submodule-integration--design-research--design-only">Apple
+<code>container</code> → Containers submodule integration — DESIGN
+(research + design only)</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-13T00:00:00Z <strong>Authority:</strong> vasic-digital/tmux
+project; extends <code>Containers/</code> (vasic-digital/Containers) per
+§11.4.74 (catalogue-first / extend-don't-reimplement) + §11.4.76
+(Containers-submodule mandate) + §11.4.28 (owned-submodule decoupling)
+<strong>Scope:</strong> READ-ONLY research/design. No code edited,
+nothing installed, nothing committed during the producing task.
+<strong>Goal:</strong> On a macOS / Apple-Silicon host, create + run a
+containerized <strong>Linux</strong> environment on demand to build the
+tmux Linux binary and run the tmx (tmux) Linux test suite, without a
+separate Linux box — by EXTENDING the Containers submodule's existing
+crossbuild engine abstraction with an Apple-<code>container</code>
+backend.</p>
+<hr />
+<h2 id="part-a--apple-container-latest-source-research">PART A — Apple
+<code>container</code> latest-source research</h2>
+<p>Apple <code>container</code> is Apple's open-source CLI
+(<code>apple/container</code>, npm-irrelevant; distributed as a signed
+<code>.pkg</code> or via Homebrew) that runs <strong>Linux</strong>
+containers on macOS by booting <strong>one lightweight virtual machine
+per container</strong> through the <strong>Virtualization
+framework</strong>, with a minimal Linux guest userspace. It consumes
+and produces <strong>standard OCI images</strong>, so it can pull
+<code>alpine</code> / <code>ubuntu</code> / <code>debian</code> from
+Docker Hub and other OCI registries.</p>
+<h3 id="requirements-load-bearing">Requirements (load-bearing)</h3>
+<ul>
+<li><strong>Apple Silicon Mac required</strong> (arm64). No Intel-Mac
+support.</li>
+<li><strong>macOS version:</strong> The README/installation docs state
+<code>container</code> "is supported on macOS 26, since it takes
+advantage of new features and enhancements to virtualization and
+networking." It <strong>runs</strong> on macOS 15 (Sequoia) but with
+documented limitations, and the maintainers state issues that cannot be
+reproduced on macOS 26 typically will not be fixed.</li>
+<li><strong>Administrator privileges</strong> required for the one-time
+<code>.pkg</code> install (files land in <code>/usr/local</code>). This
+is the one-time bootstrap, NOT per-run.</li>
+<li>Runs unprivileged after install — no <code>sudo</code> for
+<code>container run</code>/<code>exec</code>. Matches the submodule's
+rootless-only / no-sudo mandate (§6.U).</li>
+</ul>
+<h3
+id="install-method-one-time-bootstrap--outside-test-execution-per-11498">Install
+method (one-time bootstrap — outside test execution per §11.4.98)</h3>
+<ul>
+<li>Homebrew: <code>brew install --cask container</code> (cask), or
+download the signed <code>.pkg</code> from <code>apple/container</code>
+GitHub Releases and double-click (admin password prompt).</li>
+<li>Files install under <code>/usr/local</code>; binary at
+<code>/usr/local/bin/container</code>.</li>
+<li>Update/downgrade: <code>/usr/local/bin/update-container.sh</code>
+(<code>-v 0.3.0</code> pins a version).</li>
+<li>Uninstall: <code>/usr/local/bin/uninstall-container.sh -k</code>
+(keep data) / <code>-d</code> (remove data).</li>
+<li><strong>One-time system bring-up:</strong>
+<code>container system start</code> (starts the launchd/XPC system
+service; offers to install a default Linux kernel on first run). This is
+the on-demand-infra entry point (the submodule's §11.4.76 "boot is part
+of the test entry point" rule maps <code>container system start</code>
+to <code>pkg/boot</code>).</li>
+</ul>
+<h3
+id="cli-surface-needed-for-our-use-case-verbatim-flags-from-the-official-command-reference">CLI
+surface needed for our use case (verbatim flags from the official
+command reference)</h3>
+<ul>
+<li><strong>System lifecycle:</strong>
+<code>container system start</code>, <code>container system stop</code>,
+<code>container system status</code>.</li>
+<li><strong>Images:</strong>
+<code>container image pull &lt;ref&gt;</code> (alias
+<code>container images pull</code>), <code>container image list</code> /
+<code>container image ls</code>.</li>
+<li><strong>Run:</strong>
+<code>container run [flags] &lt;image&gt; [cmd...]</code>
+<ul>
+<li><code>-d, --detach</code> — run detached.</li>
+<li><code>-i, --interactive</code> + <code>-t, --tty</code> —
+interactive/TTY.</li>
+<li><code>--rm, --remove</code> — remove container after it stops.</li>
+<li><code>--name &lt;name&gt;</code> — set the container ID/name.</li>
+<li><strong>Mount host dir (CRITICAL):</strong>
+<code>-v, --volume &lt;volume&gt;</code> — bind mount a volume; OR
+<code>--mount type=&lt;&gt;,source=&lt;HOSTDIR&gt;,target=&lt;CONTAINERDIR&gt;,readonly</code>
+— the explicit, unambiguous form the adapter will use for mounting the
+tmx repo.</li>
+<li><code>-c, --cpus &lt;n&gt;</code> — CPU count (resource limit).</li>
+<li><code>-m, --memory &lt;size&gt;</code> — memory with
+<code>K/M/G/T/P</code> suffix (resource limit; honors §12.6 60%
+ceiling).</li>
+<li><code>-e, --env key=value</code> — environment variables.</li>
+<li><code>-w, --workdir, --cwd &lt;dir&gt;</code> — initial working
+directory.</li>
+<li><code>--entrypoint &lt;cmd&gt;</code> — override entrypoint.</li>
+</ul></li>
+<li><strong>Exec (run a command in a running container + capture
+stdout):</strong>
+<code>container exec [flags] &lt;container&gt; &lt;cmd...&gt;</code> —
+same process flags as <code>run</code>. The adapter runs
+<code>container exec &lt;name&gt; sh -c '&lt;cmd&gt;'</code>, captures
+stdout/stderr via <code>cmd.Stdout</code>/<code>cmd.Stderr</code>
+buffers, and reads the process exit code from
+<code>ProcessState.ExitCode()</code> (identical mechanism to the
+existing <code>realContainerRunner</code>).</li>
+<li><strong>List:</strong> <code>container list</code> /
+<code>container ls</code> (<code>-a, --all</code> includes
+stopped).</li>
+<li><strong>Stop / kill:</strong>
+<code>container stop &lt;name&gt;</code> (graceful signal),
+<code>container kill &lt;name&gt;</code> (SIGKILL).</li>
+<li><strong>Remove:</strong> <code>container delete &lt;name&gt;</code>
+/ <code>container rm &lt;name&gt;</code>.</li>
+<li><strong>Build:</strong>
+<code>container build -t &lt;name&gt; -f &lt;Dockerfile&gt; &lt;context&gt;</code>
+(Dockerfile-compatible).</li>
+</ul>
+<h3 id="getting-exact-stdout--exit-code">Getting exact stdout + exit
+code</h3>
+<p><code>container run</code>/<code>container exec</code> write the
+guest process's stdout/stderr to the host stdio streams; the host
+process exit code reflects the container command's exit code. The
+adapter therefore uses Go <code>exec.CommandContext</code> with separate
+<code>bytes.Buffer</code> for stdout/stderr and
+<code>ProcessState.ExitCode()</code> — exactly the pattern
+<code>pkg/crossbuild/container_runner.go</code> already uses for
+podman/docker.</p>
+<h3 id="oci-image-compatibility">OCI image compatibility</h3>
+<p>Yes. "Since <code>container</code> consumes and produces standard OCI
+images, you can easily build with and run images produced by other
+container applications." Standard <code>alpine</code> /
+<code>ubuntu</code> / <code>debian</code> pull from Docker Hub. arm64
+image variants run natively (no emulation) on Apple Silicon, which is
+what we want for an arm64 Linux tmux test run.</p>
+<h3 id="known-limitations--gotchas-documented">Known limitations /
+gotchas (documented)</h3>
+<ul>
+<li><strong>macOS 15 networking is severely limited:</strong> all
+containers attach to the <strong>default vmnet</strong> network (default
+CIDR <code>192.168.64.1/24</code>); <strong>container-to-container
+communication over the virtual network is not possible</strong>, and
+multiple networks are unsupported. Networking improvements are tied to
+macOS 26. <strong>Impact on us: NONE</strong> — the tmx test flow needs
+only host→container <code>exec</code> and a host-dir bind mount; it does
+not need container-to-container networking.</li>
+<li><strong>Rosetta / x86 emulation:</strong> Rosetta-backed x86 Linux
+execution has known regressions with recent kernels (some Fedora/Debian
+images segfault under Rosetta + kernel 6.13). <strong>Impact on us:
+avoid x86</strong> — run the <strong>arm64</strong> Linux image
+natively; do not rely on Rosetta. This is correct anyway for an
+Apple-Silicon host running an arm64 Linux build of tmux.</li>
+<li><strong>First-boot latency:</strong> each <code>container run</code>
+boots a fresh micro-VM; first boot of a new image incurs VM + kernel
+start latency (seconds). Tests must allow a startup window before
+<code>exec</code>.</li>
+<li><strong>Pre-1.0 stability:</strong> breaking changes possible until
+v1.0.0; stability guaranteed only within patch versions. The adapter
+must not hard-pin flag spellings beyond what the command reference
+documents, and should degrade with an honest error if
+<code>container</code> is absent or the macOS version is
+unsupported.</li>
+</ul>
+<h3 id="honest-host-blocker-this-machine">Honest host blocker (this
+machine)</h3>
+<ul>
+<li>This host is <strong>macOS 15.5 (build 24F74), arm64</strong>, and
+<code>container</code> is <strong>NOT installed</strong>
+(<code>command -v container</code> → not found). Apple
+<code>container</code> is <strong>officially supported on macOS
+26</strong>; it runs on macOS 15 with the limitations above, but our
+flow (host-dir mount + host→guest <code>exec</code>, no inter-container
+networking) sits entirely within what macOS 15 supports. The realistic
+blockers are: (1) one-time <code>brew install --cask container</code> +
+<code>container system start</code> (admin password once — operator
+action), (2) acceptance that on macOS 15 unreproducible-on-26 bugs may
+not be fixed upstream. If macOS 15 proves unstable for the kernel/image
+we pick, the §11.4.81 honest-gap path applies: SKIP-with-reason citing
+"macOS 26 required for full support" and fall back to the existing
+podman/docker LinuxContainerBackend (Podman Machine on Apple
+Silicon).</li>
+</ul>
+<h3
+id="-sources-verified-2026-06-13"><code>## Sources verified 2026-06-13</code></h3>
+<ul>
+<li><a
+href="https://github.com/apple/container">https://github.com/apple/container</a>
+(README — requirements, install <code>.pkg</code>,
+<code>container system start</code>, OCI images, lightweight VMs)</li>
+<li><a
+href="https://github.com/apple/container/blob/main/docs/command-reference.md">https://github.com/apple/container/blob/main/docs/command-reference.md</a>
+(CLI commands + flags: run/exec/ls/stop/kill/delete/system/image/build,
+<code>-v</code>/<code>--mount</code>,
+<code>-c</code>/<code>-m</code>/<code>-e</code>/<code>-w</code>)</li>
+<li><a
+href="https://github.com/apple/container/blob/main/docs/technical-overview.md">https://github.com/apple/container/blob/main/docs/technical-overview.md</a>
+(one-VM-per-container, Virtualization framework, OCI compatibility,
+macOS 15 vmnet networking limitations + default CIDR)</li>
+<li><a
+href="https://github.com/apple/container/issues/76">https://github.com/apple/container/issues/76</a>
+(Rosetta-for-Linux status)</li>
+<li><a
+href="https://www.outcoldman.com/blog/2026/05/02/apple-container-tired-of-docker/">https://www.outcoldman.com/blog/2026/05/02/apple-container-tired-of-docker/</a>
+(community usage report)</li>
+<li><a
+href="https://chamodshehanka.medium.com/apples-new-containerization-framework-a-deep-dive-into-macos-s-future-for-developers-cf102643394a">https://chamodshehanka.medium.com/apples-new-containerization-framework-a-deep-dive-into-macos-s-future-for-developers-cf102643394a</a>
+(macOS 15 limitations, Rosetta/kernel-6.13 regressions, macOS 26
+networking)</li>
+</ul>
+<hr />
+<h2
+id="part-b--containers-submodule-extension-point-analysis-actual-go-code">PART
+B — Containers submodule extension-point analysis (actual Go code)</h2>
+<p><strong>Catalogue-Check: extend vasic-digital/Containers
+(pkg/crossbuild)</strong> — the engine abstraction already exists; we
+ADD a backend, we do NOT reimplement.</p>
+<h3
+id="the-existing-run-a-linux-container--pick-an-engine-abstraction">The
+existing "run a Linux container / pick an engine" abstraction</h3>
+<p><code>pkg/crossbuild/</code> is exactly the right seam. It is a
+Strategy + Selector design:</p>
+<ul>
+<li><strong><code>pkg/crossbuild/types.go</code></strong> defines the
+strategy interface:
+<ul>
+<li><code>type Backend interface { Name() string; Capabilities() Capabilities; Build(ctx, BuildRequest) BuildResult }</code></li>
+<li><code>BuildRequest{ Target{OS,Arch}, SourceDir, BuildCommand, OutputSubpath, HostOutputDir, Environment, Timeout }</code></li>
+<li><code>BuildResult{ Target, ArtifactPath, ArtifactSize, BackendName, Duration, StdoutTail, StderrTail, Error }</code></li>
+<li><code>Capabilities{ SupportsTargets []Target, RequiresHostOS []string, IsolatesEnvironment bool, ArtifactNotes string }</code></li>
+</ul></li>
+<li><strong><code>pkg/crossbuild/selector.go</code></strong> is the
+single engine-selection decision point:
+<ul>
+<li><code>Selector.Register(b Backend)</code> (first-registered wins on
+ties), <code>Choose(req)</code> matches <code>req.Target</code> against
+each backend's <code>Capabilities.SupportsTargets</code> AND
+<code>RequiresHostOS</code> against the host OS,
+<code>Build(ctx, req)</code> = Choose + Build. Host OS/arch comes from
+<code>runtime.GOOS/GOARCH</code> via <code>NewSelector()</code>;
+<code>NewSelectorForHost(os,arch)</code> is the test seam.</li>
+</ul></li>
+<li><strong><code>pkg/crossbuild/container_runner.go</code></strong> is
+the shell-out seam the new backend reuses the <em>shape</em> of:
+<ul>
+<li><code>type containerRunner interface { ImageExists(ctx, ref) bool; Run(ctx, containerRunSpec) (exitCode int, err error) }</code></li>
+<li><code>containerRunSpec{ Image, MountSource, MountTarget, WorkDir, Command, Environment, Stdout, Stderr }</code></li>
+<li><code>realContainerRunner</code> builds
+<code>podman/docker run --rm -v src:target:Z -w wd &lt;image&gt; sh -c &lt;cmd&gt;</code>
+via <code>exec.CommandContext</code>, captures stdout/stderr buffers,
+reads <code>ProcessState.ExitCode()</code>.</li>
+<li><code>pickContainerBinary()</code> does
+<code>command -v</code>-style detection:
+<code>exec.LookPath("podman")</code> then <code>"docker"</code>.</li>
+</ul></li>
+<li><strong><code>pkg/crossbuild/linux_container.go</code></strong> —
+<code>LinuxContainerBackend</code> is the existing concrete backend:
+<code>SupportsTargets: [{linux, &lt;arch&gt;}]</code>,
+<code>RequiresHostOS: nil</code> (works on every host where
+podman/docker exist), <code>IsolatesEnvironment: true</code>, mounts
+<code>req.SourceDir → /work/src</code>, runs <code>BuildCommand</code>,
+asserts a non-zero artifact (anti-bluff). <strong>This is the file the
+new Apple-container backend mirrors.</strong></li>
+<li><strong><code>pkg/crossbuild/host_direct.go</code></strong> —
+<code>HostDirectBackend</code> (host-native fast path) shows the
+<code>processRunner</code> seam + <code>realRunner</code> +
+<code>validateRequest</code> + anti-bluff zero-byte-artifact guard
+reused by every backend.</li>
+</ul>
+<h3 id="how-an-engine-is-selected">How an engine is SELECTED</h3>
+<p><code>Selector.Choose</code> (selector.go). It does NOT itself
+<code>command -v</code> — it matches declared <code>Capabilities</code>.
+The runtime availability check lives <strong>inside</strong> each
+backend's runner (<code>ImageExists</code> / the
+<code>pickContainerBinary</code> <code>exec.LookPath</code>). So
+registering Apple-<code>container</code> as a macOS-only engine =
+register a backend whose
+<code>Capabilities.RequiresHostOS: ["darwin"]</code> and whose runner
+detects <code>/usr/local/bin/container</code> (or
+<code>exec.LookPath("container")</code>). Because first-registered wins,
+registering the Apple-<code>container</code> backend
+<strong>before</strong> <code>LinuxContainerBackend</code> makes it the
+preferred Linux-on-macOS engine, with podman/docker as the documented
+fallback.</p>
+<p>(Separately, <code>pkg/runtime/detect.go</code> holds the OTHER
+engine abstraction — <code>ContainerRuntime</code> with a
+<code>RuntimePriority</code> list
+<code>podman → docker → nerdctl → cri-o → lxd → kubernetes</code> and
+<code>AutoDetect</code>. That layer is for long-running service
+orchestration (compose/health/distribution), not cross-build. For the
+tmx Linux-test use case the <strong>crossbuild</strong> seam is the
+correct one; optionally <code>"apple-container"</code> can later be
+added to <code>RuntimePriority</code> if compose-style orchestration on
+macOS is ever needed — out of scope here.)</p>
+<h3 id="existing-test-patterns-the-new-backend-must-follow">Existing
+test patterns the new backend must follow</h3>
+<ul>
+<li>Backend tests inject a <strong>fake runner</strong>
+(<code>fakeContainerRunner</code> in
+<code>linux_container_test.go</code> via
+<code>newLinuxContainerBackendWithRunner</code>) and assert
+orchestration: happy-path (<code>runCalled</code>,
+<code>ArtifactSize</code>, command contains the build token),
+missing-image honest error, zero-byte-artifact-is-bluff,
+capabilities-honest, default-image-ref-by-arch.</li>
+<li><code>selector_test.go</code> exercises
+<code>NewSelectorForHost</code> to pretend a different host OS and
+assert routing — the seam to prove "on darwin, the apple-container
+backend is Chosen for linux/arm64".</li>
+<li>Real-stack proof is a <strong>Challenge</strong> under
+<code>Containers/challenges/scripts/</code> (per the submodule's
+"Challenge Coverage" mandate + §11.4.76 anti-bluff "must actually boot
+them via the Submodule"), plus a paired meta-test mutation per
+§1.1.</li>
+</ul>
+<hr />
+<h2 id="part-c--integration-design">PART C — Integration design</h2>
+<h3
+id="c1-the-minimal-apple-container-backend-to-add-to-the-containers-submodule">C.1
+The minimal Apple-<code>container</code> backend to ADD to the
+Containers submodule</h3>
+<ul>
+<li><strong>Package path:</strong>
+<code>Containers/pkg/crossbuild/apple_container.go</code> (+
+<code>apple_container_test.go</code>). Same package, mirrors
+<code>linux_container.go</code>.</li>
+<li><strong>Interface implemented:</strong>
+<code>crossbuild.Backend</code> (Name/Capabilities/Build).</li>
+<li><strong>New struct:</strong> <code>AppleContainerBackend</code> with
+an injected <code>appleContainerRunner</code> seam (mirrors
+<code>containerRunner</code>) so tests use a fake and production uses
+<code>realAppleContainerRunner</code>.</li>
+<li><strong>Capabilities (honest):</strong>
+<ul>
+<li><code>SupportsTargets: [{OS:"linux", Arch:"arm64"}]</code> (native
+Apple-Silicon Linux; intentionally NOT amd64 — avoids the
+Rosetta/kernel-6.13 regression).</li>
+<li><code>RequiresHostOS: ["darwin"]</code> (Apple
+<code>container</code> is macOS-only) — this is the honest restriction
+the Selector routes on.</li>
+<li><code>IsolatesEnvironment: true</code>,
+<code>ArtifactNotes: "Linux arm64 build inside an Apple-container lightweight VM (Virtualization framework)"</code>.</li>
+</ul></li>
+<li><strong>Exact <code>container</code> CLI the runner shells out
+to</strong> (via <code>exec.CommandContext</code>, stdout/stderr
+buffers, <code>ProcessState.ExitCode()</code>):
+<ul>
+<li><strong>Ensure system up (on-demand infra, §11.4.76):</strong>
+<code>container system status</code>; if not running →
+<code>container system start</code>.</li>
+<li><strong>Image present?</strong> <code>container image list</code>
+(parse for the ref) — the <code>ImageExists</code> equivalent; or
+<code>container image pull &lt;ref&gt;</code> to provision.</li>
+<li><strong>Run with host-dir mount + capture (the core call):</strong>
+<code>container run --rm --name &lt;generated&gt; --mount type=virtiofs,source=&lt;SourceDir&gt;,target=/work/src -w /work/src -c &lt;cpus&gt; -m &lt;mem&gt; [ -e K=V ... ] &lt;imageRef&gt; sh -c '&lt;BuildCommand&gt;'</code>
+(If <code>type=virtiofs</code> is rejected by the installed version,
+fall back to <code>-v &lt;SourceDir&gt;:/work/src</code>. The adapter
+probes once and records which form worked — no guessing per
+§11.4.6.)</li>
+<li><strong>Long-lived + exec variant (for multi-step
+build-then-test):</strong>
+<code>container run -d --name &lt;n&gt; --mount ... &lt;image&gt; sleep infinity</code>;
+then <code>container exec &lt;n&gt; sh -c '&lt;cmd&gt;'</code> per step
+(build, then run test suite), capturing each step's stdout + exit code;
+then <code>container stop &lt;n&gt;</code> +
+<code>container rm &lt;n&gt;</code> in a deferred cleanup
+(§11.4.14).</li>
+<li><strong>Resource limits:</strong> <code>-c</code>/<code>-m</code>
+clamp to the §12.6 60%-memory ceiling computed from host RAM (reuse the
+host-safety budget helper pattern).</li>
+</ul></li>
+<li><strong>Anti-bluff guards reused from
+<code>linux_container.go</code>:</strong> non-zero artifact assertion,
+zero-byte-is-bluff error, missing-image honest error pointing at
+provisioning docs + a SKIP-OK ticket, <code>validateRequest</code>.</li>
+<li><strong>Registration:</strong> the consuming project (tmx) builds a
+<code>Selector</code>, <code>Register</code>s
+<code>AppleContainerBackend</code> <strong>before</strong>
+<code>LinuxContainerBackend</code> and <code>HostDirectBackend</code>,
+so on a darwin host targeting linux/arm64 the Apple-container engine
+wins, with podman/docker as fallback when <code>container</code> is
+absent.</li>
+</ul>
+<h3 id="c2-how-the-tmx-project-consumes-it-per-11476">C.2 How the tmx
+project consumes it (per §11.4.76)</h3>
+<ol type="1">
+<li><strong>Add the submodule + go.mod replace.</strong> tmx already has
+<code>Containers/</code> as a submodule; consume
+<code>digital.vasic.containers</code> via a
+<code>replace digital.vasic.containers =&gt; ./Containers</code>
+directive during development + a pinned SHA for release (the §11.4.76
+replace-directive rule). <code>helix-deps.yaml</code> already declares
+the dependency.</li>
+<li><strong>Mount the tmx repo into a Linux container.</strong> tmx code
+calls <code>crossbuild.NewSelector()</code>, registers the backends, and
+issues a <code>BuildRequest</code> with
+<code>SourceDir = &lt;tmx repo root&gt;</code>, mounted at
+<code>/work/src</code>.</li>
+<li><strong>Build the tmux Linux binary inside.</strong>
+<code>BuildCommand</code> runs tmx's Linux build
+(<code>bash scripts/setup.sh --build-only</code> or the equivalent
+in-container build, after installing build deps in the image) targeting
+linux/arm64; <code>OutputSubpath</code> points at the produced
+<code>tmux</code> binary; the backend asserts it is non-zero
+(anti-bluff) and copies it to <code>HostOutputDir</code>.</li>
+<li><strong>Run the Linux test suite + capture results back.</strong>
+Using the <code>-d</code> + <code>exec</code> variant: after build,
+<code>container exec &lt;n&gt; sh -c 'bash scripts/tests/run_all.sh'</code>,
+capturing stdout/exit code into the <code>BuildResult.StdoutTail</code>
+/ a results file under <code>docs/qa/&lt;run-id&gt;/</code>. PASS only
+if exit 0 AND captured evidence (real test output, real
+<code>uname -a</code> proving Linux) is present (§11.4.69 /
+§11.4.83).</li>
+</ol>
+<p>The image: a small <code>alpine</code>/<code>debian</code> arm64 base
+extended with tmux build deps (a <code>Containerfile</code> mirroring
+<code>pkg/crossbuild/linux_container.Containerfile</code>), built once
+via <code>container build -t &lt;ref&gt; -f Containerfile .</code> and
+pulled/cached. This is the §11.4.77 regeneration mechanism for the image
+(gitignored, rebuildable from the tracked Containerfile).</p>
+<h3 id="c3-anti-bluff-test-plan">C.3 Anti-bluff test plan</h3>
+<ul>
+<li><strong>L1 pre-build gate</strong>
+(<code>CM-APPLE-CONTAINER-BACKEND</code> style):
+<code>apple_container.go</code> exists, implements <code>Backend</code>,
+capabilities honest (<code>RequiresHostOS=["darwin"]</code>,
+<code>SupportsTargets=[{linux,arm64}]</code>); the runner shells
+<code>container</code> (not podman/docker); test files exist and
+<code>go vet</code>/<code>gofmt</code> clean.</li>
+<li><strong>L3 runtime — Go test (orchestration, fake runner):</strong>
+<code>apple_container_test.go</code> mirrors
+<code>linux_container_test.go</code>: happy-path
+(<code>runCalled</code>, command contains the build token, non-zero
+<code>ArtifactSize</code>), missing-<code>container</code>-binary honest
+error, missing-image honest error, zero-byte-is-bluff,
+capabilities-honest, selector routes Apple-container on
+<code>NewSelectorForHost("darwin","arm64")</code> for
+<code>{linux,arm64}</code>.</li>
+<li><strong>L3 runtime — REAL shell test (the unforgeable
+proof):</strong> a Challenge
+<code>Containers/challenges/scripts/apple_container_linux_challenge.sh</code>
+that, on a darwin host with <code>container</code> installed:
+<ol type="1">
+<li><code>container system start</code> (idempotent),
+<code>container image pull &lt;arm64 linux ref&gt;</code>,</li>
+<li>boots a real Linux container and <code>container exec</code>s
+<strong><code>uname -a</code></strong>, asserting the output contains
+<code>Linux</code> and <code>aarch64</code> (proves a REAL Linux kernel
+ran — an Apple-<code>container</code> micro-VM, not the macOS host whose
+<code>uname</code> says <code>Darwin</code>),</li>
+<li>mounts a host temp dir, writes a sentinel from inside the container,
+and reads it back on the host (proves the host-dir mount works for
+getting tmx source in / results out),</li>
+<li><strong>full-flow:</strong> mounts the tmx repo, runs at least one
+real tmx Linux test (e.g. a single <code>scripts/tests/NN_*.sh</code>)
+inside, captures its output + exit code into
+<code>docs/qa/&lt;run-id&gt;/</code>,</li>
+<li>SKIP-with-reason (§11.4.81 honest gap) when <code>container</code>
+is absent OR macOS &lt; 26 makes the chosen kernel unstable — never a
+faked PASS, never silently degraded.</li>
+</ol></li>
+<li><strong>L4 paired mutation (§1.1):</strong> in
+<code>meta_test_false_positive_proof.sh</code>, mutate the backend so
+<code>Build</code> returns success without actually invoking the runner
+(or strips the <code>uname</code> <code>Linux</code> assertion) → the Go
+test AND the Challenge MUST FAIL. Restore → PASS.</li>
+<li><strong>§11.4.76 <code>CM-CONTAINERS-USED</code> gate:</strong>
+assert the tmx container-touching code imports
+<code>digital.vasic.containers/pkg/crossbuild</code> (uses the
+submodule, not a reimplementation); paired mutation strips the import →
+gate FAILs. Tracker row records
+<code>Catalogue-Check: extend vasic-digital/Containers@&lt;sha&gt;</code>.</li>
+<li><strong>Stress/chaos (§11.4.85):</strong> N≥10 concurrent container
+boots (each its own micro-VM; assert no deadlock/leak, cleanup in
+<code>trap EXIT</code>); chaos: <code>container kill</code> mid-build →
+categorised recovery; first-boot-latency boundary handled with a startup
+wait, not a fixed sleep.</li>
+</ul>
+<h3 id="c4-whats-needed-on-the-host--honest-blockers">C.4 What's needed
+on the host + honest blockers</h3>
+<ul>
+<li><strong>One-time (operator, admin once):</strong>
+<code>brew install --cask container</code> (or the signed
+<code>.pkg</code>); <code>container system start</code> (installs
+default Linux kernel on first run). After that,
+<code>container run</code>/<code>exec</code> are unprivileged (no sudo).
+This is the §11.4.98 one-time-credential/bootstrap exception — outside
+test execution; the Challenge itself is fully self-driving
+thereafter.</li>
+<li><strong>Honest blocker on THIS host:</strong> macOS
+<strong>15.5</strong> + <code>container</code> not installed. Apple
+officially supports macOS <strong>26</strong>; on 15.x our flow works
+within documented limits (we need only host-dir mount + host→guest
+<code>exec</code>, not inter-container networking), but
+unreproducible-on-26 bugs may go unfixed. The backend MUST
+runtime-detect <code>container</code> presence AND macOS version and,
+when unsupported/unstable, SKIP-with-reason per §11.4.81 and let the
+existing podman/docker <code>LinuxContainerBackend</code> (Podman
+Machine on Apple Silicon) serve the same <code>{linux,arm64}</code>
+target — so tmx Linux testing on macOS is never blocked outright.</li>
+</ul>
+<hr />
+<h2 id="sources-verified-2026-06-13">Sources verified 2026-06-13</h2>
+<ul>
+<li><a
+href="https://github.com/apple/container">https://github.com/apple/container</a>
+— README: requirements (Apple Silicon, macOS 26 supported / runs on 15,
+admin install), <code>.pkg</code> install to <code>/usr/local</code>,
+<code>container system start</code>, OCI images, lightweight
+per-container VMs.</li>
+<li><a
+href="https://github.com/apple/container/blob/main/docs/command-reference.md">https://github.com/apple/container/blob/main/docs/command-reference.md</a>
+— full CLI flag set for
+run/exec/list/stop/kill/delete/system/image/build incl.
+<code>-v</code>/<code>--mount</code>,
+<code>-c</code>/<code>-m</code>/<code>-e</code>/<code>-w</code>/<code>--rm</code>/<code>--name</code>/<code>-d</code>.</li>
+<li><a
+href="https://github.com/apple/container/blob/main/docs/technical-overview.md">https://github.com/apple/container/blob/main/docs/technical-overview.md</a>
+— one-VM-per-container via Virtualization framework, OCI compatibility,
+macOS 15 vmnet networking limitations + <code>192.168.64.1/24</code>
+default CIDR.</li>
+<li><a
+href="https://github.com/apple/container/issues/76">https://github.com/apple/container/issues/76</a>
+— Rosetta-for-Linux status/uncertainty.</li>
+<li><a
+href="https://chamodshehanka.medium.com/apples-new-containerization-framework-a-deep-dive-into-macos-s-future-for-developers-cf102643394a">https://chamodshehanka.medium.com/apples-new-containerization-framework-a-deep-dive-into-macos-s-future-for-developers-cf102643394a</a>
+— macOS 15 limitations, Rosetta + kernel 6.13 regressions, macOS 26
+networking improvements.</li>
+<li><a
+href="https://www.outcoldman.com/blog/2026/05/02/apple-container-tired-of-docker/">https://www.outcoldman.com/blog/2026/05/02/apple-container-tired-of-docker/</a>
+— community usage report on Apple Silicon.</li>
+</ul>
+</body>
+</html>

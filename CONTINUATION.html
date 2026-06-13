@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-06-13T12:30Z</p>
+<p><strong>Last updated:</strong> 2026-06-13T16:30Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -274,6 +274,39 @@ user-mandate quote)</li>
 sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
+<h3
+id="322--apple-container-integration-on-demand-containerized-linux-under-macos-for-testing--v1022-2026-06-13">§3.22
+— Apple <code>container</code> integration: on-demand containerized
+Linux under macOS for testing → v1.0.22 (2026-06-13)</h3>
+<p><strong>Status:</strong> DONE — RELEASED v1.0.22 (2026-06-13).
+Testing-capability addition (no tmux source/wrapper change — shipped
+binary + <code>tmx</code> wrapper unchanged from v1.0.21).</p>
+<p>Apple <code>container</code> 1.0.0 incorporated into the
+<code>vasic-digital/Containers</code> submodule as a new generic
+<code>pkg/crossbuild/apple_container.go</code> backend +
+<code>RunInLinuxContainer</code> (unit + integration tests + challenge).
+Proven on this macOS 15.5/arm64 host: real <code>container run</code>
+returns <code>Linux aarch64</code> (host is Darwin), host-dir mount
+round-trips, paired mutation (strip <code>--mount</code> → exit 99).
+Consumed extend-don't-reimplement per §11.4.74 / §11.4.76.</p>
+<p>tmx harness <code>scripts/test_apple_container.sh</code> builds tmux
+3.6a INSIDE an Apple-container Linux VM (genuine Linux ELF:
+<code>osdep-linux.o</code> + <code>libjemalloc.so.2</code> +
+<code>libevent_core</code>) and runs the suite.
+<strong>Evidence</strong>
+<code>docs/qa/2026-06-13-apple-container/</code>:
+<code>uname.txt</code>=<code>Linux aarch64</code>;
+<code>tmux-version.txt</code>=<code>tmux 3.6a</code>;
+<code>elf-proof.txt</code> (ELF magic + jemalloc ldd);
+<code>build.log</code>; <code>run_all.log</code> +
+<code>summary.txt</code> = <strong>PASS=30 / FAIL=0 / SKIP=28</strong>
+(base image <code>ubuntu:22.04</code>). 28 SKIPs are honest
+§11.4.3/§11.4.81 topology gaps (no systemd-cgroup, no physical
+terminal/clipboard/mouse, no host tooling); the 30 core tmux tests RAN +
+PASSED. Release notes for GitHub + GitLab at
+<code>docs/qa/2026-06-13-apple-container/RELEASE_NOTES.md</code>.
+Fixed.md A44; CHANGELOG v1.0.22 (Sources verified 2026-06-13 against
+apple.github.io/container/ documentation/); VERSION 1.0.22/23.</p>
 <h3
 id="321--copypaste-architecture-fix-mouse-off-default--helixcode-crash-forensics--v1021-2026-06-13">§3.21
 — Copy/paste ARCHITECTURE fix (mouse off default) + HelixCode crash

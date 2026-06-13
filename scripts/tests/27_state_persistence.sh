@@ -150,12 +150,30 @@ run_iteration() {
     # this detached-session test). The wrapper installs the SAME command;
     # proving it works here proves the integration end-to-end.
     "$TMUX_BIN" -L "$SOCK_LABEL" run-shell "$STATE_BIN record $SESS #{pane_current_path}" 2>/dev/null
-    sleep 0.3
     "$WRAPPER" kill-session -t "$SESS" >/dev/null 2>&1 || \
         "$TMUX_BIN" -L "$SOCK_LABEL" kill-session -t "$SESS" >/dev/null 2>&1 || true
-    sleep 0.3
-    local after_hook
-    after_hook="$("$STATE_BIN" recall "$SESS" 2>/dev/null || echo MISSING)"
+    # §11.4.1/§11.4.50 source-layer hardening: `tmux run-shell "<cmd>"` spawns
+    # the `tmx-state-bin record` job in tmux's event loop and does NOT guarantee
+    # the spawned child has finished WRITING the state file before run-shell
+    # returns to this shell. Under full-suite CPU contention the async record
+    # lands AFTER a blind `sleep` would elapse, so an immediate `recall` reads
+    # the stale Phase-1 value (observed FAIL: recall='...-target-...' instead of
+    # '...-hook-...'). This is the run-shell-hook fire→record→readable timing
+    # race — a HARNESS race, not a product defect (record is atomic + durable
+    # on exit per tmx-state/main.go). Poll the REAL condition (state file now
+    # contains the hook_target) up to 25 × 0.2 s = 5 s instead of a blind sleep.
+    # The assertion below is UNCHANGED — a genuinely broken hook never writes
+    # the hook_target, so `after_hook` stays != hook_target and still FAILs
+    # after the full timeout.
+    local after_hook _hk_i
+    after_hook="MISSING"
+    for _hk_i in $(seq 1 25); do
+        after_hook="$("$STATE_BIN" recall "$SESS" 2>/dev/null || echo MISSING)"
+        if [ "$after_hook" = "$hook_target" ] || [ "$after_hook" = "$hook_target_real" ]; then
+            break
+        fi
+        sleep 0.2
+    done
     rm -rf "$hook_target"
     if [ "$after_hook" != "$hook_target" ] && [ "$after_hook" != "$hook_target_real" ]; then
         echo "FAIL 18 iter=$iter: run-shell hook did not update state — recall='$after_hook' (expected '$hook_target' or '$hook_target_real')"

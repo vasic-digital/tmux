@@ -1,0 +1,130 @@
+Apple container Linux-in-macOS tmx run — 2026-06-13T13:26:54Z
+host:           Darwin arm64
+container OS:    Linux aarch64
+built binary:    tmux 3.6a
+image:           docker.io/library/ubuntu:22.04
+
+  SUMMARY: PASS=30  FAIL=0  SKIP=28
+  SKIPped: 08_oom_score_adj.sh 09_crash_isolation_scope.sh 12_memory_pressure_under_cap.sh 13_tasksmax_stress.sh 14_concurrent_oom_independence.sh 15_per_session_cgroup_distinct.sh 16_window_name_strips_exe.sh 18_constitution_inheritance.sh 20_codegraph_installed.sh 21_codegraph_index_present.sh 22_codegraph_mcp_wired.sh 24_cpu_cap_enforcement.sh 32_ssh_dispatch_remote_nezha.sh 39_state_unwritable.sh 40_macos_linux_parity.sh 41_docs_user_guides_render.sh 43_e2e_cwd_persist_real_shell.sh 44_clipboard_copy_out_physical.sh 45_multiline_copy_physical.sh 46_paste_in_physical.sh 47_alt_screen_scroll.sh 48_modifier_drag_override.sh 51_workable_items_db_integrity.sh 55_mouse_toggle_and_copy.sh 56_real_mouse_drag_copy.sh 57_reload_select_copy_paste.sh 58_operator_path_select_copy_ls.sh 59_native_mouse_unobstructed.sh
+
+# Per-test verdicts (test header + its final PASS/FAIL/SKIP):
+PASS
+PASS
+PASS
+PASS
+PASS
+PASS (growth < 20 MB)
+PASS (growth < 50% over 25 s)
+SKIP: systemd-cgroup topology: oom_score_adj is written through `systemd-run --user --scope`; the mi
+SKIP: systemd-cgroup topology: crash-isolation scope requires `systemd-run --user --scope`; absent i
+PASS: T1: deterministic — 'testhost-001' → colour87 (twice)
+PASS: T2: 'colour46' is a valid tmux 256-colour
+PASS: T3: 16/16 hostnames produced unique colours (good spread)
+PASS: T4: 'colour201' is a member of the curated palette (27 colours)
+PASS: T5: empty argument uses system hostname (→ colour46)
+PASS: T1: tmx wrapper includes _apply_host_color
+PASS: T2: tmx wrapper calls hostname_color.sh
+PASS: T4.0: status-style bg='colour46' read from session A's server (positive evidence: tmux -L tmx-
+PASS: T4.1: status-bg 'colour46' matches expected 'colour46' (hostname-derived colour applied)
+PASS: T5: second session on different socket has SAME colour 'colour46' (positive evidence: same-hos
+PASS: T6: wrapper did not silently produce tmux's default bg=green (positive evidence: ACTUAL='colou
+SKIP: systemd-cgroup topology + destructive: memory-pressure cap requires a real cgroup scope (§11.
+SKIP: systemd-cgroup topology + destructive: TasksMax stress requires `systemd-run --user --scope` (
+SKIP: systemd-cgroup topology + destructive: concurrent-OOM independence requires per-session cgroup
+SKIP: systemd-cgroup topology: per-session cgroup distinctness requires `systemd-run --user --scope`
+PASS: T1: tmux.conf.template carries literal-dot-anchored .exe strip ('\\.exe$')
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t16_a_5179 ls' succee
+PASS: T2.1: pane_current_command='t16_target.exe' confirmed (defect surface is reachable in this run
+SKIP: T2.2: rename hook fired pre-exec; #W='bash' (post-exec rename did not refire — tmux/Linux ra
+PASS: T3.0: operator-path session B created
+SKIP: T3.1: rename hook fired pre-exec; #W='bash' (post-exec rename did not refire — tmux/Linux ra
+PASS: T1: tmux.conf.template carries all scrollback + copy-mode + passthrough settings
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t17_5560 ls' succeede
+PASS: T2.1: live server history-limit = 50000 (readback from tmx-tmx_t17_5560)
+PASS: T2.2: live server mode-keys = vi (readback from tmx-tmx_t17_5560)
+PASS: T2.3: live server mouse = off by default — terminal owns the mouse (tmux mouse on demand via
+PASS: T2.4: live server allow-passthrough = on (Claude Code TUI passthrough)
+PASS: T2.5: live server extended-keys = on (Shift+Enter reaches the app)
+PASS: T3: live WheelUpPane binding drives copy-mode scroll-up (override active, not tmux default)
+PASS: T4.1: SCROLLMARK_FIRST scrolled off the visible screen (defect surface real; LAST is visible)
+PASS: T4.2: scrollback buffer retains line 1 of 3000 (history-limit bump is functional; poll-ingest 
+PASS: T4.3a: copy-mode entered (pane_in_mode=1)
+PASS: T4.3b: copy-mode search reached the old content (scroll_position=2979 lines up)
+PASS: T4.4: operator scrolled to + copied line 1 of 3000 via copy-mode (show-buffer carries SCROLLMA
+SKIP: repo-wiring: constitution `.gitmodules` SSH submodule entry + populated submodule is a git-che
+PASS: T1: verbatim covenant present in /work/repo/Constitution.md
+PASS: T2: verbatim covenant present in /work/repo/CLAUDE.md
+PASS: T3: verbatim covenant present in /work/repo/AGENTS.md
+PASS: T4: verbatim covenant present in /work/repo/QWEN.md
+PASS: T5: §11.4 / §101 authority cross-reference present in all 4 files (positive evidence: 4/4 gr
+PASS: T6: upstream constitution/Constitution.md retains verbatim covenant
+PASS: T7: governance export-sync drift noted (soft check; tracked separately)
+SKIP: host-tooling: CodeGraph CLI is a host-installed npm tool (§11.4.78), not a Linux-tmux runtime
+SKIP: host-tooling: CodeGraph index DB requires the host CodeGraph CLI (§11.4.78); not present in t
+SKIP: host-tooling: CodeGraph MCP wiring is a host-agent concern (§11.4.78); not present in the bui
+PASS: T1: tmx new -s t23_kill_5750 -d succeeded
+PASS: T2: tmx ls shows 't23_kill_5750' (positive evidence: tmx ls output)
+PASS: T3: tmx kill -t t23_kill_5750 resolved (no 'ambiguous' stderr; AUDIT-2 fix active)
+PASS: T4: 't23_kill_5750' removed from tmx ls within poll budget (positive evidence: post-kill listi
+PASS: T5: tmux server on socket tmx-t23_kill_5750 terminated within poll budget (positive evidence: 
+SKIP: systemd-cgroup topology: CPUQuota enforcement requires a real cgroup scope (§11.4.3).
+PASS: T1: nezha=colour88 vs Mistborn=colour44 — RGB distance=332.7 ≥ 80 (positive evidence per �
+PASS: T2: 16-synthetic-hostname pairwise — min=0.0, mean=226.0, collisions=4/120 ≤ 6 pigeonhole 
+PASS: T3: palette adjacency — size=27, min-adjacent-distance=120.0 ≥ 80 (positive evidence: no c
+PASS: T1: status-style live carries bg=colour46 (positive evidence: 'bg=colour46')
+PASS: T2: pane-active-border-style live carries fg=colour46 (positive evidence: 'fg=colour46')
+PASS: T3: clock-mode-colour live = colour46 (positive evidence: prefix+t clock face matches hostname
+PASS: T4: window-status-current-style live carries bg=colour46 (positive evidence: 'bg=colour46,fg=b
+PASS: T5: ALL four default-green tmux UI surfaces carry the hostname-derived colour46 — UI uniform
+PASS 18 tmx-state cwd persistence end-to-end (3/3 iterations identical, hook updated state)
+PASS 19 tmx-shell-init: 'default' input skips tmx cleanly (3/3 iterations)
+PASS 20 tmx-shell-init: blank input skips tmx cleanly (3/3 iterations)
+PASS 21 tmx-shell-init: non-TTY stdin silent-skips fast (3/3 iterations, Linux)
+PASS 22 tmx-ssh-dispatch: local loopback creates session (3/3 iterations)
+SKIP: remote-host topology: SSH dispatch to the `nezha` remote requires that host (§11.4.3).
+PASS 24 tmx-state-bin: 10 concurrent record writes serialised, JSON intact (3/3 iterations)
+PASS 25 tmx-ssh-install --dry-run idempotent (3/3 iterations)
+PASS 26 session-name validation rejects 7 bad names on init+dispatcher (3/3 iterations)
+PASS 27 dispatcher rejects 8 multi-word/injection commands (3/3 iterations)
+PASS 28 tmx-shell-init: $TMUX set → silent skip (3/3 iterations)
+PASS 29 wrapper falls back to $HOME when stale recalled cwd missing (3/3 iterations)
+SKIP 30: cannot test unwritable dir as root (EUID=0 bypasses mode bits)
+SKIP: systemd-cgroup topology: §11.4.81 Linux branch asserts `systemd-run` on PATH as the isolation
+SKIP: host-tooling: user-guide HTML/PDF render requires pandoc/weasyprint on the host (§11.4.3).
+PASS: iter=1 A1: tmx-shell-init.sh present + exec + placeholders resolved
+PASS: iter=1 A2: rc has exactly 1 source line for tmx-shell-init.sh
+PASS: iter=1 A3: rc has exactly 1 fenced block
+PASS: iter=1 A4: init reached tmx invocation (1 call(s) logged)
+PASS: iter=1 B1: rc fenced block removed
+PASS: iter=1 B2: legacy unfenced snippet removed
+PASS: iter=1 B3: init file removed
+PASS: iter=2 A1: tmx-shell-init.sh present + exec + placeholders resolved
+PASS: iter=2 A2: rc has exactly 1 source line for tmx-shell-init.sh
+PASS: iter=2 A3: rc has exactly 1 fenced block
+PASS: iter=2 A4: init reached tmx invocation (1 call(s) logged)
+PASS: iter=2 B1: rc fenced block removed
+PASS: iter=2 B2: legacy unfenced snippet removed
+PASS: iter=2 B3: init file removed
+PASS: iter=3 A1: tmx-shell-init.sh present + exec + placeholders resolved
+PASS: iter=3 A2: rc has exactly 1 source line for tmx-shell-init.sh
+PASS: iter=3 A3: rc has exactly 1 fenced block
+PASS: iter=3 A4: init reached tmx invocation (1 call(s) logged)
+PASS: iter=3 B1: rc fenced block removed
+PASS: iter=3 B2: legacy unfenced snippet removed
+PASS: iter=3 B3: init file removed
+PASS 42 setup install/uninstall E2E — tmx-shell-init.sh present, rc snippet 1×, fake-tmx invoked,
+SKIP: interactive-shell topology: cwd persistence fires from an interactive bash PROMPT_COMMAND hook
+SKIP: physical-terminal topology: clipboard copy-out needs a real TTY/clipboard (§11.4.3).
+SKIP: physical-terminal topology: multiline copy needs a real TTY/clipboard (§11.4.3).
+SKIP: physical-terminal topology: paste-in needs a real TTY/clipboard (§11.4.3).
+SKIP: physical-terminal topology: alt-screen scroll needs a real interactive terminal (§11.4.3).
+SKIP: physical-terminal topology: modifier-drag override needs a real mouse-capable terminal (§11.4
+PASS 49: T0 template present at /work/repo/scripts/tmx-shell-init.sh.template
+PASS 49: T1 template guard + marker present
+PASS 49: T2 + T3 marker fired on 3/3 iterations (identical evidence) on Linux
+PASS 50: T0 wrapper + tmux + tmx-state-bin all present
+PASS 50: T1 tmx.template auto-install block + tmx-state-bin record present
+PASS 50: T1 generated wrapper carries the auto-install block
+PASS 50: T2 + T3 both hooks auto-installed on 3/3 iterations (identical evidence) on Linux
+SKIP 51: T0 workable-items binary not built at /work/repo/cmd/workable-items/workable-items (run: cd
+PASS 52: T0 docs/ root present

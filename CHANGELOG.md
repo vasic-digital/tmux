@@ -6,6 +6,85 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.22] — 2026-06-13
+
+**Apple `container` integration: on-demand containerized Linux under macOS for testing — build tmux 3.6a inside a real Linux VM and run the suite, no remote Linux host required.**
+
+The project is native dual-OS (Linux + macOS), but on a macOS workstation
+there was previously no host-local way to exercise the **Linux** build of tmux
+— Linux validation depended on the remote `nezha` host. This release adds
+on-demand containerized Linux under macOS using Apple's native `container`
+runtime (1.0.0), so a developer on Apple Silicon can build the Linux ELF tmux
+binary inside a real Linux VM and run the project's own test suite against it
+with one command.
+
+### Added
+
+- **Containers-submodule backend (extended, not reimplemented — §11.4.76).**
+  The Apple `container` 1.0.0 runtime was incorporated into the
+  `vasic-digital/Containers` submodule as a new generic
+  `pkg/crossbuild/apple_container.go` backend exposing `RunInLinuxContainer`,
+  with unit + integration tests and a challenge. Proven on this macOS 15.5 /
+  arm64 host: a real `container run` returns `Linux aarch64` (while the host
+  is Darwin), a host-directory mount round-trips, and a paired mutation that
+  strips the `--mount` flag exits 99. The cross-build capability lives in the
+  reusable submodule per §11.4.74 (catalogue-first) — the project consumes it,
+  it is not duplicated in-tree.
+- **tmx-side harness `scripts/test_apple_container.sh`.** Builds tmux 3.6a
+  INSIDE an Apple-`container` Linux VM (genuine Linux build: `osdep-linux.o` +
+  `libjemalloc.so.2` + `libevent_core`) and runs `run_all.sh` against that
+  Linux binary, capturing real PASS/FAIL/SKIP evidence. Stops + removes the
+  transient container on every exit path. Honest exit codes: `0` PASS, `1`
+  real FAIL, `2` build defect, `3` SKIP (runtime/kernel absent or not macOS).
+
+### Proven evidence (real captured runtime, no guessing per §11.4.6)
+
+Captured under `docs/qa/2026-06-13-apple-container/linux-run/`:
+
+| Artifact | Proof |
+|---|---|
+| `uname.txt` | in-container `uname -s -m` = **`Linux aarch64`** (host is Darwin/arm64) |
+| `tmux-version.txt` | built binary reports **`tmux 3.6a`** |
+| `elf-proof.txt` | ELF magic `7f 45 4c 46` + `ldd` shows `libjemalloc.so.2`, `libtinfo`, `libevent_core`, `libc` — a real Linux ELF, jemalloc-linked |
+| `build.log` | full in-VM configure+compile transcript (Linux gcc, `osdep-linux.o`) |
+| `run_all.log` / `summary.txt` | suite result **PASS=30 / FAIL=0 / SKIP=28** against the Linux binary |
+
+Host: Darwin arm64. Container OS: Linux aarch64. Base image:
+`docker.io/library/ubuntu:22.04`.
+
+### Honest topology SKIPs (§11.4.3 / §11.4.81 — not pass, not fail)
+
+The 28 SKIPs are honest topology gaps, never silent passes: the minimal
+container VM has no user systemd session, so cgroup/scope tests SKIP-with-
+reason (`08_oom_score_adj`, `09_crash_isolation_scope`,
+`12_memory_pressure_under_cap`, `13_tasksmax_stress`,
+`14_concurrent_oom_independence`, `15_per_session_cgroup_distinct`,
+`24_cpu_cap_enforcement`); physical-terminal / real-clipboard /
+real-mouse tests SKIP (no DISPLAY/PTY tty in the VM —
+`44`–`48`, `55`–`59`); and host-tooling / cross-host tests SKIP
+(`16_window_name_strips_exe`, `18_constitution_inheritance`,
+`20`–`22` CodeGraph, `32_ssh_dispatch_remote_nezha`, `39_state_unwritable`,
+`40_macos_linux_parity`, `41_docs_user_guides_render`,
+`43_e2e_cwd_persist_real_shell`, `51_workable_items_db_integrity`). The 30
+core tmux tests (smoke, session lifecycle, jemalloc-mapped proof,
+history-limit, clear-history, scrollback, hostname-colour, …) RAN and PASSED.
+
+### Notes
+
+- No tmux source or wrapper behaviour changed in this release — this is a
+  testing-capability addition (the Linux-under-macOS harness + the
+  Containers-submodule backend it consumes). The shipped tmux 3.6a binary and
+  `tmx` wrapper are byte-for-byte the v1.0.21 product.
+
+## Sources verified 2026-06-13
+
+Apple `container` documentation cross-referenced before publishing the harness
+usage + requirements (per §11.4.99):
+
+- Apple `container` documentation — <https://apple.github.io/container/documentation/>
+
+---
+
 ## [v1.0.21] — 2026-06-13
 
 **Copy/paste root-cause fix — the terminal owns the mouse by default (native multi-line select + right-click→Copy + scroll work everywhere); tmux mouse on demand via `prefix m`.**

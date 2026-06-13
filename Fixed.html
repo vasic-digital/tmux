@@ -324,6 +324,73 @@ layer (c) met by challenge entries CH-01 through CH-14</td>
 <h2 id="a-tooling--harness-gaps--resolved">A. Tooling / harness gaps —
 RESOLVED</h2>
 <h3
+id="a44-apple-container-integration-on-demand-containerized-linux-under-macos-for-testing--resolved">A44.
+Apple <code>container</code> integration: on-demand containerized Linux
+under macOS for testing — <code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Feature <strong>Status:</strong> Implemented
+(→ Fixed.md) <strong>Closure cycle:</strong> v1.0.22 / versionCode 23
+(2026-06-13). <strong>Goal:</strong> the project is native dual-OS
+(Linux + macOS), but on a macOS workstation there was no host-local way
+to exercise the <strong>Linux</strong> build of tmux — Linux validation
+depended on the remote <code>nezha</code> host. Provide on-demand
+containerized Linux under macOS so a developer on Apple Silicon can
+build the Linux ELF tmux binary inside a real Linux VM and run the
+project's own suite against it.</p>
+<p><strong>Implementation (extend-don't-reimplement per §11.4.74 /
+§11.4.76).</strong> Apple <code>container</code> 1.0.0 was incorporated
+into the <code>vasic-digital/Containers</code> submodule as a new
+generic <code>pkg/crossbuild/apple_container.go</code> backend exposing
+<code>RunInLinuxContainer</code>. The tmx consumer added the harness
+<code>scripts/test_apple_container.sh</code>, which builds tmux 3.6a
+inside an Apple-<code>container</code> Linux VM (genuine Linux build:
+<code>osdep-linux.o</code> + <code>libjemalloc.so.2</code> +
+<code>libevent_core</code>) and runs <code>run_all.sh</code> against
+that Linux binary. The cross-build capability lives in the reusable
+submodule; the project consumes it rather than duplicating it.</p>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li><strong>Layer 1 (backend source).</strong>
+<code>pkg/crossbuild/apple_container.go</code> +
+<code>RunInLinuxContainer</code> in the
+<code>vasic-digital/Containers</code> submodule.</li>
+<li><strong>Layer 2 (unit tests).</strong> Submodule unit tests for the
+new backend.</li>
+<li><strong>Layer 3 (real integration — runtime anti-bluff).</strong> On
+this macOS 15.5 / arm64 host, a real <code>container run</code> returns
+<code>Linux aarch64</code> (host is Darwin) and a host-directory mount
+round-trips. The tmx harness then proves the end-to-end capability —
+EVIDENCE under
+<code>docs/qa/2026-06-13-apple-container/linux-run/</code>:
+<code>uname.txt</code> = <code>Linux aarch64</code>;
+<code>tmux-version.txt</code> = <code>tmux 3.6a</code>;
+<code>elf-proof.txt</code> = ELF magic <code>7f 45 4c 46</code> +
+<code>ldd</code> showing <code>libjemalloc.so.2</code> /
+<code>libtinfo</code> / <code>libevent_core</code> / <code>libc</code>;
+<code>build.log</code> (full in-VM Linux gcc transcript);
+<code>run_all.log</code> + <code>summary.txt</code> reporting
+<strong>PASS=30 / FAIL=0 / SKIP=28</strong> against the Linux binary.
+Base image <code>docker.io/library/ubuntu:22.04</code>.</li>
+<li><strong>Layer 4 (challenge + paired mutation).</strong> Submodule
+challenge for the backend plus a paired mutation that strips the
+<code>--mount</code> flag → exit 99 (the mount contract is mechanically
+enforced).</li>
+</ul>
+<p><strong>Honest topology SKIPs (§11.4.3 / §11.4.81).</strong> The 28
+SKIPs are honest gaps, never silent passes: the minimal container VM has
+no user systemd session, so cgroup/scope tests SKIP-with-reason;
+physical-terminal / real-clipboard / real-mouse tests SKIP (no
+DISPLAY/PTY tty); host-tooling / cross-host tests SKIP (CodeGraph,
+constitution-inheritance, <code>nezha</code> SSH dispatch, docs render,
+workable-items DB). The 30 core tmux tests RAN and PASSED.</p>
+<p><strong>Cross-refs:</strong> consumes
+<code>vasic-digital/Containers</code>
+<code>pkg/crossbuild/apple_container.go</code>; harness
+<code>scripts/test_apple_container.sh</code>; CHANGELOG v1.0.22 (Sources
+verified 2026-06-13 against apple.github.io/container/documentation/).
+No tmux source or wrapper behaviour changed — the shipped tmux 3.6a
+binary + <code>tmx</code> wrapper are unchanged from v1.0.21.</p>
+<hr />
+<h3
 id="a43-copypaste-terminal-owns-the-mouse-by-default-native-multi-line-select--right-clickcopy--scroll-work-everywhere--resolved">A43.
 Copy/paste: terminal owns the mouse by default (native multi-line select
 + right-click→Copy + scroll work everywhere) —
