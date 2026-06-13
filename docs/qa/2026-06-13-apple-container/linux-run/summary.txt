@@ -1,4 +1,4 @@
-Apple container Linux-in-macOS tmx run — 2026-06-13T13:26:54Z
+Apple container Linux-in-macOS tmx run — 2026-06-13T14:25:12Z
 host:           Darwin arm64
 container OS:    Linux aarch64
 built binary:    tmux 3.6a
@@ -33,15 +33,15 @@ SKIP: systemd-cgroup topology + destructive: TasksMax stress requires `systemd-r
 SKIP: systemd-cgroup topology + destructive: concurrent-OOM independence requires per-session cgroup
 SKIP: systemd-cgroup topology: per-session cgroup distinctness requires `systemd-run --user --scope`
 PASS: T1: tmux.conf.template carries literal-dot-anchored .exe strip ('\\.exe$')
-PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t16_a_5179 ls' succee
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t16_a_5182 ls' succee
 PASS: T2.1: pane_current_command='t16_target.exe' confirmed (defect surface is reachable in this run
 SKIP: T2.2: rename hook fired pre-exec; #W='bash' (post-exec rename did not refire — tmux/Linux ra
 PASS: T3.0: operator-path session B created
 SKIP: T3.1: rename hook fired pre-exec; #W='bash' (post-exec rename did not refire — tmux/Linux ra
 PASS: T1: tmux.conf.template carries all scrollback + copy-mode + passthrough settings
-PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t17_5560 ls' succeede
-PASS: T2.1: live server history-limit = 50000 (readback from tmx-tmx_t17_5560)
-PASS: T2.2: live server mode-keys = vi (readback from tmx-tmx_t17_5560)
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t17_5562 ls' succeede
+PASS: T2.1: live server history-limit = 50000 (readback from tmx-tmx_t17_5562)
+PASS: T2.2: live server mode-keys = vi (readback from tmx-tmx_t17_5562)
 PASS: T2.3: live server mouse = off by default — terminal owns the mouse (tmux mouse on demand via
 PASS: T2.4: live server allow-passthrough = on (Claude Code TUI passthrough)
 PASS: T2.5: live server extended-keys = on (Shift+Enter reaches the app)
@@ -62,11 +62,11 @@ PASS: T7: governance export-sync drift noted (soft check; tracked separately)
 SKIP: host-tooling: CodeGraph CLI is a host-installed npm tool (§11.4.78), not a Linux-tmux runtime
 SKIP: host-tooling: CodeGraph index DB requires the host CodeGraph CLI (§11.4.78); not present in t
 SKIP: host-tooling: CodeGraph MCP wiring is a host-agent concern (§11.4.78); not present in the bui
-PASS: T1: tmx new -s t23_kill_5750 -d succeeded
-PASS: T2: tmx ls shows 't23_kill_5750' (positive evidence: tmx ls output)
-PASS: T3: tmx kill -t t23_kill_5750 resolved (no 'ambiguous' stderr; AUDIT-2 fix active)
-PASS: T4: 't23_kill_5750' removed from tmx ls within poll budget (positive evidence: post-kill listi
-PASS: T5: tmux server on socket tmx-t23_kill_5750 terminated within poll budget (positive evidence: 
+PASS: T1: tmx new -s t23_kill_5752 -d succeeded
+PASS: T2: tmx ls shows 't23_kill_5752' (positive evidence: tmx ls output)
+PASS: T3: tmx kill -t t23_kill_5752 resolved (no 'ambiguous' stderr; AUDIT-2 fix active)
+PASS: T4: 't23_kill_5752' removed from tmx ls within poll budget (positive evidence: post-kill listi
+PASS: T5: tmux server on socket tmx-t23_kill_5752 terminated within poll budget (positive evidence: 
 SKIP: systemd-cgroup topology: CPUQuota enforcement requires a real cgroup scope (§11.4.3).
 PASS: T1: nezha=colour88 vs Mistborn=colour44 — RGB distance=332.7 ≥ 80 (positive evidence per �
 PASS: T2: 16-synthetic-hostname pairwise — min=0.0, mean=226.0, collisions=4/120 ≤ 6 pigeonhole 

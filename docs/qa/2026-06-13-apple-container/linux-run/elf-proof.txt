@@ -1,7 +1,7 @@
 # ELF magic (expect: 7f 45 4c 46 = \x7fELF):
  7f 45 4c 46
 # ldd (expect libjemalloc.so.2 + libevent_core + libtinfo + libc):
-	libjemalloc.so.2 => /lib/aarch64-linux-gnu/libjemalloc.so.2 (0x0000ffffb5100000)
-	libtinfo.so.6 => /lib/aarch64-linux-gnu/libtinfo.so.6 (0x0000ffffb50b0000)
-	libevent_core-2.1.so.7 => /lib/aarch64-linux-gnu/libevent_core-2.1.so.7 (0x0000ffffb5060000)
-	libc.so.6 => /lib/aarch64-linux-gnu/libc.so.6 (0x0000ffffb4de0000)
+	libjemalloc.so.2 => /lib/aarch64-linux-gnu/libjemalloc.so.2 (0x0000ffffb3d20000)
+	libtinfo.so.6 => /lib/aarch64-linux-gnu/libtinfo.so.6 (0x0000ffffb3cd0000)
+	libevent_core-2.1.so.7 => /lib/aarch64-linux-gnu/libevent_core-2.1.so.7 (0x0000ffffb3c80000)
+	libc.so.6 => /lib/aarch64-linux-gnu/libc.so.6 (0x0000ffffb3a00000)

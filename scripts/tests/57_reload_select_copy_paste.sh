@@ -120,6 +120,23 @@ PY
 
 fail=0
 
+# ── (0) EARLY FAIL-FAST GUARD: shipped conf MUST define the prefix-P paste binding
+# ─────────────────────────────────────────────────────────────────────────────
+# Runs BEFORE any tmux server work, so a removed/mis-shaped paste binding (e.g.
+# the M-PASTE paired §1.1 mutation that strips `bind P`) is caught
+# DETERMINISTICALLY — even when a later part's tmux server dies mid-test under
+# heavy host load (the §3.20 "server exited unexpectedly" phenomenon), which would
+# otherwise terminate the test before the part-(D)/(E) paste assertions run and let
+# the mutation ESCAPE the gate (observed in the full meta sweep). This is a
+# FAIL-fast guard on the conf source, NOT a PASS substitute: the positive end-user
+# paste proof is still the parts (C)/(D) runtime evidence below (§11.4.69). A
+# server-and-clipboard-independent fact, immune to runtime flakiness.
+if grep -Eq "^bind P run .*load-buffer" "$CONF"; then
+    echo "EVIDENCE (0): shipped conf defines the prefix-P paste binding ('bind P run ... load-buffer')"
+else
+    echo "FAIL: 57(0) — shipped conf is MISSING the prefix-P paste binding ('bind P run ... load-buffer'); paste-into-pane cannot work"; fail=1
+fi
+
 # ── (A) STALE session: old forwarding binding → drag copies nothing ──────────
 TOKA="STALE_$$"
 "$BIN" -L "$L" kill-server 2>/dev/null || true
@@ -246,20 +263,29 @@ PY
     if [ "$d_ok" = 1 ]; then
         echo "EVIDENCE (D): real 'prefix P' pasted the EXACT OS-clipboard value '$DTOK' into the pane"
     else
-        # Distinguish a PRODUCT DEFECT (paste chain broken) from ENVIRONMENT
-        # CONTENTION (a foreign process overwrote the GLOBAL pasteboard during
-        # our ~4 s window). If the live clipboard NO LONGER holds our token, an
-        # external writer clobbered it → the exact-value proof is not
-        # establishable under contention → honest §11.4.3 SKIP-layer (the paste
-        # MECHANISM is proven by (C) and the prefix-P binding shape by (E)). If
-        # the clipboard STILL holds our token yet the pane lacks it, the binding
-        # genuinely failed → real FAIL. This never false-PASSes (PASS still
-        # requires the real DTOK paste) and never false-FAILs on contention.
+        # Distinguish a PRODUCT DEFECT (paste binding broken/absent) from
+        # ENVIRONMENT CONTENTION (a foreign process overwrote the GLOBAL pasteboard
+        # during our ~4 s window) — CLIPBOARD-INDEPENDENTLY, so a genuinely broken
+        # binding is ALWAYS caught regardless of clipboard noise. The escape this
+        # closes: the M-PASTE paired mutation strips the `prefix P` paste binding;
+        # if we keyed the FAIL/SKIP decision only on "is the clipboard still our
+        # token", a concurrent clipboard writer would route the stripped-binding
+        # break into a contention SKIP and the mutation would ESCAPE the gate
+        # (observed in the full meta sweep). FIRST assert, clipboard-independently,
+        # that the prefix-P paste binding still EXISTS with the load-buffer shape on
+        # the live server (loaded from the shipped conf). If it is GONE → real break
+        # → FAIL no matter the clipboard. Only when the binding IS present AND the
+        # live clipboard was overwritten (NOWCLIP != DTOK) is this honest §11.4.3
+        # contention → SKIP-layer. Never false-PASSes (PASS still needs the real
+        # DTOK paste); never false-FAILs on pure contention; ALWAYS FAILs a stripped
+        # or mis-shaped binding.
+        BIND_PRESENT=0
+        if "$BIN" -L "$L" list-keys -T prefix 2>/dev/null | grep -qE 'prefix +P .*load-buffer'; then BIND_PRESENT=1; fi
         NOWCLIP="$(pbpaste 2>/dev/null || true)"
-        if [ "$NOWCLIP" != "$DTOK" ]; then
-            echo "SKIP-layer: 57(D) OS pasteboard overwritten by a concurrent process during the ~4s prefix-P window (live clipboard now '$(printf '%s' "$NOWCLIP" | head -c 24)' != our '$DTOK'); exact-value proof needs a stable clipboard — paste MECHANISM proven by (C), binding shape by (E). §11.4.3 contention SKIP"
+        if [ "$BIND_PRESENT" = 1 ] && [ "$NOWCLIP" != "$DTOK" ]; then
+            echo "SKIP-layer: 57(D) prefix-P binding PRESENT but OS pasteboard overwritten by a concurrent process during the ~4s window (live clipboard now '$(printf '%s' "$NOWCLIP" | head -c 24)' != our '$DTOK'); exact-value proof needs a stable clipboard — paste MECHANISM proven by (C), binding shape by (E). §11.4.3 contention SKIP"
         else
-            echo "FAIL: 57(D) — clipboard intact as '$DTOK' but prefix-P did not paste it into the pane (real break; got: $(printf '%s' "$PANE_JOINED" | head -c 120))"; fail=1
+            echo "FAIL: 57(D) — prefix-P did not paste DTOK into the pane; real break (binding_present=$BIND_PRESENT, live clipboard='$(printf '%s' "$NOWCLIP" | head -c 24)' vs our '$DTOK'; got: $(printf '%s' "$PANE_JOINED" | head -c 100))"; fail=1
         fi
     fi
     "$BIN" -L "$L" kill-server 2>/dev/null || true

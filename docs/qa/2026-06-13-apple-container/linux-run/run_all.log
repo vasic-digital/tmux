@@ -8,12 +8,12 @@
 PASS
 
 ── Test 02: session lifecycle ──
-  listed: tmx_test_4494: 1 windows (created Sat Jun 13 13:25:07 2026)
+  listed: tmx_test_4495: 1 windows (created Sat Jun 13 14:23:28 2026)
 PASS
 
 ── Test 03: jemalloc loaded ──
   using jemalloc preload: /lib/aarch64-linux-gnu/libjemalloc.so.2
-  ✓ tmux server PID 4527 has jemalloc mapped (positive evidence: /proc/.../maps)
+  ✓ tmux server PID 4528 has jemalloc mapped (positive evidence: /proc/.../maps)
 PASS
 
 ── Test 04: history-limit respect ──
@@ -21,16 +21,14 @@ PASS
 PASS
 
 ── Test 05: clear-history releases memory ──
-  RSS after history fill: 4940 kB
-  RSS after clear-history: 4796 kB
-  drop: 144 kB (2.9%)
-WARN: clear-history dropped only 144 kB (2.9%) — glibc may be holding fragments
-      (this is the article's 'apparent leak' — jemalloc significantly improves it)
+  RSS after history fill: 4984 kB
+  RSS after clear-history: 4708 kB
+  drop: 276 kB (5.5%)
 PASS
 
 ── Test 06: 10 concurrent panes — RSS bounded ──
-  RSS with 1 pane: 4060 kB
-  RSS with 10 panes: 4096 kB
+  RSS with 1 pane: 4064 kB
+  RSS with 10 panes: 4100 kB
   growth: 36 kB
 PASS (growth < 20 MB)
 
@@ -59,7 +57,7 @@ PASS: T5: empty argument uses system hostname (→ colour46)
 PASS: T1: tmx wrapper includes _apply_host_color
 PASS: T2: tmx wrapper calls hostname_color.sh
   expected status-bg: colour46 (host: tmx-ac-run)
-PASS: T4.0: status-style bg='colour46' read from session A's server (positive evidence: tmux -L tmx-tmx_t11_a_4976 show -g status-style)
+PASS: T4.0: status-style bg='colour46' read from session A's server (positive evidence: tmux -L tmx-tmx_t11_a_4979 show -g status-style)
 PASS: T4.1: status-bg 'colour46' matches expected 'colour46' (hostname-derived colour applied)
 PASS: T5: second session on different socket has SAME colour 'colour46' (positive evidence: same-host-same-colour invariant holds across servers)
 PASS: T6: wrapper did not silently produce tmux's default bg=green (positive evidence: ACTUAL='colour46' from T4)
@@ -80,7 +78,7 @@ SKIP: systemd-cgroup topology: per-session cgroup distinctness requires `systemd
 
 ── Test 16: window-name strips .exe suffix (operator-path) ──
 PASS: T1: tmux.conf.template carries literal-dot-anchored .exe strip ('\\.exe$')
-PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t16_a_5179 ls' succeeded)
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t16_a_5182 ls' succeeded)
   observed: pane_current_command='t16_target.exe'  #W='bash'
 PASS: T2.1: pane_current_command='t16_target.exe' confirmed (defect surface is reachable in this run)
 SKIP: T2.2: rename hook fired pre-exec; #W='bash' (post-exec rename did not refire — tmux/Linux race; T1 covers the strip-rule itself)
@@ -98,10 +96,10 @@ SKIP: T3.1: rename hook fired pre-exec; #W='bash' (post-exec rename did not refi
   ✓ template: allow-passthrough on
   ✓ template: extended-keys on
 PASS: T1: tmux.conf.template carries all scrollback + copy-mode + passthrough settings
-PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t17_5560 ls' succeeded)
-PASS: T2.1: live server history-limit = 50000 (readback from tmx-tmx_t17_5560)
-PASS: T2.2: live server mode-keys = vi (readback from tmx-tmx_t17_5560)
-PASS: T2.3: live server mouse = off by default — terminal owns the mouse (tmux mouse on demand via prefix m) (readback from tmx-tmx_t17_5560)
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t17_5562 ls' succeeded)
+PASS: T2.1: live server history-limit = 50000 (readback from tmx-tmx_t17_5562)
+PASS: T2.2: live server mode-keys = vi (readback from tmx-tmx_t17_5562)
+PASS: T2.3: live server mouse = off by default — terminal owns the mouse (tmux mouse on demand via prefix m) (readback from tmx-tmx_t17_5562)
 PASS: T2.4: live server allow-passthrough = on (Claude Code TUI passthrough)
 PASS: T2.5: live server extended-keys = on (Shift+Enter reaches the app)
 PASS: T3: live WheelUpPane binding drives copy-mode scroll-up (override active, not tmux default)
@@ -145,11 +143,11 @@ SKIP: host-tooling: CodeGraph index DB requires the host CodeGraph CLI (§11.4.7
 ── 22_codegraph_mcp_wired.sh ──
 SKIP: host-tooling: CodeGraph MCP wiring is a host-agent concern (§11.4.78); not present in the build container.
 
-PASS: T1: tmx new -s t23_kill_5750 -d succeeded
-PASS: T2: tmx ls shows 't23_kill_5750' (positive evidence: tmx ls output)
-PASS: T3: tmx kill -t t23_kill_5750 resolved (no 'ambiguous' stderr; AUDIT-2 fix active)
-PASS: T4: 't23_kill_5750' removed from tmx ls within poll budget (positive evidence: post-kill listing absent)
-PASS: T5: tmux server on socket tmx-t23_kill_5750 terminated within poll budget (positive evidence: direct -L socket query empty)
+PASS: T1: tmx new -s t23_kill_5752 -d succeeded
+PASS: T2: tmx ls shows 't23_kill_5752' (positive evidence: tmx ls output)
+PASS: T3: tmx kill -t t23_kill_5752 resolved (no 'ambiguous' stderr; AUDIT-2 fix active)
+PASS: T4: 't23_kill_5752' removed from tmx ls within poll budget (positive evidence: post-kill listing absent)
+PASS: T5: tmux server on socket tmx-t23_kill_5752 terminated within poll budget (positive evidence: direct -L socket query empty)
 
   Tests: PASS=5  FAIL=0  SKIP=0
 
@@ -173,10 +171,10 @@ PASS: T5: ALL four default-green tmux UI surfaces carry the hostname-derived col
 
   Tests: PASS=5 FAIL=0 SKIP=0
 
-[evidence] iter=1 iter=1 recall1=/tmp/tmx-test-18-target-6251 pane_path=/tmp/tmx-test-18-target-6251 recall2=/tmp/tmx-test-18-hook-6251-1
-[evidence] iter=2 iter=2 recall1=/tmp/tmx-test-18-target-6251 pane_path=/tmp/tmx-test-18-target-6251 recall2=/tmp/tmx-test-18-hook-6251-2
-[evidence] iter=3 iter=3 recall1=/tmp/tmx-test-18-target-6251 pane_path=/tmp/tmx-test-18-target-6251 recall2=/tmp/tmx-test-18-hook-6251-3
-[evidence] HOST_OS=Linux reliability_hash=3077ee86701d1cdaf82c3dcc61e3459436f85e56
+[evidence] iter=1 iter=1 recall1=/tmp/tmx-test-18-target-6252 pane_path=/tmp/tmx-test-18-target-6252 recall2=/tmp/tmx-test-18-hook-6252-1
+[evidence] iter=2 iter=2 recall1=/tmp/tmx-test-18-target-6252 pane_path=/tmp/tmx-test-18-target-6252 recall2=/tmp/tmx-test-18-hook-6252-2
+[evidence] iter=3 iter=3 recall1=/tmp/tmx-test-18-target-6252 pane_path=/tmp/tmx-test-18-target-6252 recall2=/tmp/tmx-test-18-hook-6252-3
+[evidence] HOST_OS=Linux reliability_hash=338e395285da737706db2702d7e67cd07bf21b74
 PASS 18 tmx-state cwd persistence end-to-end (3/3 iterations identical, hook updated state)
 
 [evidence] iter=1 rc=0 before=0 after=0 stdout_empty=yes
@@ -191,16 +189,16 @@ PASS 19 tmx-shell-init: 'default' input skips tmx cleanly (3/3 iterations)
 [evidence] reliability_hash=020584a6e481e39a9a929d7b98e318cfd8089555
 PASS 20 tmx-shell-init: blank input skips tmx cleanly (3/3 iterations)
 
-[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=1 elapsed_ms=13 rc=0 no_prompt=yes no_session=yes
-[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=2 elapsed_ms=12 rc=0 no_prompt=yes no_session=yes
-[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=3 elapsed_ms=8 rc=0 no_prompt=yes no_session=yes
+[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=1 elapsed_ms=6 rc=0 no_prompt=yes no_session=yes
+[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=2 elapsed_ms=6 rc=0 no_prompt=yes no_session=yes
+[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=3 elapsed_ms=6 rc=0 no_prompt=yes no_session=yes
 [evidence] HOST_OS=Linux reliability_hash=f47384843d753c1e15005ed10c2529a8d54f89ae
 PASS 21 tmx-shell-init: non-TTY stdin silent-skips fast (3/3 iterations, Linux)
 
-[evidence] iter=1 would_exec=ok session_listed='tmx-test-22-work-6804: 1 windows (created Sat Jun 13 13:26:33 2026)' install_script_command_prefix=ok
-[evidence] iter=2 would_exec=ok session_listed='tmx-test-22-work-6804: 1 windows (created Sat Jun 13 13:26:34 2026)' install_script_command_prefix=ok
-[evidence] iter=3 would_exec=ok session_listed='tmx-test-22-work-6804: 1 windows (created Sat Jun 13 13:26:36 2026)' install_script_command_prefix=ok
-[evidence] HOST_OS=Linux reliability_hash=d0037449a2fe24b9f2f54cfc947b0e2d4ca4efcb
+[evidence] iter=1 would_exec=ok session_listed='tmx-test-22-work-6802: 1 windows (created Sat Jun 13 14:24:51 2026)' install_script_command_prefix=ok
+[evidence] iter=2 would_exec=ok session_listed='tmx-test-22-work-6802: 1 windows (created Sat Jun 13 14:24:53 2026)' install_script_command_prefix=ok
+[evidence] iter=3 would_exec=ok session_listed='tmx-test-22-work-6802: 1 windows (created Sat Jun 13 14:24:55 2026)' install_script_command_prefix=ok
+[evidence] HOST_OS=Linux reliability_hash=4c17466aa90e43333899d9121342f347246a037c
 PASS 22 tmx-ssh-dispatch: local loopback creates session (3/3 iterations)
 
 ── 32_ssh_dispatch_remote_nezha.sh ──
