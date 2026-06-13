@@ -151,6 +151,21 @@ func SyncMDToDBOpts(db *DB, issuesPath, fixedPath string, opts SyncMDToDBOptions
 				res.Updated++
 			}
 		}
+
+		// §11.4.21 — when an item is Operator-blocked, extract its
+		// **Operator-Block-Details:** block from the body and persist the
+		// operator_block_details row so `workable-items validate` reports 0
+		// §11.4.21 findings. db→md regeneration is unaffected: it replays from
+		// raw_body / document_sources, so this read-only side table never
+		// changes the regenerated Markdown (byte-identical round-trip preserved).
+		if it.Status == StatusOperatorBlock {
+			if ob := parseOperatorBlockDetails(pi.Item.Body); ob != nil {
+				ob.ATMID = it.ATMID
+				if err := db.PutOperatorBlockDetails(ob); err != nil {
+					return nil, fmt.Errorf("put operator_block_details %s: %w", it.ATMID, err)
+				}
+			}
+		}
 	}
 
 	if err := db.MetaSet("last_sync_direction", "md-to-db"); err != nil {

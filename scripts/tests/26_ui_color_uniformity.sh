@@ -68,11 +68,25 @@ trap '
 
 "$WRAPPER" new -s "$SESS" -d >/dev/null 2>&1 || { _fail "T0: tmx new failed"; exit 1; }
 # Wait for _apply_host_color to fire (it has its own 0.3s sleep + tmux
-# may take time to settle). Poll up to 5s.
-for _i in $(seq 1 10); do
-    sleep 0.5
+# may take time to settle). §11.4.1 source-layer hardening: under load
+# the four `set -g` option writes land at slightly different times, so
+# reading a single surface (status-style) early left T2/T3/T4 seeing the
+# pre-fix default-green value ('' / 'fg=green'). Poll up to ~5s
+# (25 × 0.2s) until ALL FOUR surfaces carry the expected colour, THEN run
+# the four independent assertions below (which are UNCHANGED — a genuinely
+# unrecoloured surface still fails after the full timeout).
+for _i in $(seq 1 25); do
     LIVE_STATUS="$("$TMUX_BIN" -L "$SOCK" show -gv status-style 2>/dev/null || true)"
-    case "$LIVE_STATUS" in *"$EXPECTED_COLOR"*) break ;; esac
+    LIVE_BORDER="$("$TMUX_BIN" -L "$SOCK" show -gv pane-active-border-style 2>/dev/null || true)"
+    LIVE_CLOCK="$("$TMUX_BIN" -L "$SOCK" show -gv clock-mode-colour 2>/dev/null || true)"
+    LIVE_WSC="$("$TMUX_BIN" -L "$SOCK" show -gv window-status-current-style 2>/dev/null || true)"
+    if echo "$LIVE_STATUS" | grep -qE "bg=$EXPECTED_COLOR(,|$)" \
+       && echo "$LIVE_BORDER" | grep -qE "fg=$EXPECTED_COLOR(,|$)" \
+       && [ "$LIVE_CLOCK" = "$EXPECTED_COLOR" ] \
+       && echo "$LIVE_WSC" | grep -qE "bg=$EXPECTED_COLOR(,|$)"; then
+        break
+    fi
+    sleep 0.2
 done
 
 # T1 — status-style (the bottom bar; v1.0.7 baseline)

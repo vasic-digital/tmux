@@ -30,7 +30,7 @@ TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
 
 DISPATCH_FILE="/tmp/tmx-ssh-dispatch-22-$$.sh"
-SESS="tmx-test-22-work"
+SESS="tmx-test-22-work-$$"
 export TMX_STATE_FILE="/tmp/tmx-test-22-$$.json"
 
 _cleanup() {

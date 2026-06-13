@@ -4,6 +4,9 @@
 set -uo pipefail
 TMUX_BIN="${TMUX_BIN:?}"
 SOCKET="/tmp/tmx_test_$$"
+# §11.4.14 belt-and-suspenders cleanup: reap the server on EVERY exit path
+# (early exit 1, set -e abort, signal) so no orphan tmux server is left behind.
+trap '"$TMUX_BIN" -S "$SOCKET" kill-server 2>/dev/null || true; rm -f "$SOCKET" 2>/dev/null || true' EXIT
 echo "── Test 06: 10 concurrent panes — RSS bounded ──"
 
 # Defensive jemalloc lookup

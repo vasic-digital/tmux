@@ -278,10 +278,19 @@ sacred invariant</li>
 id="321--copypaste-architecture-fix-mouse-off-default--helixcode-crash-forensics--v1021-2026-06-13">§3.21
 — Copy/paste ARCHITECTURE fix (mouse off default) + HelixCode crash
 forensics → v1.0.21 (2026-06-13)</h3>
-<p><strong>Status:</strong> IN PROGRESS — source + tests + docs +
-trackers landed; PENDING: <code>setup.sh</code> reinstall + full-suite
-retest (run_all + meta on a committed clean tree) + commit/push to all
-upstreams.</p>
+<p><strong>Status:</strong> DONE — RELEASED v1.0.21 (2026-06-13),
+committed <code>b905c9b</code> pushed to github + gitlab. Full
+validation captured: setup verify gate PASS=53/FAIL=0/SKIP=5
+(<code>~/.tmux.conf</code> installed); test 59 wire-level RED→GREEN;
+test 57 determinism 10/10 clean + 8/8 hostile-clipboard (0 FAIL);
+collateral sweep 41 PASS/0 FAIL ×2; workable-items DB 14/14 Go tests +
+byte-identical round-trip; meta sweep 51 CAUGHT / 0 ESCAPED / 8 SKIP
+(M-MOUSEDEFAULT caught). QA evidence:
+<code>docs/qa/2026-06-13-mouse-off-default/</code>,
+<code>docs/qa/2026-06-13-server-death/</code>,
+<code>docs/qa/2026-06-13-helixcode-crash/</code>. Bug 1 (HelixCode
+crash) → Issues.md F1 Operator-blocked (operator runs
+<code>docs/qa/2026-06-13-helixcode-crash/diagnose.sh</code>).</p>
 <p><strong>Bug 2 (copy/paste) — DONE at source, anti-bluff
 proven.</strong> Operator (2026-05-28 .. 2026-06-13, all emulators):
 "select multiple lines does not work … must work Linux+macOS … must

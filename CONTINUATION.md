@@ -36,9 +36,15 @@ Paste this prompt:
 
 ### §3.21 — Copy/paste ARCHITECTURE fix (mouse off default) + HelixCode crash forensics → v1.0.21 (2026-06-13)
 
-**Status:** IN PROGRESS — source + tests + docs + trackers landed; PENDING:
-`setup.sh` reinstall + full-suite retest (run_all + meta on a committed clean
-tree) + commit/push to all upstreams.
+**Status:** DONE — RELEASED v1.0.21 (2026-06-13), committed `b905c9b` pushed to
+github + gitlab. Full validation captured: setup verify gate PASS=53/FAIL=0/SKIP=5
+(`~/.tmux.conf` installed); test 59 wire-level RED→GREEN; test 57 determinism
+10/10 clean + 8/8 hostile-clipboard (0 FAIL); collateral sweep 41 PASS/0 FAIL ×2;
+workable-items DB 14/14 Go tests + byte-identical round-trip; meta sweep
+51 CAUGHT / 0 ESCAPED / 8 SKIP (M-MOUSEDEFAULT caught). QA evidence:
+`docs/qa/2026-06-13-mouse-off-default/`, `docs/qa/2026-06-13-server-death/`,
+`docs/qa/2026-06-13-helixcode-crash/`. Bug 1 (HelixCode crash) → Issues.md F1
+Operator-blocked (operator runs `docs/qa/2026-06-13-helixcode-crash/diagnose.sh`).
 
 **Bug 2 (copy/paste) — DONE at source, anti-bluff proven.** Operator (2026-05-28
 .. 2026-06-13, all emulators): "select multiple lines does not work … must work

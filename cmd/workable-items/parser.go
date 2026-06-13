@@ -42,7 +42,17 @@ var trailingStatusRE = regexp.MustCompile(`\s+(?:—|--|-)\s*` + "`" + `([^` + "
 
 // statusLineRE matches "**Status:** `value`" or "**Status:** value" within the
 // 8-line window below the heading per §11.4.15.
-var statusLineRE = regexp.MustCompile(`^\*\*Status:\*\*\s*` + "`?" + `([^` + "`" + `\n]+?)` + "`?" + `\s*(?:—|--|-|\.|$)`)
+//
+// The value is captured greedily up to a *real* separator: an em-dash (` — `),
+// a double-dash (`--`), a period, or end-of-line. A bare single hyphen is NOT a
+// separator — it is part of hyphenated closed-set values such as
+// `Operator-blocked` (§11.4.21). The earlier alternation listed a lone `-`,
+// which (with the non-greedy `+?`) truncated `Operator-blocked` at its first
+// hyphen, yielding the unrecognised token `Operator` that defaulted to
+// `Queued` (Issues.md F1 / ATM-050 forensic case). Requiring whitespace around
+// the single-hyphen separator preserves the "value — trailing note" form while
+// keeping intra-word hyphens intact.
+var statusLineRE = regexp.MustCompile(`^\*\*Status:\*\*\s*` + "`?" + `([^` + "`" + `\n]+?)` + "`?" + `\s*(?:—|--|\s-\s|\.|$)`)
 
 // typeLineRE matches "**Type:** `value`".
 var typeLineRE = regexp.MustCompile(`^\*\*Type:\*\*\s*` + "`?" + `(Bug|Feature|Task)` + "`?" + `\s*$`)
@@ -77,9 +87,9 @@ func ParseFile(path, location string) ([]*ParsedItem, error) {
 	scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
 
 	type parseState struct {
-		current      *ParsedItem
-		bodyBuilder  strings.Builder
-		lineIdx      int // count lines after heading; only inspect first 8 for Status/Type
+		current     *ParsedItem
+		bodyBuilder strings.Builder
+		lineIdx     int // count lines after heading; only inspect first 8 for Status/Type
 	}
 	state := &parseState{}
 
@@ -186,6 +196,131 @@ func ParseFile(path, location string) ([]*ParsedItem, error) {
 		return nil, fmt.Errorf("scan %s: %w", path, err)
 	}
 	return items, nil
+}
+
+// obProseRE matches a `**LABEL:**` lead-in for an Operator-Block-Details
+// sub-fact. The label is matched case-insensitively against the four canonical
+// sub-facts (WHAT / WHY / UNBLOCK CONDITION / WHO). The WHY label often carries
+// a parenthetical (e.g. `**WHY (self-resolution exhausted):**`), so the matcher
+// keys on a leading keyword rather than the literal full label.
+var obDetailsHeaderRE = regexp.MustCompile(`(?i)^\*\*Operator-Block-Details:\*\*\s*$`)
+
+// obSubFactRE captures a sub-fact bullet of the form
+//
+//   - **WHAT:** <text...>
+//   - **WHY (self-resolution exhausted):** <text...>
+//   - **UNBLOCK CONDITION:** <text...>
+//   - **WHO:** <text...>
+//
+// Group 1 = the bolded label (without the leading `- ` and surrounding `**`),
+// group 2 = the inline text on the same line. Continuation lines (indented,
+// not a new bullet, not a new heading) are appended by the caller.
+var obSubFactRE = regexp.MustCompile(`^\s*[-*]\s+\*\*([^*]+?):\*\*\s*(.*)$`)
+
+// parseOperatorBlockDetails extracts the §11.4.21 **Operator-Block-Details:**
+// block from an item body and returns the structured sub-facts. Returns nil
+// when the body carries no such block (e.g. a malformed Operator-blocked item —
+// validate.go still flags the missing row, which is the correct §11.4.21
+// behaviour).
+//
+// The block is a sequence of `- **LABEL:** text` bullets. A bullet's text may
+// continue across indented continuation lines until the next bullet, a blank
+// line that precedes a non-bullet, or the end of the block (`---` separator,
+// a new `**Field:**` metadata line, or another heading-level marker). Labels
+// are matched case-insensitively on a leading keyword so parenthetical
+// annotations (`**WHY (self-resolution exhausted):**`) still bind.
+func parseOperatorBlockDetails(body string) *OperatorBlockDetails {
+	lines := strings.Split(body, "\n")
+	inBlock := false
+	var curLabel string
+	var curText strings.Builder
+	ob := &OperatorBlockDetails{}
+	found := false
+
+	flush := func() {
+		if curLabel == "" {
+			return
+		}
+		text := strings.TrimSpace(curText.String())
+		switch obSubFactKey(curLabel) {
+		case "what":
+			ob.What = text
+			found = true
+		case "why":
+			ob.WhyExhaustedAlternatives = text
+			found = true
+		case "unblock":
+			ob.UnblockCondition = text
+			found = true
+		case "who":
+			ob.Who = text
+			found = true
+		}
+		curLabel = ""
+		curText.Reset()
+	}
+
+	for _, ln := range lines {
+		if !inBlock {
+			if obDetailsHeaderRE.MatchString(strings.TrimSpace(ln)) {
+				inBlock = true
+			}
+			continue
+		}
+		// Inside the block.
+		if sm := obSubFactRE.FindStringSubmatch(ln); sm != nil {
+			flush()
+			curLabel = sm[1]
+			curText.WriteString(strings.TrimSpace(sm[2]))
+			continue
+		}
+		trimmed := strings.TrimSpace(ln)
+		// Terminators: blank line, `---` separator, a new `**Field:**` metadata
+		// line, or a heading marker all end the block.
+		if trimmed == "" || trimmed == "---" ||
+			strings.HasPrefix(trimmed, "#") ||
+			(strings.HasPrefix(trimmed, "**") && curLabel == "") {
+			flush()
+			if trimmed == "---" || strings.HasPrefix(trimmed, "#") {
+				break
+			}
+			// A blank line inside a bullet's continuation ends the block too —
+			// the canonical format separates the block from the trailer with a
+			// blank line. Stop scanning to avoid pulling trailer prose in.
+			if trimmed == "" {
+				break
+			}
+			continue
+		}
+		// Continuation line for the current sub-fact.
+		if curLabel != "" {
+			curText.WriteString(" ")
+			curText.WriteString(trimmed)
+		}
+	}
+	flush()
+
+	if !found {
+		return nil
+	}
+	return ob
+}
+
+// obSubFactKey maps a raw sub-fact label to its canonical key. The match keys
+// on the leading keyword so `WHY (self-resolution exhausted)` → "why".
+func obSubFactKey(label string) string {
+	u := strings.ToUpper(strings.TrimSpace(label))
+	switch {
+	case strings.HasPrefix(u, "WHAT"):
+		return "what"
+	case strings.HasPrefix(u, "WHY"):
+		return "why"
+	case strings.HasPrefix(u, "UNBLOCK"):
+		return "unblock"
+	case strings.HasPrefix(u, "WHO"):
+		return "who"
+	}
+	return ""
 }
 
 // mapHeadingHintToStatus normalises a raw status hint (OPEN, RESOLVED, PARTIAL,

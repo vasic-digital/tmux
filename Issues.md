@@ -148,7 +148,7 @@ second `tmux` on `$PATH`, and/or a real `$TERM`/size/capability mismatch). These
 three residuals are explicitly `UNCONFIRMED — needs operator` (ranked in
 forensic.md).
 
-**Operator-Block-Details (§11.4.21):**
+**Operator-Block-Details:**
 - **WHAT:** run `docs/qa/2026-06-13-helixcode-crash/diagnose.sh` in the real
   crashing flow; it captures (read-only, leaves live sessions untouched) the
   full attach byte stream via `script`/`tee`, tmux -V, the active conf,

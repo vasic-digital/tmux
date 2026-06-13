@@ -21,8 +21,8 @@ type CloseItemParams struct {
 	OnDate   string // YYYY-MM-DD, defaults to today
 	Reason   string // optional; for obsolete it's a §11.4.90 reason code
 	// §11.4.90 — when --status=obsolete, these are mandatory:
-	ObsoleteSupersedingItem  string
-	ObsoleteTripleCheckPath  string
+	ObsoleteSupersedingItem string
+	ObsoleteTripleCheckPath string
 }
 
 // CloseItem applies the terminal state transition.

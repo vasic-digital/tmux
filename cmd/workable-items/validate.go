@@ -51,14 +51,14 @@ func Validate(db *DB) ([]Finding, error) {
 		if ord <= 0 {
 			findings = append(findings, Finding{
 				Section: "§11.4.54", ATMID: it.ATMID,
-				Detail:  "ATM-NNN id does not parse as positive integer ordinal",
+				Detail: "ATM-NNN id does not parse as positive integer ordinal",
 			})
 			continue
 		}
 		if prev, dup := seenATM[ord]; dup {
 			findings = append(findings, Finding{
 				Section: "§11.4.54", ATMID: it.ATMID,
-				Detail:  fmt.Sprintf("ATM-%d duplicates ATM-id of %s", ord, prev),
+				Detail: fmt.Sprintf("ATM-%d duplicates ATM-id of %s", ord, prev),
 			})
 		}
 		seenATM[ord] = it.ATMID
@@ -85,14 +85,14 @@ func Validate(db *DB) ([]Finding, error) {
 		if !isClosedSetStatus(it.Status) {
 			findings = append(findings, Finding{
 				Section: "§11.4.15", ATMID: it.ATMID,
-				Detail:  fmt.Sprintf("status %q is not in §11.4.15 closed-set", it.Status),
+				Detail: fmt.Sprintf("status %q is not in §11.4.15 closed-set", it.Status),
 			})
 		}
 		// §11.4.16
 		if !isClosedSetType(it.Type) {
 			findings = append(findings, Finding{
 				Section: "§11.4.16", ATMID: it.ATMID,
-				Detail:  fmt.Sprintf("type %q is not in §11.4.16 closed-set", it.Type),
+				Detail: fmt.Sprintf("type %q is not in §11.4.16 closed-set", it.Type),
 			})
 		}
 		// §11.4.91 description floor.
@@ -123,7 +123,7 @@ func Validate(db *DB) ([]Finding, error) {
 			if ob == nil {
 				findings = append(findings, Finding{
 					Section: "§11.4.21", ATMID: it.ATMID,
-					Detail:  "Operator-blocked status requires operator_block_details row",
+					Detail: "Operator-blocked status requires operator_block_details row",
 				})
 			}
 		}
@@ -136,7 +136,7 @@ func Validate(db *DB) ([]Finding, error) {
 			if od == nil {
 				findings = append(findings, Finding{
 					Section: "§11.4.90", ATMID: it.ATMID,
-					Detail:  "Obsolete status requires obsolete_details row",
+					Detail: "Obsolete status requires obsolete_details row",
 				})
 			}
 		}

@@ -18,10 +18,10 @@ import (
 
 // DiffResult reports the comparison outcome.
 type DiffResult struct {
-	Clean        bool
-	IssuesDiff   string
-	FixedDiff    string
-	Summary      string
+	Clean      bool
+	IssuesDiff string
+	FixedDiff  string
+	Summary    string
 }
 
 // Diff computes the round-trip drift report.

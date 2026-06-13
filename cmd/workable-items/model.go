@@ -21,16 +21,16 @@ const (
 
 // Status closed-set per §11.4.15 + §11.4.21 + §11.4.90.
 const (
-	StatusQueued         = "Queued"
-	StatusInProgress     = "In progress"
-	StatusReadyForTest   = "Ready for testing"
-	StatusInTesting      = "In testing"
-	StatusReopened       = "Reopened"
-	StatusOperatorBlock  = "Operator-blocked"
-	StatusFixed          = "Fixed (→ Fixed.md)"
-	StatusImplemented    = "Implemented (→ Fixed.md)"
-	StatusCompleted      = "Completed (→ Fixed.md)"
-	StatusObsolete       = "Obsolete (→ Fixed.md)"
+	StatusQueued        = "Queued"
+	StatusInProgress    = "In progress"
+	StatusReadyForTest  = "Ready for testing"
+	StatusInTesting     = "In testing"
+	StatusReopened      = "Reopened"
+	StatusOperatorBlock = "Operator-blocked"
+	StatusFixed         = "Fixed (→ Fixed.md)"
+	StatusImplemented   = "Implemented (→ Fixed.md)"
+	StatusCompleted     = "Completed (→ Fixed.md)"
+	StatusObsolete      = "Obsolete (→ Fixed.md)"
 )
 
 // closedSetStatuses lists every valid Status value.
@@ -103,20 +103,20 @@ type ItemHistoryEvent struct {
 
 // ObsoleteDetails captures §11.4.90 closure metadata.
 type ObsoleteDetails struct {
-	ATMID                string
-	Since                string
-	Reason               string
-	SupersedingItem      string
-	TripleCheckEvidence  string
+	ATMID               string
+	Since               string
+	Reason              string
+	SupersedingItem     string
+	TripleCheckEvidence string
 }
 
 // OperatorBlockDetails captures §11.4.21 closure metadata.
 type OperatorBlockDetails struct {
-	ATMID                     string
-	What                      string
-	WhyExhaustedAlternatives  string
-	UnblockCondition          string
-	Who                       string
+	ATMID                    string
+	What                     string
+	WhyExhaustedAlternatives string
+	UnblockCondition         string
+	Who                      string
 }
 
 // IsTerminal reports whether the item's status is a terminal closure value.

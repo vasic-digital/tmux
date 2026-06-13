@@ -73,12 +73,25 @@ run_iteration() {
         return 1
     fi
     # Verify pane started in $HOME (not the gone dir).
-    local pane_path
-    pane_path="$("$TMUX_BIN" -L "$SOCK_LABEL" display-message -p '#{pane_current_path}' 2>/dev/null)"
-    # Real HOME may be symlinked (e.g. /Users/x → /private/var/...). Resolve both.
-    local home_real pane_real
+    # §11.4.1 source-layer hardening: under load #{pane_current_path} can
+    # transiently return '' right after `tmx new` (pane shell not ready).
+    # Poll the read (up to 25 × 0.2 s = 5 s) until it resolves to $HOME.
+    # The assertion is UNCHANGED — a genuine fallback defect (pane started
+    # in the gone dir or anywhere ≠ HOME) still fails after the timeout.
+    local home_real
     home_real="$(cd "$HOME" && pwd -P)"
-    pane_real="$(cd "$pane_path" 2>/dev/null && pwd -P || echo "$pane_path")"
+    local pane_path pane_real _pp_i
+    pane_path=""
+    pane_real=""
+    for _pp_i in $(seq 1 25); do
+        pane_path="$("$TMUX_BIN" -L "$SOCK_LABEL" display-message -p '#{pane_current_path}' 2>/dev/null || true)"
+        # Real HOME may be symlinked (e.g. /Users/x → /private/var/...). Resolve both.
+        pane_real="$(cd "$pane_path" 2>/dev/null && pwd -P || echo "$pane_path")"
+        if [ -n "$pane_path" ] && [ "$pane_real" = "$home_real" ]; then
+            break
+        fi
+        sleep 0.2
+    done
     if [ "$pane_real" != "$home_real" ]; then
         echo "FAIL 29 iter=$iter: pane_current_path='$pane_path' (resolved='$pane_real') != HOME='$home_real'"
         return 1

@@ -105,10 +105,22 @@ PROBESCRIPT
         "$TMUX_BIN_T24" -L "$SOCK" kill-server >/dev/null 2>&1 || true
     ' EXIT
     TMX_CPU_HARD_SEC=7200 "$WRAPPER" new -s "$SESS" -d >/dev/null 2>&1
+    # Wait for the session's shell to reach a usable prompt before sending the
+    # probe — a fixed 0.5s sleep races the login shell's rc-file init under
+    # full-suite load (forensic: §11.4.50 divergence, run_all run 3, 2026-06-13:
+    # capture returned '' because the echo had not yet rendered). Poll the
+    # readback until it lands (or a bounded timeout) instead of a single race-y
+    # capture. §11.4.1 — fix the harness timing at the source, not the product.
     sleep 0.5
     "$TMUX_BIN_T24" -L "$SOCK" send-keys "echo TMX24=\$(ulimit -t)" Enter 2>/dev/null
-    sleep 0.4
-    READBACK="$("$TMUX_BIN_T24" -L "$SOCK" capture-pane -p 2>/dev/null | grep -oE 'TMX24=[0-9unlimited]+' | head -1)"
+    READBACK=""
+    _t24_i=0
+    while [ "$_t24_i" -lt 25 ]; do
+        READBACK="$("$TMUX_BIN_T24" -L "$SOCK" capture-pane -p 2>/dev/null | grep -oE 'TMX24=[0-9unlimited]+' | head -1)"
+        [ -n "$READBACK" ] && break
+        sleep 0.2
+        _t24_i=$((_t24_i + 1))
+    done
     if [ "$READBACK" = "TMX24=7200" ]; then
         _pass "D-T2: TMX_CPU_HARD_SEC=7200 propagated to RLIMIT_CPU=7200 inside session (positive evidence: ulimit -t readback = 7200)"
     else

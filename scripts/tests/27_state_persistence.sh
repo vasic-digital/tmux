@@ -104,10 +104,23 @@ run_iteration() {
         echo "FAIL 18 iter=$iter: tmx new -s $SESS -d failed"
         return 1
     fi
-    sleep 0.5
     # Read back the session's initial pane cwd — must be the recorded path.
-    local pane_path
-    pane_path="$("$TMUX_BIN" -L "$SOCK_LABEL" display-message -p '#{pane_current_path}' 2>/dev/null)"
+    # §11.4.1 source-layer hardening: under load the pane's shell/state may
+    # not be ready immediately after `tmx new`, so #{pane_current_path} can
+    # transiently return '' (the reported "pane_current_path=''" race).
+    # Poll the read (up to 25 × 0.2 s = 5 s) until it reports the expected
+    # non-empty target path. The assertion below is UNCHANGED — a genuinely
+    # broken cwd-restore still fails after the full timeout (the value would
+    # never become $TARGET_DIR / $TARGET_DIR_REAL).
+    local pane_path _pp_i
+    pane_path=""
+    for _pp_i in $(seq 1 25); do
+        pane_path="$("$TMUX_BIN" -L "$SOCK_LABEL" display-message -p '#{pane_current_path}' 2>/dev/null || true)"
+        if [ "$pane_path" = "$TARGET_DIR" ] || [ "$pane_path" = "$TARGET_DIR_REAL" ]; then
+            break
+        fi
+        sleep 0.2
+    done
     if [ "$pane_path" != "$TARGET_DIR" ] && [ "$pane_path" != "$TARGET_DIR_REAL" ]; then
         echo "FAIL 18 iter=$iter: pane_current_path='$pane_path' (expected '$TARGET_DIR' or '$TARGET_DIR_REAL')"
         "$WRAPPER" kill-session -t "$SESS" >/dev/null 2>&1 || true

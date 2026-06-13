@@ -314,6 +314,21 @@ func (d *DB) OperatorBlockDetailsFor(atmID string) (*OperatorBlockDetails, error
 	return ob, err
 }
 
+// PutOperatorBlockDetails upserts the §11.4.21 operator_block_details row for
+// an ATM-NNN. Called from md→db sync when an item's status is Operator-blocked
+// and its body carries an **Operator-Block-Details:** block. The schema's
+// what / why_exhausted_alternatives / unblock_condition columns are NOT NULL,
+// so empty extracted values are stored as empty strings rather than NULL.
+func (d *DB) PutOperatorBlockDetails(ob *OperatorBlockDetails) error {
+	_, err := d.conn.Exec(`
+		INSERT OR REPLACE INTO operator_block_details(
+			atm_id, what, why_exhausted_alternatives, unblock_condition, who
+		) VALUES(?, ?, ?, ?, ?)`,
+		ob.ATMID, ob.What, ob.WhyExhaustedAlternatives, ob.UnblockCondition,
+		nullIfEmpty(ob.Who))
+	return err
+}
+
 // SetComposesWith JSON-encodes the slice and stores it.
 func (d *DB) SetComposesWith(atmID string, refs []string) error {
 	if refs == nil {
