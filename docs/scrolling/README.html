@@ -4,93 +4,238 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>README</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-color: #aaaaaa;
-}
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
-div.sourceCode
-{ background-color: #f8f8f8; }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ef2929; } 
-code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.at { color: #204a87; } 
-code span.bn { color: #0000cf; } 
-code span.cf { color: #204a87; font-weight: bold; } 
-code span.ch { color: #4e9a06; } 
-code span.cn { color: #8f5902; } 
-code span.co { color: #8f5902; font-style: italic; } 
-code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.dt { color: #204a87; } 
-code span.dv { color: #0000cf; } 
-code span.er { color: #a40000; font-weight: bold; } 
-code span.ex { } 
-code span.fl { color: #0000cf; } 
-code span.fu { color: #204a87; font-weight: bold; } 
-code span.im { } 
-code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.kw { color: #204a87; font-weight: bold; } 
-code span.op { color: #ce5c00; font-weight: bold; } 
-code span.ot { color: #8f5902; } 
-code span.pp { color: #8f5902; font-style: italic; } 
-code span.sc { color: #ce5c00; font-weight: bold; } 
-code span.ss { color: #4e9a06; } 
-code span.st { color: #4e9a06; } 
-code span.va { color: #000000; } 
-code span.vs { color: #4e9a06; } 
-code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="scrolling-terminal-output-in-tmx">Scrolling terminal output in
 <code>tmx</code></h1>
 <p>This build is configured so you can scroll back through terminal
@@ -98,7 +243,8 @@ output <strong>from any device</strong> — a desktop mouse, a laptop
 trackpad, or a phone (Termux on Android) — and it works the same inside
 full-screen TUIs such as the Claude Code TUI.</p>
 <p>All of this is set up automatically by
-<code>bash scripts/setup.sh</code>. The settings live in <a href="../scripts/tmux.conf.template"><code>scripts/tmux.conf.template</code></a>,
+<code>bash scripts/setup.sh</code>. The settings live in <a
+href="../scripts/tmux.conf.template"><code>scripts/tmux.conf.template</code></a>,
 which the <code>tmx</code> wrapper loads on every
 <code>tmx new</code>.</p>
 <h2 id="what-you-get">What you get</h2>
@@ -123,14 +269,26 @@ which the <code>tmx</code> wrapper loads on every
 </tr>
 <tr>
 <td><code>mouse</code></td>
-<td><code>on</code></td>
-<td>Wheel + touch scrolling.</td>
+<td><strong><code>off</code> (default)</strong></td>
+<td>The <strong>terminal</strong> owns the mouse, so native click-drag
+selection (including multi-line), right-click → Copy, and the terminal's
+own scrollbar / wheel scroll all work — identically on Linux and macOS,
+on every emulator (iTerm2, Terminal.app, GNOME Terminal, WezTerm,
+…).</td>
+</tr>
+<tr>
+<td><code>prefix m</code></td>
+<td>toggle <code>mouse on</code></td>
+<td>On demand: enable tmux's own mouse so the <strong>wheel drives tmux
+scrollback inside full-screen TUIs</strong> (Claude Code / HelixCode),
+plus tmux drag-select that copies to the OS clipboard. Press
+<code>prefix m</code> again to return to native.</td>
 </tr>
 <tr>
 <td><code>WheelUpPane</code> / <code>WheelDownPane</code></td>
 <td>copy-mode override</td>
-<td>The wheel <strong>always</strong> scrolls tmux&#39;s own buffer — even
-inside Claude Code.</td>
+<td>While tmux mouse is ON, the wheel <strong>always</strong> scrolls
+tmux's own buffer — even inside Claude Code.</td>
 </tr>
 <tr>
 <td><code>allow-passthrough</code></td>
@@ -144,23 +302,49 @@ inside Claude Code.</td>
 </tr>
 </tbody>
 </table>
-<h2 id="the-claude-code-tui-fix">The Claude Code TUI fix</h2>
-<p>The Claude Code TUI requests mouse reporting from the terminal. With
-tmux&#39;s <em>default</em> wheel binding, that means the wheel is forwarded
-to Claude Code instead of scrolling tmux&#39;s scrollback — so you cannot
-scroll back through earlier output.</p>
-<p>This build overrides <code>WheelUpPane</code> /
-<code>WheelDownPane</code> so the wheel (and a touch-scroll, which
-terminals deliver as wheel events) <strong>always</strong> drives tmux
-copy-mode scrollback. You scroll the real output history regardless of
-what the running application does with the mouse.</p>
+<h2 id="default-native-terminal-scrolling-mouse-off">Default: native
+terminal scrolling (mouse off)</h2>
+<p>The shipped config ships with <strong><code>mouse off</code></strong>
+as the default. With mouse off tmux emits <strong>zero</strong>
+mouse-tracking enables (no <code>CSI ?1000h</code> / <code>?1002h</code>
+/ <code>?1006h</code>), so the emulator's own mouse is unobstructed:
+scroll with the <strong>wheel / trackpad / scrollbar exactly as in any
+terminal</strong>, and select text with a native click-drag →
+<code>Cmd-C</code> / right-click → Copy. This is the path that works
+everywhere — Linux and macOS, every emulator, inside or outside a TUI —
+proven at the wire level by test 59.</p>
+<h2 id="scrolling-tmuxs-own-scrollback-inside-a-tui-prefix-m">Scrolling
+tmux's own scrollback inside a TUI (<code>prefix m</code>)</h2>
+<p>A full-screen TUI such as the Claude Code / HelixCode TUI runs on the
+terminal's <strong>alternate screen</strong>, which has no scrollback of
+its own. With the default <code>mouse off</code>, your wheel scrolls the
+<em>terminal's</em> buffer, not tmux's 50 000-line history.</p>
+<p>To page back through tmux's scrollback inside such a TUI, press
+<strong><code>prefix m</code></strong> to toggle tmux mouse
+<strong>ON</strong>. The shipped config overrides
+<code>WheelUpPane</code> / <code>WheelDownPane</code> so that, while
+mouse is on, the wheel (and a touch-scroll, which terminals deliver as
+wheel events) <strong>always</strong> drives tmux copy-mode scrollback
+regardless of what the running application does with the mouse. Press
+<code>prefix m</code> again to return to native terminal scrolling. The
+status line confirms the new state each time.</p>
 <h2 id="how-to-scroll">How to scroll</h2>
-<h3 id="with-a-mouse-or-trackpad">With a mouse or trackpad</h3>
+<h3 id="default-mouse-off--native-terminal-scroll">Default (mouse off) —
+native terminal scroll</h3>
+<ul>
+<li><strong>Scroll up / down</strong> — wheel, trackpad, or the
+terminal's scrollbar, exactly as in any other terminal window. tmux is
+not involved.</li>
+</ul>
+<h3 id="inside-a-tui-after-prefix-m-mouse-on--tmux-scrollback">Inside a
+TUI, after <code>prefix m</code> (mouse on) — tmux scrollback</h3>
 <ul>
 <li><strong>Scroll up</strong> — wheel up. tmux enters copy-mode and
 scrolls back.</li>
 <li><strong>Scroll down</strong> — wheel down. When you reach the
 bottom, copy-mode exits automatically.</li>
+<li>Press <strong><code>prefix m</code></strong> again to return to
+native terminal scrolling.</li>
 </ul>
 <h3 id="without-a-mouse--keyboard-and-phones">Without a mouse — keyboard
 (and phones)</h3>
@@ -179,18 +363,35 @@ top/bottom, <code>/</code> search forward, <code>?</code> search back,
 <li><strong>Touch-scroll</strong> the terminal — Termux delivers the
 swipe as wheel events, so it enters copy-mode and scrolls, exactly like
 a mouse.</li>
-<li>The <code>Ctrl-b [</code> route also works using Termux&#39;s extra-keys
+<li>The <code>Ctrl-b [</code> route also works using Termux's extra-keys
 row (enable it with a long-press on the keyboard area if hidden).</li>
 </ul>
 <h2 id="copying-text">Copying text</h2>
-<p>In copy-mode: press <code>v</code> to start a selection, move the
-cursor, then press <code>y</code> or <code>Enter</code> to copy. A mouse
-drag also selects and copies on release.</p>
-<p>The selection is routed to your system clipboard automatically — the
-config detects <code>pbcopy</code> (macOS), <code>wl-copy</code>
-(Wayland), <code>xclip</code> (X11), or
-<code>termux-clipboard-set</code> (Termux) at copy time, and also emits
-OSC-52 so copying works over SSH and on terminals that support it.</p>
+<p><strong>Default (mouse off):</strong> just select with the
+<strong>native terminal</strong> — click-drag (including across multiple
+lines), then <code>Cmd-C</code> / right-click → Copy. This works in
+every emulator on Linux and macOS, and it is the recommended copy path.
+To paste the OS clipboard back into a pane: native paste
+(<code>Cmd-V</code> / right-click → Paste), or <code>prefix P</code> to
+paste via a keyboard binding.</p>
+<p><strong>On demand (after <code>prefix m</code>, mouse on):</strong> a
+tmux mouse drag selects and copies on release; or in copy-mode press
+<code>v</code> to start a selection, move the cursor, then
+<code>y</code> or <code>Enter</code> to copy. The tmux selection is
+routed to your system clipboard automatically — the config detects
+<code>pbcopy</code> (macOS), <code>wl-copy</code> (Wayland),
+<code>xclip</code> (X11), or <code>termux-clipboard-set</code> (Termux)
+at copy time, and also emits OSC-52 so copying works over SSH and on
+terminals that support it.</p>
+<blockquote>
+<p>Why the default flipped to <code>mouse off</code>: with
+<code>mouse on</code>, tmux emitted mouse-tracking enables that
+<strong>suppressed</strong> the emulator's native selection and
+right-click → Copy — the root cause of the long-standing "can't select /
+copy" reports. With <code>mouse off</code> the native mouse is
+unobstructed (proven by test 59), and <code>prefix m</code> gives you
+the tmux mouse on demand.</p>
+</blockquote>
 <h2 id="verifying-it-works">Verifying it works</h2>
 <p>The behaviour is covered by
 <code>scripts/tests/17_scrollback_copy_mode.sh</code>, which runs as
@@ -199,7 +400,8 @@ part of the verification gate. It spawns a real session via
 line scrolled off the visible screen, then proves copy-mode can scroll
 back to it and copy it — all with captured runtime evidence per the
 anti-bluff covenant.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tests/17_scrollback_copy_mode.sh</span>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tests/17_scrollback_copy_mode.sh</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># → PASS=13  FAIL=0  SKIP=0</span></span></code></pre></div>
 <h2 id="re-applying-after-a-config-change">Re-applying after a config
 change</h2>
@@ -209,5 +411,20 @@ editing it (or pulling an update), re-run
 <code>tmx</code> picks up the template on the next <code>tmx new</code>.
 To reload into an already-running session: <code>Ctrl-b</code> then
 <code>:source-file ~/.tmux.conf</code>.</p>
+<h2 id="sources-verified-2026-06-13">Sources verified 2026-06-13</h2>
+<ul>
+<li><strong>tmux upstream man page</strong> — <a
+href="https://man.openbsd.org/tmux.1">https://man.openbsd.org/tmux.1</a>
+(re-verified 2026-06-13 via WebFetch; OpenBSD ships the canonical
+upstream <code>tmux.1</code>). Confirms
+<code>set-clipboard external</code> semantics ("tmux will attempt to set
+the terminal clipboard but ignore attempts by applications to set tmux
+buffers" — the OSC-52 copy-out path) and that a flag/choice option set
+with its value omitted toggles its value (the <code>prefix m</code> /
+<code>set -g mouse</code> toggle). The <code>mouse off</code> ⇒ no
+mouse-tracking DECSET enables behaviour is proven at the wire level in
+this repo by test 59 (<code>scripts/tests/59_*.sh</code>), which is the
+load-bearing authority for the default-architecture claims above.</li>
+</ul>
 </body>
 </html>

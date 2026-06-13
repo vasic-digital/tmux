@@ -109,4 +109,65 @@ B1 CHAL-COVER-001, B2 TEST-AUDIT-001 also landed in `Fixed.md`.)
 
 ---
 
-**Last reviewed:** 2026-05-22 (v1.0.14 cycle — clipboard physical-proof landing + multi-host deploy; opened B3 to track the pre-existing v1.0.9 P5-M20+P5-M21 layer-4 escapes transparently).
+## F. Runtime crash — operator-gated reproduction
+
+### F1. `tmx` session named "HelixCode" crashes the whole terminal
+
+**Status:** Operator-blocked
+**Type:** Bug
+**Reported:** operator, 2026-06-13 — "Open the terminal and for terminal
+session choose HelixCode. It will crash the whole terminal!" Operator clarified
+HelixCode is a tmx SESSION NAME and the crash reproduces in iTerm2,
+Terminal.app, a Linux terminal, AND WezTerm (all their emulators). HelixCode is
+a TUI CLI agent (Claude-Code-class) run INSIDE the session.
+
+**Investigation to date (no guessing per §11.4.6 — facts only):**
+- A FRESH `tmx new -s HelixCode` creates a detached session (pane alive) AND a
+  fresh interactive attach over a real PTY completes cleanly: 873 bytes, normal
+  volume, clean detach, NO runaway redraw. Captured evidence:
+  `docs/qa/2026-06-13-helixcode-crash/`.
+- The shipped conf parses clean (`source-file` exit 0, no stderr);
+  `hostname_color.sh` returns a valid `colour44`; the Darwin rlimit wrapper is
+  benign. Cross-emulator reproduction (incl. robust WezTerm) rules out a single
+  emulator's escape-sequence handling — the trigger is tmx/tmux/config + state.
+- Five candidate crash vectors were each reproduced headlessly over a real PTY
+  and **DISPROVEN as standalone causes** (forensic detail + byte counts in
+  `docs/qa/2026-06-13-helixcode-crash/forensic.md`): (H1) pre-existing TUI +
+  reattach repaint — fresh vs reattach streams byte-identical; (H2)
+  `allow-passthrough on` replay — a 512 KB passthrough payload yielded a 3496-B
+  attach stream, 0 DCS frames (tmux repaints the visible screen, never the
+  passthrough history); (H3) `extended-keys on` — only the standard `ESC[>4m`
+  modifyOtherKeys, well-formed; (H4) `automatic-rename-format` `.exe`-strip —
+  single-pass, no loop; (H5) `tmx attach` source-file into a live session —
+  exit 0, empty stderr, byte-identical stream.
+
+**CONCLUSION:** the crash is NOT reproducible from config + wrapper + binary
+state alone — it requires operator-side RUNTIME state (the real HelixCode TUI
+agent's own escape output under tmux, and/or a stale/wrong-arch socket or a
+second `tmux` on `$PATH`, and/or a real `$TERM`/size/capability mismatch). These
+three residuals are explicitly `UNCONFIRMED — needs operator` (ranked in
+forensic.md).
+
+**Operator-Block-Details (§11.4.21):**
+- **WHAT:** run `docs/qa/2026-06-13-helixcode-crash/diagnose.sh` in the real
+  crashing flow; it captures (read-only, leaves live sessions untouched) the
+  full attach byte stream via `script`/`tee`, tmux -V, the active conf,
+  `pane_current_command`, `allow-passthrough`/`extended-keys` state, the socket
+  inventory, and whether the login shell exits. Send back the produced
+  `operator_run_<ts>/` directory.
+- **WHY (self-resolution exhausted):** (a) CLI reproduction — fresh create +
+  attach + real-PTY drive all succeed; (b) subagent forensic deep-dive —
+  5 hypotheses reproduced + disproven headlessly; (c) repo tooling — conf
+  audit, color audit, source-file audit all clean; (d) captured fallback — the
+  live HelixCode TUI agent is not installed here and the operator's stale
+  session state cannot be fabricated; (e) external research — N/A, no published
+  HelixCode-in-tmux crash signature.
+- **UNBLOCK CONDITION:** the `operator_run_<ts>/typescript` byte stream shows
+  the malformed/runaway sequence the real session emits (localise via
+  `od -c typescript | tail -40`).
+- **WHO:** operator (milos85vasic.3rd@gmail.com); diagnostic + forensics under
+  `docs/qa/2026-06-13-helixcode-crash/`.
+
+---
+
+**Last reviewed:** 2026-06-13 (v1.0.21 cycle — copy/paste mouse-off default landed in `Fixed.md` A43; opened F1 to track the operator-gated "HelixCode" terminal crash with full forensic evidence + a ready operator diagnostic).

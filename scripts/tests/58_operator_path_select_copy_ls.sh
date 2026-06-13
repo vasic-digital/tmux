@@ -82,6 +82,11 @@ sleep 1
 "$BIN" -L "$SOCK" has-session -t "$NAME" 2>/dev/null || { echo "FAIL: 58(1) — wrapper did not create session"; exit 1; }
 # headless capture sink (the copy mechanism is identical to @clip->pbcopy)
 "$BIN" -L "$SOCK" set -g @clip "cat > $SINK"
+# Shipped config defaults `mouse off` (terminal owns the mouse; tmux's own
+# drag-select is ON DEMAND via `prefix m`). This test drives the tmux-mouse-ON
+# path the operator reaches with `prefix m`, so enable mouse before injecting
+# the real SGR-1006 drag — without it tmux ignores incoming mouse sequences.
+"$BIN" -L "$SOCK" set -g mouse on
 MAF=$("$BIN" -L "$SOCK" display-message -p -t "$NAME" '#{mouse_any_flag}')
 # Run `ls` (the operator's scenario) then print a deterministic, OS-INDEPENDENT
 # token at the TOP of the screen via `clear` + a POSIX loop, so the drag has a

@@ -54,6 +54,61 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A43. Copy/paste: terminal owns the mouse by default (native multi-line select + right-click→Copy + scroll work everywhere) — `RESOLVED`
+
+**Type:** Bug
+**Closure cycle:** v1.0.21 / versionCode 22 (2026-06-13).
+**Reported:** operator, 2026-05-28 .. 2026-06-13 (across iTerm2, Terminal.app,
+a Linux terminal, and WezTerm) — "copy paste by selecting multiple lines of
+code does not work properly. It must work on Linux and macOS. I must scroll and
+always be selectable for copying — right-click → Copy."
+
+**Why prior fixes did not stick (architecture, not bindings).** A42 (v1.0.17),
+the v1.0.18 plain-drag override, and the v1.0.20 paste/reload work each added
+MORE tmux mouse bindings under the `mouse on` default. The operator still could
+not reliably select/copy — the systematic-debugging signal that the
+architecture was wrong (3+ fixes failed → question the architecture). A42 is
+**superseded** by this change: its `prefix m` toggle is retained but is now the
+on-demand path, not the primary one.
+
+**Root cause (proven at the wire level, no guessing per §11.4.6).** With
+`set -g mouse on`, tmux emits mouse-tracking DECSET *enables*
+(`CSI ?1000h ?1002h ?1006h`) to the outer terminal on attach, putting it into
+mouse-reporting mode, which **suppresses the terminal's native selection and
+right-click→Copy**. No tmux binding can intercept a terminal's right-click→Copy
+menu; the only way select/copy "always" works is to let the terminal own the
+mouse. Captured proof: a real-PTY attach-stream capture shows `mouse on` emits
+**6** mouse-enable DECSET, `mouse off` emits **0**.
+
+**Source-side fix.** `scripts/tmux.conf.template` default flipped
+`set -g mouse on` → `set -g mouse off`. The outer terminal now owns the mouse:
+native click-drag selection (incl. multi-line), right-click→Copy, and native
+scroll work identically on Linux + macOS, on every emulator. The full tmux
+mouse stack (wheel-scrollback in TUIs + drag-select-to-OS-clipboard) is on
+demand via `prefix m` (flips `mouse on`). Narrative comments updated; `prefix P`
+paste unaffected.
+
+**Captured evidence (4-layer per §103):**
+- **Layer 1 (source gate):** `scripts/verify.sh` `mouse off (terminal default)`
+  L1 gate (`^set -g mouse off`).
+- **Layer 3 (runtime, wire-level anti-bluff):** `scripts/tests/59_native_mouse_unobstructed.sh`
+  — EVIDENCE: default conf is `mouse off`; default PTY attach emitted **0**
+  mouse-enable DECSET (native select + right-click→Copy + scroll unobstructed);
+  after `prefix m`, **3** mouse-enable DECSET appeared (tmux mouse on demand).
+  RED (current `mouse on`: 6 enables, contract fails) → GREEN. Deterministic.
+- **Layer 4 (paired mutation):** `M-MOUSEDEFAULT` in
+  `scripts/tests/meta_test_false_positive_proof.sh` flips the default back to
+  `on`; test 59 catches it (default attach re-emits the suppressing DECSET).
+- **Regression sweep:** tests 56/57/58 enable tmux mouse explicitly for the
+  on-demand drag-copy path; test 17 + TMUX-CH-17 assert the `mouse off`
+  default; tests 44/45/47/48 (copy-mode keystroke path) unaffected, green.
+
+**Cross-refs:** supersedes A42; `docs/scrolling/README.md`,
+`docs/guides/clipboard.md`, `docs/guide/README.md` §5.7 updated to the new
+architecture (Sources verified 2026-06-13 against man.openbsd.org/tmux.1).
+
+---
+
 ### A42. Mouse select/copy unusable in tmx panes (especially inside Claude Code) — `RESOLVED`
 
 **Type:** Bug

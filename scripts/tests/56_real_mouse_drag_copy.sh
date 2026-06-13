@@ -46,7 +46,11 @@ command -v python3 >/dev/null 2>&1 || { echo "SKIP: 56 — python3 unavailable (
 
 L="dragproof$$"
 SINK=$(mktemp)
-APP=$(mktemp /tmp/mt_app.XXXXXX.py)
+# X's MUST be at the END of the mktemp template: BSD mktemp (macOS) does NOT
+# expand `mt_app.XXXXXX.py` (X's not trailing) and creates the LITERAL shared
+# filename, colliding across tests 56+57 and reruns (self-perpetuating under
+# `set -eu`). `.py.XXXXXX` is portable BSD+GNU and the app is invoked by path.
+APP=$(mktemp "${TMPDIR:-/tmp}/mt_app.py.XXXXXX")
 TOK="DRAGPROOF_${$}_$(date +%s)"
 cleanup() { "$BIN" -L "$L" kill-server 2>/dev/null || true; "$BIN" -L "${L}gui" kill-server 2>/dev/null || true; rm -f "$SINK" "$APP"; }
 trap cleanup EXIT
@@ -78,6 +82,13 @@ PYAPP
 "$BIN" -L "$L" -f "$CONF" new-session -d -s s -x 80 -y 24
 # Headless capture sink instead of the real OS clipboard.
 "$BIN" -L "$L" set -g @clip "cat > $SINK"
+# The shipped config defaults `mouse off` (the terminal owns the mouse by
+# default; tmux's own mouse drag-select + wheel-scrollback are available
+# ON DEMAND via `prefix m`). This test exercises that tmux-mouse-ON path —
+# the exact state `prefix m` produces — so enable it before injecting the
+# real SGR-1006 drag events, otherwise tmux does not parse incoming mouse
+# sequences at all and the drag is a no-op.
+"$BIN" -L "$L" set -g mouse on
 
 # Drive the real mouse-event path: attach a client on a PTY, run the
 # mouse-tracking app in it, confirm mouse_any_flag=1, inject an SGR-1006
@@ -118,6 +129,13 @@ while time.time()-t<1.0:
         except OSError: break
 try: os.close(fd)
 except OSError: pass
+# Deterministically reap the PTY-attach client BEFORE any later kill-server, so
+# an orphaned attached client never prints the benign CLIENT_EXIT_LOST_SERVER
+# ("server exited unexpectedly") console notice.
+try: os.kill(pid, 15)
+except (ProcessLookupError, OSError): pass
+try: os.waitpid(pid, 0)
+except (ChildProcessError, OSError): pass
 print(flag)
 PY
 )

@@ -214,28 +214,32 @@ Test 15 + e2e T7 in `scripts/tests/` automate these checks with OS-dispatched as
 
 ---
 
-## §5.7 Clipboard — multi-line copy + paste-IN + modifier-drag (v1.0.14 / v1.0.15)
+## §5.7 Clipboard — native selection by default, tmux mouse on demand, paste-IN
 
-The shipped `~/.tmux.conf` (generated from `scripts/tmux.conf.template`) wires four cooperating mechanisms so every clipboard surface is reachable from every device — mouse, keyboard, and modifier-drag inside mouse-tracking TUIs (Claude Code, vim, less, htop).
+The shipped `~/.tmux.conf` (generated from `scripts/tmux.conf.template`) defaults to **`set -g mouse off`**, so the **terminal owns the mouse**: native click-drag selection (including multi-line), right-click → Copy, and native scroll all work — identically on Linux and macOS, on every emulator (iTerm2, Terminal.app, GNOME Terminal, WezTerm, …), inside or outside a full-screen TUI such as Claude Code / HelixCode. This is the recommended copy/paste path. **`prefix m`** enables tmux's own mouse on demand (wheel scrollback inside TUIs + drag-copy to the OS clipboard); **`prefix P`** pastes the OS clipboard into a pane.
+
+Why the default is `mouse off`: a wire-level test (test 59) proved that with `mouse on` tmux emitted mouse-tracking DECSET enables (`CSI ?1000h` / `?1002h` / `?1006h`) that **suppressed** the emulator's native selection and right-click → Copy — the root cause of the long-standing "can't select / copy" reports. With `mouse off` tmux emits none of those enables, so the native mouse is unobstructed.
 
 ### Quick reference
 
 | Goal | Keystroke / mouse |
 |---|---|
-| Select & copy plain shell output | drag with mouse, release — read back via `pbpaste` / `wl-paste` / `xclip -o` / `termux-clipboard-get` |
-| Select & copy inside Claude Code et al. | **Alt-drag** (macOS) OR **Shift-drag** (Linux) |
+| **Select & copy anything (default)** — plain shell, Claude Code, vim, less, htop | **native click-drag** (multi-line OK) → `Cmd-C` / right-click → Copy |
+| Paste OS clipboard INTO the pane | native `Cmd-V` / right-click → Paste, **or** `prefix + P` (capital — lowercase is `previous-window`) |
+| Wheel-scroll tmux scrollback inside a TUI, or tmux drag-copy to clipboard | **`prefix + m`** (toggle tmux mouse ON) → wheel / drag; `prefix + m` again to return to native |
 | Keyboard-only copy | `prefix + [` → `v` → arrows / `j` / `k` → `y` |
-| Paste OS clipboard INTO the pane | `prefix + P` (capital — lowercase is `previous-window`) |
 
-### The four mechanisms
+### The mechanisms
 
-1. **`@clip` user option** — OS-adaptive WRITE pipeline (pbcopy → wl-copy → xclip → termux-clipboard-set → OSC-52 fallback). `copy-pipe-and-cancel "#{@clip}"` routes every `y` / `Enter` / `MouseDragEnd1Pane` selection through it.
+0. **`mouse off` default + `prefix m` toggle** — `set -g mouse off` ships as the default so the terminal's native selection / right-click → Copy / scroll are unobstructed (no mouse-tracking DECSET enables emitted). `bind m set -g mouse \; display-message '…'` toggles tmux mouse ON on demand for wheel scrollback inside a TUI and tmux drag-copy, and back OFF to native. (tmux toggles a flag/choice option when its value is omitted.)
 
-2. **`@clip-read` user option (v1.0.15)** — symmetric READ pipeline (pbpaste → wl-paste → xclip -o → termux-clipboard-get → empty). Drives `prefix + P`.
+1. **`@clip` user option** — OS-adaptive WRITE pipeline (pbcopy → wl-copy → xclip → termux-clipboard-set → OSC-52 fallback). `copy-pipe-and-cancel "#{@clip}"` routes every tmux `y` / `Enter` / `MouseDragEnd1Pane` selection through it (used in the `mouse on` state).
 
-3. **Modifier-drag overrides (v1.0.15)** — `bind -n M-MouseDrag1Pane copy-mode -M` + `bind -n S-MouseDrag1Pane copy-mode -M`. When a TUI captures mouse events (Claude Code's alt-screen + DECSET 1002/1003), the unmodified `MouseDrag1Pane` forwards the drag to the app via `send -M`. Holding Alt / Option (macOS) or Shift (Linux) prefixes the event with `M-` / `S-` and tmux routes it to copy-mode regardless of the app's mouse mode.
+2. **`@clip-read` user option** — symmetric READ pipeline (pbpaste → wl-paste → xclip -o → termux-clipboard-get → empty). Drives `prefix + P`.
 
-4. **Bracketed-paste on paste-IN** — `bind P run -b 'tmux load-buffer - <<< "$(#{@clip-read})" \; tmux paste-buffer -p'`. The `-p` flag (per `man tmux`: *"paste bracket control codes are inserted around the buffer if the application has requested bracketed paste mode"*) makes shells / editors treat the inserted block as literal text — no accidental command execution from a stray newline.
+3. **Modifier-drag overrides (fallback for the `mouse on` state only)** — `bind -n M-MouseDrag1Pane copy-mode -M` + `bind -n S-MouseDrag1Pane copy-mode -M`. When tmux mouse is ON and a TUI also captures mouse events (Claude Code's alt-screen + DECSET 1002/1003), the unmodified `MouseDrag1Pane` forwards the drag to the app via `send -M`. Holding Alt / Option (macOS) or Shift (Linux) prefixes the event with `M-` / `S-` and tmux routes it to copy-mode regardless of the app's mouse mode. Not needed in the default `mouse off` state, where native selection works with no modifier.
+
+4. **Bracketed-paste on paste-IN** — `bind P run -b 'sh -c "pbpaste 2>/dev/null || wl-paste -n 2>/dev/null || xclip -o -selection clipboard 2>/dev/null || termux-clipboard-get 2>/dev/null" | tmux load-buffer - && tmux paste-buffer -p'`. The `-p` flag (per `man tmux`: *"paste bracket control codes are inserted around the buffer if the application has requested bracketed paste mode"*) makes shells / editors treat the inserted block as literal text — no accidental command execution from a stray newline.
 
 ### Verification (positive evidence per §101)
 
@@ -249,7 +253,11 @@ The shipped `~/.tmux.conf` (generated from `scripts/tmux.conf.template`) wires f
 
 The synthetic alt-screen surrogate at `scripts/tests/helpers/synthetic_alt_screen_app.py` substitutes for the Claude Code CLI in tests 47 / 48, avoiding §11.4.98 OAuth/interactive flake while still exercising the exact alt-screen + mouse-tracking surface.
 
-The dedicated operator-recipe document is [`docs/guides/clipboard.md`](../guides/clipboard.md) — quick recipes, OS-by-OS modifier choice, troubleshooting (Alt-drag captured by terminal, empty `@clip-read`, post-aborted-drag mouse weirdness).
+The dedicated operator-recipe document is [`docs/guides/clipboard.md`](../guides/clipboard.md) — quick recipes (native selection by default + `prefix m` on demand), `prefix P` paste-IN, troubleshooting (empty `@clip-read`, scrolling tmux history inside a TUI, the `mouse on` modifier-drag fallback).
+
+### Sources verified 2026-06-13
+
+- **tmux upstream man page** — <https://man.openbsd.org/tmux.1> (re-verified 2026-06-13 via WebFetch; OpenBSD ships the canonical upstream `tmux.1`). Confirms `set-clipboard external` "will attempt to set the terminal clipboard but ignore attempts by applications to set tmux buffers" (the OSC-52 copy-OUT path) and that a flag/choice option set with its value omitted toggles its value (the `prefix m` / `set -g mouse` toggle). The `mouse off` ⇒ no mouse-tracking DECSET enables behaviour (so native selection / right-click → Copy / scroll is unobstructed) is proven at the wire level in this repo by test 59 (`scripts/tests/59_*.sh`), the load-bearing authority for the default-architecture claims above. Canonical binding source: `scripts/tmux.conf.template`.
 
 ### Sources verified 2026-05-28
 

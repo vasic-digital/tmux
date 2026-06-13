@@ -77,6 +77,13 @@ _l1() {
     fi
 }
 _l1 "history-limit 50000"          '^set +-g +history-limit +50000'
+# v1.0.21 (operator decision 2026-06-13): the shipped DEFAULT is `mouse off` —
+# the terminal owns the mouse so native drag-select, right-click->Copy, and
+# native scroll work everywhere (Linux + macOS). tmux mouse is on demand via
+# `prefix m`. Wire-level runtime proof: test 59. This Layer-1 static gate is the
+# source-side guard (§103) that the default is NOT flipped back to `on` (which
+# emitted mouse-tracking DECSETs that suppressed native selection/right-click).
+_l1 "mouse off (terminal default)" '^set +-g +mouse +off\b'
 _l1 "mode-keys vi"                 '^setw? +-g +mode-keys +vi'
 _l1 "WheelUpPane copy-mode bind"   '^bind +-n +WheelUpPane'
 _l1 "WheelDownPane bind"           '^bind +-n +WheelDownPane'

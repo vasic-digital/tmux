@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>transcript</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1
+id="qa-transcript--copypaste-terminal-owns-the-mouse-by-default-v1021">QA
+transcript — copy/paste: terminal owns the mouse by default
+(v1.0.21)</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-13T12:40:00Z <strong>Run-id:</strong>
+2026-06-13-mouse-off-default <strong>Feature shipped:</strong>
+<code>scripts/tmux.conf.template</code> default
+<code>set -g mouse off</code> — native terminal selection (multi-line),
+right-click→Copy, and native scroll work everywhere (Linux + macOS);
+tmux mouse on demand via <code>prefix m</code>. <strong>Anti-bluff
+authority:</strong> §11.4 / §11.4.2 / §11.4.5 / §11.4.50 / §11.4.69 /
+§11.4.83.</p>
+<p>This is the captured runtime evidence that the shipped feature works
+for the end user — not metadata, not config-only. Closure entry:
+<code>Fixed.md</code> A43.</p>
+<hr />
+<h2 id="1-root-cause-proven-at-the-wire-level-the-discriminator">1. Root
+cause proven at the wire level (the discriminator)</h2>
+<p>On attach, <code>mouse on</code> makes tmux emit mouse-tracking
+DECSET <em>enables</em> to the outer terminal, which suppresses the
+terminal's native selection + right-click→ Copy. <code>mouse off</code>
+emits none. Captured over a real PTY attach:</p>
+<pre><code>mouse on  -&gt; mouse_decset_seen: [(&#39;1000&#39;,&#39;h&#39;), (&#39;1000&#39;,&#39;l&#39;), (&#39;1002&#39;,&#39;h&#39;),
+             (&#39;1002&#39;,&#39;l&#39;), (&#39;1003&#39;,&#39;l&#39;), (&#39;1006&#39;,&#39;h&#39;), (&#39;1006&#39;,&#39;l&#39;)]   # 3 ENABLES
+mouse off -&gt; mouse_decset_seen: [(&#39;1000&#39;,&#39;l&#39;), (&#39;1002&#39;,&#39;l&#39;), (&#39;1003&#39;,&#39;l&#39;),
+             (&#39;1006&#39;,&#39;l&#39;)]                                             # 0 ENABLES</code></pre>
+<p>No tmux binding can intercept a terminal's right-click→Copy menu;
+letting the terminal own the mouse is the only way select/copy "always"
+works.</p>
+<h2
+id="2-layer-3-wire-level-test-scriptstests59_native_mouse_unobstructedsh">2.
+Layer-3 wire-level test
+(scripts/tests/59_native_mouse_unobstructed.sh)</h2>
+<p>Captured PASS (real PTY attach):</p>
+<pre><code>EVIDENCE: shipped conf default is &#39;set -g mouse off&#39; (terminal owns the mouse)
+EVIDENCE: default attach emitted 0 mouse-enable DECSET (?1000h/?1002h/?1006h) — native selection + right-click-&gt;Copy + native scroll UNOBSTRUCTED
+EVIDENCE: after &#39;prefix m&#39; tmux emitted 3 mouse-enable DECSET — tmux scrollback + drag-copy available on demand
+PASS: 59 native terminal mouse is unobstructed by default (select + right-click-&gt;Copy + scroll), tmux mouse on demand via prefix m</code></pre>
+<p>RED→GREEN confirmed: against the prior <code>mouse on</code> default
+the same test reported
+<code>default attach emitted 6 mouse-enable DECSET … tmux is capturing the mouse and suppressing native selection</code>
+and FAILed all three contracts.</p>
+<h2
+id="3-determinism-11450--test-57-reloadselectcopypaste-the-test-hardened-this-cycle">3.
+Determinism (§11.4.50) — test 57 (reload+select+copy+paste), the test
+hardened this cycle</h2>
+<pre><code>CLEAN (real sequential suite condition):       57 PASS=10/10 FAIL=0
+HOSTILE (continuous adversarial pbcopy noise): 57 PASS=8/8  FAIL=0  (part-D honestly SKIP-layer&#39;d 2× on detected clipboard contention)</code></pre>
+<p>Never false-PASS (PASS requires the real OS-clipboard token paste);
+never false-FAIL (foreign clipboard overwrite → §11.4.3 SKIP-layer, not
+FAIL).</p>
+<h2 id="4-full-verification-gate-scriptssetupsh--scriptsverifysh">4.
+Full verification gate (scripts/setup.sh → scripts/verify.sh)</h2>
+<pre><code>SUMMARY: PASS=53  FAIL=0  SKIP=5
+  ✓ ~/.tmux.conf installed</code></pre>
+<p>Includes test 59 PASS and test 17
+<code>T2.3: live server mouse = off by default</code>. The gate exposed
+the binary (PATH-export) only after GREEN — the anti-bluff covenant in
+action (the prior run with FAIL=1 correctly REFUSED to install).</p>
+<h2 id="5-collateral-regression-sweep-11492-pass-2">5.
+Collateral-regression sweep (§11.4.92 Pass 2)</h2>
+<p>Tests 01–43, 47, 48 run twice, identical verdicts: <strong>41 PASS /
+4 SKIP / 0 FAIL</strong>. No collateral regression from the mouse-off
+change. Hostname-color (10/11/25/26) and cross-platform parity (40) all
+PASS.</p>
+<h2 id="6-4-layer-coverage-103">6. 4-layer coverage (§103)</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Artifact</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 source gate</td>
+<td><code>verify.sh</code> <code>mouse off (terminal default)</code>
+(<code>^set -g mouse off</code>)</td>
+<td>✓ present + green</td>
+</tr>
+<tr>
+<td>3 runtime</td>
+<td><code>scripts/tests/59_native_mouse_unobstructed.sh</code></td>
+<td>✓ PASS (wire-level)</td>
+</tr>
+<tr>
+<td>4 paired mutation</td>
+<td><code>M-MOUSEDEFAULT</code> (flip default → <code>on</code>)</td>
+<td>catches via test 59 (validated post-commit on clean tree)</td>
+</tr>
+<tr>
+<td>regression</td>
+<td>tests 56/57/58 (on-demand path) + 17 + TMUX-CH-17</td>
+<td>✓ green</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sources-verified-2026-06-13">Sources verified 2026-06-13</h2>
+<ul>
+<li>tmux manual <code>set-clipboard</code> / <code>mouse</code> option
+semantics: <a
+href="https://man.openbsd.org/tmux.1">https://man.openbsd.org/tmux.1</a>
+(re-fetched 2026-06-13).</li>
+</ul>
+</body>
+</html>

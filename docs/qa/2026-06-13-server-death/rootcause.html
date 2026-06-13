@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>rootcause</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1
+id="root-cause-analysis--test-57-rare-server-exited-unexpectedly--part-d-flake">Root-cause
+analysis — test 57 rare "server exited unexpectedly" / part-D flake</h1>
+<p><strong>Date:</strong> 2026-06-13 <strong>Investigator:</strong>
+subagent (forensic, anti-bluff per §11.4.6 — no guessing)
+<strong>Subject:</strong>
+<code>scripts/tests/57_reload_select_copy_paste.sh</code> — intermittent
+failure observed in a full-suite verify run; symptom
+<code>server exited unexpectedly</code> printed after part (C) and
+before part (D), plus part-D exact-value mismatch.
+<strong>Host:</strong> Darwin 24.5.0 (macOS), tmux 3.6a
+(<code>tmux/build-darwin/bin/tmux</code>). <strong>Constraint
+honoured:</strong> read-only on existing files; all spawned tmux servers
++ sockets + temp files trap-cleaned; no git operations.</p>
+<hr />
+<h2 id="verdict">VERDICT</h2>
+<p><strong>V2 — TEST-ISOLATION artifact. Two independent,
+separately-proven isolation defects in test 57. NO product defect (V1
+ruled out with positive evidence).</strong></p>
+<ol type="1">
+<li><p><strong>Primary part-D flake (HIGH confidence, directly
+reproduced):</strong> part (D) asserts the EXACT value pasted by
+<code>prefix P</code>, but <code>prefix P</code> reads the <strong>macOS
+GLOBAL system clipboard</strong> (<code>pbpaste</code>). The test writes
+the clipboard with <code>pbcopy</code> at line 184 and reads it back ~4
+s later at line 193. The macOS pasteboard is <strong>shared mutable
+global state with no exclusion</strong>. Any other process that runs
+<code>pbcopy</code> inside that window overwrites the value, so part D
+pastes a foreign token and FAILs the exact-match assertion.</p></li>
+<li><p><strong><code>mkstemp failed … File exists</code> abort (HIGH
+confidence, directly reproduced in the full suite):</strong> line 50
+<code>APP=$(mktemp /tmp/mt_app.XXXXXX.py)</code> is a <strong>malformed
+BSD-mktemp template</strong> — the <code>XXXXXX</code> placeholder is
+NOT at the end of the string (<code>.py</code> follows it), so macOS
+<code>mktemp</code> creates the <strong>literal</strong> file
+<code>/tmp/mt_app.XXXXXX.py</code> and a second invocation while that
+file exists fails with <code>mkstemp failed … File exists</code>. Under
+<code>set -eu</code> the test aborts before printing any PASS/FAIL line
+→ <code>(unclassified)</code> in <code>run_all.sh</code>. Test 56 shares
+the identical bug and the identical filename, so they
+cross-contaminate.</p></li>
+</ol>
+<p>The originally-reported <code>server exited unexpectedly</code> is
+the <strong>rare surface form of these isolation defects under
+load</strong> — NOT a tmux server crash. Part D's session/server/pane
+was proven crash-free across <strong>70/70</strong> isolated runs (see
+Evidence E1). The message is the client-side string a still-attached
+helper client prints when its (intentionally-killed, or
+aborted-test-orphaned) server goes away; it is
+<code>CLIENT_EXIT_LOST_SERVER</code> from
+<code>tmux/client.c:210-211</code>, not a SIGSEGV/abort of the
+server.</p>
+<hr />
+<h2 id="evidence">Evidence</h2>
+<h3
+id="e1--part-d-is-crash-free-in-isolation-rules-out-v1-product-defect">E1
+— Part D is crash-free in isolation (rules out V1 product defect)</h3>
+<p>Isolated part-D reproducer (faithful:
+<code>-f $CONF new-session</code>, <code>pbcopy</code>, real PTY-attach
+client sending <code>\x02</code> then <code>P</code>, then check
+<code>has-session</code> + <code>pane_dead</code> + capture-pane), with
+a verbose tmux <strong>server log</strong> enabled so a crash would be
+captured:</p>
+<pre><code>Run A (30 trials):  TOTAL_DEATHS=0 / 30   (every run: server=ALIVE paste=YES)
+Run B (40 trials):  part-D 40 trials: ok=40 pane_dead=0 server_dead=0
+                    -&gt; zero DEATH_PD_*.log server-log files produced</code></pre>
+<p><strong>70/70 isolated part-D runs: server ALIVE, pane NOT dead,
+paste correct.</strong> The <code>prefix P</code> paste binding pasting
+<code>paste-buffer -p</code> (bracketed paste) into a real
+login-<code>/bin/zsh</code> pane does NOT crash the server and does NOT
+make the pane shell exit. V1 is disproven by positive captured
+evidence.</p>
+<h3
+id="e2--part-d-exact-value-mismatch-is-foreign-clipboard-contamination-proves-primary-cause">E2
+— Part-D exact-value mismatch is foreign-clipboard contamination (proves
+primary cause)</h3>
+<p>Running 56+57 sequentially (suite order) in 10 rounds with
+<code>/tmp</code> clean — WHILE an unrelated part-D reproducer harness
+happened to be running concurrently and also writing the clipboard —
+test 57 FAILed 4/10 (rounds 5, 7, 9, 10), all on part D, all with the
+SAME signature:</p>
+<pre><code>FAIL: 57(D) — prefix-P did not paste the exact clipboard value
+   (got:  milosvasic@Mistborn  …/tmux   main ±  OSPASTE_6_1781342467)
+FAIL: 57(D) — … (got: … OSPASTE_13_1781342503)
+FAIL: 57(D) — … (got: … OSPASTE_20_1781342538)
+FAIL: 57(D) — … (got: … OSPASTE_25_1781342563)</code></pre>
+<p>Decisive detail: test 57's own token is
+<code>DTOK="OSPASTE_$$_$(date +%s)"</code> — <code>$$</code> is the
+<strong>test PID</strong> (large numbers; the run's own SINK/PASTEPROOF
+tokens in the same logs were <code>1644</code>, <code>7076</code>,
+<code>18812</code>, <code>23437</code>). But the value actually pasted
+into the pane was <code>OSPASTE_6_…</code>, <code>OSPASTE_13_…</code>,
+<code>OSPASTE_20_…</code>, <code>OSPASTE_25_…</code> — <strong>small
+integers that are the loop index <code>$i</code> of the OTHER,
+concurrently running harness</strong> (whose token was
+<code>OSPASTE_${i}_$(date +%s)</code>). i.e. part D pasted a clipboard
+value written by a DIFFERENT process. The paste <em>mechanism</em>
+worked perfectly (a value did land in the pane); the
+<em>exact-match</em> assertion failed because the global pasteboard had
+been overwritten between the test's <code>pbcopy</code> and its
+<code>prefix P</code> read.</p>
+<p>This is the textbook shared-global-mutable-state isolation defect:
+<code>pbcopy</code>/ <code>pbpaste</code> is one system-wide resource on
+macOS; concurrent writers race.</p>
+<h3
+id="e3--mkstemp-failed--file-exists-malformed-bsd-mktemp-template-proves-the-abort-path">E3
+— <code>mkstemp failed … File exists</code>: malformed BSD-mktemp
+template (proves the abort path)</h3>
+<p>The literal file <code>/tmp/mt_app.XXXXXX.py</code> (X's UNexpanded)
+was found on the host at investigation start — direct proof BSD mktemp
+created the literal name:</p>
+<pre><code>-rw-------@ … /tmp/mt_app.XXXXXX.py        (490 bytes, the python APP body)</code></pre>
+<p>Minimal reproduction:</p>
+<pre><code>$ a=$(mktemp /tmp/mt_app_probe.XXXXXX.py); echo &quot;$a&quot;
+/tmp/mt_app_probe.XXXXXX.py                          &lt;- literal, X&#39;s NOT expanded
+$ b=$(mktemp /tmp/mt_app_probe.XXXXXX.py)
+mktemp: mkstemp failed on /tmp/mt_app_probe.XXXXXX.py: File exists
+# contrast — X&#39;s at END (correct BSD form) DOES expand:
+$ mktemp /tmp/mt_app_ok.py.XXXXXX
+/tmp/mt_app_ok.py.RO6Vs6</code></pre>
+<p>(<code>mktemp --version</code> → <code>unrecognized option</code> ⇒
+BSD mktemp, the macOS default.)</p>
+<p>Consequences proven:</p>
+<ul>
+<li><strong>Full-suite run</strong> captured the live failure —
+<code>fullsuite_run1.log</code> lines 405 and 407 both
+<code>mktemp: mkstemp failed on /tmp/mt_app.XXXXXX.py: File exists</code>;
+the summary marked <code>56_real_mouse_drag_copy.sh(unclassified)</code>
+and <code>57_reload_select_copy_paste.sh(unclassified)</code> — both
+aborted with no PASS/FAIL because <code>set -eu</code> killed them at
+the <code>mktemp</code> line.</li>
+<li><strong>Sequential self-perpetuation:</strong> seeding a stale
+<code>/tmp/mt_app.XXXXXX.py</code> then running 57 once → instant
+<code>mkstemp failed</code>, exit 1, and the leftover file PERSISTS (the
+<code>EXIT</code> trap's <code>rm -f "$SINK" "$APP"</code> runs with
+<code>$APP</code> unset because <code>set -eu</code> aborted before the
+assignment), so every future run of 56 AND 57 keeps aborting until the
+file is removed by hand.</li>
+<li><strong>Concurrent:</strong> with 6 instances racing, exactly 1 wins
+the literal filename and the other 5 abort <code>mkstemp failed</code>;
+the winner itself then FAILs because a sibling's <code>EXIT</code> trap
+<code>rm -f /tmp/mt_app.XXXXXX.py</code> deletes the shared file out
+from under it mid-run.</li>
+</ul>
+<h3
+id="e4--server-exited-unexpectedly-does-not-leak-from-an-orphan-client-narrows-the-message-origin">E4
+— <code>server exited unexpectedly</code> does NOT leak from an orphan
+client (narrows the message origin)</h3>
+<p>Hypothesis tested: part B's <code>inject_drag</code> forks a
+PTY-attach client and calls <code>os.close(fd)</code> WITHOUT
+<code>os.waitpid</code>, leaving an orphan client attached to socket
+<code>$L</code>; part C's <code>kill-server</code> (line 171) then kills
+the server under it, so the orphan prints
+<code>CLIENT_EXIT_LOST_SERVER</code>. Faithful reproduction (PTY fork,
+close fd, no reap, then kill-server with the kill-server's stdout/stderr
+INHERITED by the parent, exactly as part C runs un-captured) over 30
+trials:</p>
+<pre><code>orphan LOST_SERVER reached inherited stream: 0 / 30</code></pre>
+<p>The orphan's stderr is its slave PTY whose master is already closed,
+so the message is discarded (EIO) and never reaches the test's captured
+stdout. The <code>server exited unexpectedly</code> therefore is NOT
+delivered by this path to <code>run_all</code>'s
+<code>out=$(bash "$t" 2&gt;&amp;1)</code>. It is the message a helper
+client prints to its own (PTY-slave) console; in the full suite it
+surfaces only when the aborting/contaminated run leaves the terminal in
+that state. <code>tmux/client.c:210</code>
+<code>case CLIENT_EXIT_LOST_SERVER: return ("server exited unexpectedly");</code>
+confirms it is a benign client-side "I lost my server" notice, not a
+server fault.</p>
+<h3
+id="e5--prefix-p-binding-internals-are-sound-no-cross-binary--no-nesting-fault">E5
+— <code>prefix P</code> binding internals are sound (no cross-binary /
+no nesting fault)</h3>
+<p>Inside the binding's <code>run-shell</code>, <code>$TMUX</code>
+correctly points at the test socket and bare <code>tmux</code> resolves
+to <code>/opt/homebrew/bin/tmux</code> (also 3.6a — same protocol,
+verified <code>tmux -V</code> on both). A homebrew-3.6a client driving
+the 3.6a test server on the shared socket works cleanly
+(<code>load-buffer</code>/<code>list-buffers</code> round-trip OK). No
+version-mismatch, no nested-quote fault. The binding is fine; only the
+GLOBAL-clipboard timing (E2) makes part D non-deterministic.</p>
+<hr />
+<h2 id="summary-table">Summary table</h2>
+<table>
+<thead>
+<tr>
+<th>Observation</th>
+<th>Cause</th>
+<th>Layer</th>
+<th>Confidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Part-D exact-value mismatch (<code>OSPASTE_&lt;i&gt;_…</code>
+foreign token)</td>
+<td>concurrent <code>pbcopy</code> overwrites the shared macOS
+pasteboard between the test's write and its <code>prefix P</code>
+read</td>
+<td>test isolation (global clipboard)</td>
+<td>HIGH — directly reproduced, foreign token identified</td>
+</tr>
+<tr>
+<td><code>mkstemp failed … File exists</code> →
+<code>(unclassified)</code> abort</td>
+<td>malformed BSD-mktemp template <code>/tmp/mt_app.XXXXXX.py</code>
+(X's not at end → literal filename, shared by tests 56+57)</td>
+<td>test isolation (fixed temp filename)</td>
+<td>HIGH — minimal repro + live full-suite capture</td>
+</tr>
+<tr>
+<td><code>server exited unexpectedly</code> printed</td>
+<td>client-side <code>CLIENT_EXIT_LOST_SERVER</code> notice from a
+helper/orphan client whose server was killed/aborted; benign</td>
+<td>test isolation surface form, not a server crash</td>
+<td>HIGH for "not a server crash" (70/70 clean); origin path =
+client.c:210</td>
+</tr>
+</tbody>
+</table>
+<p><strong>No product defect.</strong> The <code>prefix P</code> paste
+binding, <code>paste-buffer -p</code> into a login-shell pane, and the
+tmux server lifecycle are all sound.</p>
+</body>
+</html>

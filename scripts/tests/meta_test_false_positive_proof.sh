@@ -1056,6 +1056,25 @@ v109_run_mutation \
     "scripts/tests/55_mouse_toggle_and_copy.sh" \
     "FAIL"
 
+# ── M-MOUSEDEFAULT: flip the shipped mouse DEFAULT from `off` back to `on`
+# in tmux.conf.template. Forensic anchor: operator reports 2026-05-28 .. 06-13
+# — "select/copy multi-line does not work … must scroll and always be
+# selectable … right-click -> Copy". Root cause: `mouse on` emits mouse-tracking
+# DECSETs (CSI ?1000h/?1002h/?1006h) that SUPPRESS native terminal selection +
+# right-click->Copy. The new default `mouse off` lets the terminal own the
+# mouse (native select/copy/scroll everywhere; tmux mouse on demand via
+# prefix m). Flipping the default back to `on` is the exact regression; test 59
+# captures the attach byte stream over a real PTY and FAILs because the default
+# attach now emits mouse-enable DECSET (native selection re-suppressed). Anchored
+# to `^set -g` so the comment lines that mention "mouse off" are untouched.
+v109_run_mutation \
+    "M-MOUSEDEFAULT" \
+    "flip the mouse default off->on in tmux.conf.template (test 59 wire-level proof catches re-suppression of native terminal select + right-click->Copy)" \
+    "scripts/tmux.conf.template" \
+    "inplace_sed 's/^\\(set -g[[:space:]][[:space:]]*mouse[[:space:]][[:space:]]*\\)off/\\1on/' \"\$target_abs\"" \
+    "scripts/tests/59_native_mouse_unobstructed.sh" \
+    "FAIL"
+
 # ── M-PLAINDRAG: strip the plain-drag copy-mode override from
 #    tmux.conf.template — the PRIMARY fix for "cannot select/copy with the
 #    mouse in Claude Code" (forensic anchor: user report 2026-05-29; the

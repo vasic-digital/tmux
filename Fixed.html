@@ -324,6 +324,75 @@ layer (c) met by challenge entries CH-01 through CH-14</td>
 <h2 id="a-tooling--harness-gaps--resolved">A. Tooling / harness gaps —
 RESOLVED</h2>
 <h3
+id="a43-copypaste-terminal-owns-the-mouse-by-default-native-multi-line-select--right-clickcopy--scroll-work-everywhere--resolved">A43.
+Copy/paste: terminal owns the mouse by default (native multi-line select
++ right-click→Copy + scroll work everywhere) —
+<code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> v1.0.21 /
+versionCode 22 (2026-06-13). <strong>Reported:</strong> operator,
+2026-05-28 .. 2026-06-13 (across iTerm2, Terminal.app, a Linux terminal,
+and WezTerm) — "copy paste by selecting multiple lines of code does not
+work properly. It must work on Linux and macOS. I must scroll and always
+be selectable for copying — right-click → Copy."</p>
+<p><strong>Why prior fixes did not stick (architecture, not
+bindings).</strong> A42 (v1.0.17), the v1.0.18 plain-drag override, and
+the v1.0.20 paste/reload work each added MORE tmux mouse bindings under
+the <code>mouse on</code> default. The operator still could not reliably
+select/copy — the systematic-debugging signal that the architecture was
+wrong (3+ fixes failed → question the architecture). A42 is
+<strong>superseded</strong> by this change: its <code>prefix m</code>
+toggle is retained but is now the on-demand path, not the primary
+one.</p>
+<p><strong>Root cause (proven at the wire level, no guessing per
+§11.4.6).</strong> With <code>set -g mouse on</code>, tmux emits
+mouse-tracking DECSET <em>enables</em>
+(<code>CSI ?1000h ?1002h ?1006h</code>) to the outer terminal on attach,
+putting it into mouse-reporting mode, which <strong>suppresses the
+terminal's native selection and right-click→Copy</strong>. No tmux
+binding can intercept a terminal's right-click→Copy menu; the only way
+select/copy "always" works is to let the terminal own the mouse.
+Captured proof: a real-PTY attach-stream capture shows
+<code>mouse on</code> emits <strong>6</strong> mouse-enable DECSET,
+<code>mouse off</code> emits <strong>0</strong>.</p>
+<p><strong>Source-side fix.</strong>
+<code>scripts/tmux.conf.template</code> default flipped
+<code>set -g mouse on</code> → <code>set -g mouse off</code>. The outer
+terminal now owns the mouse: native click-drag selection (incl.
+multi-line), right-click→Copy, and native scroll work identically on
+Linux + macOS, on every emulator. The full tmux mouse stack
+(wheel-scrollback in TUIs + drag-select-to-OS-clipboard) is on demand
+via <code>prefix m</code> (flips <code>mouse on</code>). Narrative
+comments updated; <code>prefix P</code> paste unaffected.</p>
+<p><strong>Captured evidence (4-layer per §103):</strong></p>
+<ul>
+<li><strong>Layer 1 (source gate):</strong>
+<code>scripts/verify.sh</code> <code>mouse off (terminal default)</code>
+L1 gate (<code>^set -g mouse off</code>).</li>
+<li><strong>Layer 3 (runtime, wire-level anti-bluff):</strong>
+<code>scripts/tests/59_native_mouse_unobstructed.sh</code> — EVIDENCE:
+default conf is <code>mouse off</code>; default PTY attach emitted
+<strong>0</strong> mouse-enable DECSET (native select + right-click→Copy
++ scroll unobstructed); after <code>prefix m</code>, <strong>3</strong>
+mouse-enable DECSET appeared (tmux mouse on demand). RED (current
+<code>mouse on</code>: 6 enables, contract fails) → GREEN.
+Deterministic.</li>
+<li><strong>Layer 4 (paired mutation):</strong>
+<code>M-MOUSEDEFAULT</code> in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code> flips the
+default back to <code>on</code>; test 59 catches it (default attach
+re-emits the suppressing DECSET).</li>
+<li><strong>Regression sweep:</strong> tests 56/57/58 enable tmux mouse
+explicitly for the on-demand drag-copy path; test 17 + TMUX-CH-17 assert
+the <code>mouse off</code> default; tests 44/45/47/48 (copy-mode
+keystroke path) unaffected, green.</li>
+</ul>
+<p><strong>Cross-refs:</strong> supersedes A42;
+<code>docs/scrolling/README.md</code>,
+<code>docs/guides/clipboard.md</code>, <code>docs/guide/README.md</code>
+§5.7 updated to the new architecture (Sources verified 2026-06-13
+against man.openbsd.org/tmux.1).</p>
+<hr />
+<h3
 id="a42-mouse-selectcopy-unusable-in-tmx-panes-especially-inside-claude-code--resolved">A42.
 Mouse select/copy unusable in tmx panes (especially inside Claude Code)
 — <code>RESOLVED</code></h3>

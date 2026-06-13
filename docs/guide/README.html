@@ -702,14 +702,29 @@ $ id ; hostname ; which brew
 with OS-dispatched assertions per Constitution §11.4.2.</p>
 <hr />
 <h2
-id="57-clipboard--multi-line-copy--paste-in--modifier-drag-v1014--v1015">§5.7
-Clipboard — multi-line copy + paste-IN + modifier-drag (v1.0.14 /
-v1.0.15)</h2>
+id="57-clipboard--native-selection-by-default-tmux-mouse-on-demand-paste-in">§5.7
+Clipboard — native selection by default, tmux mouse on demand,
+paste-IN</h2>
 <p>The shipped <code>~/.tmux.conf</code> (generated from
-<code>scripts/tmux.conf.template</code>) wires four cooperating
-mechanisms so every clipboard surface is reachable from every device —
-mouse, keyboard, and modifier-drag inside mouse-tracking TUIs (Claude
-Code, vim, less, htop).</p>
+<code>scripts/tmux.conf.template</code>) defaults to
+<strong><code>set -g mouse off</code></strong>, so the <strong>terminal
+owns the mouse</strong>: native click-drag selection (including
+multi-line), right-click → Copy, and native scroll all work —
+identically on Linux and macOS, on every emulator (iTerm2, Terminal.app,
+GNOME Terminal, WezTerm, …), inside or outside a full-screen TUI such as
+Claude Code / HelixCode. This is the recommended copy/paste path.
+<strong><code>prefix m</code></strong> enables tmux's own mouse on
+demand (wheel scrollback inside TUIs + drag-copy to the OS clipboard);
+<strong><code>prefix P</code></strong> pastes the OS clipboard into a
+pane.</p>
+<p>Why the default is <code>mouse off</code>: a wire-level test (test
+59) proved that with <code>mouse on</code> tmux emitted mouse-tracking
+DECSET enables (<code>CSI ?1000h</code> / <code>?1002h</code> /
+<code>?1006h</code>) that <strong>suppressed</strong> the emulator's
+native selection and right-click → Copy — the root cause of the
+long-standing "can't select / copy" reports. With <code>mouse off</code>
+tmux emits none of those enables, so the native mouse is
+unobstructed.</p>
 <h3 id="quick-reference">Quick reference</h3>
 <table>
 <thead>
@@ -720,48 +735,62 @@ Code, vim, less, htop).</p>
 </thead>
 <tbody>
 <tr>
-<td>Select &amp; copy plain shell output</td>
-<td>drag with mouse, release — read back via <code>pbpaste</code> /
-<code>wl-paste</code> / <code>xclip -o</code> /
-<code>termux-clipboard-get</code></td>
+<td><strong>Select &amp; copy anything (default)</strong> — plain shell,
+Claude Code, vim, less, htop</td>
+<td><strong>native click-drag</strong> (multi-line OK) →
+<code>Cmd-C</code> / right-click → Copy</td>
 </tr>
 <tr>
-<td>Select &amp; copy inside Claude Code et al.</td>
-<td><strong>Alt-drag</strong> (macOS) OR <strong>Shift-drag</strong>
-(Linux)</td>
+<td>Paste OS clipboard INTO the pane</td>
+<td>native <code>Cmd-V</code> / right-click → Paste, <strong>or</strong>
+<code>prefix + P</code> (capital — lowercase is
+<code>previous-window</code>)</td>
+</tr>
+<tr>
+<td>Wheel-scroll tmux scrollback inside a TUI, or tmux drag-copy to
+clipboard</td>
+<td><strong><code>prefix + m</code></strong> (toggle tmux mouse ON) →
+wheel / drag; <code>prefix + m</code> again to return to native</td>
 </tr>
 <tr>
 <td>Keyboard-only copy</td>
 <td><code>prefix + [</code> → <code>v</code> → arrows / <code>j</code> /
 <code>k</code> → <code>y</code></td>
 </tr>
-<tr>
-<td>Paste OS clipboard INTO the pane</td>
-<td><code>prefix + P</code> (capital — lowercase is
-<code>previous-window</code>)</td>
-</tr>
 </tbody>
 </table>
-<h3 id="the-four-mechanisms">The four mechanisms</h3>
-<ol type="1">
+<h3 id="the-mechanisms">The mechanisms</h3>
+<ol start="0" type="1">
+<li><p><strong><code>mouse off</code> default + <code>prefix m</code>
+toggle</strong> — <code>set -g mouse off</code> ships as the default so
+the terminal's native selection / right-click → Copy / scroll are
+unobstructed (no mouse-tracking DECSET enables emitted).
+<code>bind m set -g mouse \; display-message '…'</code> toggles tmux
+mouse ON on demand for wheel scrollback inside a TUI and tmux drag-copy,
+and back OFF to native. (tmux toggles a flag/choice option when its
+value is omitted.)</p></li>
 <li><p><strong><code>@clip</code> user option</strong> — OS-adaptive
 WRITE pipeline (pbcopy → wl-copy → xclip → termux-clipboard-set → OSC-52
 fallback). <code>copy-pipe-and-cancel "#{@clip}"</code> routes every
-<code>y</code> / <code>Enter</code> / <code>MouseDragEnd1Pane</code>
-selection through it.</p></li>
-<li><p><strong><code>@clip-read</code> user option (v1.0.15)</strong> —
-symmetric READ pipeline (pbpaste → wl-paste → xclip -o →
-termux-clipboard-get → empty). Drives <code>prefix + P</code>.</p></li>
-<li><p><strong>Modifier-drag overrides (v1.0.15)</strong> —
+tmux <code>y</code> / <code>Enter</code> /
+<code>MouseDragEnd1Pane</code> selection through it (used in the
+<code>mouse on</code> state).</p></li>
+<li><p><strong><code>@clip-read</code> user option</strong> — symmetric
+READ pipeline (pbpaste → wl-paste → xclip -o → termux-clipboard-get →
+empty). Drives <code>prefix + P</code>.</p></li>
+<li><p><strong>Modifier-drag overrides (fallback for the
+<code>mouse on</code> state only)</strong> —
 <code>bind -n M-MouseDrag1Pane copy-mode -M</code> +
-<code>bind -n S-MouseDrag1Pane copy-mode -M</code>. When a TUI captures
-mouse events (Claude Code's alt-screen + DECSET 1002/1003), the
-unmodified <code>MouseDrag1Pane</code> forwards the drag to the app via
-<code>send -M</code>. Holding Alt / Option (macOS) or Shift (Linux)
-prefixes the event with <code>M-</code> / <code>S-</code> and tmux
-routes it to copy-mode regardless of the app's mouse mode.</p></li>
+<code>bind -n S-MouseDrag1Pane copy-mode -M</code>. When tmux mouse is
+ON and a TUI also captures mouse events (Claude Code's alt-screen +
+DECSET 1002/1003), the unmodified <code>MouseDrag1Pane</code> forwards
+the drag to the app via <code>send -M</code>. Holding Alt / Option
+(macOS) or Shift (Linux) prefixes the event with <code>M-</code> /
+<code>S-</code> and tmux routes it to copy-mode regardless of the app's
+mouse mode. Not needed in the default <code>mouse off</code> state,
+where native selection works with no modifier.</p></li>
 <li><p><strong>Bracketed-paste on paste-IN</strong> —
-<code>bind P run -b 'tmux load-buffer - &lt;&lt;&lt; "$(#{@clip-read})" \; tmux paste-buffer -p'</code>.
+<code>bind P run -b 'sh -c "pbpaste 2&gt;/dev/null || wl-paste -n 2&gt;/dev/null || xclip -o -selection clipboard 2&gt;/dev/null || termux-clipboard-get 2&gt;/dev/null" | tmux load-buffer - &amp;&amp; tmux paste-buffer -p'</code>.
 The <code>-p</code> flag (per <code>man tmux</code>: <em>"paste bracket
 control codes are inserted around the buffer if the application has
 requested bracketed paste mode"</em>) makes shells / editors treat the
@@ -818,9 +847,27 @@ OAuth/interactive flake while still exercising the exact alt-screen +
 mouse-tracking surface.</p>
 <p>The dedicated operator-recipe document is <a
 href="../guides/clipboard.md"><code>docs/guides/clipboard.md</code></a>
-— quick recipes, OS-by-OS modifier choice, troubleshooting (Alt-drag
-captured by terminal, empty <code>@clip-read</code>, post-aborted-drag
-mouse weirdness).</p>
+— quick recipes (native selection by default + <code>prefix m</code> on
+demand), <code>prefix P</code> paste-IN, troubleshooting (empty
+<code>@clip-read</code>, scrolling tmux history inside a TUI, the
+<code>mouse on</code> modifier-drag fallback).</p>
+<h3 id="sources-verified-2026-06-13">Sources verified 2026-06-13</h3>
+<ul>
+<li><strong>tmux upstream man page</strong> — <a
+href="https://man.openbsd.org/tmux.1">https://man.openbsd.org/tmux.1</a>
+(re-verified 2026-06-13 via WebFetch; OpenBSD ships the canonical
+upstream <code>tmux.1</code>). Confirms
+<code>set-clipboard external</code> "will attempt to set the terminal
+clipboard but ignore attempts by applications to set tmux buffers" (the
+OSC-52 copy-OUT path) and that a flag/choice option set with its value
+omitted toggles its value (the <code>prefix m</code> /
+<code>set -g mouse</code> toggle). The <code>mouse off</code> ⇒ no
+mouse-tracking DECSET enables behaviour (so native selection /
+right-click → Copy / scroll is unobstructed) is proven at the wire level
+in this repo by test 59 (<code>scripts/tests/59_*.sh</code>), the
+load-bearing authority for the default-architecture claims above.
+Canonical binding source: <code>scripts/tmux.conf.template</code>.</li>
+</ul>
 <h3 id="sources-verified-2026-05-28">Sources verified 2026-05-28</h3>
 <ul>
 <li><strong>tmux 3.6a man page</strong> — <code>man tmux</code> on the

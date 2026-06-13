@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>proposed_fix</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1
+id="proposed-fix--test-57-deterministic-hardening-v2-anti-bluff-no-product-defect-masking">Proposed
+fix — test 57 deterministic hardening (V2, anti-bluff, no product-defect
+masking)</h1>
+<p><strong>Date:</strong> 2026-06-13 <strong>Verdict (from
+rootcause.md):</strong> V2 — two test-isolation defects. No product
+defect. The <code>prefix P</code> paste binding,
+<code>paste-buffer -p</code>, and server lifecycle are all sound (70/70
+isolated part-D runs clean).</p>
+<p>These fixes make test 57 <strong>deterministic</strong> without
+weakening any assertion — each one removes a non-product source of flake
+while keeping the real end-user proof intact. Apply all three; they are
+independent and small.</p>
+<p>Target file:
+<code>scripts/tests/57_reload_select_copy_paste.sh</code> (and the
+identical mktemp + clipboard issues in
+<code>scripts/tests/56_real_mouse_drag_copy.sh</code>).</p>
+<hr />
+<h2
+id="fix-1-required--primary-flake--make-part-d-not-depend-on-the-global-clipboard-timing">FIX
+1 (REQUIRED — primary flake) — make part D not depend on the GLOBAL
+clipboard timing</h2>
+<p><strong>Root cause:</strong> part D writes the macOS pasteboard
+(<code>pbcopy</code>, line 184) and reads it back via
+<code>prefix P</code> → <code>pbpaste</code> ~4 s later (line 193). Any
+concurrent <code>pbcopy</code> in that window overwrites the value
+(proven: pasted <code>NOISE_&lt;n&gt;</code> /
+<code>OSPASTE_&lt;i&gt;_…</code> foreign tokens). This is shared global
+mutable state.</p>
+<p>The cleanest anti-bluff fix is <strong>DON'T depend on
+<code>pbpaste</code> for the exact-value proof</strong> — drive the
+paste through a deterministic, test-private READ source. The shipped
+<code>@clip-read</code> user option is exactly the OS-adaptive read hook
+the binding is meant to use, but the <code>prefix P</code> binding
+hard-codes <code>pbpaste</code> instead of consulting
+<code>@clip-read</code>. (That hard-coding is arguably a small
+source-side gap, but fixing the binding is out of scope here; the test
+can still be made deterministic at the test layer.)</p>
+<h3
+id="recommended-smallest-deterministic-change-re-verify-on-mismatch-with-a-clipboard-re-assert--single-retry">Recommended
+(smallest deterministic change): re-verify-on-mismatch with a clipboard
+re-assert + single retry</h3>
+<p>Keep the real <code>prefix P</code> path, but make the clipboard
+write→read atomic from the test's view by (a) setting the clipboard
+immediately before the keypress with a short settle, and (b) on a
+mismatch, <strong>re-assert the clipboard and retry the keypress
+ONCE</strong> — then FAIL only if it still mismatches AND the value
+pasted is not the test's own token. This survives a single concurrent
+overwrite without hiding a real paste break.</p>
+<p>Exact edit — replace the part-D python invocation + assertion block
+(current lines ~182–219) with a retry wrapper. Concretely, wrap the
+existing <code>pbcopy → python prefix-P → capture</code> sequence in a
+2-attempt loop, re-running <code>printf '%s' "$DTOK" | pbcopy</code> at
+the top of each attempt and starting a FRESH session per attempt:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="st">&quot;</span><span class="va">$(</span><span class="fu">uname</span> <span class="at">-s</span><span class="va">)</span><span class="st">&quot;</span> <span class="ot">=</span> <span class="st">&quot;Darwin&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="bu">command</span> <span class="at">-v</span> pbcopy <span class="op">&gt;</span>/dev/null <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">DTOK</span><span class="op">=</span><span class="st">&quot;OSPASTE_</span><span class="va">$$</span><span class="st">_</span><span class="va">$(</span><span class="fu">date</span> +%s<span class="va">)</span><span class="st">&quot;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">d_ok</span><span class="op">=</span>0</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _attempt <span class="kw">in</span> 1 2<span class="kw">;</span> <span class="cf">do</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> kill-server <span class="dv">2</span><span class="op">&gt;</span>/dev/null <span class="kw">||</span> <span class="fu">true</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> <span class="at">-f</span> <span class="st">&quot;</span><span class="va">$CONF</span><span class="st">&quot;</span> new-session <span class="at">-d</span> <span class="at">-s</span> s <span class="at">-x</span> 80 <span class="at">-y</span> 24</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sleep</span> 0.4</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">printf</span> <span class="st">&#39;%s&#39;</span> <span class="st">&quot;</span><span class="va">$DTOK</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="ex">pbcopy</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sleep</span> 0.3</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        <span class="ex">python3</span> <span class="at">-</span> <span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> <span class="op">&lt;&lt;&#39;PY&#39;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="st">        # ... unchanged PTY-attach + \x02 P driver ...</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="op">PY</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sleep</span> 0.4</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        <span class="va">PANE_JOINED</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$(</span><span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> capture-pane <span class="at">-p</span> <span class="at">-t</span> s <span class="dv">2</span><span class="op">&gt;</span>/dev/null <span class="kw">|</span> <span class="fu">tr</span> <span class="at">-d</span> <span class="st">&#39;\n&#39;</span><span class="va">)</span><span class="st">&quot;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">printf</span> <span class="st">&#39;%s&#39;</span> <span class="st">&quot;</span><span class="va">$PANE_JOINED</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-q</span> <span class="st">&quot;</span><span class="va">$DTOK</span><span class="st">&quot;</span><span class="kw">;</span> <span class="cf">then</span> <span class="va">d_ok</span><span class="op">=</span>1<span class="kw">;</span> <span class="cf">break</span><span class="kw">;</span> <span class="cf">fi</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">done</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">[</span> <span class="st">&quot;</span><span class="va">$d_ok</span><span class="st">&quot;</span> <span class="ot">=</span> 1 <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">echo</span> <span class="st">&quot;EVIDENCE (D): real &#39;prefix P&#39; pasted the EXACT OS-clipboard value &#39;</span><span class="va">$DTOK</span><span class="st">&#39; into the pane&quot;</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>        <span class="bu">echo</span> <span class="st">&quot;FAIL: 57(D) — prefix-P did not paste the exact clipboard value (got: </span><span class="va">$(</span><span class="bu">printf</span> <span class="st">&#39;%s&#39;</span> <span class="st">&quot;</span><span class="va">$PANE_JOINED</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="fu">head</span> <span class="at">-c</span> 120<span class="va">)</span><span class="st">)&quot;</span><span class="kw">;</span> <span class="va">fail</span><span class="op">=</span>1</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">fi</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> kill-server <span class="dv">2</span><span class="op">&gt;</span>/dev/null <span class="kw">||</span> <span class="fu">true</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">echo</span> <span class="st">&quot;SKIP-layer: 57(D) OS-clipboard prefix-P chain ...&quot;</span>   <span class="co"># unchanged</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span></code></pre></div>
+<p>Rationale: a single concurrent overwrite during one ~4 s window is
+unlikely to recur on the immediate retry with a fresh
+<code>pbcopy</code>; a GENUINE paste break fails both attempts → still
+FAILs. This does not mask a product defect — it only tolerates the one
+non-product race (foreign clipboard writer).</p>
+<h3
+id="alternative-stronger-isolation-still-real-prefix-p-private-clip-read-source">Alternative
+(stronger isolation, still real <code>prefix P</code>): private
+@clip-read source</h3>
+<p>If the team prefers full isolation over a retry, point the running
+server's read hook at a <strong>test-private file</strong> and have part
+D's binding read THAT instead of the global pasteboard, then drive
+<code>prefix P</code> and assert. This requires the binding to consult
+<code>@clip-read</code> (a one-line source change to
+<code>scripts/tmux.conf.template</code> line 191: read via
+<code>#{@clip-read}</code> instead of the hard-coded
+<code>pbpaste</code>/<code>wl-paste</code>/… chain). That is a real
+product improvement (the binding already documents
+<code>@clip-read</code> as "the OS-adaptive READ counterpart") but is a
+larger change than test-only hardening; flag for a separate work item if
+pursued.</p>
+<p><strong>The task asked for the smallest test-only fix → use the retry
+wrapper above.</strong></p>
+<hr />
+<h2 id="fix-2-required--the-mkstemp-failed-abort--unclassified--the">FIX
+2 (REQUIRED — the <code>mkstemp failed</code> abort +
+<code>(unclassified)</code> + the</h2>
+<p>"server exited" full-suite surface) — correct the BSD-mktemp
+template</p>
+<p><strong>Root cause:</strong> <code>/tmp/mt_app.XXXXXX.py</code> puts
+<code>.py</code> AFTER the <code>XXXXXX</code>, so BSD
+<code>mktemp</code> (macOS) does NOT expand the placeholder and creates
+the LITERAL, shared, fixed filename — colliding across tests 56+57 and
+across reruns, and self-perpetuating when <code>set -eu</code> aborts
+before the trap can clean it.</p>
+<p>Exact edit (line 50 in BOTH 57 and 56 — line 49 in 56):</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># BEFORE (broken on BSD mktemp — X&#39;s not at end, literal filename):</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="va">APP</span><span class="op">=</span><span class="va">$(</span><span class="fu">mktemp</span> /tmp/mt_app.XXXXXX.py<span class="va">)</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># AFTER (X&#39;s at end → real random name, portable BSD+GNU):</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="va">APP</span><span class="op">=</span><span class="va">$(</span><span class="fu">mktemp</span> <span class="st">&quot;</span><span class="va">${TMPDIR</span><span class="op">:-</span>/tmp<span class="va">}</span><span class="st">/mt_app.py.XXXXXX&quot;</span><span class="va">)</span></span></code></pre></div>
+<p>Notes:</p>
+<ul>
+<li>Moving <code>.py</code> BEFORE the <code>X</code>s makes the name
+unique per run (proven: <code>mktemp /tmp/mt_app_ok.py.XXXXXX</code> →
+<code>/tmp/mt_app_ok.py.RO6Vs6</code>). The python app is invoked by
+path, so a <code>.py.&lt;rand&gt;</code> suffix is fine (it never relies
+on the <code>.py</code> extension).</li>
+<li>Honour <code>$TMPDIR</code> so per-process temp dirs further reduce
+collision surface.</li>
+<li>This removes BOTH the abort AND the cross-test contamination, which
+removes the rare <code>server exited unexpectedly</code> full-suite
+surface (the message only appeared on the aborted/contaminated
+runs).</li>
+</ul>
+<p>Optionally, also make the EXIT trap tolerate the abort path
+(defensive, not required once the template is fixed): the trap already
+<code>rm -f "$SINK" "$APP"</code>; with a valid unique <code>$APP</code>
+there is no shared file to delete out from under a sibling.</p>
+<hr />
+<h2
+id="fix-3-recommended--eliminate-the-orphan-helper-client-that-emits-the">FIX
+3 (RECOMMENDED — eliminate the orphan helper client that emits the</h2>
+<p>benign <code>server exited unexpectedly</code>) — reap the PTY-attach
+child</p>
+<p><strong>Root cause of the message itself:</strong>
+<code>inject_drag</code> (lines 77–108) and part D (186–203) fork a
+PTY-attach tmux client and <code>os.close(fd)</code> WITHOUT
+<code>os.waitpid(pid, 0)</code>. The orphan stays attached; when a later
+<code>kill-server</code> (line 171 / 220) tears the server down, the
+orphan prints <code>CLIENT_EXIT_LOST_SERVER</code> = "server exited
+unexpectedly" to its console.</p>
+<p>Exact edit — in BOTH python blocks, after <code>os.close(fd)</code>
+add an explicit detach+reap so no client is attached when the server is
+later killed:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>: os.close(fd)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">OSError</span>: <span class="cf">pass</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># §11.4.6: deterministically reap the attach client so it is gone BEFORE any</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># later kill-server, eliminating the benign LOST_SERVER (&quot;server exited</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># unexpectedly&quot;) console notice from an orphaned client.</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    os.kill(pid, <span class="dv">15</span>)         <span class="co"># SIGTERM the attach client (detaches cleanly)</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> (<span class="pp">ProcessLookupError</span>, <span class="pp">OSError</span>):</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    os.waitpid(pid, <span class="dv">0</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> (<span class="pp">ChildProcessError</span>, <span class="pp">OSError</span>):</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span></code></pre></div>
+<p>This is hygiene only (the message is benign and does not reach
+<code>run_all</code>'s captured stdout — proven 0/30), but it removes
+the confusing console line that prompted this investigation and prevents
+accumulating orphan clients across a full-suite run.</p>
+<hr />
+<h2 id="verification-plan-anti-bluff-11450-determinism">Verification
+plan (anti-bluff, §11.4.50 determinism)</h2>
+<p>After applying FIX 1+2 (+3), confirm:</p>
+<ol type="1">
+<li><code>rm -f /tmp/mt_app.* ; for i in $(seq 1 20); do bash scripts/tests/57_*.sh; done</code>
+under a concurrent
+<code>while true; do printf NOISE_$RANDOM | pbcopy; sleep .1; done</code>
+→ <strong>20/20 PASS</strong> (FIX 1 retry survives the clipboard race;
+FIX 2 prevents abort). Pre-fix control (captured this session): part-D
+FAILed 5/15 under that noise.</li>
+<li>Seed a stale <code>/tmp/mt_app.XXXXXX.py</code>, run 57 → must NOT
+abort (FIX 2).</li>
+<li><code>run_all.sh</code> full suite (with <code>TMUX_BIN</code>
+pointed at the darwin build so 57 actually executes) → 57 prints a real
+PASS/FAIL, never <code>(unclassified)</code>.</li>
+<li>No <code>server exited unexpectedly</code> line and no orphan
+<code>tmux … attach</code> processes after the run (FIX 3):
+<code>pgrep -af 'tmux .*attach'</code> empty.</li>
+</ol>
+<h2 id="do-not-do-would-mask-a-product-defect">Do NOT do (would mask a
+product defect)</h2>
+<ul>
+<li>Do NOT downgrade part D to a non-<code>prefix P</code> path or
+delete the exact-value assertion — the real-keypress OS-clipboard proof
+is the whole point of part D.</li>
+<li>Do NOT convert part D to an unconditional SKIP — part C proves the
+paste-buffer mechanism and part E proves the binding shape, but only
+part D proves the END-TO-END real-<code>prefix P</code> →
+exact-OS-clipboard-value chain on macOS. Keep it; just make it
+race-robust (FIX 1).</li>
+<li>Do NOT silence <code>set -eu</code> around mktemp — fix the template
+(FIX 2), don't hide the abort.</li>
+</ul>
+</body>
+</html>

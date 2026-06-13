@@ -6,6 +6,71 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.21] — 2026-06-13
+
+**Copy/paste root-cause fix — the terminal owns the mouse by default (native multi-line select + right-click→Copy + scroll work everywhere); tmux mouse on demand via `prefix m`.**
+
+Operator reports (2026-05-28 .. 2026-06-13, across iTerm2 / Terminal.app / a
+Linux terminal / WezTerm): "copy paste by selecting multiple lines of code does
+not work properly. It must work on Linux and macOS. I must scroll and always be
+selectable for copying — right-click → Copy." Three prior binding-level fixes
+(v1.0.15 / v1.0.18 / v1.0.20) added ever-more tmux mouse bindings yet the
+operator still could not reliably select/copy — the signal that the
+*architecture*, not the bindings, was wrong (systematic-debugging: 3+ fixes
+failed → question the architecture).
+
+### Fixed
+
+- **Root cause (proven at the wire level, no guessing per §11.4.6).** With
+  `set -g mouse on`, on attach tmux emits mouse-tracking DECSET *enables*
+  (`CSI ?1000h ?1002h ?1006h`) to the outer terminal, putting it into
+  mouse-reporting mode — which **suppresses the terminal's own native
+  selection and right-click→Copy**. No tmux binding can intercept a terminal's
+  right-click→Copy menu, so the only way select/copy "always" works is to let
+  the terminal own the mouse. **Captured proof:** a PTY attach-stream capture
+  shows `mouse on` emits **6** mouse-enable DECSET; `mouse off` emits **0**.
+- **The fix.** `scripts/tmux.conf.template` default flipped `set -g mouse on`
+  → `set -g mouse off`. The terminal now owns the mouse: native click-drag
+  selection (incl. **multi-line**), **right-click→Copy**, and native scroll all
+  work identically on Linux and macOS, on every emulator. The complete tmux
+  mouse stack (wheel-scrollback inside TUIs + drag-select-to-OS-clipboard)
+  remains available **on demand** via the `prefix m` toggle — which flips
+  `mouse on`, at which point tmux *does* emit the enables (proven: 3 DECSET
+  enables appear after `prefix m`). `prefix P` keyboard paste and native paste
+  (Cmd-V / right-click→Paste) are unaffected.
+
+### Tests / verification (4-layer per §103)
+
+- **Layer 1 (source gate):** `scripts/verify.sh` new `mouse off (terminal
+  default)` L1 gate (`^set -g mouse off`).
+- **Layer 3 (runtime, wire-level anti-bluff):** NEW `scripts/tests/59_native_mouse_unobstructed.sh`
+  drives a real PTY attach and asserts (a) default conf is `mouse off`, (b) the
+  default attach emits **0** mouse-enable DECSET (native mouse unobstructed),
+  (c) after `prefix m` the enables appear (tmux mouse on demand). RED→GREEN
+  proven.
+- **Layer 4 (paired mutation):** NEW `M-MOUSEDEFAULT` flips the default back to
+  `on`; test 59 catches it (default attach re-emits the DECSET that suppresses
+  native selection).
+- **Regression sweep:** tests 56/57/58 updated to enable tmux mouse explicitly
+  for the on-demand tmux-drag-copy path (the path is now opt-in); test 17 +
+  TMUX-CH-17 updated to assert the `mouse off` default; tests 44/45/47/48
+  (copy-mode keystroke path) unaffected and green.
+
+### Known issue (operator-gated, NOT a regression)
+
+- **"HelixCode" session crashes the whole terminal** (Issues.md, operator
+  report 2026-06-13, all emulators). Forensic investigation proved a *fresh*
+  `tmx new -s HelixCode` creates and attaches cleanly over a real PTY (no
+  runaway, config parse-clean); five candidate crash vectors (passthrough,
+  extended-keys, attach-reload double-source, rename-format, stale socket) were
+  each reproduced headlessly and **DISPROVEN as standalone causes**. The crash
+  requires operator-side runtime state (the live HelixCode TUI agent in the
+  pane) that cannot be fabricated headlessly. A read-only operator diagnostic
+  (`docs/qa/2026-06-13-helixcode-crash/diagnose.sh`) captures the real attach
+  byte stream to localise the malformed/runaway sequence. Tracked in Issues.md.
+
+---
+
 ## [v1.0.20] — 2026-05-29
 
 **Paste fix + config-reload for running sessions — completes the copy/paste story (operator-confirmed: select + Cmd-V works).**

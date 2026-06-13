@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-05-29T16:55Z
+**Last updated:** 2026-06-13T12:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,41 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.21 — Copy/paste ARCHITECTURE fix (mouse off default) + HelixCode crash forensics → v1.0.21 (2026-06-13)
+
+**Status:** IN PROGRESS — source + tests + docs + trackers landed; PENDING:
+`setup.sh` reinstall + full-suite retest (run_all + meta on a committed clean
+tree) + commit/push to all upstreams.
+
+**Bug 2 (copy/paste) — DONE at source, anti-bluff proven.** Operator (2026-05-28
+.. 2026-06-13, all emulators): "select multiple lines does not work … must work
+Linux+macOS … must scroll and always be selectable — right-click → Copy."
+Systematic-debugging: 3 prior binding-level fixes (v1.0.15/18/20) failed →
+question the architecture. ROOT CAUSE (wire-level, no guessing): `set -g mouse
+on` emits mouse-tracking DECSET enables (`CSI ?1000h/?1002h/?1006h`) that
+SUPPRESS the terminal's native selection + right-click→Copy. FIX: default flipped
+to `set -g mouse off` (terminal owns the mouse → native select/copy/scroll
+everywhere); tmux mouse on demand via `prefix m`. PROOF (test 59, real PTY):
+`mouse on` = 6 enable-DECSET, `mouse off` = 0; after `prefix m` = 3. 4-layer:
+verify.sh L1 `mouse off` gate + test 59 (RED→GREEN) + meta `M-MOUSEDEFAULT` +
+regression sweep (56/57/58 enable mouse for on-demand path; 17 + TMUX-CH-17
+assert the default; 44/45/47/48 unaffected). Docs (scrolling/clipboard/guide
+§5.7) updated; Fixed.md A43; CHANGELOG v1.0.21; VERSION 1.0.21/22.
+
+**Bug 1 (HelixCode session crashes the whole terminal) — OPERATOR-BLOCKED
+(Issues.md F1).** Fresh `tmx new -s HelixCode` creates+attaches cleanly over a
+real PTY; 5 crash vectors (passthrough/extkeys/attach-reload/rename-format/stale
+socket) each reproduced headlessly + DISPROVEN as standalone causes. Crash needs
+operator-side runtime state (the live HelixCode TUI agent). Ready operator
+diagnostic + forensics: `docs/qa/2026-06-13-helixcode-crash/`.
+
+**NEXT (resume here):** (1) build/sync workable-items DB; (2)
+`sync_all_markdown_exports.sh` (docs changed); (3) `bash scripts/setup.sh`
+(regenerate wrapper for this checkout — current installed wrapper points at a
+non-existent `/Users/...` path — + reinstall conf); (4) full retest
+`run_all.sh` + meta on the committed tree (conf mutations need clean tree);
+(5) `commit_all.sh` push to all upstreams.
 
 ### §3.20 — tmux PASTE fix + tmx reload + attach-reload → v1.0.20 (2026-05-29)
 

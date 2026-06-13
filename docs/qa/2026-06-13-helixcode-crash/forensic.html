@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>forensic</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1
+id="helixcode-session-crash--headless-forensic-investigation">HelixCode
+session crash — headless forensic investigation</h1>
+<p><strong>Run-id:</strong> 2026-06-13-helixcode-crash
+<strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-13T00:00:00Z <strong>Investigator:</strong> subagent (headless,
+read-only) <strong>Binary under test:</strong>
+<code>tmux/build-darwin/bin/tmux</code> → <code>tmux 3.6a</code>
+<strong>Config:</strong> <code>scripts/tmux.conf.template</code>
+<strong>Wrapper:</strong> <code>scripts/tmx.template</code> (live
+<code>scripts/tmx</code> regenerated,
+<code>TMUX_BIN=build-darwin</code>) <strong>Platform of
+capture:</strong> Darwin 24.5.0 (macOS)</p>
+<h2 id="operator-report-verbatim-2026-06-13">Operator report (verbatim,
+2026-06-13)</h2>
+<blockquote>
+<p>"Open the terminal and for terminal session choose HelixCode. It will
+crash the whole terminal!"</p>
+</blockquote>
+<p>Clarified: <code>HelixCode</code> is a <strong>tmx session
+name</strong> (<code>tmx new -s HelixCode</code> or selecting it at the
+shell-init prompt). The crash reproduces in iTerm2, Terminal.app, a
+Linux terminal, AND WezTerm. HelixCode is a TUI CLI agent
+(Claude-Code-class) the operator runs <strong>inside</strong> the
+session.</p>
+<p>Cross-emulator reproduction ⇒ the fault is NOT one emulator's escape
+handling; it is in tmx / tmux / the config, OR in operator-side runtime
+state that a fresh attach does not have.</p>
+<h2 id="method">Method</h2>
+<p>All captures use a Python <code>pty.fork()</code> harness that
+attaches a real client over a PTY and writes the <strong>raw byte stream
+the outer terminal receives</strong> to a file, then detaches with
+<code>C-b d</code>. A simulated HelixCode-class agent
+(<code>evidence/agent_tui.py</code>) requests the exact mode set Claude
+Code requests — alt-screen <code>?1049h</code>, any-event mouse
+<code>?1003h</code>, SGR <code>?1006h</code>, bracketed paste
+<code>?2004h</code> — and emits a configurable passthrough payload (DCS
+<code>ESC P tmux; … ST</code> + OSC-9) to exercise
+<code>allow-passthrough on</code>.</p>
+<p>The reattach harness performs the <strong>exact operator
+path</strong> the wrapper's <code>attach</code> verb performs
+(<code>scripts/tmx.template</code> lines 456-469):
+<code>tmux -L &lt;sock&gt; source-file &lt;conf&gt;</code>
+<strong>then</strong> <code>exec tmux -L &lt;sock&gt; attach</code>.</p>
+<p>Evidence files live under <code>evidence/</code>. Reproduction
+commands are inline per hypothesis.</p>
+<hr />
+<h2
+id="h1--pre-existing-session-with-the-agent-tui-running-reattach-repaints">H1
+— Pre-existing session with the agent TUI running; reattach
+repaints</h2>
+<p><strong>Reproduction</strong></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">BIN</span><span class="op">=</span>tmux/build-darwin/bin/tmux <span class="kw">;</span> <span class="va">CONF</span><span class="op">=</span>scripts/tmux.conf.template <span class="kw">;</span> <span class="va">L</span><span class="op">=</span>hc</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> <span class="at">-f</span> <span class="st">&quot;</span><span class="va">$CONF</span><span class="st">&quot;</span> new-session <span class="at">-d</span> <span class="at">-s</span> s <span class="at">-x</span> 80 <span class="at">-y</span> 24</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> set <span class="at">-g</span> mouse on</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> send-keys <span class="at">-t</span> s <span class="st">&quot;python3 evidence/agent_tui.py HELIXTOK 16&quot;</span> Enter</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># fresh attach vs reattach (source-file + attach):</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> evidence/h1_h5_attach_capture.py <span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$CONF</span><span class="st">&quot;</span> fresh    evidence/fresh_sink.bin</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> evidence/h1_h5_attach_capture.py <span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$CONF</span><span class="st">&quot;</span> reattach evidence/reattach_sink.bin</span></code></pre></div>
+<p><strong>Captured evidence</strong> (<code>mouse_any_flag=1</code>
+confirmed at attach — the Claude-Code scenario was genuinely
+established):</p>
+<table>
+<thead>
+<tr>
+<th>stream</th>
+<th>bytes</th>
+<th>ESC</th>
+<th>DCS (ESC P)</th>
+<th>OSC (ESC ])</th>
+<th>ST (ESC \)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fresh_sink.bin</td>
+<td>4200</td>
+<td>146</td>
+<td>0</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr>
+<td>reattach_sink.bin</td>
+<td>4200</td>
+<td>146</td>
+<td>0</td>
+<td>2</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p><code>fresh_sink.bin</code> and <code>reattach_sink.bin</code> are
+<strong>byte-for-byte identical</strong> (verified: <code>a == b</code>
+→ <code>True</code>). The attach repaint is well-formed: it begins
+<code>ESC[?1049h ESC[?1h ESC= ESC[H ESC[2J …</code> and ends with a
+normal SGR reset; no DCS passthrough is replayed into the outer
+terminal.</p>
+<p><strong>VERDICT: DISPROVEN as a crash cause.</strong> A reattach to a
+live session running the alt-screen + mouse-tracking + passthrough agent
+produces a bounded, well-formed repaint identical to a fresh attach.
+Strongest evidence: fresh ≡ reattach byte streams (4200 == 4200,
+identical).</p>
+<hr />
+<h2
+id="h2--allow-passthrough-on-replaysforwards-a-large-passthrough-payload-on-reattach">H2
+— <code>allow-passthrough on</code> replays/forwards a large passthrough
+payload on reattach</h2>
+<p><strong>Reproduction</strong> (512 KB passthrough payload — 32× the
+H1 size):</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> send-keys <span class="at">-t</span> s <span class="st">&quot;python3 evidence/agent_tui.py BIGTOK 512&quot;</span> Enter</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> evidence/h1_h5_attach_capture.py <span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$CONF</span><span class="st">&quot;</span> reattach evidence/big_reattach.bin</span></code></pre></div>
+<p><strong>Captured evidence:</strong></p>
+<ul>
+<li><code>big_reattach.bin</code> = <strong>3496 bytes</strong> (SMALLER
+than the 16 KB-payload run, not larger).</li>
+<li><code>DCS (ESC P) = 0</code> — zero passthrough DCS frames reached
+the outer terminal.</li>
+<li>The OSC-9 leak probe <code>b"X"*200 in data</code> →
+<strong>False</strong>: the 512 KB OSC-9 passthrough payload the app
+emitted did NOT appear in the attach stream.</li>
+</ul>
+<p>tmux paints the <strong>current visible screen</strong>, not the
+application's passthrough history. A passthrough payload of any size
+cannot inflate the reattach stream because it is never re-emitted.</p>
+<p><strong>VERDICT: DISPROVEN.</strong> Strongest evidence: a 512 KB
+passthrough payload yields a 3496-byte attach stream with DCS-count 0
+and no payload bytes present.</p>
+<hr />
+<h2
+id="h3--extended-keys-on--terminal-features-xtermextkeys-emits-modifyotherkeys-to-the-outer-terminal">H3
+— <code>extended-keys on</code> +
+<code>terminal-features 'xterm*:extkeys'</code> emits modifyOtherKeys to
+the outer terminal</h2>
+<p><strong>Reproduction</strong> (diff the attach stream with
+extended-keys ON vs a stripped conf with the two lines removed):</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-v</span> <span class="at">-e</span> extended-keys <span class="at">-e</span> extkeys <span class="st">&quot;</span><span class="va">$CONF</span><span class="st">&quot;</span> <span class="op">&gt;</span> /tmp/conf_noext</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># capture attach stream for each, scan for ESC[&gt; … sequences</span></span></code></pre></div>
+<p><strong>Captured evidence</strong> — <code>ESC [ &gt; …</code>
+sequences emitted to the outer terminal on attach:</p>
+<table>
+<thead>
+<tr>
+<th>conf</th>
+<th>sequences emitted</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>extended-keys <strong>ON</strong> (shipped)</td>
+<td><code>ESC[&gt;c</code> <code>ESC[&gt;q</code>
+<code>ESC[&gt;4m</code></td>
+</tr>
+<tr>
+<td>extended-keys <strong>OFF</strong> (stripped)</td>
+<td><code>ESC[&gt;c</code> <code>ESC[&gt;q</code></td>
+</tr>
+</tbody>
+</table>
+<p>So <code>extended-keys on</code> is solely responsible for
+<code>ESC[&gt;4m</code> (<code>CSI &gt; 4 m</code> = xterm
+<strong>modifyOtherKeys level 4</strong>, i.e. enable extended-key
+reporting). <code>ESC[&gt;c</code> (secondary Device Attributes query)
+and <code>ESC[&gt;q</code> (XTVERSION query) are unconditional and
+standard. The <code>ESC[&gt;4m</code> appears in the
+<strong>fresh</strong> stream too — it is not reattach-specific. All
+three sequences are well-formed, balanced xterm control sequences.</p>
+<p><strong>VERDICT: DISPROVEN as a <em>crash</em> cause on the named
+terminals.</strong> <code>CSI &gt; 4 m</code> is a standard, documented
+xterm sequence that iTerm2, Terminal.app, and WezTerm all parse without
+crashing. It is config- attributable but benign on the operator's
+emulators. Strongest evidence: the sole config-added sequence is the
+well-formed <code>ESC[&gt;4m</code>, present identically in fresh and
+reattach streams. <strong>UNCONFIRMED residual:</strong> whether the
+operator's HelixCode TUI itself, on receiving extended-key encodings
+tmux forwards, emits a malformed response — this cannot be tested
+without the real HelixCode binary (see <code>diagnose.sh</code>).</p>
+<hr />
+<h2
+id="h4--automatic-rename-format-sexepane_current_command-mis-expands-or-loops">H4
+—
+<code>automatic-rename-format "#{s/\\.exe$//:pane_current_command}"</code>
+mis-expands or loops</h2>
+<p><strong>Reproduction:</strong></p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> <span class="at">-f</span> <span class="st">&quot;</span><span class="va">$CONF</span><span class="st">&quot;</span> new-session <span class="at">-d</span> <span class="at">-s</span> HelixCode <span class="at">-x</span> 80 <span class="at">-y</span> 24</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span><span class="va">$BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$L</span><span class="st">&quot;</span> display-message <span class="at">-p</span> <span class="st">&#39;#{s/\.exe$//:pane_current_command}&#39;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># also run a process literally named claude.exe and observe window_name</span></span></code></pre></div>
+<p><strong>Captured evidence:</strong></p>
+<ul>
+<li><code>#{s/\.exe$//:pane_current_command}</code> with
+<code>pane_current_command=zsh</code> → expands to <code>zsh</code> (rc
+0). No error, no recursion.</li>
+<li>After the agent runs, <code>window_name</code> settles to
+<code>Python</code> (the strip rule correctly leaves a
+non-<code>.exe</code> name untouched). In the H1 capture the status bar
+rendered <code>[s] 1:Python*</code> cleanly.</li>
+<li>The format substitution is single-pass (<code>s/…/…/:var</code>);
+tmux does not re-feed the output through the format engine, so no loop
+is possible.</li>
+</ul>
+<p><strong>VERDICT: DISPROVEN.</strong> Strongest evidence: the format
+expands to a correct single value with rc 0 and the status bar renders
+the window name without error or runaway.</p>
+<hr />
+<h2
+id="h5--double-config-application-tmx-attach-source-files-the-conf-into-a-live-attached-session">H5
+— Double config application: <code>tmx attach</code> source-files the
+conf into a LIVE attached session</h2>
+<p><strong>Reproduction:</strong> identical to H1 — the
+<code>reattach</code> mode of <code>h1_h5_attach_capture.py</code> runs
+<code>source-file &lt;conf&gt;</code> against the live server
+immediately before <code>attach</code>, reproducing
+<code>scripts/tmx.template</code> lines 466-468 exactly.</p>
+<p><strong>Captured evidence:</strong></p>
+<ul>
+<li><code>source-file</code> against a live server with the agent
+running returned exit 0, <strong>no stderr</strong>
+(<code>reattach_err.txt</code> empty).</li>
+<li>The post-<code>source-file</code> attach stream equals the
+no-<code>source-file</code> fresh attach stream
+<strong>byte-for-byte</strong> (4200 == 4200, identical — same data as
+H1).</li>
+<li>Re-sourcing the conf re-runs the <code>bind</code>/<code>set</code>
+directives; tmux treats redundant <code>bind</code>/<code>set</code> as
+idempotent overwrites. No directive in the conf emits bytes to the
+client or recurses.</li>
+</ul>
+<p><strong>VERDICT: DISPROVEN.</strong> Re-applying the config into a
+live session is idempotent and silent; it adds zero bytes to the attach
+stream. Strongest evidence: <code>source-file</code> exit 0 + empty
+stderr + byte-identical attach stream vs. the fresh path.</p>
+<hr />
+<h2 id="determinism--re-runnability-11450--11498">Determinism /
+re-runnability (§11.4.50 / §11.4.98)</h2>
+<p>Reattach captured N=3 consecutive times: 3496 / 3619 / 3619 bytes.
+Iters 2 and 3 are byte-identical. The 123-byte delta in iter 1 is a
+<strong>capture-harness timing artifact</strong>, proven by diff: the
+divergence at byte 1630 is the status-bar window-name field —
+<code>[s] 1:Python*</code> (iter 1 caught the agent as
+<code>pane_current_command</code>) vs <code>[s] 1:zsh*</code> (iters 2-3
+caught zsh momentarily before the agent took the pane). The detach
+trailer is clean and balanced in every iter
+(<code>[detached (from session s)]</code>). This is a property of when
+the harness sampled the pane, NOT a tmux non-determinism or crash.</p>
+<hr />
+<h2 id="ranking-of-surviving-candidates">Ranking of surviving
+candidates</h2>
+<p>Every headless hypothesis (H1-H5) is <strong>DISPROVEN</strong> as a
+standalone crash cause: no runaway volume, no recursive format
+expansion, no DCS passthrough leak, no malformed sequence forwarded to
+the outer terminal, fresh ≡ reattach. The crash is therefore NOT in a
+fresh session and NOT reproducible from config + wrapper + binary state
+alone — it requires <strong>operator-side runtime state</strong> a
+headless attach cannot fabricate.</p>
+<p>Surviving candidates, ranked by remaining evidentiary weight, all
+<code>UNCONFIRMED — needs operator</code>:</p>
+<ol type="1">
+<li><p><strong>UNCONFIRMED: the real HelixCode TUI's own output under
+tmux.</strong> The simulated agent emits a <em>generic</em> alt-screen +
+mouse + passthrough surface. The real HelixCode binary may emit a
+specific escape sequence (image protocol, custom OSC, an unbalanced DCS,
+a huge single-line redraw) that, when forwarded via
+<code>allow-passthrough on</code> OR mis-parsed under
+<code>extended-keys on</code>, the operator's terminals choke on. This
+is the single highest-value unknown and is exactly what
+<code>diagnose.sh</code> captures from the real crash.</p></li>
+<li><p><strong>UNCONFIRMED: a stale / wrong-arch socket or a second tmux
+on the operator's <code>$PATH</code>.</strong> The operator's shell-init
+runs
+<code>tmx attach -t NAME 2&gt;/dev/null || exec tmx new -s NAME</code>.
+If a <code>HelixCode</code> socket exists from a different tmux build
+(e.g. system tmux vs this build) or a half-dead server, the attach
+behaviour is not what these captures (clean private socket) exercised.
+<code>tmux -V</code> of the actually-attached server + the socket
+inventory in <code>diagnose.sh</code> settle this.</p></li>
+<li><p><strong>UNCONFIRMED: terminal size / <code>$TERM</code> /
+capability mismatch at the operator's real attach.</strong> All captures
+used <code>TERM=xterm-256color</code> at 80×24. A real attach at a large
+size or under a different <code>$TERM</code> could trip a different
+repaint path. <code>diagnose.sh</code> records <code>$TERM</code>,
+<code>tput cols/lines</code>, and the full attach stream so the real
+repaint can be compared against <code>fresh_sink.bin</code>.</p></li>
+</ol>
+<p>No <code>likely</code>/<code>probably</code> is asserted anywhere
+above: each VERDICT is backed by a captured byte count, exit code, or
+byte-identity proof; the three residuals are explicitly marked
+<code>UNCONFIRMED — needs operator</code>.</p>
+<h2 id="what-the-operator-must-run">What the operator must run</h2>
+<p><code>docs/qa/2026-06-13-helixcode-crash/diagnose.sh</code> —
+captures the real crashing flow read-only and prints exactly what to
+send back. The single load-bearing capture is the <strong>full raw
+attach byte stream</strong> written to <code>attach_stream.bin</code>;
+diffing it against the clean <code>evidence/reattach_sink.bin</code>
+shape will localise the malformed/runaway sequence the real HelixCode
+session emits.</p>
+<h2 id="sources-verified-2026-06-13">Sources verified 2026-06-13</h2>
+<ul>
+<li>xterm Control Sequences (<code>CSI &gt; Pp ; .. m</code>
+modifyOtherKeys; <code>CSI &gt; c</code> secondary DA;
+<code>CSI &gt; q</code> XTVERSION): <a
+href="https://invisible-island.net/xterm/ctlseqs/ctlseqs.html">https://invisible-island.net/xterm/ctlseqs/ctlseqs.html</a></li>
+<li>tmux(1) <code>allow-passthrough</code>, <code>extended-keys</code>,
+<code>terminal-features</code>, <code>automatic-rename-format</code>:
+tmux 3.6a manual / OpenBSD tmux source.</li>
+</ul>
+</body>
+</html>

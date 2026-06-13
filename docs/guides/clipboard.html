@@ -174,15 +174,23 @@
 <body>
 <h1 id="tmx-clipboard--operator-guide">tmx Clipboard — Operator
 Guide</h1>
-<p><strong>Revision:</strong> 2 <strong>Last modified:</strong>
-2026-05-29T11:40:00Z <strong>Authority:</strong> vasic-digital tmux
+<p><strong>Revision:</strong> 3 <strong>Last modified:</strong>
+2026-06-13T00:00:00Z <strong>Authority:</strong> vasic-digital tmux
 project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
-Operator-facing guide for the v1.0.14 / v1.0.15 / v1.0.17 clipboard
-surface — multi-line copy-OUT, paste-IN, modifier-drag selection, and
-the <code>prefix m</code> mouse-toggle escape hatch inside
-mouse-tracking TUIs (especially Claude Code, vim, less, htop).</p>
+Operator-facing guide for the clipboard surface — <strong>native
+terminal selection + right-click Copy as the default</strong>
+(<code>mouse off</code>, works everywhere on Linux + macOS), the
+<code>prefix m</code> on-demand toggle for tmux mouse (wheel scrollback
+in TUIs + drag-copy to clipboard), <code>prefix P</code> paste-IN, plus
+the legacy keyboard copy-mode and modifier-drag fallbacks.</p>
 <hr />
 <h2 id="1-quick-recipe-tldr">1. Quick recipe (TL;DR)</h2>
+<p>The shipped config ships with <strong><code>mouse off</code></strong>
+as the default, so the <strong>terminal owns the mouse</strong> — native
+click-drag selection (including multi-line), right-click → Copy, and
+native scroll all work the same as in any terminal, everywhere on Linux
+and macOS (iTerm2, Terminal.app, GNOME Terminal, WezTerm, …). This is
+the recommended copy path.</p>
 <table>
 <thead>
 <tr>
@@ -192,21 +200,25 @@ mouse-tracking TUIs (especially Claude Code, vim, less, htop).</p>
 </thead>
 <tbody>
 <tr>
-<td>Select &amp; copy a few lines of plain shell output</td>
-<td>drag with mouse, release — then <code>pbpaste</code> /
-<code>wl-paste</code> / <code>xclip -o</code></td>
+<td><strong>Select &amp; copy anything (default)</strong> — plain shell,
+Claude Code, vim, less, htop</td>
+<td><strong>native click-drag</strong> (multi-line OK) →
+<code>Cmd-C</code> / right-click → Copy</td>
 </tr>
 <tr>
-<td>Select &amp; copy inside Claude Code, vim, less, htop</td>
-<td><strong>Shift-drag</strong> (works on every terminal) — then paste
-as above</td>
+<td>Paste OS clipboard back into the pane</td>
+<td>native <code>Cmd-V</code> / right-click → Paste, <strong>or</strong>
+<code>prefix + P</code></td>
 </tr>
 <tr>
-<td><strong>Just let me select with the mouse like a normal
-terminal</strong></td>
-<td><strong><code>prefix + m</code></strong> to toggle tmux mouse OFF,
-then drag normally and <code>Cmd-C</code> / right-click → Copy;
-<code>prefix + m</code> again to restore tmux scrollback</td>
+<td>Wheel-scroll tmux's own scrollback inside a full-screen TUI</td>
+<td><strong><code>prefix + m</code></strong> (toggle tmux mouse ON) →
+wheel; <code>prefix + m</code> again to return to native</td>
+</tr>
+<tr>
+<td>tmux drag-select that copies to the OS clipboard</td>
+<td><strong><code>prefix + m</code></strong> (mouse ON) → drag, release;
+<code>prefix + m</code> again to return to native</td>
 </tr>
 <tr>
 <td>Copy without a mouse</td>
@@ -214,61 +226,105 @@ then drag normally and <code>Cmd-C</code> / right-click → Copy;
 <code>k</code> → <code>y</code></td>
 </tr>
 <tr>
-<td>Paste OS clipboard INTO the current pane</td>
-<td><code>prefix + P</code> (capital P; lowercase <code>p</code> is
-<code>previous-window</code>)</td>
-</tr>
-<tr>
-<td>Scroll back through history</td>
-<td>wheel up (any device, including Termux touch)</td>
+<td>Default native scroll-back through history</td>
+<td>wheel / trackpad / scrollbar (terminal-native, any device)</td>
 </tr>
 </tbody>
 </table>
 <p>Replace <code>prefix</code> with your tmux prefix (default
 <code>C-b</code>).</p>
 <hr />
-<h2 id="2-inside-claude-code-and-other-mouse-tracking-tuis">2. Inside
-Claude Code (and other mouse-tracking TUIs)</h2>
+<h2
+id="2-default-architecture--native-selection-mouse-off-tmux-mouse-on-demand-prefix-m">2.
+Default architecture — native selection (mouse off), tmux mouse on
+demand (<code>prefix m</code>)</h2>
 <p>The forensic anchor for this section is the 2026-05-28 operator
 mandate: <em>"Selecting multiple lines and copying of them does not
 work. We MUST BE able to scroll vertically everywhere and copy / paste
 anything! Especially in Claude Code (<code>claude</code>
 command)!"</em></p>
+<h3 id="default-mouse-off--the-terminal-owns-the-mouse">Default:
+<code>mouse off</code> — the terminal owns the mouse</h3>
+<p>The shipped <code>~/.tmux.conf</code> sets
+<strong><code>set -g mouse off</code></strong> as the default:</p>
+<pre class="tmux"><code>set -g mouse off</code></pre>
+<p>With <code>mouse off</code>, tmux emits <strong>zero</strong>
+mouse-tracking enables — no <code>CSI ?1000h</code> /
+<code>?1002h</code> / <code>?1006h</code> DECSET sequences reach the
+emulator. The emulator's native mouse is therefore completely
+unobstructed, so:</p>
+<ul>
+<li><strong>native click-drag selection works</strong> — including
+<strong>multi-line</strong> selections;</li>
+<li><strong>right-click → Copy works</strong> (and middle-click /
+<code>Cmd-C</code>);</li>
+<li><strong>native scroll / scrollbar works</strong>.</li>
+</ul>
+<p>…and all of it works <strong>identically on Linux and macOS, on every
+emulator</strong> (iTerm2, Terminal.app, GNOME Terminal, WezTerm, kitty,
+Alacritty, …), <strong>inside or outside a full-screen TUI</strong> such
+as Claude Code / HelixCode. This is the recommended way to select and
+copy. To paste back in: native <code>Cmd-V</code> / right-click → Paste,
+or <code>prefix P</code> (see §4).</p>
+<p><strong>Why this is the default.</strong> A wire-level test (test 59)
+proved the root cause of the long-standing "can't select / copy"
+reports: when tmux had <code>mouse on</code>, it emitted the
+mouse-tracking DECSET enables, and those enables
+<strong>suppressed</strong> the emulator's native selection and
+right-click → Copy. With <code>mouse off</code> the native mouse is
+unobstructed, so the obvious gesture every operator already knows simply
+works.</p>
+<h3 id="on-demand-prefix-m--enable-tmuxs-own-mouse">On demand:
+<code>prefix m</code> — enable tmux's own mouse</h3>
+<p>Sometimes you want tmux's <em>own</em> mouse handling rather than the
+terminal's:</p>
+<ul>
+<li>to <strong>wheel-scroll tmux's 50 000-line scrollback inside a
+full-screen TUI</strong> (the alternate screen has no scrollback of its
+own, so with the default <code>mouse off</code> your wheel scrolls the
+terminal's buffer, not tmux's history); or</li>
+<li>to <strong>drag-select inside tmux and have the selection copied
+straight to the OS clipboard</strong> via the <code>@clip</code>
+pipeline (§3).</li>
+</ul>
+<p>Press <strong><code>prefix m</code></strong> to toggle tmux mouse
+<strong>ON</strong>:</p>
+<pre class="tmux"><code>bind m set -g mouse \; display-message &#39;mouse #{?mouse,ON (tmux selection: drag, or Shift-drag in apps),OFF (use native terminal selection: drag + Cmd-C)}&#39;</code></pre>
+<p>While mouse is ON, the shipped config's <code>WheelUpPane</code> /
+<code>WheelDownPane</code> overrides make the wheel always drive tmux
+copy-mode scrollback, and a tmux drag selects and copies on release.
+Press <strong><code>prefix m</code></strong> again to return to native
+terminal selection + scrolling. The status line confirms the new state
+each time. (tmux toggles a flag/choice option when its value is omitted
+— see Sources verified.)</p>
 <h3
-id="why-plain-mouse-drag-does-not-enter-copy-mode-in-claude-code">Why
-plain mouse-drag does NOT enter copy-mode in Claude Code</h3>
-<p>Claude Code, like vim / less / htop / fzf, runs on the terminal's
-<strong>alternate screen</strong> and requests <strong>mouse
-tracking</strong> (DECSET 1000/1002/1003/1006). When mouse tracking is
-active, tmux's default <code>MouseDrag1Pane</code> binding forwards
-every drag event to the application via <code>send -M</code> so the TUI
-can handle its own click behaviour. The drag therefore never reaches
-tmux's copy-mode, so the obvious select-with-mouse motion appears to do
-nothing for the operator.</p>
-<p>This is by design upstream — but for the operator who wants to copy
-multiple lines out of Claude Code's transcript, it is the worst possible
-UX.</p>
-<h3 id="the-escape-alt-drag-macos-or-shift-drag-linux">The escape:
-Alt-drag (macOS) or Shift-drag (Linux)</h3>
-<p>tmux 3.6a supports modifier-prefixed mouse events (<code>M-</code>
-for Alt/meta, <code>S-</code> for Shift; see <code>man tmux</code> under
-"key names"). vasic-digital tmux v1.0.15 adds two dedicated bindings to
-the shipped <code>~/.tmux.conf</code>:</p>
+id="modifier-drag-fallback-while-tmux-mouse-is-on-alt--shift">Modifier-drag
+fallback while tmux mouse is ON (Alt / Shift)</h3>
+<p>This subsection is a <strong>fallback for the <code>mouse on</code>
+state only</strong> — you do not need it for normal default-mode
+copying. When tmux mouse is ON and a TUI (Claude Code, vim, less, htop)
+is also requesting mouse tracking, an <em>unmodified</em> drag is
+forwarded to the app (so the app's own click behaviour keeps working)
+and therefore does not enter tmux copy-mode. tmux 3.6a supports
+modifier-prefixed mouse events (<code>M-</code> for Alt/meta,
+<code>S-</code> for Shift; see <code>man tmux</code> under "key names"),
+and the shipped config adds:</p>
 <pre class="tmux"><code>bind -n M-MouseDrag1Pane  copy-mode -M
 bind -n S-MouseDrag1Pane  copy-mode -M
 bind -T copy-mode-vi M-MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel &quot;#{@clip}&quot;
 bind -T copy-mode-vi S-MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel &quot;#{@clip}&quot;</code></pre>
-<p>Effect: <strong>hold Alt (<code>Option</code> on macOS) or Shift
-while you drag</strong> and tmux forces copy-mode entry regardless of
-what the TUI is doing with the mouse. Release the drag and the selection
-goes straight through the OS clipboard pipeline (<code>@clip</code>, see
-§3 below). A plain (unmodified) drag still goes to the app, so Claude
-Code's own click behaviour is preserved.</p>
+<p>Effect: with tmux mouse ON, <strong>hold Alt (<code>Option</code> on
+macOS) or Shift while you drag</strong> to force tmux copy-mode entry
+regardless of what the TUI does with the mouse; release and the
+selection goes through the OS clipboard pipeline (<code>@clip</code>,
+§3). In practice, for everyday copying you are usually better off
+staying in the default <code>mouse off</code> state and using native
+selection — which needs no modifier at all.</p>
 <table>
 <thead>
 <tr>
 <th>OS</th>
-<th>Recommended modifier</th>
+<th>Modifier (only when tmux mouse is ON)</th>
 <th>Why</th>
 </tr>
 </thead>
@@ -276,16 +332,14 @@ Code's own click behaviour is preserved.</p>
 <tr>
 <td><strong>Any OS / any terminal</strong></td>
 <td><strong>Shift-drag</strong></td>
-<td>The most reliable in-tmux gesture: no mainstream terminal claims
-Shift as a bypass modifier, so Shift-mouse events are forwarded to tmux,
-which forces copy-mode via <code>S-MouseDrag1Pane</code>. Works on macOS
-AND Linux.</td>
+<td>No mainstream terminal claims Shift as a bypass modifier, so
+Shift-mouse events reach tmux → <code>S-MouseDrag1Pane</code>. Works on
+macOS AND Linux.</td>
 </tr>
 <tr>
 <td>macOS (Terminal.app, WezTerm, Ghostty, Alacritty)</td>
 <td>Alt-drag (hold Option) also works</td>
-<td>Option passes through to tmux on these terminals →
-<code>M-MouseDrag1Pane</code></td>
+<td>Option passes through to tmux → <code>M-MouseDrag1Pane</code></td>
 </tr>
 <tr>
 <td>Linux (gnome-terminal, konsole, xterm, kitty, foot, alacritty)</td>
@@ -300,31 +354,13 @@ AND Linux.</td>
 </tbody>
 </table>
 <blockquote>
-<p><strong>iTerm2 caveat (forensic anchor: user report
-2026-05-29).</strong> With iTerm2's default <em>Option Key Sends =
-Normal</em>, iTerm2 treats <strong>Option-drag as its OWN
-native-selection bypass</strong> — the drag never reaches tmux, so
-<code>M-MouseDrag1Pane</code> does NOT fire. That native iTerm2
-selection still works (copy it with <code>Cmd-C</code>), but if you want
-tmux's copy-mode selection, <strong>use Shift-drag</strong> (or the
-<code>prefix m</code> toggle below). This is why Shift is the
-recommended cross-terminal gesture.</p>
+<p><strong>iTerm2 note.</strong> With iTerm2's default <em>Option Key
+Sends = Normal</em>, iTerm2 treats Option-drag as its own
+native-selection bypass, so <code>M-MouseDrag1Pane</code> does not fire
+there; use Shift-drag if you are in the <code>mouse on</code> state.
+None of this matters in the default <code>mouse off</code> state, where
+iTerm2's native click-drag → <code>Cmd-C</code> simply works.</p>
 </blockquote>
-<h3 id="the-simplest-always-works-escape-prefix--m-v1017">The simplest,
-always-works escape: <code>prefix + m</code> (v1.0.17)</h3>
-<p>If you just want to <strong>select and copy with the mouse like a
-normal terminal</strong> — no modifier gymnastics, works identically in
-Claude Code, vim, plain shell, every terminal:</p>
-<pre class="tmux"><code>bind m set -g mouse \; display-message &#39;mouse #{?mouse,ON …,OFF (use native terminal selection: drag + Cmd-C)}&#39;</code></pre>
-<p>Press <strong><code>prefix m</code></strong> to toggle tmux's mouse
-handling <strong>OFF</strong>. With mouse off, tmux stops capturing
-drags entirely, so the <strong>outer terminal's own selection</strong>
-(iTerm2 / Terminal.app / WezTerm / any Linux terminal: click-drag →
-<code>Cmd-C</code> or right-click → Copy) works <strong>everywhere,
-including inside Claude Code</strong>. Press <code>prefix m</code> again
-to turn mouse back ON and restore tmux scrollback + copy-mode. The
-status line shows the new state each time. (tmux toggles a flag option
-when its value is omitted — see Sources verified.)</p>
 <hr />
 <h2 id="3-on-the-keyboard-no-mouse-at-all">3. On the keyboard (no mouse
 at all)</h2>
@@ -436,12 +472,22 @@ shipped <code>~/.tmux.conf</code> — confirm it is present:
 <code>tmux show -gv @clip</code> inside a <code>tmx</code> session. If
 the output is empty, your <code>~/.tmux.conf</code> is from before
 v1.0.14; re-run <code>bash scripts/setup.sh</code> to regenerate.</p>
-<p><strong>"Alt-drag selects nothing; the app still gets the
-drag."</strong> Your terminal is capturing Alt before tmux sees it
-(common on Linux with gnome-terminal's "Use Alt as Meta" preference
-disabled). Try Shift-drag instead. As a permanent fix, check the
-terminal's "Pass Alt through to applications" / "Use Option as Meta key"
-setting.</p>
+<p><strong>"I can't select / copy with the mouse."</strong> First make
+sure you are in the <strong>default <code>mouse off</code></strong>
+state — then just use the <strong>native terminal</strong> selection
+(click-drag → <code>Cmd-C</code> / right-click → Copy), which works
+everywhere. Check the state with <code>tmux show -gv mouse</code>
+(should print <code>off</code>); if it prints <code>on</code>, press
+<code>prefix m</code> to toggle back to native. Modifier-drag (next
+item) is only relevant when you have deliberately turned tmux mouse ON
+with <code>prefix m</code>.</p>
+<p><strong>"Alt-drag selects nothing; the app still gets the drag" (only
+matters in the <code>mouse on</code> state).</strong> Your terminal is
+capturing Alt before tmux sees it (common on Linux with gnome-terminal's
+"Use Alt as Meta" preference disabled). Try Shift-drag instead — or
+simply press <code>prefix m</code> to return to native selection, which
+needs no modifier. As a permanent fix, check the terminal's "Pass Alt
+through to applications" / "Use Option as Meta key" setting.</p>
 <p><strong>"<code>prefix + P</code> does nothing."</strong> Either (a)
 <code>@clip-read</code> resolved to an empty probe — install one of
 <code>pbpaste</code> / <code>wl-paste</code> / <code>xclip</code> /
@@ -452,14 +498,19 @@ the value in a shell to see what it returns.</p>
 Alt-drag."</strong> Press <code>q</code> or <code>Escape</code> to exit
 copy-mode cleanly. tmux returns the pane to the app's mouse mode on
 copy-mode exit.</p>
-<p><strong>"Scrollback works in the shell but not in Claude
-Code."</strong> That's the same root cause as the selection problem
-above — Claude Code holds the alt-screen with mouse tracking. The
-shipped config overrides <code>WheelUpPane</code> /
-<code>WheelDownPane</code> so wheel scroll ALWAYS drives tmux's
-scrollback regardless of the app's mouse mode. If wheel scroll still
-misbehaves, <code>tmux show -g | grep WheelUp</code> should show the
-binding; if it doesn't, regenerate the config.</p>
+<p><strong>"I want to scroll tmux's scrollback inside Claude Code, but
+the wheel scrolls the terminal instead."</strong> That is expected in
+the default <code>mouse off</code> state — the wheel drives the
+<em>terminal's</em> native scroll, and a full-screen TUI's alternate
+screen has no scrollback of its own. To page back through tmux's own 50
+000-line history inside the TUI, press
+<strong><code>prefix m</code></strong> to toggle tmux mouse ON: the
+shipped config's <code>WheelUpPane</code> / <code>WheelDownPane</code>
+overrides then make the wheel drive tmux copy-mode scrollback regardless
+of the app's mouse mode. Press <code>prefix m</code> again to return to
+native scrolling. (Confirm the overrides exist with
+<code>tmux show -g | grep -i WheelUp</code>; if absent, regenerate the
+config.)</p>
 <hr />
 <h2 id="7-anti-bluff-verification-positive-evidence-on-every-pass">7.
 Anti-bluff verification (positive evidence on every PASS)</h2>
@@ -525,6 +576,26 @@ copy-OUT) + A37 (v1.0.15 multi-line + paste-IN + modifier-drag)</li>
 v1.0.15 sections</li>
 </ul>
 <hr />
+<h2 id="sources-verified-2026-06-13">Sources verified 2026-06-13</h2>
+<ul>
+<li><strong>tmux upstream man page</strong> — <a
+href="https://man.openbsd.org/tmux.1">https://man.openbsd.org/tmux.1</a>
+(re-verified 2026-06-13 via WebFetch; OpenBSD ships the canonical
+upstream <code>tmux.1</code>). Confirmed for the <code>mouse off</code>
+default architecture: <code>set-clipboard external</code> "will attempt
+to set the terminal clipboard but ignore attempts by applications to set
+tmux buffers" (the OSC-52 copy-OUT path used by <code>@clip</code>); and
+a flag/choice option set with its value omitted toggles its value
+(validates <code>bind m set -g mouse</code> as the <code>prefix m</code>
+toggle). The claim that <code>mouse off</code> emits no mouse-tracking
+DECSET enables (<code>?1000h</code> / <code>?1002h</code> /
+<code>?1006h</code>), so the emulator's native selection / right-click →
+Copy / scroll is unobstructed, is proven at the wire level <strong>in
+this repo</strong> by test 59 (<code>scripts/tests/59_*.sh</code>),
+which is the load-bearing authority for the default-architecture claims
+above. The canonical binding source is
+<code>scripts/tmux.conf.template</code>.</li>
+</ul>
 <h2 id="sources-verified-2026-05-29">Sources verified 2026-05-29</h2>
 <ul>
 <li><strong>tmux upstream man page</strong> — <a

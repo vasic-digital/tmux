@@ -243,6 +243,88 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project's anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v1021--2026-06-13">[v1.0.21] — 2026-06-13</h2>
+<p><strong>Copy/paste root-cause fix — the terminal owns the mouse by
+default (native multi-line select + right-click→Copy + scroll work
+everywhere); tmux mouse on demand via
+<code>prefix m</code>.</strong></p>
+<p>Operator reports (2026-05-28 .. 2026-06-13, across iTerm2 /
+Terminal.app / a Linux terminal / WezTerm): "copy paste by selecting
+multiple lines of code does not work properly. It must work on Linux and
+macOS. I must scroll and always be selectable for copying — right-click
+→ Copy." Three prior binding-level fixes (v1.0.15 / v1.0.18 / v1.0.20)
+added ever-more tmux mouse bindings yet the operator still could not
+reliably select/copy — the signal that the <em>architecture</em>, not
+the bindings, was wrong (systematic-debugging: 3+ fixes failed →
+question the architecture).</p>
+<h3 id="fixed">Fixed</h3>
+<ul>
+<li><strong>Root cause (proven at the wire level, no guessing per
+§11.4.6).</strong> With <code>set -g mouse on</code>, on attach tmux
+emits mouse-tracking DECSET <em>enables</em>
+(<code>CSI ?1000h ?1002h ?1006h</code>) to the outer terminal, putting
+it into mouse-reporting mode — which <strong>suppresses the terminal's
+own native selection and right-click→Copy</strong>. No tmux binding can
+intercept a terminal's right-click→Copy menu, so the only way
+select/copy "always" works is to let the terminal own the mouse.
+<strong>Captured proof:</strong> a PTY attach-stream capture shows
+<code>mouse on</code> emits <strong>6</strong> mouse-enable DECSET;
+<code>mouse off</code> emits <strong>0</strong>.</li>
+<li><strong>The fix.</strong> <code>scripts/tmux.conf.template</code>
+default flipped <code>set -g mouse on</code> →
+<code>set -g mouse off</code>. The terminal now owns the mouse: native
+click-drag selection (incl. <strong>multi-line</strong>),
+<strong>right-click→Copy</strong>, and native scroll all work
+identically on Linux and macOS, on every emulator. The complete tmux
+mouse stack (wheel-scrollback inside TUIs + drag-select-to-OS-clipboard)
+remains available <strong>on demand</strong> via the
+<code>prefix m</code> toggle — which flips <code>mouse on</code>, at
+which point tmux <em>does</em> emit the enables (proven: 3 DECSET
+enables appear after <code>prefix m</code>). <code>prefix P</code>
+keyboard paste and native paste (Cmd-V / right-click→Paste) are
+unaffected.</li>
+</ul>
+<h3 id="tests--verification-4-layer-per-103">Tests / verification
+(4-layer per §103)</h3>
+<ul>
+<li><strong>Layer 1 (source gate):</strong>
+<code>scripts/verify.sh</code> new
+<code>mouse off (terminal default)</code> L1 gate
+(<code>^set -g mouse off</code>).</li>
+<li><strong>Layer 3 (runtime, wire-level anti-bluff):</strong> NEW
+<code>scripts/tests/59_native_mouse_unobstructed.sh</code> drives a real
+PTY attach and asserts (a) default conf is <code>mouse off</code>, (b)
+the default attach emits <strong>0</strong> mouse-enable DECSET (native
+mouse unobstructed), (c) after <code>prefix m</code> the enables appear
+(tmux mouse on demand). RED→GREEN proven.</li>
+<li><strong>Layer 4 (paired mutation):</strong> NEW
+<code>M-MOUSEDEFAULT</code> flips the default back to <code>on</code>;
+test 59 catches it (default attach re-emits the DECSET that suppresses
+native selection).</li>
+<li><strong>Regression sweep:</strong> tests 56/57/58 updated to enable
+tmux mouse explicitly for the on-demand tmux-drag-copy path (the path is
+now opt-in); test 17 + TMUX-CH-17 updated to assert the
+<code>mouse off</code> default; tests 44/45/47/48 (copy-mode keystroke
+path) unaffected and green.</li>
+</ul>
+<h3 id="known-issue-operator-gated-not-a-regression">Known issue
+(operator-gated, NOT a regression)</h3>
+<ul>
+<li><strong>"HelixCode" session crashes the whole terminal</strong>
+(Issues.md, operator report 2026-06-13, all emulators). Forensic
+investigation proved a <em>fresh</em> <code>tmx new -s HelixCode</code>
+creates and attaches cleanly over a real PTY (no runaway, config
+parse-clean); five candidate crash vectors (passthrough, extended-keys,
+attach-reload double-source, rename-format, stale socket) were each
+reproduced headlessly and <strong>DISPROVEN as standalone
+causes</strong>. The crash requires operator-side runtime state (the
+live HelixCode TUI agent in the pane) that cannot be fabricated
+headlessly. A read-only operator diagnostic
+(<code>docs/qa/2026-06-13-helixcode-crash/diagnose.sh</code>) captures
+the real attach byte stream to localise the malformed/runaway sequence.
+Tracked in Issues.md.</li>
+</ul>
+<hr />
 <h2 id="v1020--2026-05-29">[v1.0.20] — 2026-05-29</h2>
 <p><strong>Paste fix + config-reload for running sessions — completes
 the copy/paste story (operator-confirmed: select + Cmd-V
@@ -251,7 +333,7 @@ works).</strong></p>
 it gets a completely new value"; then "Open new terminal -&gt; Test
 -&gt; ls -&gt; cannot select/copy". Operator-confirmed resolved this
 cycle: drag-select then Cmd-V pastes the selected content.</p>
-<h3 id="fixed">Fixed</h3>
+<h3 id="fixed-1">Fixed</h3>
 <ul>
 <li><strong><code>prefix P</code> paste binding (POSIX-clean
 rewrite).</strong> The old binding
@@ -326,7 +408,7 @@ interactive-guard (<code>case $- in *i*) ;; *) return ;;</code>), so a
 NON-interactive invocation (ssh-batch / CI) never gets
 <code>codegraph</code> on PATH and the tests fail spuriously while real
 interactive agent usage works.</p>
-<h3 id="fixed-1">Fixed</h3>
+<h3 id="fixed-2">Fixed</h3>
 <ul>
 <li><strong><code>scripts/tests/run_all.sh</code></strong> +
 <strong><code>scripts/tests/meta_test_false_positive_proof.sh</code></strong>
@@ -691,7 +773,7 @@ workable item in our Issues doc and all relevant docs around it (with
 them all being exported in all expected file types — PDF, HTML, DOCX)!
 We MUST NEVER forget the flow: workable item → SQLite database → all
 docs we have related to workable items!"</p>
-<h3 id="fixed-2">Fixed</h3>
+<h3 id="fixed-3">Fixed</h3>
 <ul>
 <li><p><strong>A37 — Multi-line copy + PASTE-INTO + alt-screen TUI
 mouse-drag override</strong> (Fixed.md A37): v1.0.14 proved single-line
@@ -807,7 +889,7 @@ and to the terminal window and current tmux (tmx) session! Using mouse
 or keyboard MUST WORK properly!!! Scrolling the content / history MUST
 NOT be broken or anything else! ... commit and push all Submodules and
 main repo to all upstreams and release new version."</p>
-<h3 id="fixed-3">Fixed</h3>
+<h3 id="fixed-4">Fixed</h3>
 <ul>
 <li><p><strong>A35 — Clipboard copy-OUT had no physical-proof
 coverage.</strong> The bindings have existed in
@@ -961,7 +1043,7 @@ bug. <code>.zprofile</code> not touched (zsh always sources
 <code>_do_uninstall</code></strong> — also strips the snippet from
 <code>~/.bash_profile</code> and <code>~/.profile</code>.</li>
 </ul>
-<h3 id="fixed-4">Fixed</h3>
+<h3 id="fixed-5">Fixed</h3>
 <ul>
 <li>The user-reported bug: exit a tmx session → reopen with the same
 name → cwd is NOT restored. Now: exit → reopen → cwd is restored on the
@@ -1089,7 +1171,7 @@ reporting a defect that's not in OUR code. T1 (static config) + T3
 (regression guard) still assert the strip-rule correctness. Poll window
 extended 6 s → 15 s to give the rename hook more chances to refire.</li>
 </ul>
-<h3 id="fixed-5">Fixed</h3>
+<h3 id="fixed-6">Fixed</h3>
 <ul>
 <li>nezha-Linux first-install setup.sh exiting RED on test 16 even
 though the .exe-strip rule itself works correctly. Eliminates the "run
@@ -1194,7 +1276,7 @@ helper</strong> — explicit <code>return 0</code> so <code>set -e</code>
 does not kill the script when quiet mode short-circuits the
 <code>[ -z "$quiet" ]</code> test.</li>
 </ul>
-<h3 id="fixed-6">Fixed</h3>
+<h3 id="fixed-7">Fixed</h3>
 <ul>
 <li>Operator opens new terminal → no prompt fires → no session created
 (the user-visible bug). Root cause: missing on-disk file. Step 3a now
@@ -1347,7 +1429,7 @@ MUST NOT be versioned.</li>
 <code>.gitignore-meta/.regenerated/</code>, and <code>.claude/</code>
 added per §11.4.30 + §11.4.77.</li>
 </ul>
-<h3 id="fixed-7">Fixed</h3>
+<h3 id="fixed-8">Fixed</h3>
 <ul>
 <li>v1.0.9 cwd restore on Linux when <code>tmx new -s NAME -d</code> was
 used (the most common detached-spawn case). Previously the recall
@@ -1526,7 +1608,7 @@ passes <code>-c &lt;recalled-pwd&gt;</code> to
 <code>tmx-state record &lt;name&gt; #{pane_current_path}</code> on
 <code>client-detached</code> and <code>session-closed</code>.</li>
 </ul>
-<h3 id="fixed-8">Fixed</h3>
+<h3 id="fixed-9">Fixed</h3>
 <p>(none specific to v1.0.9 — every entry is an additive feature;
 existing defects continue to be tracked in <code>Issues.md</code> /
 <code>Fixed.md</code>).</p>
@@ -1608,7 +1690,7 @@ entry).</li>
 UI surfaces (active pane border + clock + selected-window highlight),
 not just the bottom status bar. NEW test 26 + M24 paired mutation.
 Darwin quintuple-fresh GREEN.</strong></p>
-<h3 id="fixed-9">Fixed</h3>
+<h3 id="fixed-10">Fixed</h3>
 <ul>
 <li><p><strong>Operator-reported (2026-05-21):</strong> "flying animated
 top decoration"</p>
@@ -1704,7 +1786,7 @@ divergent commits.</p>
 palette rebalance + Node-22 LTS pin for CodeGraph. Quintuple-verified on
 both macOS (Darwin arm64) and Linux (ALT 11 / kernel 6.12 / systemd 258)
 before tag.</strong></p>
-<h3 id="fixed-10">Fixed</h3>
+<h3 id="fixed-11">Fixed</h3>
 <ul>
 <li><p><strong>Test 09 T4.2 — cgroup-containment invariant rewrite
 (rounds 1-5, Nezha-driven).</strong> Pre-v1.0.7 the test polled
@@ -2155,7 +2237,7 @@ cycle.</p></li>
 §11.4.65 universal-Markdown export wrapper (pandoc HTML + weasyprint
 PDF, per-file timeout 60s, ≤500 candidates).</p></li>
 </ul>
-<h3 id="fixed-11">Fixed</h3>
+<h3 id="fixed-12">Fixed</h3>
 <ul>
 <li><p><strong>A20 — M4/M5 paired mutations honest topology dispatch
 (AUDIT-1).</strong> Pre-fix: raw GNU <code>sed -i</code> silently
@@ -2269,7 +2351,7 @@ harness is wired).</li>
 <p><strong>tmux scrolling fixed for the Claude Code TUI and mobile
 (Termux); governance refactored to inherit from the HelixConstitution
 submodule.</strong></p>
-<h3 id="fixed-12">Fixed</h3>
+<h3 id="fixed-13">Fixed</h3>
 <ul>
 <li><strong>A16 — Scrolling terminal output up/down did not work,
 especially in the Claude Code TUI.</strong> Two root causes: (1) the
@@ -2353,7 +2435,7 @@ same profile as v1.0.0).</li>
 <h2 id="v102--2026-05-16">[v1.0.2] — 2026-05-16</h2>
 <p><strong>Cosmetic: window-name strips <code>.exe</code> suffix from
 <code>pane_current_command</code>.</strong></p>
-<h3 id="fixed-13">Fixed</h3>
+<h3 id="fixed-14">Fixed</h3>
 <ul>
 <li><strong>A15 — Bottom-left status-bar showed <code>claude.exe</code>
 instead of <code>claude</code></strong> (operator-reported, 2026-05-16).

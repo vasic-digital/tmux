@@ -249,7 +249,8 @@ challenges:
     test_script: scripts/tests/17_scrollback_copy_mode.sh
     pass_condition: |
       FAIL=0. T1 conf-template carries all six scroll settings; T2 reads
-      back history-limit=50000 / mode-keys=vi / mouse=on /
+      back history-limit=50000 / mode-keys=vi / mouse=off (default —
+      terminal owns the mouse; tmux mouse on demand via prefix m) /
       allow-passthrough=on / extended-keys=on from the LIVE server;
       T3 confirms the live WheelUpPane binding drives copy-mode scroll-up
       (override active, not tmux default); T4 generates 3000 lines,

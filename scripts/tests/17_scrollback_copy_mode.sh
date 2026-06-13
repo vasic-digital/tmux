@@ -124,11 +124,15 @@ else
     _fail "T2.2: live server mode-keys = '$MK' (expected vi)"
 fi
 
+# Default = mouse OFF (terminal owns the mouse: native drag-select +
+# right-click->Copy + native scroll work everywhere, Linux + macOS). tmux's
+# own mouse (wheel scrollback in TUIs + drag-copy) is on demand via `prefix m`.
+# Wire-level proof of the unobstructed default: test 59.
 MOUSE="$(_opt_g mouse)"
-if [ "$MOUSE" = "on" ]; then
-    _pass "T2.3: live server mouse = on (readback from $S_SOCK)"
+if [ "$MOUSE" = "off" ]; then
+    _pass "T2.3: live server mouse = off by default — terminal owns the mouse (tmux mouse on demand via prefix m) (readback from $S_SOCK)"
 else
-    _fail "T2.3: live server mouse = '$MOUSE' (expected on)"
+    _fail "T2.3: live server mouse = '$MOUSE' (expected off — terminal-owns-mouse default)"
 fi
 
 AP="$(_opt_g allow-passthrough)"

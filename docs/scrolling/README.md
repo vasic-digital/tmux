@@ -15,30 +15,51 @@ which the `tmx` wrapper loads on every `tmx new`.
 |---|---|---|
 | `history-limit` | `50000` lines | Output history survives — you can scroll a long way back. |
 | `mode-keys` | `vi` | vi-style navigation in copy-mode. |
-| `mouse` | `on` | Wheel + touch scrolling. |
-| `WheelUpPane` / `WheelDownPane` | copy-mode override | The wheel **always** scrolls tmux's own buffer — even inside Claude Code. |
+| `mouse` | **`off` (default)** | The **terminal** owns the mouse, so native click-drag selection (including multi-line), right-click → Copy, and the terminal's own scrollbar / wheel scroll all work — identically on Linux and macOS, on every emulator (iTerm2, Terminal.app, GNOME Terminal, WezTerm, …). |
+| `prefix m` | toggle `mouse on` | On demand: enable tmux's own mouse so the **wheel drives tmux scrollback inside full-screen TUIs** (Claude Code / HelixCode), plus tmux drag-select that copies to the OS clipboard. Press `prefix m` again to return to native. |
+| `WheelUpPane` / `WheelDownPane` | copy-mode override | While tmux mouse is ON, the wheel **always** scrolls tmux's own buffer — even inside Claude Code. |
 | `allow-passthrough` | `on` | Apps can pass escape sequences through tmux. |
 | `extended-keys` | `on` | Modified keys (e.g. `Shift+Enter`) reach the app. |
 
-## The Claude Code TUI fix
+## Default: native terminal scrolling (mouse off)
 
-The Claude Code TUI requests mouse reporting from the terminal. With
-tmux's *default* wheel binding, that means the wheel is forwarded to
-Claude Code instead of scrolling tmux's scrollback — so you cannot
-scroll back through earlier output.
+The shipped config ships with **`mouse off`** as the default. With mouse
+off tmux emits **zero** mouse-tracking enables (no `CSI ?1000h` /
+`?1002h` / `?1006h`), so the emulator's own mouse is unobstructed: scroll
+with the **wheel / trackpad / scrollbar exactly as in any terminal**, and
+select text with a native click-drag → `Cmd-C` / right-click → Copy.
+This is the path that works everywhere — Linux and macOS, every emulator,
+inside or outside a TUI — proven at the wire level by test 59.
 
-This build overrides `WheelUpPane` / `WheelDownPane` so the wheel (and a
-touch-scroll, which terminals deliver as wheel events) **always** drives
-tmux copy-mode scrollback. You scroll the real output history regardless
-of what the running application does with the mouse.
+## Scrolling tmux's own scrollback inside a TUI (`prefix m`)
+
+A full-screen TUI such as the Claude Code / HelixCode TUI runs on the
+terminal's **alternate screen**, which has no scrollback of its own. With
+the default `mouse off`, your wheel scrolls the *terminal's* buffer, not
+tmux's 50 000-line history.
+
+To page back through tmux's scrollback inside such a TUI, press
+**`prefix m`** to toggle tmux mouse **ON**. The shipped config overrides
+`WheelUpPane` / `WheelDownPane` so that, while mouse is on, the wheel
+(and a touch-scroll, which terminals deliver as wheel events) **always**
+drives tmux copy-mode scrollback regardless of what the running
+application does with the mouse. Press `prefix m` again to return to
+native terminal scrolling. The status line confirms the new state each
+time.
 
 ## How to scroll
 
-### With a mouse or trackpad
+### Default (mouse off) — native terminal scroll
+
+- **Scroll up / down** — wheel, trackpad, or the terminal's scrollbar,
+  exactly as in any other terminal window. tmux is not involved.
+
+### Inside a TUI, after `prefix m` (mouse on) — tmux scrollback
 
 - **Scroll up** — wheel up. tmux enters copy-mode and scrolls back.
 - **Scroll down** — wheel down. When you reach the bottom, copy-mode
   exits automatically.
+- Press **`prefix m`** again to return to native terminal scrolling.
 
 ### Without a mouse — keyboard (and phones)
 
@@ -57,14 +78,27 @@ of what the running application does with the mouse.
 
 ## Copying text
 
-In copy-mode: press `v` to start a selection, move the cursor, then
-press `y` or `Enter` to copy. A mouse drag also selects and copies on
-release.
+**Default (mouse off):** just select with the **native terminal** —
+click-drag (including across multiple lines), then `Cmd-C` /
+right-click → Copy. This works in every emulator on Linux and macOS, and
+it is the recommended copy path. To paste the OS clipboard back into a
+pane: native paste (`Cmd-V` / right-click → Paste), or `prefix P` to
+paste via a keyboard binding.
 
-The selection is routed to your system clipboard automatically — the
-config detects `pbcopy` (macOS), `wl-copy` (Wayland), `xclip` (X11), or
-`termux-clipboard-set` (Termux) at copy time, and also emits OSC-52 so
-copying works over SSH and on terminals that support it.
+**On demand (after `prefix m`, mouse on):** a tmux mouse drag selects and
+copies on release; or in copy-mode press `v` to start a selection, move
+the cursor, then `y` or `Enter` to copy. The tmux selection is routed to
+your system clipboard automatically — the config detects `pbcopy`
+(macOS), `wl-copy` (Wayland), `xclip` (X11), or `termux-clipboard-set`
+(Termux) at copy time, and also emits OSC-52 so copying works over SSH and
+on terminals that support it.
+
+> Why the default flipped to `mouse off`: with `mouse on`, tmux emitted
+> mouse-tracking enables that **suppressed** the emulator's native
+> selection and right-click → Copy — the root cause of the long-standing
+> "can't select / copy" reports. With `mouse off` the native mouse is
+> unobstructed (proven by test 59), and `prefix m` gives you the tmux
+> mouse on demand.
 
 ## Verifying it works
 
@@ -86,3 +120,16 @@ bash scripts/tests/17_scrollback_copy_mode.sh
 pulling an update), re-run `bash scripts/setup.sh` — or, in a running
 session, `tmx` picks up the template on the next `tmx new`. To reload
 into an already-running session: `Ctrl-b` then `:source-file ~/.tmux.conf`.
+
+## Sources verified 2026-06-13
+
+- **tmux upstream man page** — <https://man.openbsd.org/tmux.1> (re-verified
+  2026-06-13 via WebFetch; OpenBSD ships the canonical upstream `tmux.1`).
+  Confirms `set-clipboard external` semantics ("tmux will attempt to set
+  the terminal clipboard but ignore attempts by applications to set tmux
+  buffers" — the OSC-52 copy-out path) and that a flag/choice option set
+  with its value omitted toggles its value (the `prefix m` / `set -g mouse`
+  toggle). The `mouse off` ⇒ no mouse-tracking DECSET enables behaviour is
+  proven at the wire level in this repo by test 59
+  (`scripts/tests/59_*.sh`), which is the load-bearing authority for the
+  default-architecture claims above.
