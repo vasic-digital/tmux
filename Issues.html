@@ -308,82 +308,18 @@ in <code>Fixed.md</code> per Constitution §5 / §12.10.)</p>
 <hr />
 <h2 id="f-runtime-crash--operator-gated-reproduction">F. Runtime crash —
 operator-gated reproduction</h2>
-<h3 id="f1-tmx-session-named-helixcode-crashes-the-whole-terminal">F1.
-<code>tmx</code> session named "HelixCode" crashes the whole
-terminal</h3>
-<p><strong>Status:</strong> Operator-blocked <strong>Type:</strong> Bug
-<strong>Reported:</strong> operator, 2026-06-13 — "Open the terminal and
-for terminal session choose HelixCode. It will crash the whole
-terminal!" Operator clarified HelixCode is a tmx SESSION NAME and the
-crash reproduces in iTerm2, Terminal.app, a Linux terminal, AND WezTerm
-(all their emulators). HelixCode is a TUI CLI agent (Claude-Code-class)
-run INSIDE the session.</p>
-<p><strong>Investigation to date (no guessing per §11.4.6 — facts
-only):</strong></p>
-<ul>
-<li>A FRESH <code>tmx new -s HelixCode</code> creates a detached session
-(pane alive) AND a fresh interactive attach over a real PTY completes
-cleanly: 873 bytes, normal volume, clean detach, NO runaway redraw.
-Captured evidence:
-<code>docs/qa/2026-06-13-helixcode-crash/</code>.</li>
-<li>The shipped conf parses clean (<code>source-file</code> exit 0, no
-stderr); <code>hostname_color.sh</code> returns a valid
-<code>colour44</code>; the Darwin rlimit wrapper is benign.
-Cross-emulator reproduction (incl. robust WezTerm) rules out a single
-emulator's escape-sequence handling — the trigger is tmx/tmux/config +
-state.</li>
-<li>Five candidate crash vectors were each reproduced headlessly over a
-real PTY and <strong>DISPROVEN as standalone causes</strong> (forensic
-detail + byte counts in
-<code>docs/qa/2026-06-13-helixcode-crash/forensic.md</code>): (H1)
-pre-existing TUI + reattach repaint — fresh vs reattach streams
-byte-identical; (H2) <code>allow-passthrough on</code> replay — a 512 KB
-passthrough payload yielded a 3496-B attach stream, 0 DCS frames (tmux
-repaints the visible screen, never the passthrough history); (H3)
-<code>extended-keys on</code> — only the standard
-<code>ESC[&gt;4m</code> modifyOtherKeys, well-formed; (H4)
-<code>automatic-rename-format</code> <code>.exe</code>-strip —
-single-pass, no loop; (H5) <code>tmx attach</code> source-file into a
-live session — exit 0, empty stderr, byte-identical stream.</li>
-</ul>
-<p><strong>CONCLUSION:</strong> the crash is NOT reproducible from
-config + wrapper + binary state alone — it requires operator-side
-RUNTIME state (the real HelixCode TUI agent's own escape output under
-tmux, and/or a stale/wrong-arch socket or a second <code>tmux</code> on
-<code>$PATH</code>, and/or a real <code>$TERM</code>/size/capability
-mismatch). These three residuals are explicitly
-<code>UNCONFIRMED — needs operator</code> (ranked in forensic.md).</p>
-<p><strong>Operator-Block-Details:</strong></p>
-<ul>
-<li><strong>WHAT:</strong> run
-<code>docs/qa/2026-06-13-helixcode-crash/diagnose.sh</code> in the real
-crashing flow; it captures (read-only, leaves live sessions untouched)
-the full attach byte stream via <code>script</code>/<code>tee</code>,
-tmux -V, the active conf, <code>pane_current_command</code>,
-<code>allow-passthrough</code>/<code>extended-keys</code> state, the
-socket inventory, and whether the login shell exits. Send back the
-produced <code>operator_run_&lt;ts&gt;/</code> directory.</li>
-<li><strong>WHY (self-resolution exhausted):</strong> (a) CLI
-reproduction — fresh create + attach + real-PTY drive all succeed; (b)
-subagent forensic deep-dive — 5 hypotheses reproduced + disproven
-headlessly; (c) repo tooling — conf audit, color audit, source-file
-audit all clean; (d) captured fallback — the live HelixCode TUI agent is
-not installed here and the operator's stale session state cannot be
-fabricated; (e) external research — N/A, no published HelixCode-in-tmux
-crash signature.</li>
-<li><strong>UNBLOCK CONDITION:</strong> the
-<code>operator_run_&lt;ts&gt;/typescript</code> byte stream shows the
-malformed/runaway sequence the real session emits (localise via
-<code>od -c typescript | tail -40</code>).</li>
-<li><strong>WHO:</strong> operator (<a
-href="mailto:milos85vasic.3rd@gmail.com">milos85vasic.3rd@gmail.com</a>);
-diagnostic + forensics under
-<code>docs/qa/2026-06-13-helixcode-crash/</code>.</li>
-</ul>
+<p>(none open — F1 <code>tmx</code> session named "HelixCode" crashes
+the whole terminal RESOLVED 2026-06-13, operator-confirmed, migrated to
+<code>Fixed.md</code> A45 with reproduced root cause [stale wrapper
+<code>TMUX_BIN</code> pointing at a non-existent prior-checkout path →
+<code>exec</code> of missing binary → login shell dies → terminal
+closes] + 4-layer regression guard [test 60 + verify gate
+<code>CM-TMX-WRAPPER-TMUXBIN-VALID</code> + meta
+<code>M-WRAPPER-TMUXBIN</code>]).</p>
 <hr />
-<p><strong>Last reviewed:</strong> 2026-06-13 (v1.0.21 cycle —
-copy/paste mouse-off default landed in <code>Fixed.md</code> A43; opened
-F1 to track the operator-gated "HelixCode" terminal crash with full
-forensic evidence + a ready operator diagnostic).</p>
+<p><strong>Last reviewed:</strong> 2026-06-13 (F1 HelixCode
+terminal-crash RESOLVED + closed to <code>Fixed.md</code> A45 with
+reproduced root cause + 4-layer regression guard; operator-confirmed
+"works now". Zero open non-terminal items.)</p>
 </body>
 </html>

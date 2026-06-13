@@ -418,15 +418,57 @@ _check_CM_TMX_DOCS_GUIDES_EXIST() {
     return "$rc"
 }
 
-# Run the five new gates. Aggregate failure into V109_FAIL — Layer 1 must
+# CM-TMX-WRAPPER-TMUXBIN-VALID — §11.4.135 F1 regression guard at the
+# SOURCE layer. The generated `scripts/tmx` wrapper, when present, MUST
+# declare `TMUX_BIN=<path>` pointing at an EXISTING, EXECUTABLE binary.
+# Forensic anchor (Issues.md F1): a stale `scripts/tmx` carried a TMUX_BIN
+# pointing at a non-existent prior-checkout path; the operator shell-init
+# `exec sh -c 'tmx attach … || exec tmx new …'` reached `exec "$TMUX_BIN"`
+# on the MISSING binary → exec failed (127, "No such file or directory") →
+# the operator's login shell DIED → the terminal window closed = "crashes
+# the whole terminal". This gate makes setup.sh/verify REFUSE to bless a
+# wrapper that points at a missing binary. ABSENT scripts/tmx is NOT a FAIL
+# (wrapper not yet generated) — only PRESENT-but-broken is.
+_check_CM_TMX_WRAPPER_TMUXBIN_VALID() {
+    local w="$REPO_ROOT/scripts/tmx"
+    if [ ! -f "$w" ]; then
+        printf '[PASS] %s (scripts/tmx not yet generated — nothing to bless)\n' \
+            "CM-TMX-WRAPPER-TMUXBIN-VALID"
+        return 0
+    fi
+    local val
+    val=$(grep -m1 -E '^TMUX_BIN=' "$w" 2>/dev/null \
+        | sed -e 's/^TMUX_BIN=//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+    if [ -z "$val" ]; then
+        printf '[FAIL] %s scripts/tmx has no top-level TMUX_BIN= assignment\n' \
+            "CM-TMX-WRAPPER-TMUXBIN-VALID"
+        return 1
+    fi
+    if [ ! -e "$val" ]; then
+        printf '[FAIL] %s scripts/tmx TMUX_BIN points at MISSING path: %s (F1 terminal-crash surface)\n' \
+            "CM-TMX-WRAPPER-TMUXBIN-VALID" "$val"
+        return 1
+    fi
+    if [ ! -x "$val" ]; then
+        printf '[FAIL] %s scripts/tmx TMUX_BIN exists but is NOT executable: %s\n' \
+            "CM-TMX-WRAPPER-TMUXBIN-VALID" "$val"
+        return 1
+    fi
+    printf '[PASS] %s (TMUX_BIN=%s exists+executable)\n' \
+        "CM-TMX-WRAPPER-TMUXBIN-VALID" "$val"
+    return 0
+}
+
+# Run the new gates. Aggregate failure into V109_FAIL — Layer 1 must
 # stay fail-fast, so any FAIL aborts before the runtime suite (binary is
 # NOT operator-safe with broken P1-P4 artefacts).
 V109_FAIL=0
-_check_CM_TMX_STATE_GO_MOD_EXISTS || V109_FAIL=1
-_check_CM_TMX_STATE_GO_PRESENT    || V109_FAIL=1
-_check_CM_TMX_SHELL_INIT_POSIX    || V109_FAIL=1
-_check_CM_TMX_SSH_DISPATCH_POSIX  || V109_FAIL=1
-_check_CM_TMX_DOCS_GUIDES_EXIST   || V109_FAIL=1
+_check_CM_TMX_STATE_GO_MOD_EXISTS    || V109_FAIL=1
+_check_CM_TMX_STATE_GO_PRESENT       || V109_FAIL=1
+_check_CM_TMX_SHELL_INIT_POSIX       || V109_FAIL=1
+_check_CM_TMX_SSH_DISPATCH_POSIX     || V109_FAIL=1
+_check_CM_TMX_DOCS_GUIDES_EXIST      || V109_FAIL=1
+_check_CM_TMX_WRAPPER_TMUXBIN_VALID  || V109_FAIL=1
 if [ "$V109_FAIL" -ne 0 ]; then
     echo ""
     echo "RED: one or more v1.0.9 PWU pre-build gates FAILed. Investigate"

@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-13T16:30Z
+**Last updated:** 2026-06-13T18:35Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -87,7 +87,7 @@ regression sweep (56/57/58 enable mouse for on-demand path; 17 + TMUX-CH-17
 assert the default; 44/45/47/48 unaffected). Docs (scrolling/clipboard/guide
 §5.7) updated; Fixed.md A43; CHANGELOG v1.0.21; VERSION 1.0.21/22.
 
-**Bug 1 (HelixCode session crashes the whole terminal) — OPERATOR-BLOCKED
+**Bug 1 (HelixCode session crashes the whole terminal) — RESOLVED 2026-06-13 (operator-confirmed; Fixed.md A45)** — was OPERATOR-BLOCKED
 (Issues.md F1).** Fresh `tmx new -s HelixCode` creates+attaches cleanly over a
 real PTY; 5 crash vectors (passthrough/extkeys/attach-reload/rename-format/stale
 socket) each reproduced headlessly + DISPROVEN as standalone causes. Crash needs

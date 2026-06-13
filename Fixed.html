@@ -324,6 +324,80 @@ layer (c) met by challenge entries CH-01 through CH-14</td>
 <h2 id="a-tooling--harness-gaps--resolved">A. Tooling / harness gaps —
 RESOLVED</h2>
 <h3
+id="a45-tmx-session-named-helixcode-crashed-the-whole-terminal--resolved">A45.
+<code>tmx</code> session named "HelixCode" crashed the whole terminal —
+<code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Bug <strong>Closure cycle:</strong> fix
+shipped in v1.0.20/v1.0.22 (setup.sh wrapper regeneration);
+operator-confirmed resolved 2026-06-13; regression guard landed
+2026-06-13. <strong>Reported:</strong> operator, 2026-06-13 — "Open the
+terminal and for terminal session choose HelixCode. It will crash the
+whole terminal!" Reproduced across iTerm2, Terminal.app, a Linux
+terminal, AND WezTerm (all emulators). Migrated from Issues.md F1
+(ATM-050). <strong>Closure source (§11.4.34):</strong> By
+<strong>User</strong> (operator manual testing); On 2026-06-13; Reason:
+<code>manual-testing-detected</code> (operator confirmed "works now");
+Evidence: operator confirmation + the reproduced root cause below.</p>
+<p><strong>Root cause (REPRODUCED — no guessing per
+§11.4.6/§11.4.123).</strong> The installed/generated wrapper
+<code>scripts/tmx</code> carried
+<code>TMUX_BIN="/Users/milosvasic/Projects/tmux/tmux/build-darwin/bin/tmux"</code>
+— a <strong>non-existent path</strong> from a PRIOR checkout location
+(the live checkout is <code>/Volumes/T7/Projects/tmux</code>). The
+operator shell-init runs the operator path
+<code>exec sh -c 'tmx attach -t HelixCode 2&gt;/dev/null || exec tmx new -s HelixCode'</code>;
+<code>tmx new</code> reaches <code>exec "$TMUX_BIN" …</code>
+(<code>scripts/tmx.template</code> lines 396/430) on the MISSING binary
+→ <code>exec</code> fails
+(<code>tmx: line 396: …/tmux: No such file or directory</code>, exit
+127) → the operator's LOGIN SHELL (which had <code>exec</code>'d into
+the wrapper chain) DIES → the terminal window closes = "crashes the
+whole terminal." Emulator-independent (it is the shell dying), matching
+the all-emulators report. Captured proof: a real-PTY drive of the
+operator path through a bad-<code>TMUX_BIN</code> wrapper yields
+<code>PTY EOF — controlling shell DIED</code>, child exit 127, with the
+<code>No such file or directory</code> error at lines 396 AND 430.</p>
+<p><strong>Why earlier headless forensics did not catch it.</strong> A
+fresh <code>tmx new -s HelixCode</code> on THIS checkout (correct
+<code>TMUX_BIN</code>) created + attached cleanly — the 5
+tmux/config-layer crash vectors (passthrough, extended-keys,
+attach-reload, rename-format, stale socket) were correctly DISPROVEN
+(<code>docs/qa/2026-06-13-helixcode-crash/forensic.md</code>). The
+defect lived in the wrapper-generation layer (stale
+<code>TMUX_BIN</code> path), which the operator's environment had and
+the fresh-checkout headless tests did not.</p>
+<p><strong>Fix.</strong> <code>scripts/setup.sh</code> regenerates
+<code>scripts/tmx</code> from <code>scripts/tmx.template</code>
+substituting the correct <code>__TMUX_BIN__</code> for the live
+checkout. Running v1.0.22 <code>setup.sh</code> rewrote the operator's
+wrapper with the valid path → <code>exec</code> succeeds → no crash.
+Operator-confirmed "works now."</p>
+<p><strong>Regression guard (4-layer per §103 / §11.4.135):</strong></p>
+<ul>
+<li><strong>Layer 1 (source gate):</strong>
+<code>scripts/verify.sh</code> <code>CM-TMX-WRAPPER-TMUXBIN-VALID</code>
+— when <code>scripts/tmx</code> is present, asserts its
+<code>TMUX_BIN</code> path exists + is executable;
+<code>setup.sh</code>/verify now REFUSE to bless a present-but-broken
+wrapper (one that would crash the operator's shell).</li>
+<li><strong>Layer 3 (runtime):</strong> NEW
+<code>scripts/tests/60_wrapper_tmux_bin_valid.sh</code> — T1 static
+(<code>TMUX_BIN</code> valid), T2 RED (a bad-<code>TMUX_BIN</code>
+wrapper driven through the operator path reproduces the
+<code>No such file or directory</code> exec failure — the F1 mechanism),
+T3 GREEN (valid wrapper creates the session, no missing-binary error).
+PASS=3/0/0, deterministic 3×.</li>
+<li><strong>Layer 4 (paired mutation):</strong>
+<code>M-WRAPPER-TMUXBIN</code> in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code> rewrites
+<code>scripts/tmx</code> <code>TMUX_BIN</code> to a missing path → test
+60 FAILs (CAUGHT). Meta full sweep 52 CAUGHT / 0 ESCAPED.</li>
+<li><strong>Evidence:</strong>
+<code>docs/qa/2026-06-13-helixcode-crash/</code> (forensic.md,
+diagnose.sh, RESOLUTION.md).</li>
+</ul>
+<hr />
+<h3
 id="a44-apple-container-integration-on-demand-containerized-linux-under-macos-for-testing--resolved">A44.
 Apple <code>container</code> integration: on-demand containerized Linux
 under macOS for testing — <code>RESOLVED</code></h3>

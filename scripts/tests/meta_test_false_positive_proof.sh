@@ -1120,6 +1120,26 @@ v109_run_mutation \
     "scripts/tests/58_operator_path_select_copy_ls.sh" \
     "FAIL"
 
+# ── M-WRAPPER-TMUXBIN: point the generated scripts/tmx TMUX_BIN at a
+#    MISSING path — reproduces Issues.md F1 ("tmx new -s HelixCode crashed
+#    the whole terminal on every emulator"). CAPTURED root cause: a stale
+#    scripts/tmx carried TMUX_BIN=<non-existent prior-checkout path>; the
+#    operator shell-init `exec sh -c 'tmx attach … || exec tmx new …'`
+#    reached `exec "$TMUX_BIN"` (scripts/tmx ~396/430) on the missing binary
+#    → exec failed (127, "No such file or directory") → the operator login
+#    shell DIED → the terminal window closed. Test 60's T1 (static surface)
+#    asserts TMUX_BIN exists+executable, and T2 (PTY) reproduces the exact
+#    crash with the EXACT operator path; rewriting TMUX_BIN to a guaranteed-
+#    missing path makes T1 FAIL → mutation CAUGHT. scripts/tmx is the
+#    GENERATED (gitignored) artefact, so the cp-restore is clean.
+v109_run_mutation \
+    "M-WRAPPER-TMUXBIN" \
+    "point scripts/tmx TMUX_BIN at a missing path (test 60 catches the F1 terminal-crash wrapper-points-at-missing-binary surface)" \
+    "scripts/tmx" \
+    "inplace_sed 's|^TMUX_BIN=.*|TMUX_BIN=\"/no/such/tmux/binary/M-WRAPPER-TMUXBIN\"|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
+    "scripts/tests/60_wrapper_tmux_bin_valid.sh" \
+    "FAIL"
+
 # ── P5-M23: strip session-name regex validation from dispatcher template
 # Spec §7 Layer 4: the POSIX `case "$session" in *[!A-Za-z0-9_.-]*)`
 # block at lines 77-82 of tmx-ssh-dispatch.sh.template rejects names

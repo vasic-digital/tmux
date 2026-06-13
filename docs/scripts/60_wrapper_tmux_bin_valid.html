@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>60_wrapper_tmux_bin_valid</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1 id="60_wrapper_tmux_bin_validsh">60_wrapper_tmux_bin_valid.sh</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-13T00:00:00Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+§11.4.18 script companion doc for
+<code>scripts/tests/60_wrapper_tmux_bin_valid.sh</code></p>
+<h2 id="overview">Overview</h2>
+<p>Permanent §11.4.135 regression guard for <strong>Issues.md
+F1</strong> — <code>tmx new -s HelixCode</code> crashed the
+<strong>whole terminal</strong> on every emulator.</p>
+<h3 id="captured-root-cause-f1">Captured root cause (F1)</h3>
+<p>The generated/installed wrapper <code>scripts/tmx</code> carried
+<code>TMUX_BIN="&lt;path&gt;"</code> pointing at a
+<strong>non-existent</strong> binary (a stale prior-checkout location,
+e.g.
+<code>/Users/milosvasic/Projects/tmux/tmux/build-darwin/bin/tmux</code>).
+The operator shell-init runs:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">exec</span> sh <span class="at">-c</span> <span class="st">&#39;tmx attach -t NAME 2&gt;/dev/null || exec tmx new -s NAME&#39;</span></span></code></pre></div>
+<p><code>tmx new</code> reaches an <code>exec "$TMUX_BIN" …</code> in
+the wrapper (around <code>scripts/tmx.template</code> lines 396 / 430)
+on the <strong>missing</strong> binary → exec fails ("No such file or
+directory") → the operator's <strong>login shell</strong> (which had
+<code>exec</code>'d into the wrapper chain) <strong>dies</strong> → the
+terminal window closes = "crashes the whole terminal",
+emulator-independent. v1.0.22 <code>setup.sh</code> regenerated
+<code>scripts/tmx</code> with a valid <code>TMUX_BIN</code> → fixed.</p>
+<p>This test makes that failure mode <strong>impossible to ship silently
+again</strong>.</p>
+<h2 id="what-it-checks-tdd--anti-bluff-11443-redgreen">What it checks
+(TDD / anti-bluff, §11.4.43 RED→GREEN)</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Check</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>T1</strong></td>
+<td>STATIC always-on guard: the generated <code>scripts/tmx</code> (if
+present) declares <code>TMUX_BIN=&lt;path&gt;</code> AND that path
+exists + is executable. SKIP-with-reason when <code>scripts/tmx</code>
+is absent (not yet generated).</td>
+<td><code>[evidence 60-T1] TMUX_BIN=… exists+executable</code></td>
+</tr>
+<tr>
+<td><strong>T2</strong></td>
+<td>RED proof (gives the guard teeth): synthesize a throwaway wrapper
+copy whose <code>TMUX_BIN</code> is rewritten to a guaranteed-missing
+path; drive the <strong>exact</strong> operator path through a
+<strong>real PTY</strong>; assert the captured output names the missing
+binary with <strong>"No such file or directory"</strong> at the
+wrapper's <code>exec "$TMUX_BIN"</code> sites. Reproduces F1.</td>
+<td><code>[evidence 60-T2 …] RED reproduced … 'No such file or directory' naming &lt;missing&gt;</code></td>
+</tr>
+<tr>
+<td><strong>T3</strong></td>
+<td>GREEN: with the <strong>real</strong> valid-<code>TMUX_BIN</code>
+wrapper, drive the same operator path; assert the session is created
+(server came up, listed) and the run emits <strong>no</strong>
+missing-binary error.</td>
+<td><code>[evidence 60-T3 …] GREEN: server up … NO 'No such file or directory'</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each of T2 and T3 runs 3 internal iterations for §11.4.50
+deterministic consistency.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li><code>scripts/tmx</code> generated by <code>scripts/setup.sh</code>
+(else T1 + T2/T3 SKIP-with-reason per §11.4.3).</li>
+<li>A real tmux binary under
+<code>tmux/build-darwin|build-linux|build/bin/tmux</code> (or on
+<code>PATH</code>) for the T3 GREEN server (else T2/T3 SKIP).</li>
+<li><code>python3</code> for the PTY operator-path driver (else T2/T3
+SKIP).</li>
+</ul>
+<h2 id="usage">Usage</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/tests/60_wrapper_tmux_bin_valid.sh</span></code></pre></div>
+<p>Exit <code>0</code> = all executed assertions PASS; <code>1</code> =
+a FAIL; <code>77</code> = unsupported platform SKIP.</p>
+<h2 id="isolation--cleanup-11414">Isolation + cleanup (§11.4.14)</h2>
+<p>Everything runs under a <strong>short-path</strong> private scratch
+root <code>/tmp/tmxg.$$</code> with throwaway <code>HOME</code> +
+<code>TMUX_TMPDIR</code>. The T2 RED uses a throwaway wrapper copy + a
+guaranteed-missing <code>TMUX_BIN</code>. The T3 GREEN creates and kills
+<strong>only</strong> its own uniquely-named session/socket
+(<code>tmxg60_&lt;pid&gt;_&lt;iter&gt;</code>). The
+<code>trap … EXIT</code> cleanup removes the scratch root and never runs
+a broad <code>pkill tmux</code>, never touches the operator's
+<code>/tmp/tmux-501</code> or real sessions.</p>
+<h2 id="internal-behaviour">Internal behaviour</h2>
+<p>The PTY driver (<code>_drive_operator_path</code>)
+<code>pty.fork()</code>s and <code>execvp</code>s
+<code>sh -c 'exec sh -c '\''tmx attach -t "$1" … || exec tmx new -s "$1"'\'' …'</code>
+— byte-for-byte the operator path from
+<code>scripts/tmx-shell-init.sh.template</code> line 157 — with the
+chosen wrapper directory placed first on <code>PATH</code>. It captures
+the controlling PTY's output and the child exit status, returning
+<code>rc=&lt;code&gt;|out=&lt;captured&gt;</code>. The deterministic F1
+discriminator is the captured <strong>"No such file or
+directory"</strong> naming the missing <code>TMUX_BIN</code> (present
+only in T2, never in T3); the child rc varies by branch (bash
+exec-failure-continue vs sh 127) so it is logged but not asserted
+on.</p>
+<h2 id="related">Related</h2>
+<ul>
+<li><code>scripts/tmx.template</code> — <code>exec "$TMUX_BIN"</code>
+sites (~396 attach / ~430 new).</li>
+<li><code>scripts/tmx-shell-init.sh.template</code> — the operator
+<code>exec sh -c …</code> path.</li>
+<li><code>scripts/verify.sh</code> —
+<code>CM-TMX-WRAPPER-TMUXBIN-VALID</code> Layer-1 source gate (refuses
+to bless a present-but-broken wrapper).</li>
+<li><code>scripts/tests/meta_test_false_positive_proof.sh</code> —
+<code>M-WRAPPER-TMUXBIN</code> paired §1.1 mutation (points
+<code>TMUX_BIN</code> at a missing path → test 60 FAILs → mutation
+CAUGHT).</li>
+<li><code>scripts/tests/58_operator_path_select_copy_ls.sh</code> —
+sibling operator-path proof.</li>
+<li>Issues.md F1.</li>
+</ul>
+<h2 id="sources-verified-2026-06-13">Sources verified 2026-06-13</h2>
+<ul>
+<li>In-repo captured forensic evidence: the wrapper exec sites at
+<code>scripts/tmx.template</code> lines 396 / 430 and the operator path
+at <code>scripts/tmx-shell-init.sh.template</code> line 157. NO external
+solution found — original work.</li>
+</ul>
+<p><strong>Last verified:</strong> 2026-06-13</p>
+</body>
+</html>
