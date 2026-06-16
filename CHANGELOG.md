@@ -6,6 +6,51 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.25] — 2026-06-16
+
+**Governance + tooling currency: advance the HelixConstitution submodule to its latest upstream (`1d408cb`), fix host-level codegraph version skew, and clean dead test-socket cruft — per the operator mandate "we MUST ALWAYS target the latest versions of all our submodules." No tmux product-surface change.**
+
+### Changed
+
+- **HelixConstitution submodule advanced `3f4d690` → `1d408cb`** (+67 upstream
+  commits, new universal anchors §11.4.140–158). Functional inheritance verified —
+  `18_constitution_inheritance.sh` **PASS=10/0** (the project's `@constitution/CLAUDE.md`
+  import + INHERITED-FROM blocks resolve to the new constitution). The release gate is
+  unaffected (`verify.sh` enforces the §11.4.87..99 propagation set, already mirrored).
+- **Containers submodule** confirmed at latest (`18ed03d`).
+
+### Fixed (host-level — no repo change)
+
+- **codegraph version skew on macOS** — `codegraph --version` reported `0.9.9` while npm
+  had updated `0.9.9 → 1.0.1`: a stale `~/.local/bin/codegraph` symlink (→ `~/.codegraph/
+  versions/v0.9.9`) shadowed the npm-managed `1.0.1`. Repointed the symlink → both hosts
+  now resolve **1.0.1** (matches npm-latest). Closes the §11.4.80/§107 "npm exit 0 was
+  bluffing" entry the cadence script had caught.
+- **macOS host hygiene** — removed **668 dead tmux test sockets** (`/tmp/tmux-501`,
+  678 → 10) without touching any live/real session (not a `kill-server`).
+
+### Validation (dual-host release gate)
+
+- **nezha** `verify.sh` (TMX_TEST_DESTRUCTIVE=1) GREEN + meta-test 52 CAUGHT / 0 ESCAPED.
+- **macOS** `run_all` GREEN.
+- `setup.sh` re-run + verified on both hosts.
+
+### Known follow-up (non-release-blocking)
+
+- Verbatim/cascade propagation of the new §11.4.140–158 anchors into the project's
+  `CLAUDE.md`/`AGENTS.md`/`QWEN.md` verbatim-mirror sections (for non-`@import` agents) is
+  tracked separately — functional inheritance already works via the `@import`, and the
+  release gate does not enforce these anchors.
+- Operator-pending on nezha: `sudo bash scripts/build_oom_set.sh --install` + `sudo apt-get
+  install -y stress-ng` to promote tests 08/12/14 from honest SKIP to PASS.
+
+## Sources verified 2026-06-16
+
+- <https://github.com/HelixDevelopment/HelixConstitution>
+- <https://docs.npmjs.com/cli/v10/commands/npm-install>
+
+---
+
 ## [v1.0.24] — 2026-06-16
 
 **On-demand container-distribution orchestrator: a real binary (`scripts/tmx-orchestrator/`) that drives the `vasic-digital/containers` submodule to schedule, deploy, health-check, and tear down containers on remote test hosts (nezha.local) — for heavy testing that depends on real services running.**

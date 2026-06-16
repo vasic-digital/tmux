@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>v1.0.25</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1 id="vasic-digital-tmux-v1.0.25-release-notes">vasic-digital tmux —
+v1.0.25 Release Notes</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-16T19:00:00Z <strong>Version:</strong> 1.0.25 / versionCode 26
+<strong>Released:</strong> 2026-06-16 <strong>Hosts validated:</strong>
+Mistborn (Darwin arm64) + nezha (ALT Linux x86_64)</p>
+<hr />
+<h2 id="summary">Summary</h2>
+<p>v1.0.25 is a <strong>governance + tooling currency</strong> release
+(no tmux product-surface change) per the operator mandate “we MUST
+ALWAYS target the latest versions of all our submodules”: the
+HelixConstitution submodule is advanced to its latest upstream,
+host-level codegraph version skew is fixed, and dead test-socket cruft
+is cleaned.</p>
+<hr />
+<h2 id="changed">Changed</h2>
+<ul>
+<li><strong>HelixConstitution submodule <code>3f4d690</code> →
+<code>1d408cb</code></strong> (+67 commits, new anchors §11.4.140–158).
+Functional inheritance verified:
+<code>18_constitution_inheritance.sh</code> <strong>PASS=10/0</strong>.
+Release gate unaffected (<code>verify.sh</code> enforces §11.4.87..99,
+already mirrored).</li>
+<li><strong>Containers submodule</strong> confirmed at latest
+<code>18ed03d</code>.</li>
+</ul>
+<h2 id="fixed-host-level">Fixed (host-level)</h2>
+<ul>
+<li><strong>codegraph macOS skew</strong> — stale
+<code>~/.local/bin/codegraph</code> symlink (→ v0.9.9) shadowed the
+npm-managed 1.0.1; repointed → both hosts resolve
+<strong>1.0.1</strong>.</li>
+<li><strong>macOS host hygiene</strong> — removed <strong>668 dead tmux
+test sockets</strong> (678 → 10), no live session touched.</li>
+</ul>
+<h2 id="validation-dual-host-release-gate">Validation (dual-host release
+gate)</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Host</th>
+<th>gate</th>
+<th>meta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mistborn (Darwin arm64)</td>
+<td>run_all GREEN</td>
+<td>—</td>
+</tr>
+<tr>
+<td>nezha (ALT Linux x86_64)</td>
+<td>verify.sh GREEN (destructive)</td>
+<td>52 CAUGHT / 0 ESCAPED</td>
+</tr>
+</tbody>
+</table>
+<p><code>setup.sh</code> re-run + verified GREEN on both hosts; both
+reinstalled at v1.0.25.</p>
+<h2 id="known-follow-up-non-release-blocking">Known follow-up
+(non-release-blocking)</h2>
+<ul>
+<li>Verbatim/cascade mirroring of §11.4.140–158 into
+<code>CLAUDE.md</code>/<code>AGENTS.md</code>/<code>QWEN.md</code> for
+non-<code>@import</code> agents (functional inheritance already works
+via the import; release gate does not enforce these).</li>
+<li>Operator-pending on nezha:
+<code>sudo bash scripts/build_oom_set.sh --install</code> +
+<code>sudo apt-get install -y stress-ng</code> → promotes tests 08/12/14
+from honest SKIP to PASS.</li>
+</ul>
+<h2 id="files-changed">Files changed</h2>
+<ul>
+<li><code>Containers</code>/<code>constitution</code> submodule
+pointers; <code>VERSION</code> (1.0.25/26); <code>CHANGELOG.md</code>;
+<code>CONTINUATION.md</code>.</li>
+</ul>
+<h2 id="sources-verified-2026-06-16">Sources verified 2026-06-16</h2>
+<ul>
+<li><a href="https://github.com/HelixDevelopment/HelixConstitution"
+class="uri">https://github.com/HelixDevelopment/HelixConstitution</a></li>
+<li><a href="https://docs.npmjs.com/cli/v10/commands/npm-install"
+class="uri">https://docs.npmjs.com/cli/v10/commands/npm-install</a></li>
+</ul>
+</body>
+</html>

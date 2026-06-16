@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuation.md-vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-06-16T18:05Z</p>
+<p><strong>Last updated:</strong> 2026-06-16T19:05Z</p>
 <h2 id="how-to-resume-work-in-any-cli-agent">§0 — How to resume work in
 any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -278,6 +278,24 @@ user-mandate quote)</li>
 sacred invariant</li>
 </ul>
 <h2 id="active-work">§3 — Active work</h2>
+<h3 id="v1.0.25-release-submodule-currency-host-fixes-2026-06-16">§3.26
+— v1.0.25 RELEASE (submodule currency + host fixes) → 2026-06-16</h3>
+<p><strong>Status:</strong> RELEASING v1.0.25 / versionCode 26. Per
+operator “always target latest of all submodules”: advanced
+HelixConstitution <code>3f4d690</code> → <code>1d408cb</code> (+67
+commits, §11.4.140–158); Containers already at latest
+<code>18ed03d</code>. Functional inheritance verified (test 18
+PASS=10/0); release gate (verify.sh §11.4.87..99) unaffected.
+Host-level: codegraph macOS skew fixed (stale <code>~/.local/bin</code>
+symlink → both hosts 1.0.1); 668 dead macOS test sockets removed
+(678→10, no live session touched).</p>
+<p><strong>Known follow-up (non-blocking):</strong> verbatim/cascade
+mirroring of §11.4.140–158 into project CLAUDE.md/AGENTS.md/QWEN.md (for
+non-<code>@import</code> agents) — functional inheritance already works
+via the import; release gate does not enforce these. Operator-pending on
+nezha: <code>sudo bash scripts/build_oom_set.sh --install</code> +
+<code>sudo apt-get install -y stress-ng</code> to promote tests 08/12/14
+from SKIP to PASS.</p>
 <h3 id="v1.0.24-release-distribution-orchestrator-2026-06-16">§3.25 —
 v1.0.24 RELEASE (distribution orchestrator) → 2026-06-16</h3>
 <p><strong>Status:</strong> RELEASING v1.0.24 / versionCode 25. Tooling

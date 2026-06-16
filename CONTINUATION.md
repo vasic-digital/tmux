@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-16T18:05Z
+**Last updated:** 2026-06-16T19:05Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,21 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.26 — v1.0.25 RELEASE (submodule currency + host fixes) → 2026-06-16
+
+**Status:** RELEASING v1.0.25 / versionCode 26. Per operator "always target latest
+of all submodules": advanced HelixConstitution `3f4d690` → `1d408cb` (+67 commits,
+§11.4.140–158); Containers already at latest `18ed03d`. Functional inheritance
+verified (test 18 PASS=10/0); release gate (verify.sh §11.4.87..99) unaffected.
+Host-level: codegraph macOS skew fixed (stale `~/.local/bin` symlink → both hosts
+1.0.1); 668 dead macOS test sockets removed (678→10, no live session touched).
+
+**Known follow-up (non-blocking):** verbatim/cascade mirroring of §11.4.140–158 into
+project CLAUDE.md/AGENTS.md/QWEN.md (for non-`@import` agents) — functional inheritance
+already works via the import; release gate does not enforce these. Operator-pending on
+nezha: `sudo bash scripts/build_oom_set.sh --install` + `sudo apt-get install -y
+stress-ng` to promote tests 08/12/14 from SKIP to PASS.
 
 ### §3.25 — v1.0.24 RELEASE (distribution orchestrator) → 2026-06-16
 
