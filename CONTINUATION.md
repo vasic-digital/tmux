@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-16T21:30Z
+**Last updated:** 2026-06-17T00:45Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -34,9 +34,21 @@ Paste this prompt:
 
 ## §3 — Active work
 
-### §3.26 — v1.0.25 RELEASE (submodule currency + host fixes) → 2026-06-16
+### §3.26 — v1.0.25 RELEASED (test fixes + submodule currency + governance cascade) → 2026-06-16
 
-**Status:** RELEASING v1.0.25 / versionCode 26. Per operator "always target latest
+**Status:** ✅ RELEASED v1.0.25 / versionCode 26 — tag at `3dd6a7c`, published GitHub
+(https://github.com/vasic-digital/tmux/releases/tag/v1.0.25) + GitLab
+(https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.25). Both hosts (macOS Mistborn
++ nezha) synced to `05569e5` (= tag + governance cascade), VERSION 1.0.25, tmux 3.6a,
+setup + smoke (tmx new/ls/kill) GREEN. Authoritative validation: nezha rel25c destructive
+gate verify PASS=50 FAIL=0 SKIP=11 (V=0) + meta 52 CAUGHT/0 ESCAPED; macOS setup run_all
+55/0/6. Test 17 determinism: macOS 5/5 + nezha 20/20 under full all-core CPU saturation.
+**Governance cascade (`05569e5`):** CLAUDE/AGENTS/QWEN appended §11.4.101–158 verbatim +
+**GEMINI.md created** (§11.4.157 lockstep, byte-identical to CLAUDE.md); §11.4.65 siblings
+regenerated. **Operator-pending:** §11.4.151 release-prefix (`tmux-<ver>`) — NOT adopted
+mid-series (project uses `vN.N.N`); decide before next release. Both hosts at latest, clean.
+
+(Historical detail of the cycle follows.) Per operator "always target latest
 of all submodules": advanced HelixConstitution `3f4d690` → `1d408cb` (+67 commits,
 §11.4.140–158); Containers already at latest `18ed03d`. Functional inheritance
 verified (test 18 PASS=10/0); release gate (verify.sh §11.4.87..99) unaffected.
