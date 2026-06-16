@@ -6,6 +6,59 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.24] — 2026-06-16
+
+**On-demand container-distribution orchestrator: a real binary (`scripts/tmx-orchestrator/`) that drives the `vasic-digital/containers` submodule to schedule, deploy, health-check, and tear down containers on remote test hosts (nezha.local) — for heavy testing that depends on real services running.**
+
+Operator mandate: "Make a proper binary using the Containers submodule lib to orchestrate the distribution — for when/if we need it for our testing needs." The tmux product surface (the hardened tmux 3.6a binary + `tmx` wrapper) is **unchanged** from v1.0.23; this release adds testing tooling + extends + hardens the consumed Containers library.
+
+### Added
+
+- **`scripts/tmx-orchestrator/`** — a Go consumer of the decoupled
+  `digital.vasic.containers` submodule (via `replace`, CONST-051 — no tmux-specifics
+  added to the submodule). Subcommands: `hosts` (register + SSH-probe remote hosts →
+  real `/proc` CPU/MEM/cores), `distribute` (schedule + `podman run -d -p host:container`
+  a real container on the best remote host + poll-until-ready health check),
+  `down` (teardown, exits non-zero when teardown can't be confirmed). nezha.local
+  registered in `Containers/.env` (gitignored). Binary `scripts/tmx-orchestrator-bin`
+  gitignored, regenerated via `go build` (§11.4.77).
+- **`scripts/tests/62_distribution_orchestrator.sh`** — opt-in (`TMX_TEST_REMOTE=1`)
+  end-to-end test: builds, probes nezha, deploys a real nginx container + asserts HTTP
+  200, tears down clean. SKIP-with-reason by default.
+
+### Fixed (Containers library — extended/hardened upstream per §11.4.76)
+
+- **Port publishing** in the remote deploy path (`ContainerRequirements.Ports` + `-p`
+  rendering) so a distributed service is reachable for health checks (Containers `1b9da9b`).
+- **Command-injection** in the port-publish protocol — allowlisted (Containers `82bd586`).
+- **ControlMaster socket leak** — `SSHExecutor.Execute` released the pooled SSH
+  connection ref only on success; now releases on all paths (`a856865`, RED→GREEN
+  regression test on real nezha) + the same-class `ExecuteStream` early-error leak (`18ed03d`).
+- **`tmx-orchestrator down` FAIL-bluff** — reported "teardown complete" + exit 0 even
+  on an unreachable host; now exits non-zero when teardown can't be confirmed.
+
+### Proven evidence (real captured runtime, no guessing per §11.4.6)
+
+Captured under `docs/qa/2026-06-16-tmx-orchestrator/`:
+
+| Proof | Result |
+|---|---|
+| `tmx-orchestrator distribute` (macOS → nezha over SSH+podman) | real nginx `0.0.0.0:18080->80/tcp`, **HTTP health 200** (podman ps + curl confirm) |
+| `down` | container **REMOVED-CLEAN**; unreachable host → **exit 1** |
+| pool-leak regression (`pkg/remote/execute_release_test.go`) | RED refs=1 → GREEN refs=0 on nezha |
+| test 62 (`TMX_TEST_REMOTE=1`) | PASS=4/0 |
+| Containers full suite on nezha (unit + `-tags=integration` vs real podman) | all 40 packages `ok` |
+| Adversarial code-review (§11.4.125/§11.4.134) | 2 major + 4 minor found → all fixed → re-review **GO** |
+| macOS `run_all` | PASS=55 FAIL=0 SKIP=6 (zero regression) |
+
+### Notes
+
+- Submodule pointer `vasic-digital/containers` advanced 61e01dc → 18ed03d (3 fix
+  commits pushed to github + gitlab).
+- `Issues.md` zero open; closure recorded as `Fixed.md` A48.
+
+---
+
 ## [v1.0.23] — 2026-06-16
 
 **Cross-distro Linux hardening: the tmux binary no longer emits the `/lib64/libtinfo.so.6: no version information available` warning on every invocation, plus three test-determinism fixes — validated dual-host on macOS (Darwin arm64) and nezha (ALT Linux x86_64).**

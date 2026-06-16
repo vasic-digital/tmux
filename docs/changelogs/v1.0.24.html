@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>v1.0.24</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1 id="vasic-digital-tmux-v1.0.24-release-notes">vasic-digital tmux —
+v1.0.24 Release Notes</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-16T18:00:00Z <strong>Version:</strong> 1.0.24 / versionCode 25
+<strong>Released:</strong> 2026-06-16 <strong>Hosts validated:</strong>
+Mistborn (Darwin arm64) + nezha (ALT Linux x86_64)</p>
+<hr />
+<h2 id="summary">Summary</h2>
+<p>v1.0.24 adds an <strong>on-demand container-distribution
+orchestrator</strong> — <code>scripts/tmx-orchestrator/</code>, a real
+Go binary that drives the <code>vasic-digital/containers</code>
+submodule to schedule, deploy, health-check, and tear down containers on
+remote test hosts (nezha.local), for heavy testing that depends on real
+services running. The tmux product surface (the hardened tmux 3.6a
+binary + <code>tmx</code> wrapper) is <strong>unchanged</strong> from
+v1.0.23; this release is testing tooling plus extensions and hardening
+of the consumed Containers library.</p>
+<hr />
+<h2 id="added">Added</h2>
+<ul>
+<li><strong><code>scripts/tmx-orchestrator/</code></strong> — Go
+consumer of the decoupled <code>digital.vasic.containers</code>
+submodule (via <code>replace</code>, CONST-051). Subcommands:
+<ul>
+<li><code>hosts</code> — register + SSH-probe configured remote hosts
+(real <code>/proc</code> resources).</li>
+<li><code>distribute</code> — schedule +
+<code>podman run -d -p host:container</code> a real container on the
+best remote host + poll-until-ready health check (HTTP/TCP).</li>
+<li><code>down</code> — teardown; <strong>exits non-zero when teardown
+cannot be confirmed</strong>.</li>
+</ul></li>
+<li><strong><code>scripts/tests/62_distribution_orchestrator.sh</code></strong>
+— opt-in (<code>TMX_TEST_REMOTE=1</code>) end-to-end test (build → probe
+→ deploy real nginx + HTTP 200 → teardown). SKIP with reason by default;
+auto-included in <code>run_all.sh</code>.</li>
+</ul>
+<h2
+id="fixed-containers-library-extendedhardened-upstream-per-11.4.76">Fixed
+(Containers library — extended/hardened upstream per §11.4.76)</h2>
+<ul>
+<li>Remote deploy port publishing
+(<code>ContainerRequirements.Ports</code> + <code>-p</code>) —
+<code>1b9da9b</code>.</li>
+<li>Command-injection in port-publish protocol → allowlisted —
+<code>82bd586</code>.</li>
+<li>ControlMaster socket leak in <code>SSHExecutor.Execute</code>
+(released ref only on success) → release on all paths + RED→GREEN
+regression test on nezha — <code>a856865</code>; same-class
+<code>ExecuteStream</code> early-error leak — <code>18ed03d</code>.</li>
+<li><code>tmx-orchestrator down</code> FAIL-bluff (reported success on
+an unreachable host).</li>
+</ul>
+<h2 id="tests-release-gate-real-captured">Tests — release gate (real
+captured)</h2>
+<ul>
+<li><strong>nezha</strong> <code>verify.sh</code>
+(TMX_TEST_DESTRUCTIVE=1): <strong>PASS=50 FAIL=0 SKIP=11,
+GREEN</strong>.</li>
+<li><strong>nezha</strong> meta-test paired-mutation sweep: <strong>52
+CAUGHT / 0 ESCAPED</strong>.</li>
+<li><strong>nezha</strong> Containers full suite (unit +
+<code>-tags=integration</code> vs real podman): all 40 packages
+<code>ok</code>.</li>
+<li><strong>macOS</strong> <code>run_all</code>: <strong>PASS=55 FAIL=0
+SKIP=6</strong> (zero regression).</li>
+<li><strong>test 62</strong> (<code>TMX_TEST_REMOTE=1</code>):
+PASS=4/0.</li>
+<li><strong>Adversarial code-review</strong> (§11.4.125/§11.4.134): 2
+major + 4 minor → all fixed → re-review <strong>GO</strong>.</li>
+</ul>
+<h2 id="validation-dual-host">Validation (dual-host)</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Host</th>
+<th>release gate</th>
+<th>meta</th>
+<th>orchestrator e2e</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mistborn (Darwin arm64)</td>
+<td>run_all PASS=55/0/6</td>
+<td>(Linux host)</td>
+<td>conductor — distribute → HTTP 200 on nezha</td>
+</tr>
+<tr>
+<td>nezha (ALT Linux x86_64)</td>
+<td>verify.sh EXIT 0 PASS=50/0/11</td>
+<td>52 CAUGHT / 0 ESCAPED</td>
+<td>target — real nginx published + health-checked</td>
+</tr>
+</tbody>
+</table>
+<h2 id="files-changed">Files changed</h2>
+<ul>
+<li><code>scripts/tmx-orchestrator/</code> (new module),
+<code>scripts/tests/62_distribution_orchestrator.sh</code> (new).</li>
+<li><code>Containers</code> submodule pointer 61e01dc → 18ed03d (3 fix
+commits, github + gitlab).</li>
+<li><code>VERSION</code> (1.0.24 / versionCode 25),
+<code>CHANGELOG.md</code>, <code>Fixed.md</code> (A48),
+<code>CONTINUATION.md</code>.</li>
+<li>Evidence: <code>docs/qa/2026-06-16-tmx-orchestrator/</code>.</li>
+</ul>
+<h2 id="sources-verified-2026-06-16">Sources verified 2026-06-16</h2>
+<ul>
+<li><a
+href="https://docs.podman.io/en/latest/markdown/podman-run.1.html"
+class="uri">https://docs.podman.io/en/latest/markdown/podman-run.1.html</a></li>
+<li><a href="https://www.man7.org/linux/man-pages/man8/ss.8.html"
+class="uri">https://www.man7.org/linux/man-pages/man8/ss.8.html</a></li>
+</ul>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-16T15:10Z
+**Last updated:** 2026-06-16T18:05Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,16 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.25 — v1.0.24 RELEASE (distribution orchestrator) → 2026-06-16
+
+**Status:** RELEASING v1.0.24 / versionCode 25. Tooling + library-hardening
+release (tmux product surface unchanged from v1.0.23). Bundles §3.24
+(tmx-orchestrator + Containers fixes) under a tagged version published to
+GitHub + GitLab. Release gate green: nezha verify.sh PASS=50/0/11 + meta
+52 CAUGHT/0 ESCAPED; nezha Containers full suite (unit + integration vs real
+podman) all 40 pkgs ok; macOS run_all 55/0/6; adversarial code-review GO.
+Containers pointer 61e01dc → 18ed03d (pushed github+gitlab).
 
 ### §3.24 — Distribution orchestrator binary (Containers submodule) + nezha as heavy-test host → 2026-06-16
 
