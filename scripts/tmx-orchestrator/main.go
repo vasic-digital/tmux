@@ -487,8 +487,16 @@ func runHealthCheck(
 	}
 
 	if !result.Healthy {
-		fmt.Fprintln(os.Stderr,
-			"tmx-orchestrator: deployment failed health check")
+		if ctx.Err() != nil {
+			// Distinguish a timeout/cancellation from a genuine health failure
+			// so the operator diagnostic is not mis-attributed (no-guessing).
+			fmt.Fprintf(os.Stderr,
+				"tmx-orchestrator: health check did not pass before timeout/cancel "+
+					"(%v) — service may still be starting\n", ctx.Err())
+		} else {
+			fmt.Fprintln(os.Stderr,
+				"tmx-orchestrator: deployment failed health check")
+		}
 		return false
 	}
 	return true
@@ -548,9 +556,13 @@ func cmdDown(args []string) int {
 	// container deployed by a prior process invocation, so explicitly
 	// remove the named container on each registered remote host so
 	// teardown is idempotent across separate process runs.
-	for _, h := range orch.hostManager.ListHosts() {
+	hosts := orch.hostManager.ListHosts()
+	failed := 0
+	for _, h := range hosts {
 		host, getErr := orch.hostManager.GetHost(h.Name)
 		if getErr != nil {
+			orch.logger.Warn("teardown on %s: resolve host: %v", h.Name, getErr)
+			failed++
 			continue
 		}
 		rt := host.Runtime
@@ -559,7 +571,11 @@ func cmdDown(args []string) int {
 		}
 		cmd := fmt.Sprintf("%s rm -f %s 2>/dev/null || true", rt, *name)
 		if _, execErr := orch.executor.Execute(ctx, *host, cmd); execErr != nil {
-			orch.logger.Warn("teardown on %s: %v", h.Name, execErr)
+			// `rm -f … || true` makes the REMOTE always exit 0, so an Execute
+			// error here means the host was UNREACHABLE — teardown could NOT be
+			// confirmed. Count it so we never report success we did not achieve.
+			orch.logger.Warn("teardown on %s could not be confirmed: %v", h.Name, execErr)
+			failed++
 			continue
 		}
 		orch.logger.Info("removed container %s on %s", *name, h.Name)
@@ -571,6 +587,13 @@ func cmdDown(args []string) int {
 		return 1
 	}
 
-	fmt.Printf("teardown complete for container %q\n", *name)
+	if failed > 0 {
+		fmt.Fprintf(os.Stderr,
+			"tmx-orchestrator: teardown could NOT be confirmed on %d/%d host(s) "+
+				"for container %q (see warnings above)\n",
+			failed, len(hosts), *name)
+		return 1
+	}
+	fmt.Printf("teardown complete for container %q on %d host(s)\n", *name, len(hosts))
 	return 0
 }

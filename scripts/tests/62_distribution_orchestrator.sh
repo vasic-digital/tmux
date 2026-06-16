@@ -105,8 +105,12 @@ fi
 # Pick a free host port on the remote (avoid pre-bound ports).
 HEALTH_PORT=""
 for p in 18080 28080 38080 47090; do
-    if ssh -o ConnectTimeout=8 "milosvasic@${HOSTNAME_ADDR}" "(exec 3<>/dev/tcp/127.0.0.1/$p) 2>/dev/null" ; then
-        :  # port in use, try next
+    # Portable free-port probe: `ss -ltn` lists listening TCP sockets on the
+    # remote (NOT bash-only /dev/tcp, which silently no-ops under dash/busybox
+    # sh and would pick a bound port — a §11.4.1 FAIL-bluff). Port absent from
+    # the listen table => free.
+    if ssh -o ConnectTimeout=8 "milosvasic@${HOSTNAME_ADDR}" "ss -ltn 2>/dev/null | grep -qE ':${p}[[:space:]]'"; then
+        :  # port already listening, try next
     else
         HEALTH_PORT="$p"; break
     fi

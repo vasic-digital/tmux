@@ -66,6 +66,19 @@ no silent leak — verified via a real induced HTTP failure). README documents t
 published port; HTTP forwards through — verified). §11.4.65 .html/.pdf siblings
 generated for the new/changed docs. nezha synced to tmux a130a8f + Containers 82bd586.
 
+**Adversarial code-review round (§11.4.125/§11.4.134 review-until-GO, 2026-06-16).**
+A dispatched review found 2 major + minors; all fixed with real evidence:
+- **MAJOR (lib socket leak):** `SSHExecutor.Execute` released the pooled
+  ControlMaster ref only on success → leaked on error paths. Fixed (defer release
+  on all paths) in Containers `a856865` + white-box integration regression test
+  `pkg/remote/execute_release_test.go` — RED (refs=1) → GREEN (refs=0) proven on nezha.
+- **MAJOR (down FAIL-bluff):** `cmdDown` printed "teardown complete" + exit 0 even
+  when a host was unreachable. Fixed — tracks per-host failures, exit 1 when teardown
+  can't be confirmed. Proven: unreachable host → exit 1; reachable → exit 0.
+- minors: health-check timeout/cancel now distinguished from a real failure;
+  test 62 free-port probe uses portable `ss -ltn` (not bash-only /dev/tcp).
+tmux Containers pointer → a856865. Re-review dispatched to confirm GO.
+
 **Open follow-ups:** none. The binary is on-demand ("when and if we need it").
 
 ### §3.23 — libtinfo cross-distro static-link fix + test-determinism hardening → v1.0.23 (2026-06-16)
