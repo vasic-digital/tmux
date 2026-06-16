@@ -77,7 +77,10 @@ A dispatched review found 2 major + minors; all fixed with real evidence:
   can't be confirmed. Proven: unreachable host → exit 1; reachable → exit 0.
 - minors: health-check timeout/cancel now distinguished from a real failure;
   test 62 free-port probe uses portable `ss -ltn` (not bash-only /dev/tcp).
-tmux Containers pointer → a856865. Re-review dispatched to confirm GO.
+Re-review verdict: **GO — no blocking findings** (all 4 prior fixes confirmed sound,
+no regressions, white-box test verified not-false-PASS). 2 minor notes also closed:
+ExecuteStream same-class ref leak on rare cmd.Start failure (Containers 18ed03d) +
+orchestrator `--port`/`--publish` range-validation. tmux Containers pointer → 18ed03d.
 
 **Open follow-ups:** none. The binary is on-demand ("when and if we need it").
 

@@ -346,6 +346,16 @@ func cmdDistribute(args []string) int {
 			"Error: --health must be tcp or http (got %q)\n", *healthKind)
 		return 2
 	}
+	if *port < 1 || *port > 65535 {
+		fmt.Fprintf(os.Stderr,
+			"Error: --port must be 1-65535 (got %d)\n", *port)
+		return 2
+	}
+	if *publish < 0 || *publish > 65535 {
+		fmt.Fprintf(os.Stderr,
+			"Error: --publish must be 0-65535 (0 = same as --port; got %d)\n", *publish)
+		return 2
+	}
 
 	ctx, cancel := newContext(*timeout)
 	defer cancel()
