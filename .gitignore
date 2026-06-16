@@ -30,6 +30,12 @@ scripts/tmx-shell-init.sh
 # is tracked; the binary is rebuilt by setup.sh step 3d on each host.
 scripts/tmx-state-bin
 
+# §11.4.30 + §11.4.77 — Go-built tmx-orchestrator binary (Containers-submodule
+# consumer). Source under scripts/tmx-orchestrator/ (go.mod, go.sum, main.go,
+# README.md) is tracked; the binary is rebuilt via
+# `go build -o ../tmx-orchestrator-bin .` on each host.
+scripts/tmx-orchestrator-bin
+
 # §11.4.78 CodeGraph — local SQLite knowledge graph (per-machine, regenerated via scripts/codegraph_reindex.sh per §11.4.77)
 .codegraph/codegraph.db
 .codegraph/codegraph.db-*

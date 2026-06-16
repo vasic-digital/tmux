@@ -54,6 +54,23 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A48. Distribution orchestrator binary — on-demand container distribution to remote test hosts via the Containers submodule — `RESOLVED`
+
+**Type:** Feature
+**Status:** Implemented (→ Fixed.md)
+**Closure cycle:** 2026-06-16 (operator mandate: "Make a proper binary using the Containers submodule lib to orchestrate the distribution — for when/if we need it for our testing needs").
+**Closure source (§11.4.34):** By **AI**; On 2026-06-16; Evidence: `docs/qa/2026-06-16-tmx-orchestrator/evidence.md`.
+
+**What.** A real Go consumer binary at `scripts/tmx-orchestrator/` (module `digital.vasic.tmux/orchestrator`) that imports the decoupled `digital.vasic.containers` submodule (via `replace => ../../Containers`, CONST-051 — no tmux-specifics added to the submodule) and orchestrates container distribution to remote test hosts. Subcommands: `hosts` (register + SSH-probe configured remote hosts → real `/proc` resources), `distribute` (schedule + run a real container on the best remote host with a published port + poll-until-ready health check), `down` (teardown). nezha.local registered in `Containers/.env` as the heavy-test host.
+
+**Real evidence (macOS conductor → nezha over SSH + podman).** `hosts` → nezha REACHABLE, CPU/MEM/8-cores from real `/proc`. `distribute` → `podman run -d --name tmx-orch-demo -p 18080:80/tcp nginx:alpine` on nezha, `Health check (http) nezha.local:18080 -> HEALTHY status_code: 200`, independently confirmed by `podman ps` (`0.0.0.0:18080->80/tcp`) + `curl localhost:18080 -> HTTP 200` on nezha. `down` → container REMOVED-CLEAN.
+
+**Library extension (§11.4.76 extend-don't-reimplement, committed upstream).** The simple `Distribute` path ran `<rt> run -d --name X image` with no port mapping, so a distributed service was unreachable for a cross-host health check. Added generic `ContainerRequirements.Ports []PortMapping` + `-p host:container[/proto]` rendering in `deployRemote` (Containers `1b9da9b`), then a follow-up **command-injection fix** allowlisting the protocol (`""/tcp/udp/sctp`; unrecognized → skip) after an automated security review flagged the `%s` Protocol interpolation into the SSH-executed shell command (Containers `82bd586`). Both pushed to github + gitlab; tmux submodule pointer bumped 61e01dc → 82bd586.
+
+**4-layer coverage.** Library unit test `TestBuildPublishFlags` (9 cases incl. injection-attempt rejection) + two real bluff-audits (feature: `buildPublishFlags`→`return ""` caught; security: allowlist-revert caught) ; runtime test `scripts/tests/62_distribution_orchestrator.sh` (T1 build, T2 hosts-probe, T3 real deploy+HTTP-200, T4 teardown — PASS=4/0, opt-in `TMX_TEST_REMOTE=1`, SKIP-with-reason otherwise) ; Containers full unit suite on nezha all 37 packages `ok`. Root-cause fixes during bring-up (no guessing §11.4.6): unpublished-port → add Ports; 8080-in-use → free-port; readiness-race → poll health.
+
+---
+
 ### A46. Linux build emitted `/lib64/libtinfo.so.6: no version information available` on every invocation (cross-distro) — `RESOLVED`
 
 **Type:** Bug

@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-16T13:30Z
+**Last updated:** 2026-06-16T15:10Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,30 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.24 — Distribution orchestrator binary (Containers submodule) + nezha as heavy-test host → 2026-06-16
+
+**Status:** DONE — orchestrator working, validated on nezha, committed.
+
+**What landed (A48).** Operator mandate: "Make a proper binary using the
+Containers submodule lib to orchestrate the distribution — for when/if we need
+it for our testing needs." Delivered `scripts/tmx-orchestrator/` (Go consumer of
+the decoupled `digital.vasic.containers` submodule via `replace`): `hosts` /
+`distribute` / `down`. nezha.local registered in `Containers/.env` (gitignored).
+Extended the Containers library (§11.4.76) with `ContainerRequirements.Ports`
++ `-p` rendering (`1b9da9b`) and a command-injection allowlist fix from the
+automated security review (`82bd586`) — both pushed github+gitlab; tmux pointer
+61e01dc → 82bd586.
+
+**Validation (captured — `docs/qa/2026-06-16-tmx-orchestrator/evidence.md`):**
+macOS conductor → nezha over SSH+podman: `hosts` real /proc resources;
+`distribute` → real nginx on nezha `0.0.0.0:18080->80/tcp`, HTTP health 200 (podman
+ps + curl confirm); `down` → REMOVED-CLEAN. Runtime test
+`scripts/tests/62_distribution_orchestrator.sh` PASS=4/0 (opt-in TMX_TEST_REMOTE=1).
+Containers full unit suite on nezha all 37 pkgs ok. Two real bluff-audits (feature +
+security guard). Containers submodule was NOT modified for tmux-specifics (CONST-051).
+
+**Open follow-ups:** none. The binary is on-demand ("when and if we need it").
 
 ### §3.23 — libtinfo cross-distro static-link fix + test-determinism hardening → v1.0.23 (2026-06-16)
 
