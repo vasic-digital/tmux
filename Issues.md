@@ -78,7 +78,23 @@ Categories:
 
 ## A. Tooling / harness gaps
 
-(none open at this time — A1 META-MUT-001 landed in `Fixed.md`.)
+### A2 RUNALL-NATIVE-RESOLVE-001 — standalone run_all.sh mis-resolves the binary on native macOS
+
+**Status:** Queued
+**Type:** Task
+
+`scripts/tests/run_all.sh` hardcodes `TMUX_BIN=tmux/build/bin/tmux` (the
+`build_containerized.sh` output path) and is the containerized-build validator. On
+native macOS the authoritative validator is `setup.sh` (builds + verifies against
+`tmux/build-darwin/`). Invoked standalone on macOS with a stale `tmux/build/` present
+(a prior Linux containerized build), run_all.sh resolved the wrong-arch binary →
+`Exec format error` mass-FAIL (observed 2026-06-16; NOT a product defect — `setup.sh`
+run_all `55/0/6` + installed-binary smoke GREEN the same session; removing the stale
+`tmux/build/` then gave `not executable` because run_all expects that path). **Fix
+direction:** make run_all.sh OS-aware (prefer `tmux/build-darwin/` on Darwin) OR
+document that native-macOS validation is `setup.sh`-only and run_all.sh is the
+containerized path. Captured-evidence requirement: a clean native-macOS run_all GREEN
+after the fix.
 
 ---
 
@@ -99,7 +115,21 @@ B1 CHAL-COVER-001, B2 TEST-AUDIT-001 also landed in `Fixed.md`.)
 
 ## D. Host-capability + topology dispatch gaps
 
-(none open at this time — D1 TOPO-DISPATCH-001 landed in `Fixed.md`.)
+### D2 TMPDIR-HARDCODE-001 — tests hardcoding /tmp false-FAIL under host disk-pressure
+
+**Status:** Queued
+**Type:** Task
+
+Several tests create scratch under a hardcoded `/tmp` (e.g. `27_state_persistence.sh`
+target `tmx-test-18-target-*`). When the host root volume is full (observed 2026-06-16
+on macOS, `/` at <200 MiB during the operator's away-window), the `cd`/mkdir into `/tmp`
+fails → `pane_current_path=''` false-FAIL instead of an honest §11.4.3 SKIP-with-reason.
+The tests pass normally + standalone (27 `3/3`, 38 `3/3`, 43 `15/0` re-run the same
+session) — the failure is purely the abnormal host-disk condition (a §11.4.1 FAIL-bluff
+class: environment, not product). **Fix direction:** route test scratch through `$TMPDIR`
+(operator now sets `/Volumes/T7/tmp` via ~/.zshrc + ~/.bashrc) OR guard each test on
+`/tmp` writability and SKIP-with-reason (§11.4.3/§11.4.50). Captured-evidence requirement:
+an induced-disk-full run shows SKIP-with-reason, not FAIL.
 
 ---
 
@@ -115,4 +145,9 @@ B1 CHAL-COVER-001, B2 TEST-AUDIT-001 also landed in `Fixed.md`.)
 
 ---
 
-**Last reviewed:** 2026-06-13 (F1 HelixCode terminal-crash RESOLVED + closed to `Fixed.md` A45 with reproduced root cause + 4-layer regression guard; operator-confirmed "works now". Zero open non-terminal items.)
+**Last reviewed:** 2026-06-17 (v1.0.25 RELEASED; A49 test-17 flake closed to `Fixed.md`.
+Two minor Queued robustness Tasks added from the v1.0.25 cycle: A2 RUNALL-NATIVE-RESOLVE-001
+[run_all.sh containerized-path vs native-macOS binary resolution] + D2 TMPDIR-HARDCODE-001
+[tests hardcoding /tmp false-FAIL under host disk-pressure → should SKIP-with-reason / use
+$TMPDIR]. Both are environment/tooling robustness gaps, NOT product defects — the tmux
+product + all feature tests pass normally on both hosts.)

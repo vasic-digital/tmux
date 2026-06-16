@@ -280,8 +280,28 @@ evidence</li>
 </ul>
 <hr />
 <h2 id="a-tooling--harness-gaps">A. Tooling / harness gaps</h2>
-<p>(none open at this time — A1 META-MUT-001 landed in
-<code>Fixed.md</code>.)</p>
+<h3
+id="a2-runall-native-resolve-001--standalone-run_allsh-mis-resolves-the-binary-on-native-macos">A2
+RUNALL-NATIVE-RESOLVE-001 — standalone run_all.sh mis-resolves the
+binary on native macOS</h3>
+<p><strong>Status:</strong> Queued <strong>Type:</strong> Task</p>
+<p><code>scripts/tests/run_all.sh</code> hardcodes
+<code>TMUX_BIN=tmux/build/bin/tmux</code> (the
+<code>build_containerized.sh</code> output path) and is the
+containerized-build validator. On native macOS the authoritative
+validator is <code>setup.sh</code> (builds + verifies against
+<code>tmux/build-darwin/</code>). Invoked standalone on macOS with a
+stale <code>tmux/build/</code> present (a prior Linux containerized
+build), run_all.sh resolved the wrong-arch binary →
+<code>Exec format error</code> mass-FAIL (observed 2026-06-16; NOT a
+product defect — <code>setup.sh</code> run_all <code>55/0/6</code> +
+installed-binary smoke GREEN the same session; removing the stale
+<code>tmux/build/</code> then gave <code>not executable</code> because
+run_all expects that path). <strong>Fix direction:</strong> make
+run_all.sh OS-aware (prefer <code>tmux/build-darwin/</code> on Darwin)
+OR document that native-macOS validation is <code>setup.sh</code>-only
+and run_all.sh is the containerized path. Captured-evidence requirement:
+a clean native-macOS run_all GREEN after the fix.</p>
 <hr />
 <h2 id="b-anti-bluff-completeness-across-the-existing-test-surface">B.
 Anti-bluff completeness across the existing test surface</h2>
@@ -298,8 +318,27 @@ Per-session containerization features pending evidence</h2>
 <hr />
 <h2 id="d-host-capability--topology-dispatch-gaps">D. Host-capability +
 topology dispatch gaps</h2>
-<p>(none open at this time — D1 TOPO-DISPATCH-001 landed in
-<code>Fixed.md</code>.)</p>
+<h3
+id="d2-tmpdir-hardcode-001--tests-hardcoding-tmp-false-fail-under-host-disk-pressure">D2
+TMPDIR-HARDCODE-001 — tests hardcoding /tmp false-FAIL under host
+disk-pressure</h3>
+<p><strong>Status:</strong> Queued <strong>Type:</strong> Task</p>
+<p>Several tests create scratch under a hardcoded <code>/tmp</code>
+(e.g. <code>27_state_persistence.sh</code> target
+<code>tmx-test-18-target-*</code>). When the host root volume is full
+(observed 2026-06-16 on macOS, <code>/</code> at &lt;200 MiB during the
+operator's away-window), the <code>cd</code>/mkdir into
+<code>/tmp</code> fails → <code>pane_current_path=''</code> false-FAIL
+instead of an honest §11.4.3 SKIP-with-reason. The tests pass normally +
+standalone (27 <code>3/3</code>, 38 <code>3/3</code>, 43
+<code>15/0</code> re-run the same session) — the failure is purely the
+abnormal host-disk condition (a §11.4.1 FAIL-bluff class: environment,
+not product). <strong>Fix direction:</strong> route test scratch through
+<code>$TMPDIR</code> (operator now sets <code>/Volumes/T7/tmp</code> via
+~/.zshrc + ~/.bashrc) OR guard each test on <code>/tmp</code>
+writability and SKIP-with-reason (§11.4.3/§11.4.50). Captured-evidence
+requirement: an induced-disk-full run shows SKIP-with-reason, not
+FAIL.</p>
 <hr />
 <h2 id="e-documentation--continuation-drift">E. Documentation /
 Continuation drift</h2>
@@ -317,9 +356,14 @@ closes] + 4-layer regression guard [test 60 + verify gate
 <code>CM-TMX-WRAPPER-TMUXBIN-VALID</code> + meta
 <code>M-WRAPPER-TMUXBIN</code>]).</p>
 <hr />
-<p><strong>Last reviewed:</strong> 2026-06-13 (F1 HelixCode
-terminal-crash RESOLVED + closed to <code>Fixed.md</code> A45 with
-reproduced root cause + 4-layer regression guard; operator-confirmed
-"works now". Zero open non-terminal items.)</p>
+<p><strong>Last reviewed:</strong> 2026-06-17 (v1.0.25 RELEASED; A49
+test-17 flake closed to <code>Fixed.md</code>. Two minor Queued
+robustness Tasks added from the v1.0.25 cycle: A2
+RUNALL-NATIVE-RESOLVE-001 [run_all.sh containerized-path vs native-macOS
+binary resolution] + D2 TMPDIR-HARDCODE-001 [tests hardcoding /tmp
+false-FAIL under host disk-pressure → should SKIP-with-reason / use
+$TMPDIR]. Both are environment/tooling robustness gaps, NOT product
+defects — the tmux product + all feature tests pass normally on both
+hosts.)</p>
 </body>
 </html>
