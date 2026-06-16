@@ -69,10 +69,22 @@ systemd-run --user --scope --collect --quiet \
     -p "TasksMax=16" \
     stress-ng --vm 1 --vm-bytes $((MEM_BYTES + MEM_BYTES / 10)) --timeout 10s &
 SCOPE_PID=$!
-sleep 2
-
-DMESG_AFTER=$(_kring_count)
-OOM_LINES=$(_kring_tail $((DMESG_AFTER - DMESG_BEFORE)) | grep -iE 'oom-kill|out of memory|memory cgroup out of memory' || true)
+# §11.4.1/§11.4.50 source-layer hardening: the kernel OOM-kill fires
+# ASYNCHRONOUSLY while stress-ng (--timeout 10s) ramps allocation, and on a
+# `kernel.dmesg_restrict=1` host the fallback `journalctl -k` ingests the
+# kernel line with additional lag. A fixed `sleep 2` + single sample raced the
+# event → flaky FALSE-NEGATIVE (observed: PASS standalone, FAIL under full-suite
+# load). Poll the kernel ring for the OOM line up to ~16 s (stress-ng 10 s +
+# journald ingestion margin), breaking the instant it appears. A genuinely
+# broken cap never logs the line and still FAILs after the full timeout — the
+# assertion below is UNCHANGED.
+OOM_LINES=""
+for _oom_i in $(seq 1 32); do
+    DMESG_AFTER=$(_kring_count)
+    OOM_LINES=$(_kring_tail $((DMESG_AFTER - DMESG_BEFORE)) | grep -iE 'oom-kill|out of memory|memory cgroup out of memory' || true)
+    [ -n "$OOM_LINES" ] && break
+    sleep 0.5
+done
 if [ -n "$OOM_LINES" ]; then
     _pass "T5.1: kernel OOM-kill detected in dmesg (positive evidence)"
 else

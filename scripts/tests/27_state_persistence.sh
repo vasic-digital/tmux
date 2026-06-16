@@ -144,7 +144,21 @@ run_iteration() {
     mkdir -p "$hook_target"
     hook_target_real="$(cd "$hook_target" && pwd -P)"
     "$TMUX_BIN" -L "$SOCK_LABEL" send-keys "cd $hook_target" Enter 2>/dev/null
-    sleep 0.4
+    # §11.4.1 source-layer hardening: after `send-keys "cd …"`, tmux does NOT
+    # update #{pane_current_path} synchronously — measured on macOS the osdep
+    # cwd probe lags the shell's chdir by ~1.5 s. A blind `sleep 0.4` then
+    # records the STALE Phase-1 path → deterministic FAIL (recall='…-target-…').
+    # Poll #{pane_current_path} until it reflects hook_target (proving the cd
+    # actually took) BEFORE recording, mirroring Phase 2's poll. A genuinely
+    # broken cd never reaches hook_target and still FAILs after the 5 s timeout.
+    local _cd_i _cd_pp
+    for _cd_i in $(seq 1 25); do
+        _cd_pp="$("$TMUX_BIN" -L "$SOCK_LABEL" display-message -p '#{pane_current_path}' 2>/dev/null || true)"
+        if [ "$_cd_pp" = "$hook_target" ] || [ "$_cd_pp" = "$hook_target_real" ]; then
+            break
+        fi
+        sleep 0.2
+    done
     # Drive the hook's run-shell command directly so we don't depend on
     # client-detached/session-closed firing (no client is attached in
     # this detached-session test). The wrapper installs the SAME command;

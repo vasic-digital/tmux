@@ -6,6 +6,90 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.23] — 2026-06-16
+
+**Cross-distro Linux hardening: the tmux binary no longer emits the `/lib64/libtinfo.so.6: no version information available` warning on every invocation, plus three test-determinism fixes — validated dual-host on macOS (Darwin arm64) and nezha (ALT Linux x86_64).**
+
+The Linux build of tmux is compiled in an `ubuntu:22.04` container whose
+`libtinfo` carries versioned symbol nodes (`NCURSES6_TINFO_5.0.*` / `5.8.*`).
+When that binary ran on the `nezha.local` host (ALT Linux), whose `libtinfo.so.6`
+has **zero** NCURSES version nodes, the dynamic loader printed
+`/lib64/libtinfo.so.6: no version information available` on **every** tmux
+invocation — polluting the stderr of every command. This release links terminfo
+**statically** so the warning is structurally impossible on any distribution,
+and fixes three test-harness timing races discovered while re-validating the
+full suite on real Linux hardware.
+
+### Fixed
+
+- **libtinfo cross-distro warning eliminated (cross-distro portability, §11.4.81).**
+  `docker/build_inside_container.sh` now passes `LIBTINFO_LIBS="-l:libtinfo.a"`
+  to `./configure`, linking terminfo from `ubuntu:22.04`'s static archive
+  instead of `libtinfo.so.6`. The ELF carries **no** `libtinfo.so` `DT_NEEDED`
+  entry and **zero** `NCURSES6_TINFO` versioned refs, so the warning cannot
+  fire on any host. This is **partial**-static (terminfo only) — `glibc`,
+  `jemalloc`, and `libevent` stay **dynamic** (`DT_NEEDED` still lists
+  `libjemalloc.so.2`), preserving the `LD_PRELOAD`-jemalloc architecture and the
+  build-time `-ljemalloc` linkage. NOT `--enable-static` (which produces a
+  fully-static binary that drops jemalloc and breaks `LD_PRELOAD`). Static
+  terminfo still reads the host's `/usr/share/terminfo` at runtime — terminfo
+  data is never bundled.
+- **Test 27 (`tmx-state` cwd persistence) — deterministic FAIL on macOS fixed
+  (§11.4.1 source-layer).** Phase 3 recorded `#{pane_current_path}` after a
+  blind `sleep 0.4`, but macOS tmux updates the pane cwd ~1.5 s after a
+  `send-keys "cd …"` (measured) — so it captured the stale path and FAILed
+  3/3. Now polls until the cd is reflected before recording. PASS 3/3 on both
+  macOS and Linux.
+- **Tests 12 & 14 (cgroup memory-pressure / concurrent-OOM independence) —
+  flaky FALSE-NEGATIVE fixed (§11.4.1 / §11.4.50).** The kernel OOM-kill fires
+  asynchronously and, on a `kernel.dmesg_restrict=1` host, `journalctl -k`
+  ingests the line with lag; a fixed-`sleep` single sample raced it. Now polls
+  the kernel ring for the OOM line up to a generous timeout (assertion
+  unchanged). PASS 5/5 deterministic on nezha with real OOM-kill evidence.
+
+### Added
+
+- **`scripts/tests/61_no_libtinfo_version_warning.sh`** — cross-platform
+  regression guard (§11.4.81): T1 (both OSes) the binary emits no
+  dynamic-loader version warning; T2 (Linux) `ldd` shows no `libtinfo.so` and
+  `objdump` shows 0 `NCURSES6_TINFO` refs; T3 (Linux) `DT_NEEDED` still lists
+  `libjemalloc.so` (fix did not regress jemalloc). Darwin SKIPs T2/T3 with
+  reason; T1 is the shared positive proof.
+- **`scripts/verify.sh` gate `CM-NO-DYNAMIC-LIBTINFO`** — pre-build layer-1
+  guard: refuses to bless a Linux binary that dynamically links `libtinfo.so`.
+  Teeth proven (the distro `/usr/bin/tmux`, which links `libtinfo.so.6`, trips
+  it); Darwin PASSes by non-applicability.
+
+### Proven evidence (real captured runtime, no guessing per §11.4.6)
+
+Captured under `docs/qa/2026-06-16-libtinfo-crossdistro/`:
+
+| Host | Proof |
+|---|---|
+| nezha (ALT Linux x86_64) | rebuilt binary `ldd` → 0 `libtinfo` deps; `tmux -V` stderr → **0** warning lines (was 1/invocation); test 61 PASS 3/0/0; full `verify.sh` (TMX_TEST_DESTRUCTIVE=1) **EXIT 0, PASS=49 FAIL=0 SKIP=11**, `CM-NO-DYNAMIC-LIBTINFO` PASS; tests 12 & 14 PASS 5/5 with kernel OOM-kill detected + user.slice survived; meta-test **52 CAUGHT / 0 ESCAPED** |
+| Mistborn (Darwin arm64) | full suite (isolated TMPDIR, Mach-O binary) **EXIT 0, PASS=55 FAIL=0 SKIP=5**; test 27 PASS 3/3; test 61 T1 PASS (Darwin) |
+
+### Notes
+
+- The destructive cgroup-isolation tests (`12`/`14`) require `TMX_TEST_DESTRUCTIVE=1`
+  + `stress-ng`; they remain SKIP by default and run only on a dedicated Linux
+  test host. `08_oom_score_adj` stays an honest SKIP (needs root / setcap helper).
+- No change to the macOS (Mach-O) build or the shipped `tmx` wrapper behaviour —
+  the libtinfo fix is confined to the containerized Linux ELF link.
+
+## Sources verified 2026-06-16
+
+Static-terminfo linking + symbol-versioning + runtime terminfo resolution
+cross-referenced against latest upstream/authoritative sources (§11.4.99):
+
+- <https://mhcerri.github.io/posts/building-tmux-statically/>
+- <https://github.com/tmux/tmux/blob/master/configure.ac>
+- <https://www.man7.org/linux/man-pages/man5/terminfo.5.html>
+- <https://invisible-island.net/ncurses/ncurses-mapsyms.html>
+- <https://invisible-island.net/ncurses/ncurses.faq.html>
+
+---
+
 ## [v1.0.22] — 2026-06-13
 
 **Apple `container` integration: on-demand containerized Linux under macOS for testing — build tmux 3.6a inside a real Linux VM and run the suite, no remote Linux host required.**

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>v1.0.23</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1 id="vasic-digital-tmux-v1.0.23-release-notes">vasic-digital tmux —
+v1.0.23 Release Notes</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-16T13:30:00Z <strong>Version:</strong> 1.0.23 / versionCode 24
+<strong>Released:</strong> 2026-06-16 <strong>Hosts validated:</strong>
+Mistborn (Darwin arm64) + nezha (ALT Linux 6.12 x86_64)</p>
+<hr />
+<h2 id="summary">Summary</h2>
+<p>v1.0.23 eliminates the cross-distro
+<code>/lib64/libtinfo.so.6: no version information available</code>
+warning that the containerized Linux build emitted on
+<strong>every</strong> tmux invocation when run on a host (ALT Linux on
+<code>nezha</code>) whose <code>libtinfo</code> lacks the build
+container’s NCURSES version nodes. terminfo is now linked
+<strong>statically</strong> so the warning is structurally impossible on
+any distribution, while <code>glibc</code> / <code>jemalloc</code> /
+<code>libevent</code> stay dynamic (the <code>LD_PRELOAD</code>-jemalloc
+architecture is preserved). The release also fixes three test-harness
+timing races (§11.4.1) surfaced while re-validating the full suite on
+real Linux hardware, and was validated green on both supported OSes.</p>
+<hr />
+<h2 id="fixed">Fixed</h2>
+<h3 id="libtinfo-cross-distro-symbol-version-warning-11.4.81">libtinfo
+cross-distro symbol-version warning (§11.4.81)</h3>
+<p><code>docker/build_inside_container.sh</code> passes
+<code>LIBTINFO_LIBS="-l:libtinfo.a"</code> to <code>./configure</code>.
+The Linux ELF then carries no <code>libtinfo.so</code>
+<code>DT_NEEDED</code> entry and 0 <code>NCURSES6_TINFO</code> versioned
+refs.</p>
+<p>Before:</p>
+<pre class="text"><code>tmux/build/bin/tmux: /lib64/libtinfo.so.6: no version information available (required by tmux)</code></pre>
+<p>After:</p>
+<pre class="text"><code>$ tmux/build/bin/tmux -V    # stderr
+tmux 3.6a                   # 0 warning lines; ldd shows no libtinfo.so</code></pre>
+<p>Partial-static (terminfo only) — <code>ldd</code> still lists
+<code>libjemalloc.so.2</code>, so the build-time jemalloc linkage and
+the wrapper’s <code>LD_PRELOAD</code> jemalloc are intact. NOT
+<code>--enable-static</code> (which yields a fully-static binary that
+drops jemalloc). Static terminfo still reads the host
+<code>/usr/share/terminfo</code> at runtime.</p>
+<h3 id="test-27-tmx-state-cwd-persistence-deterministic-macos-fail">Test
+27 — <code>tmx-state</code> cwd persistence (deterministic macOS
+FAIL)</h3>
+<p>Phase 3 recorded <code>#{pane_current_path}</code> after a blind
+<code>sleep 0.4</code>; macOS tmux updates the pane cwd ~1.5 s after
+<code>send-keys "cd …"</code> (measured), so it captured the stale path.
+Now polls until the cd is reflected before recording. PASS 3/3 on macOS
+and Linux.</p>
+<h3 id="tests-12-14-cgroup-oom-tests-flaky-false-negative">Tests 12
+&amp; 14 — cgroup OOM tests (flaky false-negative)</h3>
+<p>The kernel OOM-kill is asynchronous and <code>journalctl -k</code>
+(the <code>dmesg_restrict=1</code> fallback) ingests it with lag; a
+fixed-<code>sleep</code> single sample raced it. Now polls the kernel
+ring for the OOM line up to a generous timeout. PASS 5/5 with real OOM
+evidence; assertions unchanged.</p>
+<hr />
+<h2 id="tests-added-hardened">Tests — added / hardened</h2>
+<ul>
+<li><code>scripts/tests/61_no_libtinfo_version_warning.sh</code> —
+cross-platform regression guard (no loader warning; Linux: static-tinfo
++ jemalloc-preserved checks).</li>
+<li><code>scripts/verify.sh</code> <code>CM-NO-DYNAMIC-LIBTINFO</code> —
+layer-1 pre-build gate; refuses a Linux binary that dynamically links
+<code>libtinfo.so</code> (teeth: distro <code>/usr/bin/tmux</code> trips
+it).</li>
+<li>Tests 27 / 12 / 14 hardened to poll real conditions (§11.4.1 /
+§11.4.50).</li>
+</ul>
+<hr />
+<h2 id="validation-dual-host">Validation (dual-host)</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Host</th>
+<th>binary</th>
+<th>suite</th>
+<th>meta</th>
+<th>libtinfo warning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mistborn (Darwin arm64)</td>
+<td>Mach-O <code>build-darwin</code></td>
+<td>run_all PASS=55 FAIL=0 SKIP=5</td>
+<td>(Linux-host)</td>
+<td>N/A (Mach-O)</td>
+</tr>
+<tr>
+<td>nezha (ALT Linux x86_64)</td>
+<td>ELF <code>build</code> (rebuilt)</td>
+<td>verify.sh EXIT 0 PASS=49 FAIL=0 SKIP=11 (12/14 PASS w/ OOM)</td>
+<td>52 CAUGHT / 0 ESCAPED</td>
+<td>gone (0 lines)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="files-changed">Files changed</h2>
+<ul>
+<li><code>docker/build_inside_container.sh</code> —
+<code>LIBTINFO_LIBS="-l:libtinfo.a"</code> static-tinfo link.</li>
+<li><code>scripts/tests/61_no_libtinfo_version_warning.sh</code> — new
+regression guard.</li>
+<li><code>scripts/verify.sh</code> — <code>CM-NO-DYNAMIC-LIBTINFO</code>
+gate.</li>
+<li><code>scripts/tests/27_state_persistence.sh</code> — poll-for-cd
+hardening.</li>
+<li><code>scripts/tests/12_memory_pressure_under_cap.sh</code>,
+<code>scripts/tests/14_concurrent_oom_independence.sh</code> —
+poll-for-OOM hardening.</li>
+<li><code>VERSION</code> (1.0.23 / versionCode 24),
+<code>CHANGELOG.md</code>, <code>Fixed.md</code>,
+<code>CONTINUATION.md</code>.</li>
+<li>Evidence:
+<code>docs/qa/2026-06-16-libtinfo-crossdistro/evidence.md</code>.</li>
+</ul>
+<h2 id="sources-verified-2026-06-16">Sources verified 2026-06-16</h2>
+<ul>
+<li><a href="https://mhcerri.github.io/posts/building-tmux-statically/"
+class="uri">https://mhcerri.github.io/posts/building-tmux-statically/</a></li>
+<li><a href="https://github.com/tmux/tmux/blob/master/configure.ac"
+class="uri">https://github.com/tmux/tmux/blob/master/configure.ac</a></li>
+<li><a href="https://www.man7.org/linux/man-pages/man5/terminfo.5.html"
+class="uri">https://www.man7.org/linux/man-pages/man5/terminfo.5.html</a></li>
+<li><a href="https://invisible-island.net/ncurses/ncurses-mapsyms.html"
+class="uri">https://invisible-island.net/ncurses/ncurses-mapsyms.html</a></li>
+<li><a href="https://invisible-island.net/ncurses/ncurses.faq.html"
+class="uri">https://invisible-island.net/ncurses/ncurses.faq.html</a></li>
+</ul>
+</body>
+</html>

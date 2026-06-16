@@ -26,8 +26,25 @@ echo "[inner] configuring with hardened flags + jemalloc link..."
 # README's "Build-time `-ljemalloc`" claim true rather than a bluff — without
 # --no-as-needed, ldd shows no libjemalloc.so and we'd be falsely advertising
 # the build-time linkage.
+# `LIBTINFO_LIBS="-l:libtinfo.a"` forces tmux's terminfo dependency to link the
+# STATIC archive (ubuntu:22.04 `libncurses-dev` ships /usr/lib/.../libtinfo.a)
+# instead of the dynamic `libtinfo.so.6`. Rationale (cross-distro portability,
+# §11.4.81): the container's Ubuntu libtinfo carries versioned symbol nodes
+# (NCURSES6_TINFO_5.0.* / 5.8.*); a host whose libtinfo lacks those version
+# nodes (e.g. ALT Linux on nezha — `objdump -T` shows zero NCURSES version
+# nodes) made the dynamic loader print `'/lib64/libtinfo.so.6: no version
+# information available'` on EVERY invocation. Statically linking tinfo removes
+# the `libtinfo.so` DT_NEEDED entry entirely (verified: `ldd` shows no tinfo,
+# `objdump -T | grep NCURSES6_TINFO` == 0), so the warning is structurally
+# impossible on any distro. Partial-static ONLY for tinfo — glibc, jemalloc,
+# and libevent stay DYNAMIC (verified DT_NEEDED still lists libjemalloc.so.2),
+# so the LD_PRELOAD-jemalloc architecture and the build-time -ljemalloc claim
+# are preserved (NOT `--enable-static`, which would make a fully-static binary
+# that drops jemalloc and breaks LD_PRELOAD). Static tinfo still reads the
+# host's /usr/share/terminfo at runtime — terminfo DATA is never bundled.
 CFLAGS="-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2 -Wno-unused-parameter -Wno-deprecated-declarations" \
 LDFLAGS="-Wl,-z,relro,-z,now -Wl,--no-as-needed -ljemalloc -Wl,--as-needed" \
+LIBTINFO_LIBS="-l:libtinfo.a" \
     ./configure \
         --prefix=/tmux-src/build \
         --disable-debug 2>&1 | tail -10

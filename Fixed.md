@@ -54,6 +54,45 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A46. Linux build emitted `/lib64/libtinfo.so.6: no version information available` on every invocation (cross-distro) — `RESOLVED`
+
+**Type:** Bug
+**Status:** Fixed (→ Fixed.md)
+**Closure cycle:** v1.0.23 / versionCode 24 (2026-06-16).
+**Reported:** AI, 2026-06-16 — observed on every `tmux`/`tmx` invocation during the dual-host re-validation on `nezha.local` (ALT Linux); the warning polluted the stderr of every command.
+**Closure source (§11.4.34):** By **AI** (full-suite re-validation on real Linux hardware); On 2026-06-16; Reason: `cycle-re-discovered`; Evidence: `docs/qa/2026-06-16-libtinfo-crossdistro/evidence.md`.
+
+**Root cause (FACT — no guessing per §11.4.6).** The Linux ELF is compiled in an `ubuntu:22.04` container whose `libncurses-dev` `libtinfo` carries versioned symbol nodes — `objdump -T tmux` requires `NCURSES6_TINFO_5.0.19991023` + `NCURSES6_TINFO_5.8.20110226`. The `nezha` host runs ALT Linux, whose `/lib64/libtinfo.so.6` (`libtinfo-6.5`) has **zero** NCURSES version nodes (`objdump -T` returns empty). The symbols resolve by name (tmux is functional), but the missing version node makes the dynamic loader print `'/lib64/libtinfo.so.6: no version information available (required by tmux)'` at every process start.
+
+**Fix.** `docker/build_inside_container.sh` passes `LIBTINFO_LIBS="-l:libtinfo.a"` to `./configure`, linking terminfo from the static archive that `ubuntu:22.04` already ships. The rebuilt binary carries **no** `libtinfo.so` `DT_NEEDED` entry and **0** `NCURSES6_TINFO` versioned refs → warning structurally impossible on any distro. Deliberately **partial**-static (terminfo only): `ldd` still lists `libjemalloc.so.2` + `libevent_core` + dynamic `glibc`, so the `LD_PRELOAD`-jemalloc architecture and the build-time `-ljemalloc` linkage are preserved (NOT `--enable-static`, which produces a fully-static binary that drops jemalloc and breaks `LD_PRELOAD`). Static terminfo still reads the host `/usr/share/terminfo` at runtime (terminfo data is never bundled — confirmed via `terminfo(5)`).
+
+**Regression guard (4-layer per §103 / §11.4.4).**
+- **Layer 1 (source gate):** `scripts/verify.sh` `CM-NO-DYNAMIC-LIBTINFO` — refuses to bless a Linux binary that dynamically links `libtinfo.so`. Teeth proven: distro `/usr/bin/tmux` (links `libtinfo.so.6`) trips it; Darwin PASSes N/A.
+- **Layer 3 (runtime):** NEW `scripts/tests/61_no_libtinfo_version_warning.sh` — T1 no loader warning (both OSes), T2 static-tinfo (Linux), T3 jemalloc-preserved (Linux). PASS 3/0/0 on nezha; T1 PASS on macOS.
+- **Evidence:** `docs/qa/2026-06-16-libtinfo-crossdistro/evidence.md` (objdump/ldd before+after, test 61, verify gate, dual-host suites).
+- **Sources (§11.4.99):** mhcerri static-tmux, tmux `configure.ac`, `terminfo(5)`, ncurses mapsyms/FAQ.
+
+---
+
+### A47. Test-harness timing races — tests 27 (macOS) and 12/14 (Linux OOM) — `RESOLVED`
+
+**Type:** Bug
+**Status:** Fixed (→ Fixed.md)
+**Closure cycle:** v1.0.23 / versionCode 24 (2026-06-16).
+**Reported:** AI, 2026-06-16 — surfaced during the §11.4.40 full-suite re-validation; §11.4.1 FAIL-bluffs (script timing, not product defects).
+**Closure source (§11.4.34):** By **AI** (full-suite re-validation); On 2026-06-16; Reason: `test-failed`; Evidence: `docs/qa/2026-06-16-libtinfo-crossdistro/evidence.md` §4.
+
+**Root cause (FACT).** All three sampled an asynchronous condition too early:
+- **Test 27 (`27_state_persistence`, macOS):** Phase 3 recorded `#{pane_current_path}` after a blind `sleep 0.4`, but macOS tmux's osdep cwd probe updates ~1.5 s after a `send-keys "cd …"` (measured) → recorded the stale `-target-` path → deterministic FAIL 3/3.
+- **Tests 12 & 14 (`12_memory_pressure_under_cap`, `14_concurrent_oom_independence`, Linux):** the kernel cgroup OOM-kill fires asynchronously and, on a `kernel.dmesg_restrict=1` host, the `journalctl -k` fallback ingests the kernel line with lag; a fixed-`sleep` + single sample raced it → flaky false-negative ("no OOM-kill in dmesg") under full-suite load while passing standalone.
+
+**Fix (§11.4.1 source-layer — assertions UNCHANGED).** Replaced each blind sleep+single-sample with a bounded poll of the real condition: test 27 polls `#{pane_current_path}` until the cd is reflected before recording; tests 12/14 poll the kernel ring for the OOM-kill line up to ~16 s / ~22 s. A genuinely broken feature never satisfies the condition and still FAILs after the full timeout.
+
+**Verification (§11.4.50 determinism).** Test 27 PASS 3/3 on macOS AND Linux. Tests 12 & 14 PASS 5/5 each on nezha with real `kernel OOM-kill detected` evidence + user.slice survival. Full dual-host suites green afterward (nezha verify EXIT 0 PASS=49/0/11; macOS PASS=55/0/5); meta-test 52 CAUGHT / 0 ESCAPED.
+**Evidence:** `docs/qa/2026-06-16-libtinfo-crossdistro/evidence.md`.
+
+---
+
 ### A45. `tmx` session named "HelixCode" crashed the whole terminal — `RESOLVED`
 
 **Type:** Bug

@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-13T18:35Z
+**Last updated:** 2026-06-16T13:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,30 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.23 — libtinfo cross-distro static-link fix + test-determinism hardening → v1.0.23 (2026-06-16)
+
+**Status:** DONE — RELEASED v1.0.23 (2026-06-16). Dual-host re-validated:
+nezha.local (ALT Linux) synced to v1.0.22 baseline, `setup.sh` run, full
+destructive suite executed on real Linux hardware.
+
+**What landed.** (1) **libtinfo fix (A46):** the containerized Linux build
+linked `libtinfo.so.6` dynamically; on ALT Linux (no NCURSES version nodes) the
+loader warned on every invocation. Fixed by static terminfo link
+(`LIBTINFO_LIBS="-l:libtinfo.a"` in `docker/build_inside_container.sh`) — `ldd`
+shows no libtinfo, jemalloc/glibc stay dynamic, warning gone. New test 61 +
+verify gate `CM-NO-DYNAMIC-LIBTINFO`. (2) **Test-determinism (A47):** test 27
+(macOS cd-poll), tests 12/14 (Linux OOM-poll) — §11.4.1 timing races fixed,
+now deterministic. (3) macOS test 22 codegraph OpenCode wiring repaired
+(host `~/.config/opencode/opencode.json`, §11.4.78).
+
+**Validation (captured — `docs/qa/2026-06-16-libtinfo-crossdistro/evidence.md`):**
+nezha verify.sh EXIT 0 PASS=49/0/11 (tests 12/14 PASS w/ real kernel OOM-kill,
+deterministic 5/5); meta-test 52 CAUGHT / 0 ESCAPED; macOS run_all PASS=55/0/5;
+test 61 PASS; libtinfo warning 0 lines (was 1/invocation).
+
+**No open follow-ups.** Issues.md zero non-terminal items. Honest SKIPs remain:
+`08_oom_score_adj` (root/setcap), GUI/clipboard/remote/DB opt-ins.
 
 ### §3.22 — Apple `container` integration: on-demand containerized Linux under macOS for testing → v1.0.22 (2026-06-13)
 

@@ -459,6 +459,42 @@ _check_CM_TMX_WRAPPER_TMUXBIN_VALID() {
     return 0
 }
 
+# CM-NO-DYNAMIC-LIBTINFO — cross-distro portability guard (§11.4.81). The
+# containerized Linux build links terminfo STATICALLY
+# (docker/build_inside_container.sh: LIBTINFO_LIBS="-l:libtinfo.a") so the ELF
+# carries NO libtinfo.so DT_NEEDED entry and therefore cannot emit the
+# `/lib64/libtinfo.so.6: no version information available` warning on hosts
+# (e.g. ALT Linux on nezha) whose libtinfo lacks the Ubuntu NCURSES6_TINFO
+# version nodes. Linux-only invariant: Mach-O has no ELF symbol-versioning, so
+# Darwin PASSes by non-applicability. Runtime companion: scripts/tests/61_*.sh.
+_check_CM_NO_DYNAMIC_LIBTINFO() {
+    if [ "$(uname -s)" != "Linux" ]; then
+        printf '[PASS] %s (non-Linux: libtinfo/ELF symbol-versioning N/A)\n' \
+            "CM-NO-DYNAMIC-LIBTINFO"
+        return 0
+    fi
+    if [ ! -x "$TMUX_BIN" ]; then
+        printf '[PASS] %s (binary not built yet — nothing to inspect)\n' \
+            "CM-NO-DYNAMIC-LIBTINFO"
+        return 0
+    fi
+    if ! command -v ldd >/dev/null 2>&1; then
+        printf '[PASS] %s (ldd unavailable — deferred to runtime test 61)\n' \
+            "CM-NO-DYNAMIC-LIBTINFO"
+        return 0
+    fi
+    local n
+    n=$(ldd "$TMUX_BIN" 2>/dev/null | grep -c 'libtinfo' || true)
+    if [ "$n" -ne 0 ]; then
+        printf '[FAIL] %s tmux dynamically links libtinfo.so (%s dep(s)) — cross-distro version-warning surface; build must static-link tinfo\n' \
+            "CM-NO-DYNAMIC-LIBTINFO" "$n"
+        return 1
+    fi
+    printf '[PASS] %s (0 dynamic libtinfo deps — tinfo statically linked)\n' \
+        "CM-NO-DYNAMIC-LIBTINFO"
+    return 0
+}
+
 # Run the new gates. Aggregate failure into V109_FAIL — Layer 1 must
 # stay fail-fast, so any FAIL aborts before the runtime suite (binary is
 # NOT operator-safe with broken P1-P4 artefacts).
@@ -469,6 +505,7 @@ _check_CM_TMX_SHELL_INIT_POSIX       || V109_FAIL=1
 _check_CM_TMX_SSH_DISPATCH_POSIX     || V109_FAIL=1
 _check_CM_TMX_DOCS_GUIDES_EXIST      || V109_FAIL=1
 _check_CM_TMX_WRAPPER_TMUXBIN_VALID  || V109_FAIL=1
+_check_CM_NO_DYNAMIC_LIBTINFO        || V109_FAIL=1
 if [ "$V109_FAIL" -ne 0 ]; then
     echo ""
     echo "RED: one or more v1.0.9 PWU pre-build gates FAILed. Investigate"
