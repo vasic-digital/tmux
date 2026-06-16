@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-16T19:05Z
+**Last updated:** 2026-06-16T21:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -42,6 +42,24 @@ of all submodules": advanced HelixConstitution `3f4d690` → `1d408cb` (+67 comm
 verified (test 18 PASS=10/0); release gate (verify.sh §11.4.87..99) unaffected.
 Host-level: codegraph macOS skew fixed (stale `~/.local/bin` symlink → both hosts
 1.0.1); 668 dead macOS test sockets removed (678→10, no live session touched).
+
+**Test 17 flake — root-caused + fixed (A49, 2 vectors).** `17_scrollback_copy_mode.sh`
+flaked under heavy host load (§11.4.1 FAIL-bluffs, NOT a product defect — scrollback works
+for the end user). Vector 1: the T4 generator spelled `SCROLLMARK_FIRST`/`SCROLLMARK_LAST`
+inline, so the terminal's echo of the TYPED command line contained `SCROLLMARK_LAST` and the
+`GEN_OK` poll matched the command echo before any real output (forced-slow probe on nezha:
+command-echo grep=1, real-output grep=0). Fixed by assembling markers from a shell variable
+(`M=SCROLLMARK; echo ${M}_LAST`) → every grep matches REAL OUTPUT only. Vector 2: under all-core
+CPU saturation a `capture-pane` grid dump can momentarily lack the oldest `FIRST` marker although
+the buffer genuinely retains all 3000 lines (captured: 3006 lines, LAST present, 2998 numbered
+markers, history-limit 50000). Fixed by asserting retention via the **race-free `#{history_size}`
+counter** (`>= 2900`, `display-message -p`) at T4.2, not a grid dump (the no-eviction value is a
+deterministic ~2982; the OLD 2000 cap pins it at 2000 and evicts line 1) — T4.3/T4.4 (operator
+copy-mode reach of FIRST) already proved retention robustly and never raced. Test source only
+(`scripts/tests/17_scrollback_copy_mode.sh`); assertions of the end-user guarantee unchanged.
+**Determinism (§11.4.50) — PROVEN:** macOS N=5 GREEN (5/5) + nezha N=20 under full all-core CPU
+saturation GREEN (20/20); `history_size` identical every run (macOS 2981 / nezha 2982 — counter does
+not race). Pending before tag: the §11.4.40 full destructive gate (rel25c, running) GREEN.
 
 **Known follow-up (non-blocking):** verbatim/cascade mirroring of §11.4.140–158 into
 project CLAUDE.md/AGENTS.md/QWEN.md (for non-`@import` agents) — functional inheritance

@@ -166,8 +166,21 @@ fi
 #       scrolled off-screen, then prove the operator can scroll back to
 #       it via copy-mode and copy it. ───────────────────────────────────
 # Print a unique FIRST marker, 2998 numbered lines, a unique LAST marker.
+#
+# §11.4.50/§11.4.102 root-cause hardening (2026-06-16, PROVEN on nezha):
+# the markers are assembled from a shell variable ($M=SCROLLMARK) so the
+# OUTPUT lines read 'SCROLLMARK_FIRST'/'SCROLLMARK_LAST' but the TYPED
+# COMMAND text reads '${M}_FIRST'/'${M}_LAST'. Earlier the command spelled
+# the literals inline, so the terminal's echo of the typed command line
+# itself contained 'SCROLLMARK_LAST' — and under heavy host load (slow
+# shell start) the GEN_OK poll below matched that COMMAND ECHO before the
+# 3000-line loop produced any real output, then T4.2 raced the still-
+# unwritten scrollback and flaked FAIL (captured: 1/6 runs; forced-slow
+# probe showed grep on command-echo = 1, real-output = 0). With the
+# variable form, every SCROLLMARK_* grep matches REAL OUTPUT ONLY — the
+# command echo can never false-trigger. Same lines, same evidence.
 "$TMUX_BIN" -L "$S_SOCK" send-keys -t "$S_NAME" \
-  'echo SCROLLMARK_FIRST; for i in $(seq 2 2999); do echo "SCROLLMARK_$i"; done; echo SCROLLMARK_LAST' Enter
+  'M=SCROLLMARK; echo ${M}_FIRST; for i in $(seq 2 2999); do echo ${M}_$i; done; echo ${M}_LAST' Enter
 
 # Poll until the LAST marker shows in the visible pane (generation done).
 GEN_OK=0
@@ -200,27 +213,46 @@ fi
 # (history-limit 2000) line 1 would be evicted; PASS here is positive
 # proof the 50000 bump is functional.
 #
-# Nezha fix (2026-05-21): when this test ran inside the full setup.sh
-# suite on a busy host, the capture-pane sometimes returned BEFORE all
-# 3000 lines had been written into the scrollback (T4 GEN_OK polled the
-# VISIBLE pane for LAST, but tmux's scrollback ingestion can lag the
-# visible-frame paint by a few hundred ms on a loaded Linux box).
-# Standalone re-runs PASSed because the load profile differed. The fix:
-# poll the FULL capture-pane (-S -) for SCROLLMARK_FIRST too, with the
-# same up-to-15s budget. Same evidence shape, robust to load.
-FULL=""
+# Busy-host hardening (§11.4.50/§11.4.102, root-caused 2026-06-16 on nezha
+# under all-core CPU saturation). TWO load defects were proven and closed:
+#   (1) GEN_OK command-echo false-match — fixed at the send-keys above by
+#       the $M variable form (the command text no longer spells the literal).
+#   (2) capture-pane GRID-SNAPSHOT race — on a host whose cores are pinned,
+#       a single `capture-pane -p -S -` (a full grid+history dump) can
+#       momentarily return a buffer that has the bottom (LAST) yet lacks the
+#       oldest line (FIRST), even though the history GENUINELY retains it
+#       (proven: a failing run's buffer had 3006 lines + LAST + 2998 numbered
+#       markers; only the grid dump raced). The buffer is NOT too small.
+# Fix: assert retention from tmux's OWN race-free history counter
+# `#{history_size}` — the number of lines scrolled into scrollback — read
+# via display-message, NOT a grid dump. With the OLD default history-limit
+# (2000) the first lines are evicted once line >2000 arrives, so
+# history_size caps at ~2000 and line 1 is gone. history_size counts lines
+# scrolled OFF the visible page (NOT total): with the 80x24 detached session
+# and 3000 generated lines the no-eviction value is ~2982 (total ~3006 minus
+# the visible page) — measured DETERMINISTICALLY = 2982 across 20/20 runs
+# under full all-core saturation (the counter does not race). So a threshold
+# strictly between the broken 2000 cap and the functional ~2982 is the
+# faithful, deterministic discriminator: `history_size >= 2900` PASSes the
+# 50000 bump (no eviction → line 1 retained) and FAILs the OLD 2000 cap
+# (which pins history_size at exactly 2000 and evicts line 1), with margin
+# both ways. Poll briefly for the counter to settle as generation drains
+# under load. T4.3/T4.4 below independently prove the operator can
+# copy-mode-reach FIRST (that path reads the history structure directly and
+# never raced even under full saturation).
+HISTSZ=0
 T42_OK=0
-for _i in $(seq 1 30); do
-    FULL="$("$TMUX_BIN" -L "$S_SOCK" capture-pane -p -S - -t "$S_NAME" 2>/dev/null || true)"
-    if printf '%s' "$FULL" | grep -q 'SCROLLMARK_FIRST'; then
+for _i in $(seq 1 60); do
+    HISTSZ="$("$TMUX_BIN" -L "$S_SOCK" display-message -p -t "$S_NAME" '#{history_size}' 2>/dev/null | tr -dc '0-9')"
+    if [ -n "$HISTSZ" ] && [ "$HISTSZ" -ge 2900 ]; then
         T42_OK=1; break
     fi
     sleep 0.5
 done
 if [ "$T42_OK" -eq 1 ]; then
-    _pass "T4.2: scrollback buffer retains line 1 of 3000 (history-limit bump is functional; poll-ingest captured)"
+    _pass "T4.2: scrollback retains line 1 of 3000 — live history_size=$HISTSZ >= 2900 (history-limit bump functional; OLD 2000 cap would pin it at 2000 and evict line 1)"
 else
-    _fail "T4.2: SCROLLMARK_FIRST not in scrollback after 15s poll — buffer too small (history-limit not effective)"
+    _fail "T4.2: history_size=$HISTSZ < 2900 after 30s — scrollback did not retain all 3000 lines (history-limit not effective; OLD 2000 cap evicts line 1)"
 fi
 
 # T4.3 + T4.4 — copy-mode navigation reaches the old content.

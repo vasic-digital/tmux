@@ -54,6 +54,28 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A49. Test 17 (scrollback / copy-mode) load flake — root-caused + fixed (two independent vectors) — `RESOLVED`
+
+**Type:** Task
+**Status:** Completed (→ Fixed.md)
+**Closure cycle:** v1.0.25 / versionCode 26 (2026-06-16).
+**Reported:** AI, 2026-06-16 — `17_scrollback_copy_mode.sh` flaked intermittently under heavy host load (slow shell start + all-core CPU saturation) during the §11.4.40 full-suite re-validation; §11.4.1 FAIL-bluffs (test timing / capture races, NOT product defects — the scrollback feature works for the end user).
+**Closure source (§11.4.34):** By **AI** (full-suite re-validation under load); On 2026-06-16; Reason: `test-failed`; Evidence: macOS N=5 GREEN (5/5) + nezha N=20 under full all-core CPU saturation GREEN (20/20); `history_size` deterministic (macOS 2981 / nezha 2982).
+
+**Root cause #1 (FACT — no guessing per §11.4.6) — GEN_OK command-echo false-match.** The T4 generator command spelled the literal markers `SCROLLMARK_FIRST` / `SCROLLMARK_LAST` inline in the `send-keys` line, so the terminal's echo of the TYPED command line itself contained `SCROLLMARK_LAST`. Under host load (slow shell start) the `GEN_OK` poll matched that **command echo** before the 3000-line loop produced any real output, then the downstream sub-checks raced the still-draining buffer. Captured proof: a forced-slow probe on nezha showed `grep SCROLLMARK_LAST` = 1 on the command-echo line while a real-output-anchored grep returned 0.
+
+**Fix #1.** Assemble the markers from a shell variable — `M=SCROLLMARK; echo ${M}_FIRST; …; echo ${M}_LAST` — so the TYPED command text reads `${M}_LAST` (never the literal) while the OUTPUT lines read `SCROLLMARK_LAST`. Every `SCROLLMARK_*` grep now matches REAL OUTPUT ONLY; the command echo can no longer satisfy the poll.
+
+**Root cause #2 (FACT) — grid-dump capture race under CPU saturation.** Under all-core CPU saturation, `capture-pane -p -S -` grid dumps race: a snapshot can hold the bottom `LAST` marker but momentarily lack the oldest `FIRST` marker, even though the buffer genuinely retains all 3000 lines. Captured: 3006 lines dumped, `LAST` present, 2998 numbered markers, `history-limit` 50000 — the buffer is intact; only the point-in-time grid dump is incomplete.
+
+**Fix #2.** Assert scrollback retention via tmux's race-free `#{history_size}` counter read with `display-message -p '#{history_size}'` (T4.2), NOT a grid dump. `history_size` counts lines scrolled OFF the visible page (not total): with the 80x24 detached session and 3000 generated lines the no-eviction value is a DETERMINISTIC ~2982 (measured 2981 macOS / 2982 nezha, identical across 20/20 saturated runs). The OLD default `history-limit` 2000 would pin `history_size` at exactly 2000 and evict line 1. So the threshold `>= 2900` faithfully passes the functional 50000 bump (no eviction → line 1 retained) and fails the broken 2000 cap, with margin both ways; the counter updates atomically so it cannot exhibit the partial-snapshot race. T4.3 / T4.4 (operator copy-mode reach of the `FIRST` marker) already proved retention robustly and never raced.
+
+**File touched.** `scripts/tests/17_scrollback_copy_mode.sh` (test source only — §11.4.1 fix-at-source; assertions of the end-user guarantee unchanged, only the timing-safe/race-free probes).
+
+**Determinism (§11.4.50) — PROVEN.** macOS N=5 GREEN (5/5, PASS=13 each) + nezha N=20 under full all-core CPU saturation GREEN (20/20, zero non-green) — the exact saturation condition that previously broke every earlier candidate. `history_size` was identical every run (macOS 2981 / nezha 2982), confirming the counter does not race. Captured sample PASS: `T4.2: scrollback retains line 1 of 3000 — live history_size=2982 >= 2900`.
+
+---
+
 ### A48. Distribution orchestrator binary — on-demand container distribution to remote test hosts via the Containers submodule — `RESOLVED`
 
 **Type:** Feature
