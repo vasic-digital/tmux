@@ -186,6 +186,16 @@ fi
 _pass "T8.precheck: captured B's MainPID=$B_PID and C's MainPID=$C_PID from cgroup.procs"
 
 # ── Trigger OOM in session A via send-keys ──────────────────────────
+# §11.4.81 host-independence: disable swap for A's scope so exceeding its 128M
+# MemoryMax OOM-kills deterministically. On a swap-enabled host (nezha has 15G
+# swap) the cap is otherwise enforced via swap — memory.current pins at 128M,
+# oom_kill stays 0, no OOM fires (verified: oom_kill 0 → 295 with swap off).
+# Delegate=yes makes memory.swap.max writable by the user; ONLY A's scope is
+# touched — B/C keep their own scopes (the independence under test).
+A_CG=$(systemctl --user show -p ControlGroup --value "tmx-${A_NAME}.scope" 2>/dev/null)
+if [ -n "$A_CG" ] && [ -w "/sys/fs/cgroup${A_CG}/memory.swap.max" ]; then
+    echo 0 > "/sys/fs/cgroup${A_CG}/memory.swap.max" 2>/dev/null || true
+fi
 DMESG_BEFORE=$(_kring_count)
 "$WRAPPER" send-keys -t "$A_NAME" "stress-ng --vm 1 --vm-bytes 200M --timeout 15s" Enter 2>/dev/null || true
 

@@ -63,9 +63,17 @@ DMESG_BEFORE=$(_kring_count)
 USER_SVC_BEFORE=$(systemctl --user is-active default.target 2>/dev/null || echo "unknown")
 _pass "T5.0: user.slice active before test (default.target=$USER_SVC_BEFORE)"
 
+# §11.4.81 host-independence: on a swap-enabled host the cgroup enforces
+# MemoryMax via reclaim/swap instead of OOM-kill (memory.current pins at the
+# cap, oom_kill stays 0) — so the over-cap allocation is absorbed by swap and
+# no OOM fires. `MemorySwapMax=0` disables swap for THIS scope only, so
+# exceeding MemoryMax deterministically OOM-kills regardless of host swap
+# config (verified: oom_kill 0 → 295 with swap disabled). Does not touch
+# host-wide swap.
 systemd-run --user --scope --collect --quiet \
     --unit="${TEST_NAME}.scope" \
     -p "MemoryMax=$MEM_BYTES" \
+    -p "MemorySwapMax=0" \
     -p "TasksMax=16" \
     stress-ng --vm 1 --vm-bytes $((MEM_BYTES + MEM_BYTES / 10)) --timeout 10s &
 SCOPE_PID=$!

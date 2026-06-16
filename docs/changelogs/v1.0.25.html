@@ -198,9 +198,15 @@ already mirrored).</li>
 <li><strong>Containers submodule</strong> confirmed at latest
 <code>18ed03d</code>.</li>
 </ul>
-<h2 id="fixed-host-level">Fixed (host-level)</h2>
+<h2 id="fixed">Fixed</h2>
 <ul>
-<li><strong>codegraph macOS skew</strong> — stale
+<li><strong>Tests 12 &amp; 14 (destructive cgroup OOM) — swap-aware OOM
+(§11.4.81/§11.4.50).</strong> Failed deterministically on nezha after
+the host gained 15 GiB swap (the cgroup enforced MemoryMax via swap,
+<code>oom_kill</code>=0). Fix: set <code>memory.swap.max=0</code> on the
+test scope so exceeding the cap OOM-kills deterministically (verified
+<code>oom_kill</code> 0 → 295). Now PASS 3/3 each.</li>
+<li><strong>codegraph macOS skew</strong> (host-level) — stale
 <code>~/.local/bin/codegraph</code> symlink (→ v0.9.9) shadowed the
 npm-managed 1.0.1; repointed → both hosts resolve
 <strong>1.0.1</strong>.</li>

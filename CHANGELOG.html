@@ -277,11 +277,30 @@ had updated <code>0.9.9 → 1.0.1</code>: a stale
 test sockets</strong> (<code>/tmp/tmux-501</code>, 678 → 10) without
 touching any live/real session (not a <code>kill-server</code>).</li>
 </ul>
+<h3 id="fixed-tests-swap-aware-oom-11.4.8111.4.50">Fixed (tests —
+swap-aware OOM, §11.4.81/§11.4.50)</h3>
+<ul>
+<li><strong>Tests 12 &amp; 14 (destructive cgroup OOM) failed
+deterministically on nezha</strong> because the host gained <strong>15
+GiB swap</strong>: a cgroup at its <code>MemoryMax</code> enforces the
+cap by reclaim/<strong>swap</strong> (memory.current pins at the cap,
+<code>oom_kill</code> stays 0) instead of OOM-killing, so no OOM fired.
+Root-caused via the cgroup’s own <code>memory.events</code> counter
+(FACT: <code>oom_kill</code> 0 with swap, <strong>295</strong> with swap
+disabled). Fix: the test scope now sets
+<strong><code>memory.swap.max=0</code></strong> (test 12 via
+<code>systemd-run -p MemorySwapMax=0</code>; test 14 by writing the
+delegated cgroup file) so exceeding the cap OOM-kills deterministically
+on swap-enabled AND swapless hosts — touching only the test scope, never
+host-wide swap. Now PASS 3/3.</li>
+</ul>
 <h3 id="validation-dual-host-release-gate">Validation (dual-host release
 gate)</h3>
 <ul>
 <li><strong>nezha</strong> <code>verify.sh</code>
-(TMX_TEST_DESTRUCTIVE=1) GREEN + meta-test 52 CAUGHT / 0 ESCAPED.</li>
+(TMX_TEST_DESTRUCTIVE=1) GREEN + meta-test 52 CAUGHT / 0 ESCAPED; tests
+12 &amp; 14 PASS 3/3 with real OOM-kill evidence after the swap-aware
+fix.</li>
 <li><strong>macOS</strong> <code>run_all</code> GREEN.</li>
 <li><code>setup.sh</code> re-run + verified on both hosts.</li>
 </ul>

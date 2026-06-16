@@ -29,9 +29,21 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 - **macOS host hygiene** — removed **668 dead tmux test sockets** (`/tmp/tmux-501`,
   678 → 10) without touching any live/real session (not a `kill-server`).
 
+### Fixed (tests — swap-aware OOM, §11.4.81/§11.4.50)
+
+- **Tests 12 & 14 (destructive cgroup OOM) failed deterministically on nezha** because
+  the host gained **15 GiB swap**: a cgroup at its `MemoryMax` enforces the cap by
+  reclaim/**swap** (memory.current pins at the cap, `oom_kill` stays 0) instead of
+  OOM-killing, so no OOM fired. Root-caused via the cgroup's own `memory.events` counter
+  (FACT: `oom_kill` 0 with swap, **295** with swap disabled). Fix: the test scope now sets
+  **`memory.swap.max=0`** (test 12 via `systemd-run -p MemorySwapMax=0`; test 14 by writing
+  the delegated cgroup file) so exceeding the cap OOM-kills deterministically on swap-enabled
+  AND swapless hosts — touching only the test scope, never host-wide swap. Now PASS 3/3.
+
 ### Validation (dual-host release gate)
 
-- **nezha** `verify.sh` (TMX_TEST_DESTRUCTIVE=1) GREEN + meta-test 52 CAUGHT / 0 ESCAPED.
+- **nezha** `verify.sh` (TMX_TEST_DESTRUCTIVE=1) GREEN + meta-test 52 CAUGHT / 0 ESCAPED;
+  tests 12 & 14 PASS 3/3 with real OOM-kill evidence after the swap-aware fix.
 - **macOS** `run_all` GREEN.
 - `setup.sh` re-run + verified on both hosts.
 
