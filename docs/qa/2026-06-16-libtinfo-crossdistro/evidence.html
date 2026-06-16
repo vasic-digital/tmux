@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>evidence</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1
+id="qa-evidence--v1023-libtinfo-cross-distro-fix--test-determinism-hardening">QA
+evidence — v1.0.23 libtinfo cross-distro fix + test-determinism
+hardening</h1>
+<p><strong>Run-id:</strong> 2026-06-16-libtinfo-crossdistro
+<strong>Captured:</strong> 2026-06-16 <strong>Hosts:</strong>
+nezha.local (ALT Linux 6.12 x86_64) · Mistborn (Darwin arm64)
+<strong>Authority:</strong> §11.4 anti-bluff covenant — every PASS below
+carries real captured runtime output.</p>
+<hr />
+<h2 id="1-root-cause-fact-not-guess--1146">1. Root cause (FACT, not
+guess — §11.4.6)</h2>
+<p>The Linux ELF (built in <code>ubuntu:22.04</code>) requires versioned
+terminfo symbols; the ALT Linux host <code>libtinfo</code> has none:</p>
+<pre><code># objdump -T tmux  (pre-fix, requires versioned symbols)
+(NCURSES6_TINFO_5.0.19991023) setupterm
+(NCURSES6_TINFO_5.8.20110226) tiparm
+# objdump -T /lib64/libtinfo.so.6  (ALT host — zero NCURSES version nodes)
+&lt;empty&gt;
+# ldd tmux  (pre-fix) → warning on EVERY invocation:
+tmux/build/bin/tmux: /lib64/libtinfo.so.6: no version information available (required by tmux)</code></pre>
+<h2 id="2-fix-proof--nezha-rebuilt-binary-post-fix">2. Fix proof — nezha
+(rebuilt binary, post-fix)</h2>
+<pre><code># ldd tmux/build/bin/tmux   (DT_NEEDED — libtinfo ABSENT, jemalloc PRESENT)
+  libjemalloc.so.2 =&gt; /lib/x86_64-linux-gnu/libjemalloc.so.2
+  libevent_core-2.1.so.7 =&gt; ...
+  libm.so.6 / libresolv.so.2 / libc.so.6 / libstdc++.so.6 / libgcc_s.so.1
+# (no libtinfo.so)
+
+# tmux -V  (UNFILTERED stdout+stderr)
+tmux 3.6a
+# warning lines: 0           ← was 1 per invocation
+# ldd | grep -c libtinfo: 0</code></pre>
+<h3 id="test-61-regression-guard--nezha">Test 61 (regression guard) —
+nezha</h3>
+<pre><code>PASS: T1 — binary emits no dynamic-loader version/compat warning (Linux)
+PASS: T2 — tinfo is statically linked (no host libtinfo.so dependency)
+PASS: T3 — jemalloc dynamic linkage preserved (static-tinfo fix did not regress it)
+  Tests: PASS=3  FAIL=0  SKIP=0</code></pre>
+<h3 id="test-61--macos-mach-o">Test 61 — macOS (Mach-O)</h3>
+<pre><code>PASS: T1 — binary emits no dynamic-loader version/compat warning (Darwin)
+SKIP: T2 — libtinfo/ELF symbol-versioning is a Linux-only mechanism (§11.4.81(C))
+SKIP: T3 — jemalloc build-time DT_NEEDED check is Linux-ELF-specific</code></pre>
+<h3 id="verifysh-gate-teeth-cm-no-dynamic-libtinfo">verify.sh gate teeth
+(CM-NO-DYNAMIC-LIBTINFO)</h3>
+<pre><code>real binary libtinfo deps (PASS): 0
+system /bin/tmux libtinfo deps (would FAIL): 1
+[PASS] CM-NO-DYNAMIC-LIBTINFO (0 dynamic libtinfo deps — tinfo statically linked)</code></pre>
+<h2 id="3-full-dual-host-validation">3. Full dual-host validation</h2>
+<h3 id="nezha--final-verifysh-tmx_test_destructive1">nezha — final
+verify.sh (TMX_TEST_DESTRUCTIVE=1)</h3>
+<pre><code>verify EXIT=0
+  SUMMARY: PASS=49  FAIL=0  SKIP=11
+  GREEN: tmux binary verified — safe to PATH-export.</code></pre>
+<p>Tests 12 &amp; 14 RAN (not skipped) with real OOM evidence:</p>
+<pre><code>PASS: T5.1: kernel OOM-kill detected in dmesg (positive evidence)
+PASS: T8.1: kernel OOM-kill detected (positive evidence: memory cgroup out of memory)</code></pre>
+<h3 id="nezha--determinism-11450-tests-12--14-5">nezha — determinism
+(§11.4.50), tests 12 &amp; 14 ×5</h3>
+<pre><code>12 run1..5: PASS=3 FAIL=0 SKIP=0   (kernel OOM-kill detected every run)
+14 run1..5: PASS=8 FAIL=0 SKIP=0   (scopes B/C survived A&#39;s OOM, MainPID unchanged)</code></pre>
+<h3 id="nezha--meta-test-paired-mutation-sweep">nezha — meta-test
+paired-mutation sweep</h3>
+<pre><code>  MUTATIONS CAUGHT (PASS): 52
+  MUTATIONS ESCAPED (FAIL): 0
+  MUTATIONS SKIPPED:       8</code></pre>
+<h3
+id="mistborn-macos--full-suite-isolated-tmpdir-mach-o-binary">Mistborn
+(macOS) — full suite (isolated TMPDIR, Mach-O binary)</h3>
+<pre><code>EXIT=0
+  SUMMARY: PASS=55  FAIL=0  SKIP=5
+  SKIPped: 08_oom_score_adj 12_memory_pressure_under_cap 32_ssh_dispatch_remote_nezha
+           56_real_mouse_drag_copy 61_no_libtinfo_version_warning</code></pre>
+<h2 id="4-test-determinism-fixes-redgreen-1141--11443">4.
+Test-determinism fixes (RED→GREEN, §11.4.1 / §11.4.43)</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>RED (pre-fix)</th>
+<th>Cause (FACT)</th>
+<th>GREEN (post-fix)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>27 state-persistence (macOS)</td>
+<td>FAIL 3/3 — recall returned stale <code>-target-</code> path</td>
+<td><code>sleep 0.4</code> raced macOS ~1.5 s cwd-update lag after
+<code>send-keys cd</code></td>
+<td>poll until cd reflected → PASS 3/3</td>
+</tr>
+<tr>
+<td>12 memory-pressure (nezha)</td>
+<td>FAIL under load — "no OOM-kill in dmesg"</td>
+<td>fixed <code>sleep 2</code> raced async OOM +
+<code>journalctl -k</code> ingestion lag (dmesg_restrict=1)</td>
+<td>poll kernel ring up to ~16 s → PASS 5/5</td>
+</tr>
+<tr>
+<td>14 concurrent-OOM (nezha)</td>
+<td>FAIL under load — "no OOM-kill detected"</td>
+<td>same async/ingestion race (<code>sleep 10</code>)</td>
+<td>poll up to ~22 s → PASS 5/5</td>
+</tr>
+</tbody>
+</table>
+<p>All three are §11.4.1 test-harness timing races (the product worked;
+the test sampled too early). Assertions unchanged — a genuinely broken
+feature still FAILs after the full timeout.</p>
+</body>
+</html>

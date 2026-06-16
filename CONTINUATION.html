@@ -172,11 +172,11 @@
   </style>
 </head>
 <body>
-<h1 id="continuation.md-vasic-digital-tmux">CONTINUATION.md —
+<h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-06-16T19:05Z</p>
-<h2 id="how-to-resume-work-in-any-cli-agent">§0 — How to resume work in
-any CLI agent</h2>
+<p><strong>Last updated:</strong> 2026-06-16T21:30Z</p>
+<h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
+in any CLI agent</h2>
 <p>Paste this prompt:</p>
 <blockquote>
 <p>Read <code>CONTINUATION.md</code> at the repo root. Identify the
@@ -186,12 +186,8 @@ or BLOCKED. Re-read <code>Constitution.md</code>,
 <code>Fixed.md</code> for mandates and current backlog. Resume from
 current state. Update this document as you work.</p>
 </blockquote>
-<h2 id="snapshot">§1 — Snapshot</h2>
+<h2 id="1--snapshot">§1 — Snapshot</h2>
 <table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
 <thead>
 <tr>
 <th>Field</th>
@@ -254,7 +250,7 @@ Articles §101–§109, extends the submodule), <code>CLAUDE.md</code>,
 </tr>
 </tbody>
 </table>
-<h2 id="mandates-canonical-authority">§2 — Mandates (canonical
+<h2 id="2--mandates-canonical-authority">§2 — Mandates (canonical
 authority)</h2>
 <ul>
 <li><code>Constitution.md</code> §1 anti-bluff covenant (verbatim
@@ -277,11 +273,12 @@ user-mandate quote)</li>
 <li><code>Constitution.md</code> §5 / §12.10 continuation-document
 sacred invariant</li>
 </ul>
-<h2 id="active-work">§3 — Active work</h2>
-<h3 id="v1.0.25-release-submodule-currency-host-fixes-2026-06-16">§3.26
+<h2 id="3--active-work">§3 — Active work</h2>
+<h3
+id="326--v1025-release-submodule-currency--host-fixes--2026-06-16">§3.26
 — v1.0.25 RELEASE (submodule currency + host fixes) → 2026-06-16</h3>
 <p><strong>Status:</strong> RELEASING v1.0.25 / versionCode 26. Per
-operator “always target latest of all submodules”: advanced
+operator "always target latest of all submodules": advanced
 HelixConstitution <code>3f4d690</code> → <code>1d408cb</code> (+67
 commits, §11.4.140–158); Containers already at latest
 <code>18ed03d</code>. Functional inheritance verified (test 18
@@ -289,6 +286,33 @@ PASS=10/0); release gate (verify.sh §11.4.87..99) unaffected.
 Host-level: codegraph macOS skew fixed (stale <code>~/.local/bin</code>
 symlink → both hosts 1.0.1); 668 dead macOS test sockets removed
 (678→10, no live session touched).</p>
+<p><strong>Test 17 flake — root-caused + fixed (A49, 2
+vectors).</strong> <code>17_scrollback_copy_mode.sh</code> flaked under
+heavy host load (§11.4.1 FAIL-bluffs, NOT a product defect — scrollback
+works for the end user). Vector 1: the T4 generator spelled
+<code>SCROLLMARK_FIRST</code>/<code>SCROLLMARK_LAST</code> inline, so
+the terminal's echo of the TYPED command line contained
+<code>SCROLLMARK_LAST</code> and the <code>GEN_OK</code> poll matched
+the command echo before any real output (forced-slow probe on nezha:
+command-echo grep=1, real-output grep=0). Fixed by assembling markers
+from a shell variable (<code>M=SCROLLMARK; echo ${M}_LAST</code>) →
+every grep matches REAL OUTPUT only. Vector 2: under all-core CPU
+saturation a <code>capture-pane</code> grid dump can momentarily lack
+the oldest <code>FIRST</code> marker although the buffer genuinely
+retains all 3000 lines (captured: 3006 lines, LAST present, 2998
+numbered markers, history-limit 50000). Fixed by asserting retention via
+the <strong>race-free <code>#{history_size}</code> counter</strong>
+(<code>&gt;= 2900</code>, <code>display-message -p</code>) at T4.2, not
+a grid dump (the no-eviction value is a deterministic ~2982; the OLD
+2000 cap pins it at 2000 and evicts line 1) — T4.3/T4.4 (operator
+copy-mode reach of FIRST) already proved retention robustly and never
+raced. Test source only
+(<code>scripts/tests/17_scrollback_copy_mode.sh</code>); assertions of
+the end-user guarantee unchanged. <strong>Determinism (§11.4.50) —
+PROVEN:</strong> macOS N=5 GREEN (5/5) + nezha N=20 under full all-core
+CPU saturation GREEN (20/20); <code>history_size</code> identical every
+run (macOS 2981 / nezha 2982 — counter does not race). Pending before
+tag: the §11.4.40 full destructive gate (rel25c, running) GREEN.</p>
 <p><strong>Known follow-up (non-blocking):</strong> verbatim/cascade
 mirroring of §11.4.140–158 into project CLAUDE.md/AGENTS.md/QWEN.md (for
 non-<code>@import</code> agents) — functional inheritance already works
@@ -296,8 +320,8 @@ via the import; release gate does not enforce these. Operator-pending on
 nezha: <code>sudo bash scripts/build_oom_set.sh --install</code> +
 <code>sudo apt-get install -y stress-ng</code> to promote tests 08/12/14
 from SKIP to PASS.</p>
-<h3 id="v1.0.24-release-distribution-orchestrator-2026-06-16">§3.25 —
-v1.0.24 RELEASE (distribution orchestrator) → 2026-06-16</h3>
+<h3 id="325--v1024-release-distribution-orchestrator--2026-06-16">§3.25
+— v1.0.24 RELEASE (distribution orchestrator) → 2026-06-16</h3>
 <p><strong>Status:</strong> RELEASING v1.0.24 / versionCode 25. Tooling
 + library-hardening release (tmux product surface unchanged from
 v1.0.23). Bundles §3.24 (tmx-orchestrator + Containers fixes) under a
@@ -307,23 +331,26 @@ suite (unit + integration vs real podman) all 40 pkgs ok; macOS run_all
 55/0/6; adversarial code-review GO. Containers pointer 61e01dc → 18ed03d
 (pushed github+gitlab).</p>
 <h3
-id="distribution-orchestrator-binary-containers-submodule-nezha-as-heavy-test-host-2026-06-16">§3.24
+id="324--distribution-orchestrator-binary-containers-submodule--nezha-as-heavy-test-host--2026-06-16">§3.24
 — Distribution orchestrator binary (Containers submodule) + nezha as
 heavy-test host → 2026-06-16</h3>
 <p><strong>Status:</strong> DONE — orchestrator working, validated on
 nezha, committed.</p>
-<p><strong>What landed (A48).</strong> Operator mandate: “Make a proper
+<p><strong>What landed (A48).</strong> Operator mandate: "Make a proper
 binary using the Containers submodule lib to orchestrate the
-distribution — for when/if we need it for our testing needs.” Delivered
+distribution — for when/if we need it for our testing needs." Delivered
 <code>scripts/tmx-orchestrator/</code> (Go consumer of the decoupled
 <code>digital.vasic.containers</code> submodule via
 <code>replace</code>): <code>hosts</code> / <code>distribute</code> /
 <code>down</code>. nezha.local registered in
 <code>Containers/.env</code> (gitignored). Extended the Containers
-library (§11.4.76) with <code>ContainerRequirements.Ports</code> +
-<code>-p</code> rendering (<code>1b9da9b</code>) and a command-injection
-allowlist fix from the automated security review (<code>82bd586</code>)
-— both pushed github+gitlab; tmux pointer 61e01dc → 82bd586.</p>
+library (§11.4.76) with <code>ContainerRequirements.Ports</code></p>
+<ul>
+<li><code>-p</code> rendering (<code>1b9da9b</code>) and a
+command-injection allowlist fix from the automated security review
+(<code>82bd586</code>) — both pushed github+gitlab; tmux pointer 61e01dc
+→ 82bd586.</li>
+</ul>
 <p><strong>Validation (captured —
 <code>docs/qa/2026-06-16-tmx-orchestrator/evidence.md</code>):</strong>
 macOS conductor → nezha over SSH+podman: <code>hosts</code> real /proc
@@ -348,29 +375,31 @@ verified). §11.4.65 .html/.pdf siblings generated for the new/changed
 docs. nezha synced to tmux a130a8f + Containers 82bd586.</p>
 <p><strong>Adversarial code-review round (§11.4.125/§11.4.134
 review-until-GO, 2026-06-16).</strong> A dispatched review found 2 major
-+ minors; all fixed with real evidence: - <strong>MAJOR (lib socket
-leak):</strong> <code>SSHExecutor.Execute</code> released the pooled
-ControlMaster ref only on success → leaked on error paths. Fixed (defer
-release on all paths) in Containers <code>a856865</code> + white-box
-integration regression test
-<code>pkg/remote/execute_release_test.go</code> — RED (refs=1) → GREEN
-(refs=0) proven on nezha. - <strong>MAJOR (down FAIL-bluff):</strong>
-<code>cmdDown</code> printed “teardown complete” + exit 0 even when a
-host was unreachable. Fixed — tracks per-host failures, exit 1 when
-teardown can’t be confirmed. Proven: unreachable host → exit 1;
-reachable → exit 0. - minors: health-check timeout/cancel now
-distinguished from a real failure; test 62 free-port probe uses portable
-<code>ss -ltn</code> (not bash-only /dev/tcp). Re-review verdict:
-<strong>GO — no blocking findings</strong> (all 4 prior fixes confirmed
-sound, no regressions, white-box test verified not-false-PASS). 2 minor
-notes also closed: ExecuteStream same-class ref leak on rare cmd.Start
-failure (Containers 18ed03d) + orchestrator
-<code>--port</code>/<code>--publish</code> range-validation. tmux
-Containers pointer → 18ed03d.</p>
++ minors; all fixed with real evidence:</p>
+<ul>
+<li><strong>MAJOR (lib socket leak):</strong>
+<code>SSHExecutor.Execute</code> released the pooled ControlMaster ref
+only on success → leaked on error paths. Fixed (defer release on all
+paths) in Containers <code>a856865</code> + white-box integration
+regression test <code>pkg/remote/execute_release_test.go</code> — RED
+(refs=1) → GREEN (refs=0) proven on nezha.</li>
+<li><strong>MAJOR (down FAIL-bluff):</strong> <code>cmdDown</code>
+printed "teardown complete" + exit 0 even when a host was unreachable.
+Fixed — tracks per-host failures, exit 1 when teardown can't be
+confirmed. Proven: unreachable host → exit 1; reachable → exit 0.</li>
+<li>minors: health-check timeout/cancel now distinguished from a real
+failure; test 62 free-port probe uses portable <code>ss -ltn</code> (not
+bash-only /dev/tcp). Re-review verdict: <strong>GO — no blocking
+findings</strong> (all 4 prior fixes confirmed sound, no regressions,
+white-box test verified not-false-PASS). 2 minor notes also closed:
+ExecuteStream same-class ref leak on rare cmd.Start failure (Containers
+18ed03d) + orchestrator <code>--port</code>/<code>--publish</code>
+range-validation. tmux Containers pointer → 18ed03d.</li>
+</ul>
 <p><strong>Open follow-ups:</strong> none. The binary is on-demand
-(“when and if we need it”).</p>
+("when and if we need it").</p>
 <h3
-id="libtinfo-cross-distro-static-link-fix-test-determinism-hardening-v1.0.23-2026-06-16">§3.23
+id="323--libtinfo-cross-distro-static-link-fix--test-determinism-hardening--v1023-2026-06-16">§3.23
 — libtinfo cross-distro static-link fix + test-determinism hardening →
 v1.0.23 (2026-06-16)</h3>
 <p><strong>Status:</strong> DONE — RELEASED v1.0.23 (2026-06-16).
@@ -399,7 +428,7 @@ run_all PASS=55/0/5; test 61 PASS; libtinfo warning 0 lines (was
 items. Honest SKIPs remain: <code>08_oom_score_adj</code> (root/setcap),
 GUI/clipboard/remote/DB opt-ins.</p>
 <h3
-id="apple-container-integration-on-demand-containerized-linux-under-macos-for-testing-v1.0.22-2026-06-13">§3.22
+id="322--apple-container-integration-on-demand-containerized-linux-under-macos-for-testing--v1022-2026-06-13">§3.22
 — Apple <code>container</code> integration: on-demand containerized
 Linux under macOS for testing → v1.0.22 (2026-06-13)</h3>
 <p><strong>Status:</strong> DONE — RELEASED v1.0.22 (2026-06-13).
@@ -412,7 +441,7 @@ binary + <code>tmx</code> wrapper unchanged from v1.0.21).</p>
 Proven on this macOS 15.5/arm64 host: real <code>container run</code>
 returns <code>Linux aarch64</code> (host is Darwin), host-dir mount
 round-trips, paired mutation (strip <code>--mount</code> → exit 99).
-Consumed extend-don’t-reimplement per §11.4.74 / §11.4.76.</p>
+Consumed extend-don't-reimplement per §11.4.74 / §11.4.76.</p>
 <p>tmx harness <code>scripts/test_apple_container.sh</code> builds tmux
 3.6a INSIDE an Apple-container Linux VM (genuine Linux ELF:
 <code>osdep-linux.o</code> + <code>libjemalloc.so.2</code> +
@@ -432,7 +461,7 @@ PASSED. Release notes for GitHub + GitLab at
 Fixed.md A44; CHANGELOG v1.0.22 (Sources verified 2026-06-13 against
 apple.github.io/container/ documentation/); VERSION 1.0.22/23.</p>
 <h3
-id="copypaste-architecture-fix-mouse-off-default-helixcode-crash-forensics-v1.0.21-2026-06-13">§3.21
+id="321--copypaste-architecture-fix-mouse-off-default--helixcode-crash-forensics--v1021-2026-06-13">§3.21
 — Copy/paste ARCHITECTURE fix (mouse off default) + HelixCode crash
 forensics → v1.0.21 (2026-06-13)</h3>
 <p><strong>Status:</strong> DONE — RELEASED v1.0.21 (2026-06-13),
@@ -450,12 +479,12 @@ crash) → Issues.md F1 Operator-blocked (operator runs
 <code>docs/qa/2026-06-13-helixcode-crash/diagnose.sh</code>).</p>
 <p><strong>Bug 2 (copy/paste) — DONE at source, anti-bluff
 proven.</strong> Operator (2026-05-28 .. 2026-06-13, all emulators):
-“select multiple lines does not work … must work Linux+macOS … must
-scroll and always be selectable — right-click → Copy.”
+"select multiple lines does not work … must work Linux+macOS … must
+scroll and always be selectable — right-click → Copy."
 Systematic-debugging: 3 prior binding-level fixes (v1.0.15/18/20) failed
 → question the architecture. ROOT CAUSE (wire-level, no guessing):
 <code>set -g mouse on</code> emits mouse-tracking DECSET enables
-(<code>CSI ?1000h/?1002h/?1006h</code>) that SUPPRESS the terminal’s
+(<code>CSI ?1000h/?1002h/?1006h</code>) that SUPPRESS the terminal's
 native selection + right-click→Copy. FIX: default flipped to
 <code>set -g mouse off</code> (terminal owns the mouse → native
 select/copy/scroll everywhere); tmux mouse on demand via
@@ -486,15 +515,14 @@ DB; (2) <code>sync_all_markdown_exports.sh</code> (docs changed); (3)
 need clean tree); (5) <code>commit_all.sh</code> push to all
 upstreams.</p>
 <h3
-id="tmux-paste-fix-tmx-reload-attach-reload-v1.0.20-2026-05-29">§3.20 —
-tmux PASTE fix + tmx reload + attach-reload → v1.0.20 (2026-05-29)</h3>
+id="320--tmux-paste-fix--tmx-reload--attach-reload--v1020-2026-05-29">§3.20
+— tmux PASTE fix + tmx reload + attach-reload → v1.0.20
+(2026-05-29)</h3>
 <p><strong>Status:</strong> DONE — RELEASED v1.0.20 (2026-05-29).
 GitHub: <a
-href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.20"
-class="uri">https://github.com/vasic-digital/tmux/releases/tag/v1.0.20</a>
+href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.20">https://github.com/vasic-digital/tmux/releases/tag/v1.0.20</a>
 · GitLab: <a
-href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.20"
-class="uri">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.20</a>.
+href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.20">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.20</a>.
 Operator-confirmed (drag-select + Cmd-V pastes selected content).
 Dual-host validated at release commit 0205b44: Mistborn run_all 53/0/4 +
 meta 50/0; nezha run_all 44/0/13 + test 58 PASS. Root cause of the long
@@ -504,18 +532,17 @@ re-opened long-lived sessions kept stale bindings — fixed by
 plain-drag override + POSIX paste binding. Tests 56/57/58 (real-mouse
 SGR + clipboard) + meta 50/0.</p>
 <ul>
-<li><strong>Root cause of “still can’t copy”</strong>: the live Herald
+<li><strong>Root cause of "still can't copy"</strong>: the live Herald
 session was started BEFORE the mouse fix and a tmux server loads config
 only at start → stale forwarding binding. Fix is
 reload-of-running-sessions. Added <code>tmx reload [-t NAME]</code>
 (source-file into running sessions; skips dead sockets).</li>
 <li><strong>PASTE FIX</strong>: <code>prefix P</code> binding
 <code>tmux load-buffer - &lt;&lt;&lt; "$(#{@clip-read})"</code> was
-broken 3 ways — #{<span class="citation"
-data-cites="clip-read">@clip-read</span>} nested-quote collision
-(“completely new value”), <code>&lt;&lt;&lt;</code> bash-herestring
-fails under /bin/sh (dash/Linux), literal <code>\;</code>. Rewritten
-POSIX-clean (single-quoted run-shell wrapping inline double-quoted probe
+broken 3 ways — #{@clip-read} nested-quote collision ("completely new
+value"), <code>&lt;&lt;&lt;</code> bash-herestring fails under /bin/sh
+(dash/Linux), literal <code>\;</code>. Rewritten POSIX-clean
+(single-quoted run-shell wrapping inline double-quoted probe
 <code>| tmux load-buffer - &amp;&amp; tmux paste-buffer -p</code>). Real
 prefix-P now pastes the EXACT clipboard value.</li>
 <li><strong>Tests</strong>: NEW test 57 (A stale-repro / B
@@ -539,15 +566,14 @@ validate copy+paste in a FRESH <code>tmx new -s X</code> session; THEN
 nezha setup + validation; THEN next release.</li>
 </ul>
 <h3
-id="dual-host-update-full-testverify-v1.0.19-release-2026-05-29">§3.19 —
-Dual-host update + full test/verify + v1.0.19 release (2026-05-29)</h3>
+id="319--dual-host-update--full-testverify--v1019-release-2026-05-29">§3.19
+— Dual-host update + full test/verify + v1.0.19 release
+(2026-05-29)</h3>
 <p><strong>Status:</strong> DONE — RELEASED v1.0.19 (2026-05-29).
 GitHub: <a
-href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.19"
-class="uri">https://github.com/vasic-digital/tmux/releases/tag/v1.0.19</a>
+href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.19">https://github.com/vasic-digital/tmux/releases/tag/v1.0.19</a>
 · GitLab: <a
-href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.19"
-class="uri">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.19</a>.
+href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.19">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.19</a>.
 §11.4.40 full retest at the release commit <code>c5235f8</code>:
 Mistborn run_all 51/0/4 + meta 48/0; nezha run_all 43/0/12 + meta 48/0;
 M22 CAUGHT on both. v1.0.19 = the codegraph non-interactive PATH probe
@@ -561,28 +587,25 @@ added the A31 npm-prefix PATH probe to
 <code>scripts/tests/run_all.sh</code> +
 <code>meta_test_false_positive_proof.sh</code> (commits 5d6196c,
 a0a3f85) so the codegraph tests (20/22) + M22 mutation resolve the CLI
-in NON-INTERACTIVE shells too — nezha’s <code>.bashrc</code> adds
+in NON-INTERACTIVE shells too — nezha's <code>.bashrc</code> adds
 <code>~/.npm-global/bin</code> only behind an interactive-guard, so
 standalone run_all over ssh-batch previously failed 20/22 spuriously
 while real interactive agent usage worked. test 16 nezha full-suite
 flake ((window-name test, passes standalone)) did not recur this
 round.</p>
 <h3
-id="v1.0.18-real-mouse-copy-fix-plain-drag-selectscopies-in-claude-code-proven-with-a-real-mouse-2026-05-29">§3.18
+id="318--v1018-real-mouse-copy-fix-plain-drag-selectscopies-in-claude-code-proven-with-a-real-mouse-2026-05-29">§3.18
 — v1.0.18 REAL mouse-copy fix: plain drag selects+copies in Claude Code,
 proven with a real mouse (2026-05-29)</h3>
 <p><strong>Status:</strong> DONE — RELEASED v1.0.18 (2026-05-29).
 GitHub: <a
-href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.18"
-class="uri">https://github.com/vasic-digital/tmux/releases/tag/v1.0.18</a>
+href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.18">https://github.com/vasic-digital/tmux/releases/tag/v1.0.18</a>
 · GitLab: <a
-href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.18"
-class="uri">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.18</a>.
+href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.18">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.18</a>.
 Real-mouse PROVEN on BOTH platforms: Mistborn (suite 51/0/4 + meta 48/0
 + real cliclick cursor drag over iTerm2 → pbpaste) AND nezha Linux
-(verify 43/0/12 GREEN + headless SGR real-mouse-drag → <span
-class="citation" data-cites="clip">@clip</span> sink, after the
-TERM=xterm-256color test-harness fix). Commits 5c667cc → 06e43d0 →
+(verify 43/0/12 GREEN + headless SGR real-mouse-drag → @clip sink, after
+the TERM=xterm-256color test-harness fix). Commits 5c667cc → 06e43d0 →
 69d1418. NOTE: test 16 (window-name) flaked once under full-suite load
 on nezha (passes 3/3 standalone + GREEN on retry) — pre-existing
 §11.4.50 reliability issue, unrelated to the mouse fix; tracked for a
@@ -591,15 +614,14 @@ future poll-with-budget fix.</p>
 demanded it work on BOTH Linux + macOS. The v1.0.17
 <code>prefix m</code> toggle was insufficient (required a magic
 keystroke). Root cause reproduced with a REAL mouse: in a mouse-tracking
-app (<code>mouse_any_flag=1</code>) tmux’s built-in root
+app (<code>mouse_any_flag=1</code>) tmux's built-in root
 <code>MouseDrag1Pane</code> forwards the drag to the app → no selection.
 <strong>Fix:</strong> override
 <code>bind -n MouseDrag1Pane if -F '#{pane_in_mode}' 'send -M' 'copy-mode -M'</code>
 in <code>scripts/tmux.conf.template</code> — plain drag always enters
 copy-mode + copies on release; click+wheel still reach the app; no
 terminal-specific modifier (works Linux + macOS). PROVEN with a real
-mouse: headless SGR-1006 drag injection (mouse_any_flag=1) → <span
-class="citation" data-cites="clip">@clip</span> sink,
+mouse: headless SGR-1006 drag injection (mouse_any_flag=1) → @clip sink,
 regression-discriminating, 3/3 (test 56, cross-platform); + real
 <code>cliclick</code> cursor drag over iTerm2 → <code>pbpaste</code>
 (macOS GUI layer). Meta-test <code>M-PLAINDRAG</code> CAUGHT; meta
@@ -607,16 +629,14 @@ regression-discriminating, 3/3 (test 56, cross-platform); + real
 5c667cc. Pending: dual-host setup.sh (refresh ~/.tmux.conf), nezha
 headless test-56 proof, v1.0.18 release.</p>
 <h3
-id="v1.0.17-two-user-reported-bug-fixes-b3-closure-dual-host-re-validation-2026-05-29">§3.17
+id="317--v1017-two-user-reported-bug-fixes--b3-closure--dual-host-re-validation-2026-05-29">§3.17
 — v1.0.17 two user-reported bug fixes + B3 closure + dual-host
 re-validation (2026-05-29)</h3>
 <p><strong>Status:</strong> DONE — RELEASED v1.0.17 (2026-05-29).
 GitHub: <a
-href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.17"
-class="uri">https://github.com/vasic-digital/tmux/releases/tag/v1.0.17</a>
+href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.17">https://github.com/vasic-digital/tmux/releases/tag/v1.0.17</a>
 · GitLab: <a
-href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.17"
-class="uri">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.17</a>.
+href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.17">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.17</a>.
 Dual-host setup GREEN (Mistborn suite 51/0/4 + meta 47/0; nezha 43/0/12,
 double-prompt real-HOME 2→1). CodeGraph 0.9.7 validate PASS both hosts.
 Commits 1de20c5 → a6a81df → bbb1467.</p>
@@ -659,7 +679,7 @@ CHANGELOG/changelog-doc with both-host evidence, VERSION bump
 (1.0.17/18), gh+glab release.</li>
 </ul>
 <h3
-id="governance-bring-up-issues.md-fixed.md-explicit-11.4.x-anchors-landed">§3.1
+id="31-governance-bring-up--issuesmd--fixedmd--explicit-114x-anchors-landed">§3.1
 Governance bring-up — Issues.md / Fixed.md / explicit §11.4.x anchors
 landed</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-08T17:06Z).</p>
@@ -693,7 +713,8 @@ quote</li>
 <li>Updated <code>CLAUDE.md</code> and <code>AGENTS.md</code> to carry
 every numbered anchor + canonical-authority cross-references</li>
 </ul>
-<h3 id="per-session-containerization-phase-b-multi-session-work">§3.2
+<h3
+id="32-per-session-containerization-phase-b--multi-session-work">§3.2
 Per-session containerization (Phase B — multi-session work)</h3>
 <p><strong>Status:</strong> RESEARCH COMPLETE + WRAPPER LANDED +
 ISOLATION VERIFIED (2026-05-08).</p>
@@ -726,8 +747,8 @@ survives — Constitution §1 invariant) ✓</li>
 <li><strong>T6:</strong> 3 concurrent scopes, all registered + active
 simultaneously ✓</li>
 </ul>
-<h3 id="pending-tests-moved-to-issues.md">§3.3 Pending tests — moved to
-Issues.md</h3>
+<h3 id="33-pending-tests--moved-to-issuesmd">§3.3 Pending tests — moved
+to Issues.md</h3>
 <p>The previously-listed deferred tests (T5 memory pressure under cap,
 TasksMax stress, Concurrent OOM independence) have migrated to
 <code>Issues.md</code>:</p>
@@ -749,7 +770,7 @@ entries pending)</li>
 dispatch matrix)</li>
 </ul>
 <h3
-id="anti-bluff-enforcement-test-audit-challenges-fix-covenant-propagation-verification">§3.4
+id="34-anti-bluff-enforcement--test-audit--challenges-fix--covenant-propagation-verification">§3.4
 Anti-bluff enforcement — test audit + challenges fix + covenant
 propagation verification</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-08T18:00Z).</p>
@@ -780,7 +801,7 @@ guarded variables).</li>
 <code>Fixed.md</code> B2.</li>
 </ul>
 <h3
-id="hostname-derived-status-bar-colour-algorithm-wrapper-2-tests-challenges">§3.5
+id="35-hostname-derived-status-bar-colour--algorithm--wrapper--2-tests--challenges">§3.5
 Hostname-derived status-bar colour — algorithm + wrapper + 2 tests +
 challenges</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-08T19:00Z).</p>
@@ -811,7 +832,7 @@ verification, usage, and anti-bluff covenant.</li>
 <li>Updated <code>AGENTS.md</code> — bump test count from 9 to 11.</li>
 </ul>
 <h3
-id="full-coverage-missing-challenge-entries-destructive-tests-topology-dispatch">§3.6
+id="36-full-coverage--missing-challenge-entries-destructive-tests-topology-dispatch">§3.6
 Full coverage — missing challenge entries, destructive tests, topology
 dispatch</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-08T20:00Z).</p>
@@ -845,12 +866,12 @@ per §11.4.3.</li>
 (TOPO-DISPATCH-001) moved to Fixed.md.</li>
 </ul>
 <h3
-id="audit-cycle-2026-05-13-submodule-pin-drift-caught-governance-staleness-fixed">§3.8
+id="38-audit-cycle-2026-05-13--submodule-pin-drift-caught--governance-staleness-fixed">§3.8
 Audit cycle 2026-05-13 — submodule pin-drift caught + governance
 staleness fixed</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-13T00:00Z).</p>
-<p>Triggering event: user invoked <code>/init</code> followed by “what
-is left unfinished, no-bluff policy heavily enforced everywhere”. Audit
+<p>Triggering event: user invoked <code>/init</code> followed by "what
+is left unfinished, no-bluff policy heavily enforced everywhere". Audit
 found and remediated:</p>
 <ul>
 <li><strong>CRITICAL §1 / §11.4.6 bluff</strong>:
@@ -858,20 +879,20 @@ found and remediated:</p>
 submodule from <code>cc117b5</code> (tag <code>3.6a</code>) to
 <code>3f651d9f</code> (<code>3.6a-329-g3f651d9f</code> — 329 commits
 past the only stable tag). Governance docs across Constitution / CLAUDE
-/ AGENTS / CONTINUATION / README still claimed “pinned to tag 3.6a”.
+/ AGENTS / CONTINUATION / README still claimed "pinned to tag 3.6a".
 User decision: revert to tag (newer stable tag does not exist; 329
 commits are unreleased upstream master). Submodule pointer reverted to
 <code>cc117b5</code>.</li>
-<li><strong>README.md staleness</strong>: line 5 (“eight verification
-tests”), line 33 (<code>PASS=6 FAIL=0 SKIP=2</code>), line 37 (“8 tests
-cover”), line 39 (2-SKIP list) — all rewritten to current 14-test /
+<li><strong>README.md staleness</strong>: line 5 ("eight verification
+tests"), line 33 (<code>PASS=6 FAIL=0 SKIP=2</code>), line 37 ("8 tests
+cover"), line 39 (2-SKIP list) — all rewritten to current 14-test /
 PASS=10 SKIP=4 / 4-SKIP-list state with explicit
 <code>TMX_TEST_DESTRUCTIVE=1</code> callout and §11.4.4 layer-4 harness
 reference.</li>
 <li><strong>CLAUDE.md drift</strong>: added top-of-file project summary
 + canonical-doc cross-links + fresh-conversation workflow; fixed
 <code>0N_*.sh</code> glob → <code>NN_*.sh</code>; named the four layers
-inline in the Test-interrupt rule; added “Files to never edit directly”
+inline in the Test-interrupt rule; added "Files to never edit directly"
 section (parity with AGENTS.md).</li>
 <li><strong>AGENTS.md drift</strong>: mirrored CLAUDE.md project summary
 + cross-links; fixed same <code>0N_*.sh</code> glob bug; added meta-test
@@ -879,7 +900,7 @@ row to commands table.</li>
 <li><strong>Issues.md format</strong>: restored A / B / C / D / E
 section headers as empty sections (was: A / B / E only, with C and D
 missing despite conventions list referencing them). All bodies note
-“landed in <code>Fixed.md</code>” with item IDs for traceability.</li>
+"landed in <code>Fixed.md</code>" with item IDs for traceability.</li>
 <li><strong>CONTINUATION.md timestamp</strong>: 2026-05-08T22:00Z →
 2026-05-13T00:00Z; this entry added under §3.8 per §12.10
 invariant.</li>
@@ -887,17 +908,17 @@ invariant.</li>
 (<code>scripts/tests/meta_test_false_positive_proof.sh</code>): injects
 <code>$$</code> into the hostname_color hash, making the algorithm
 non-deterministic per-invocation. Test 10 T1 must FAIL under this
-mutation. Closes the audit-flagged gap: until M6, the “same-host =
-same-color” user invariant was protected by side-effect only (no
+mutation. Closes the audit-flagged gap: until M6, the "same-host =
+same-color" user invariant was protected by side-effect only (no
 dedicated anti-randomness mutation).</li>
 <li><strong><code>docs/guide/README.md</code> phantom-script bluff
 fixed</strong>: 3 occurrences each of <code>verify_tmux.sh</code> →
 <code>verify.sh</code>, <code>setup_tmux.sh</code> →
 <code>setup.sh</code>, <code>install_tmux_deps.sh</code> →
-<code>install_deps.sh</code>; “8 tests” → “14 tests” (2×).</li>
-<li><strong>GUIDE.md “severity hierarchy” pre-existing bluff
-caught</strong> (Fixed.md A3): documented “blockers / critical /
-advisory” classification does not exist in <code>run_all.sh</code> —
+<code>install_deps.sh</code>; "8 tests" → "14 tests" (2×).</li>
+<li><strong>GUIDE.md "severity hierarchy" pre-existing bluff
+caught</strong> (Fixed.md A3): documented "blockers / critical /
+advisory" classification does not exist in <code>run_all.sh</code> —
 every test is treated equally (any FAIL = RED). Rewritten to describe
 the actual gate logic. Caught while extending the table for tests 09-14;
 would have been silently doubled otherwise.</li>
@@ -908,14 +929,14 @@ anti-bluff verification + governance propagation. Every verification
 command run FRESH this session per Iron Law. Captured evidence:
 <code>setup.sh --verify-only</code> SUMMARY=PASS=10 FAIL=0 SKIP=5 GREEN;
 <code>test_e2e.sh</code> PASS=9/0/0 GREEN; test 15 PASS=6/0/0; live
-<code>tmx new -s VerifyDemo</code> shows operator’s host shell
+<code>tmx new -s VerifyDemo</code> shows operator's host shell
 (<code>milosvasic@Mistborn</code>,
 <code>which brew=/opt/homebrew/bin/brew</code>,
 <code>ulimit -t=86400</code>, <code>ulimit -u=2666</code>). Two defects
 caught and fixed: (D1) wrapper hostname resolution drifted to FQDN after
 bridge removal — restored scutil-LocalHostName path so colour stays
 <code>colour202</code> for Mistborn; (D2) <code>install_deps.sh</code> +
-<code>build_oom_set.sh</code> weren’t OS-aware out of the box — now
+<code>build_oom_set.sh</code> weren't OS-aware out of the box — now
 <code>install_deps.sh</code> detects Darwin → brew install (no sudo),
 <code>build_oom_set.sh</code> SKIPs on non-Linux. Governance propagation
 completed: verbatim user-mandate quote now in root CLAUDE.md + AGENTS.md
@@ -929,8 +950,8 @@ honestly per §1 (XNU EINVAL for unprivileged setrlimit on memory).</li>
 (Fixed.md A13): user reported <code>core@localhost</code> + lack of OOM
 containment. Forensic: <code>tmx new -s isol1 -d</code> +
 <code>tmx new -s isol2 -d</code> previously shared ONE cgroup
-(<code>run-p504653-i504654.scope</code>) — README’s “if one session
-OOMs, others survive” was a §1 bluff. Architectural rewrite: each
+(<code>run-p504653-i504654.scope</code>) — README's "if one session
+OOMs, others survive" was a §1 bluff. Architectural rewrite: each
 <code>tmx new -s NAME</code> now spawns its OWN tmux server on socket
 <code>tmx-NAME</code> inside its OWN scope <code>tmx-NAME.scope</code>
 with host-adaptive <code>MemoryMax</code> (max(MemTotal × 60% / 4,
@@ -954,17 +975,17 @@ anchor: Fixed.md A12 (status-bar green default) + A13 (sessions sharing
 one cgroup) — both shipped while non-operator-path tests reported
 GREEN.</li>
 <li><strong>Regression protection for A10 — gate-coverage gap
-closed</strong> (Fixed.md A11): user demanded “make sure nothing passes
-again! zero-bluff policy MUST BE followed blindly!” — honest accounting
+closed</strong> (Fixed.md A11): user demanded "make sure nothing passes
+again! zero-bluff policy MUST BE followed blindly!" — honest accounting
 of why the existing gates missed the colour bug:
 <ul>
 <li>test 11 always passed <code>-S "$SOCKET"</code> → tested
-explicit-socket path only; operator’s default-socket use case
+explicit-socket path only; operator's default-socket use case
 uncovered.</li>
 <li>meta-test M4/M5 targeted <code>scripts/tmx</code> (the SSH bridge on
 Darwin) instead of <code>scripts/tmx-vm</code> (the actual VM wrapper) —
 paired-mutation harness was mutating the wrong file.</li>
-<li>test_e2e.sh pre-fix didn’t read <code>status-style</code> at
+<li>test_e2e.sh pre-fix didn't read <code>status-style</code> at
 all.</li>
 <li>Triple-layer regression protection added: (1) test 11 T6 — new test
 exercising default-socket path with positive evidence
@@ -976,8 +997,8 @@ caught by test 11 T4.1/T6. Result: all 8 mutations caught + reverted (16
 PASS), full destructive suite PASS=14/0/0, e2e PASS=8/0/0.</li>
 </ul></li>
 <li><strong>Status-bar colour silently green (default) + bridge ignored
-macOS hostname</strong> (Fixed.md A10): user said “Bottom was green for
-current host. Is that expected for mistborn?” — two stacked bluffs
+macOS hostname</strong> (Fixed.md A10): user said "Bottom was green for
+current host. Is that expected for mistborn?" — two stacked bluffs
 caught:
 <ul>
 <li><code>_apply_host_color</code> / <code>_apply_oom_score</code> had
@@ -989,13 +1010,13 @@ is the primary operator use case; tmux uses its default socket then). So
 <code>-S "$SOCKET"</code> so the bug was uncovered. Fix: helpers now
 build <code>target=(-S "$sock")</code> only when sock is non-empty;
 otherwise omit <code>-S</code> and let tmux use its default socket.</li>
-<li>Bridge <code>scripts/tmx-mac.template</code> didn’t forward macOS
+<li>Bridge <code>scripts/tmx-mac.template</code> didn't forward macOS
 hostname → <code>hostname_color.sh</code> inside VM resolved against
 <code>localhost.localdomain</code> regardless of macOS host. Every macOS
 user got the same VM-derived colour, violating host-distinguishability.
 Fix: bridge captures <code>scutil --get LocalHostName</code> (e.g.,
-“Mistborn”), forwards as <code>TMX_HOSTNAME=&lt;host&gt;</code> in the
-remote SSH command. Wrapper’s <code>_apply_host_color</code> passes
+"Mistborn"), forwards as <code>TMX_HOSTNAME=&lt;host&gt;</code> in the
+remote SSH command. Wrapper's <code>_apply_host_color</code> passes
 <code>${TMX_HOSTNAME:+"$TMX_HOSTNAME"}</code> to hostname_color.sh — env
 var is source of truth when set, <code>$(hostname)</code> fallback
 otherwise.</li>
@@ -1011,7 +1032,7 @@ harness</strong> (Fixed.md A9):
 <ul>
 <li>User ran <code>tmx new -s Test</code> interactively after install
 and hit <code>open terminal failed: not a terminal</code>. The bridge +
-ssh -t allocated TTY correctly; the WRAPPER’s
+ssh -t allocated TTY correctly; the WRAPPER's
 <code>cmd &amp; wait</code> pattern was disconnecting tmux from the
 foreground process group → no TTY access. Detached-mode tests
 (<code>-d</code>) all passed because tmux daemonizes; interactive (no
@@ -1031,7 +1052,7 @@ through the bridge — proves the full operator stack carries intent
 end-to-end.</li>
 <li>Verified: <code>bash scripts/test_e2e.sh</code> GREEN 7/0/0;
 <code>TMX_TEST_DESTRUCTIVE=1 bash scripts/test_vm.sh</code> still GREEN
-14/0/0 (wrapper change didn’t regress existing tests).</li>
+14/0/0 (wrapper change didn't regress existing tests).</li>
 </ul></li>
 <li><strong>macOS <code>tmx</code> fully operational + side-by-side
 end-to-end</strong> (Fixed.md A8):
@@ -1046,7 +1067,7 @@ binary cannot exec on Darwin); on GREEN, appends bashrc snippet to BOTH
 <code>~/.bashrc</code> AND <code>~/.zshrc</code> (macOS defaults to
 zsh).</li>
 <li><strong>Bridge mechanics</strong>:
-<code>scripts/tmx-mac.template</code> discovers podman machine’s SSH
+<code>scripts/tmx-mac.template</code> discovers podman machine's SSH
 endpoint via <code>podman machine inspect</code> at every call (port
 re-discovery — survives
 <code>podman machine stop &amp;&amp; start</code>), verifies
@@ -1063,7 +1084,7 @@ SKIP=3.</li>
 <code>$WRAPPER</code> and <code>$TMUX_BIN</code> env vars</strong> so
 test_vm.sh / bridge tooling can redirect to the right wrapper without
 source modifications.</li>
-<li><strong>README.md</strong> gained a new “Architecture” section with
+<li><strong>README.md</strong> gained a new "Architecture" section with
 ASCII diagram showing Linux-native vs Darwin-bridge dispatch;
 <code>docs/guide/README.md</code> §5.5 documents the bridge mechanics +
 Mermaid flowchart; CLAUDE/AGENTS one-liners updated.</li>
@@ -1078,14 +1099,14 @@ was generated for one env (container <code>/repo</code> paths OR VM
 with VM-native paths before each VM-side run. Both
 <code>test_containerized.sh</code> and <code>test_vm.sh</code> now own
 the wrapper-regeneration step for their respective target.</li>
-<li><strong>Constitution §255 violations:</strong> “ATMOSphere” in
+<li><strong>Constitution §255 violations:</strong> "ATMOSphere" in
 GUIDE.md title + body, challenge yaml description, oom_set.c license
 comment, tmux.conf.template attribution; <code>atm_tmux_test_*</code> /
 <code>atm_test_*</code> / <code>atm_tmx_test_color_*</code>
 socket/session names across 8 test files;
 <code>~/.tmux.conf.pre-atmosphere</code> backup naming. All renamed:
 code uses <code>tmx_*</code> / <code>pre-vasic-digital</code>; docs
-branded “vasic-digital”.</li>
+branded "vasic-digital".</li>
 <li><strong><code>sed -i</code> portability:</strong> setup.sh used
 GNU-only <code>sed -i</code> for bashrc markers — would fail on macOS
 BSD sed. Centralized in <code>_strip_bashrc_snippet()</code> using
@@ -1104,13 +1125,13 @@ requirement. Audit found three real defects:
 subdir; wrapper is at <code>scripts/tmx</code>).</li>
 <li><code>alias tmux='tmx'</code> line shadowed the system tmux command
 → broke side-by-side.</li>
-<li>setup.sh closing message said “Then ‘tmux’ will use the ATMOSphere
-build” (wrong command name + stale branding).</li>
-<li><strong>Canonical answer to user’s question</strong>: the alias is
+<li>setup.sh closing message said "Then 'tmux' will use the ATMOSphere
+build" (wrong command name + stale branding).</li>
+<li><strong>Canonical answer to user's question</strong>: the alias is
 <strong><code>tmx</code></strong> (not <code>tmux</code>). Wrapper at
 <code>scripts/tmx</code> generated from <code>tmx.template</code>.
 <code>tmx new|attach|ls|kill</code> invokes the verified vasic-digital
-tmux; <code>tmux</code> invokes whatever was on the operator’s PATH
+tmux; <code>tmux</code> invokes whatever was on the operator's PATH
 before (system / Homebrew / apt / dnf). Both coexist.</li>
 </ul></li>
 <li><strong>Full destructive + meta-test cycle caught 6 more
@@ -1122,7 +1143,7 @@ FAIL=0 SKIP=0</strong> (full verify) + <strong>12/12 mutations
 caught</strong> (meta-test). Real defects fixed:
 <ul>
 <li>Tests 12/14 <code>_skip;&lt;continue&gt;</code> bug — printed SKIP
-but didn’t exit; continued running and FAILed on missing stress-ng →
+but didn't exit; continued running and FAILed on missing stress-ng →
 false §11.4.1 FAIL-bluff. Fix: explicit <code>exit 0</code>.</li>
 <li>Tests 12/14 unprivileged dmesg → fallback to journalctl -k via
 <code>_kring_count</code> / <code>_kring_tail</code> helpers; broader
@@ -1140,29 +1161,29 @@ itself</strong>). Fix: simplified to literal
 <code>MemoryMax=|MemMax=</code> pattern.</li>
 <li>Meta-test had no debug visibility → added opt-in
 <code>TMX_META_DEBUG=1</code>.</li>
-<li><strong>The user’s “same-host = same-color” invariant is now PROVEN
+<li><strong>The user's "same-host = same-color" invariant is now PROVEN
 end-to-end</strong> with <code>tmux show -g status-style</code> reading
 <code>colour166</code> on first session AND on second session on same
 host (test 11 T4.1 + T5).</li>
 </ul></li>
 <li><strong>Build pipeline bluffs caught while reproducing on
 macOS</strong> (Fixed.md A4): three real defects surfaced when user
-asked why we couldn’t build on macOS:
+asked why we couldn't build on macOS:
 <ul>
 <li><code>docker/Dockerfile</code>: <code>groupadd -g 20</code> collided
-with Ubuntu’s <code>dialout</code> group → build aborted at step 7/10.
+with Ubuntu's <code>dialout</code> group → build aborted at step 7/10.
 Fix: <code>-o</code> (non-unique) on groupadd + useradd. Build now
 reproducible on Darwin hosts.</li>
 <li><code>docker/build_inside_container.sh</code>: LDFLAGS
-<code>-ljemalloc</code> was being dropped by linker’s default
-<code>--as-needed</code> because tmux doesn’t reference jemalloc
-symbols. <strong>README’s “Build-time -ljemalloc” claim was a §1 bluff
+<code>-ljemalloc</code> was being dropped by linker's default
+<code>--as-needed</code> because tmux doesn't reference jemalloc
+symbols. <strong>README's "Build-time -ljemalloc" claim was a §1 bluff
 until this commit.</strong> Fix:
 <code>-Wl,--no-as-needed -ljemalloc -Wl,--as-needed</code>. Verified
 <code>ldd</code> now shows <code>libjemalloc.so.2</code> in
 DT_NEEDED.</li>
 <li><code>docker/build_inside_container.sh</code>: <code>make -j2</code>
-silently no-op’d after LDFLAGS change (existing binary defeated mtime
+silently no-op'd after LDFLAGS change (existing binary defeated mtime
 check). Fix: prepend <code>make clean</code> so LDFLAGS changes always
 take effect.</li>
 </ul></li>
@@ -1171,7 +1192,8 @@ take effect.</li>
 violation — opaque commit message, silent submodule mutation, no
 CONTINUATION update. Cannot rewrite history per §9 data safety;
 documenting here is the audit trail.</p>
-<h3 id="layer-4-paired-mutation-harness-landed-a1-meta-mut-001">§3.7
+<h3
+id="37-1144-layer-4-paired-mutation-harness-landed-a1-meta-mut-001">§3.7
 §11.4.4 layer-4 paired-mutation harness landed (A1 META-MUT-001)</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-08T21:00Z).</p>
 <ul>
@@ -1191,21 +1213,21 @@ T2 FAILs</li>
 </ul></li>
 <li>Results on this host: <strong>10 PASS / 0 FAIL / 0 SKIP</strong> —
 all mutations caught.</li>
-<li>Updated <code>CLAUDE.md</code>: removed “PENDING” references, wired
+<li>Updated <code>CLAUDE.md</code>: removed "PENDING" references, wired
 mandatory operations to the actual file.</li>
 <li>Updated <code>AGENTS.md</code>: layer 4 now marked as landed, not
 PENDING.</li>
 <li>Updated <code>Fixed.md</code>: A1 entry with closure details; all
-“PENDING META-MUT-001” references replaced with actual coverage
+"PENDING META-MUT-001" references replaced with actual coverage
 references.</li>
 <li>Updated <code>Issues.md</code>: A1 removed (→ Fixed.md A1).
 Issues.md now has <strong>zero open items</strong> — all originally
 seeded items are closed.</li>
 <li>Cleaned up <code>CONTINUATION.md</code> §3.6: removed stale
-“remaining open” note.</li>
+"remaining open" note.</li>
 </ul>
 <h3
-id="v1.0.15-multi-line-paste-in-alt-screen-claude-code-workable-items-sqlite-docx-constitution-sync-2026-05-28">§3.16
+id="316--v1015-multi-line--paste-in--alt-screen-claude-code--workable-items-sqlite--docx--constitution-sync-2026-05-28">§3.16
 — v1.0.15 multi-line + paste-IN + alt-screen Claude Code +
 workable-items SQLite + DOCX + constitution sync (2026-05-28)</h3>
 <p><strong>Status:</strong> IN PROGRESS — Mistborn build GREEN +
@@ -1213,20 +1235,20 @@ Mistborn full suite GREEN + meta-test GREEN; nezha deploy pending;
 release tag pending.</p>
 <p>Triggering event: operator mandate (verbatim, 2026-05-28):</p>
 <blockquote>
-<p>“In last iteration of work we did we have allegedly fixed copy /
+<p>"In last iteration of work we did we have allegedly fixed copy /
 paste from and to the tmux session window. Selecting multiple lines and
 copying of them does not work. We MUST BE able to scroll vertically
 everywhere and copy / paste anything! Especially in Claude Code (claude
 command)! Do in depth investigation and systematic debugging, reproduce
-issue and then apply comprehensive fixes! … Every bug / issue we report
-MUST BE first covered with all supported tests which will actually
-confirm failure / problems we report! Then, after we apply fixes, the
-same tests MUST CONFIRM all changes and fixes really working! We MUST
-for every issue or change, for any workable item create proper workable
-item in our Issues doc and all relevant docs around it (with them all
-being exported in all expected file types - PDF, HTML, DOCX)! We MUST
-NEVER forget the flow: workable item → SQLite database → all docs we
-have related to workable items!”</p>
+issue and then apply comprehensive fixes! ... Every bug / issue we
+report MUST BE first covered with all supported tests which will
+actually confirm failure / problems we report! Then, after we apply
+fixes, the same tests MUST CONFIRM all changes and fixes really working!
+We MUST for every issue or change, for any workable item create proper
+workable item in our Issues doc and all relevant docs around it (with
+them all being exported in all expected file types - PDF, HTML, DOCX)!
+We MUST NEVER forget the flow: workable item → SQLite database → all
+docs we have related to workable items!"</p>
 </blockquote>
 <p>Five-PWU pipeline executed per §11.4.58 + §11.4.94 (parallel-by-
 default + zero-idle). Phase 0 fetched + ff-merged
@@ -1238,18 +1260,16 @@ PWU-C (Go binary FULL Phase 3+ project-local) + PWU-D (DOCX export) ran
 in parallel; PWU-E (commit + deploy) is the closing sequential PWU.</p>
 <ul>
 <li><strong>A37 — Multi-line + PASTE-INTO + alt-screen TUI mouse-drag
-override</strong> (Fixed.md A37): the user’s primary ask. Identified the
+override</strong> (Fixed.md A37): the user's primary ask. Identified the
 three uncovered surfaces vs v1.0.14: (1) multi-line drag in
 Claude-Code-like TUIs (mouse_any_flag=1 forwards drag to app), (2)
 paste-INTO from OS clipboard (set-clipboard external is copy-OUT only),
 (3) the alt-screen + mouse-tracking surface never asserted end-to-end.
-Added M-/S-MouseDrag1Pane overrides + matching drag- end <span
-class="citation" data-cites="clip-routed">@clip-routed</span> binds +
-<span class="citation" data-cites="clip-read">@clip-read</span>
-user-option + prefix+P paste bind. Tests 45/46/47/48 land 4-layer
-coverage with pbpaste-back physical evidence: PASS=6/0/0 + 6/0/0 + 8/0/0
-+ 9/0/0 = 29 PASS, RED→GREEN proven for tests 46 + 48. Synthetic
-alt-screen surrogate <code>synthetic_alt_screen_app.py</code>
+Added M-/S-MouseDrag1Pane overrides + matching drag- end @clip-routed
+binds + @clip-read user-option + prefix+P paste bind. Tests 45/46/47/48
+land 4-layer coverage with pbpaste-back physical evidence: PASS=6/0/0 +
+6/0/0 + 8/0/0 + 9/0/0 = 29 PASS, RED→GREEN proven for tests 46 + 48.
+Synthetic alt-screen surrogate <code>synthetic_alt_screen_app.py</code>
 substitutes for Claude Code in tests (no OAuth flake per §11.4.98).
 Mutations M46 + M48 CAUGHT + RESTORED.</li>
 <li><strong>A38 — Constitution + Containers sync + §11.4.87..98
@@ -1297,27 +1317,30 @@ P5-M20+P5-M21 from v1.0.9) / 8 SKIPPED.</li>
 §11.4.3 — T2/T3/T4 still PROVE the binding chain.</li>
 <li>⏳ Release tag <code>v1.0.15</code> via GitHub + GitLab CLIs with
 comprehensive <code>docs/changelogs/v1.0.15.md</code> referenced.</li>
-<li>⏳ Post-release version bump (per operator mandate “After releasing…
-increase version (version code) and commit and push all work”).</li>
+<li>⏳ Post-release version bump (per operator mandate "After
+releasing... increase version (version code) and commit and push all
+work").</li>
 </ol>
 <h3
-id="v1.0.14-clipboard-copy-out-physical-proof-e2e-stale-prereq-fix-multi-host-deploy-2026-05-22">§3.15
+id="315--v1014-clipboard-copy-out-physical-proof--e2e-stale-prereq-fix--multi-host-deploy-2026-05-22">§3.15
 — v1.0.14 clipboard copy-OUT physical proof + e2e stale-prereq fix +
 multi-host deploy (2026-05-22)</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-22).</p>
-<p>Triggering event: operator mandate (verbatim, 2026-05-22): &gt; “We
-can always copy / paste from and to the terminal window and &gt; current
-tmux (tmx) session! Using mouse or keyboard MUST WORK &gt; properly!!!
-Scrolling the content / history MUST NOT be broken or &gt; anything
-else! After all changes are done, covered with full &gt; validation and
-verification tests make sure we setup new version &gt; to current host
-(macOS) and nezha (nezha.local is back online). &gt; Once both hosts are
-updated with the latest versions and on both &gt; hosts all tests are
-executed with success with no failure and &gt; bringing real proofs of
-everything working as requested and &gt; expected (physical proofs) with
-no bluffs commit and push all &gt; Submodules and main repo to all
-upstreams and release new version &gt; with comprehensive in-depth
-version (change) log using GitHub and &gt; GitLab CLIs.”</p>
+<p>Triggering event: operator mandate (verbatim, 2026-05-22):</p>
+<blockquote>
+<p>"We can always copy / paste from and to the terminal window and
+current tmux (tmx) session! Using mouse or keyboard MUST WORK
+properly!!! Scrolling the content / history MUST NOT be broken or
+anything else! After all changes are done, covered with full validation
+and verification tests make sure we setup new version to current host
+(macOS) and nezha (nezha.local is back online). Once both hosts are
+updated with the latest versions and on both hosts all tests are
+executed with success with no failure and bringing real proofs of
+everything working as requested and expected (physical proofs) with no
+bluffs commit and push all Submodules and main repo to all upstreams and
+release new version with comprehensive in-depth version (change) log
+using GitHub and GitLab CLIs."</p>
+</blockquote>
 <ul>
 <li><strong>A35 clipboard copy-OUT physical proof</strong> (Fixed.md
 A35): identified the §101 PASS-bluff hole — bindings existed and grepped
@@ -1333,7 +1356,7 @@ OS-native paste tool (T5 — <code>pbpaste</code> /
 <code>termux-clipboard-get</code>) and asserts the marker is there. T5
 SKIPs honestly with reason on headless Linux; T3/T4 binding- chain proof
 runs everywhere so the test is never inert. Pre-test save + post-test
-restore of the operator’s clipboard.</li>
+restore of the operator's clipboard.</li>
 <li>PASS=7/0/0 this cycle (Darwin); T5 returned the marker via
 <code>pbpaste</code> — physical end-user evidence.</li>
 <li>Layer-1 verify.sh static gate extended (4 new <code>_l1</code>
@@ -1357,13 +1380,13 @@ reported 2 ESCAPES on Mistborn — P5-M20 (non-TTY guard) and P5-M21
 (cwd-capture hook). Nezha additionally reports M22 as an ENVIRONMENTAL
 escape (CodeGraph state). All three pre-exist this cycle. Investigation:
 P5-M20/M21 are layer-4 test-DESIGN gaps — the assertions cannot
-distinguish “guard fired” from “fallback fired”, so a single-layer strip
+distinguish "guard fired" from "fallback fired", so a single-layer strip
 slips through. M22 is an environmental state-dependency on the CodeGraph
 index/config on nezha. Underlying features GREEN. Surfaced transparently
 in <code>Issues.md</code> B3 + the v1.0.14 CHANGELOG — anti-bluff
 disclosure per §11.4 / §101 / §11.4.6. Closure conditions documented;
 deferred to a future cycle.</li>
-<li><strong>Multi-host deploy</strong> (this turn’s operator ask,
+<li><strong>Multi-host deploy</strong> (this turn's operator ask,
 satisfied): Mistborn updated to v1.0.14 via
 <code>setup.sh --rebuild</code>. Nezha fetched gitlab/main,
 fast-forwarded to v1.0.14, rebuilt and installed. Both hosts run the
@@ -1372,24 +1395,29 @@ on Mistborn (pbpaste) and binding-chain proven on nezha (tmux buffer, T5
 honest-SKIP on headless).</li>
 </ul>
 <h3
-id="v1.0.8-uniform-tmux-ui-recolouring-active-border-clock-window-status-current-2026-05-21">§3.14
+id="314--v108-uniform-tmux-ui-recolouring-active-border--clock--window-status-current-2026-05-21">§3.14
 — v1.0.8 uniform tmux UI recolouring (active border + clock +
 window-status-current) (2026-05-21)</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-21T21:00Z).</p>
-<p>Operator-driven follow-up to v1.0.7: “flying animated top decoration”
-+ clarification “Do coloring of all UI tmux parts with proper color we
+<p>Operator-driven follow-up to v1.0.7: "flying animated top
+decoration"</p>
+<ul>
+<li>clarification "Do coloring of all UI tmux parts with proper color we
 use instead of default green. Anything colored with that green colors
 has to become the color we have assigned to the bottom view we are
-coloring.”</p>
+coloring."</li>
+</ul>
 <p>Pre-v1.0.8 <code>_apply_host_color()</code> set only
 <code>status-style bg=$color</code>. Other default-green tmux surfaces
 (active pane border, clock face, selected-window highlight) stayed
 green. v1.0.8 extends the wrapper to apply the hostname-derived colour
-atomically to all four: -
-<code>status-style              bg=$color</code> -
-<code>pane-active-border-style  fg=$color</code> -
-<code>clock-mode-colour         $color</code> -
-<code>window-status-current-style bg=$color,fg=black</code></p>
+atomically to all four:</p>
+<ul>
+<li><code>status-style              bg=$color</code></li>
+<li><code>pane-active-border-style  fg=$color</code></li>
+<li><code>clock-mode-colour         $color</code></li>
+<li><code>window-status-current-style bg=$color,fg=black</code></li>
+</ul>
 <p><code>mode-style</code> + <code>message-style</code> deliberately
 untouched (default yellow, not green; yellow provides best contrast
 against any palette bg).</p>
@@ -1398,19 +1426,25 @@ session spawn + live <code>show -gv</code> readback per surface —
 PASS=5/0/0 on Darwin. NEW M24 paired mutation — regex-strips the three
 v1.0.8 set-lines from the generated wrapper, asserts test 26 T2/T3/T4
 FAILs. MUTATION CAUGHT + FEATURE INTACT both directions.</p>
-<p>Captured operator-path readback (Mistborn, this session): -
-status-style: <code>bg=colour44</code> - pane-active-border-style:
-<code>fg=colour44</code> - clock-mode-colour: <code>colour44</code> -
-window-status-current-style: <code>bg=colour44,fg=black</code> → All
-four surfaces uniformly turquoise (colour44 = RGB 0,215,215).</p>
-<p>Verification (Darwin quintuple-fresh, 2026-05-21): - setup.sh
-–verify-only → PASS=24 FAIL=0 SKIP=2 - meta-test → 36 caught / 0 escaped
-/ 6 skipped - e2e → PASS=9 FAIL=0 SKIP=0 - codegraph_validate → PASS=4
-FAIL=0 SKIP=1</p>
-<p>Released v1.0.8; setup.sh re-run as final install per operator “Make
-sure we setup the new version once all done.” directive.</p>
+<p>Captured operator-path readback (Mistborn, this session):</p>
+<ul>
+<li>status-style: <code>bg=colour44</code></li>
+<li>pane-active-border-style: <code>fg=colour44</code></li>
+<li>clock-mode-colour: <code>colour44</code></li>
+<li>window-status-current-style: <code>bg=colour44,fg=black</code> → All
+four surfaces uniformly turquoise (colour44 = RGB 0,215,215).</li>
+</ul>
+<p>Verification (Darwin quintuple-fresh, 2026-05-21):</p>
+<ul>
+<li>setup.sh --verify-only → PASS=24 FAIL=0 SKIP=2</li>
+<li>meta-test → 36 caught / 0 escaped / 6 skipped</li>
+<li>e2e → PASS=9 FAIL=0 SKIP=0</li>
+<li>codegraph_validate → PASS=4 FAIL=0 SKIP=1</li>
+</ul>
+<p>Released v1.0.8; setup.sh re-run as final install per operator "Make
+sure we setup the new version once all done." directive.</p>
 <h3
-id="v1.0.7-cross-host-portability-hostname-colour-rebalance-node-22-pin-release-2026-05-21">§3.13
+id="313--v107-cross-host-portability--hostname-colour-rebalance--node-22-pin--release-2026-05-21">§3.13
 — v1.0.7 cross-host portability + hostname-colour rebalance + Node-22
 pin + release (2026-05-21)</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-21T18:30Z).</p>
@@ -1418,89 +1452,112 @@ pin + release (2026-05-21)</h3>
 FAILed → 6 fix rounds → Nezha GREEN → operator reported orange-color
 collision (Nezha + Mistborn) → palette rebalanced + test 25 + M23
 mutation → release v1.0.7.</p>
-<p>Six fix rounds (all Nezha-driven; live forensic capture): 1. Initial
-3-fix attempt (test 09 timing, test 17 ingestion race, test 21 codegraph
-bootstrap). Test 17 fixed; tests 09 + 21 had secondary defects. 2. Bash
-<code>-lt</code> fractional bug in round-1 poll-loop (silent fail);
-npm-prefix PATH augmentation for non-interactive shells. 3. CodeGraph
-init clobbers config.json on every version; auto-update wiring per
-§11.4.80 mandate (“ALWAYS latest”). 4. cgroup.procs sweep (kill all PIDs
-not just first) + <code>stat -f    '%z'</code> portability bug (Darwin
-vs Linux). 5. Test 09 T4.2 rewritten to verify the REAL containment
-invariant (cgroup.procs drained), not systemd’s unit-state transition
-(which is sticky on systemd 258 / ALT 11 — verified live). 6. macOS Node
-22 LTS pin: codegraph 0.8.0 refuses Node 25 per upstream issue #81.
-Operator authorised
-<code>brew install node@22 &amp;&amp;    brew link --force --overwrite</code>.
-Updated .zshrc references.</p>
-<p>Then the hostname-colour palette rebalance: - Operator: “nezha and
-Mistborn both show orange”. Palette had 7 orange-family colours out of
-27. - Rebalanced to 27 entries spanning the hue spectrum; no two
-adjacent within RGB Euclidean distance 80. - NEW test 25: T1
-nezha+Mistborn distance ≥ 80 (post-fix: 332.7); T2 16-synthetic-hostname
-pairwise within pigeonhole tolerance; T3 palette adjacency check. - NEW
-M23 mutation: revert palette → test 25 FAILs.</p>
-<p>Verification (Darwin quintuple-fresh, 2026-05-21): - setup.sh
-–verify-only → PASS=23 FAIL=0 SKIP=2 - meta-test → 34 caught / 0 escaped
-/ 6 skipped - e2e → PASS=9 FAIL=0 SKIP=0 - codegraph_validate → PASS=4
-FAIL=0 SKIP=1 - codegraph_cadence_check → GREEN</p>
+<p>Six fix rounds (all Nezha-driven; live forensic capture):</p>
+<ol type="1">
+<li>Initial 3-fix attempt (test 09 timing, test 17 ingestion race, test
+21 codegraph bootstrap). Test 17 fixed; tests 09 + 21 had secondary
+defects.</li>
+<li>Bash <code>-lt</code> fractional bug in round-1 poll-loop (silent
+fail); npm-prefix PATH augmentation for non-interactive shells.</li>
+<li>CodeGraph init clobbers config.json on every version; auto-update
+wiring per §11.4.80 mandate ("ALWAYS latest").</li>
+<li>cgroup.procs sweep (kill all PIDs not just first) +
+<code>stat -f '%z'</code> portability bug (Darwin vs Linux).</li>
+<li>Test 09 T4.2 rewritten to verify the REAL containment invariant
+(cgroup.procs drained), not systemd's unit-state transition (which is
+sticky on systemd 258 / ALT 11 — verified live).</li>
+<li>macOS Node 22 LTS pin: codegraph 0.8.0 refuses Node 25 per upstream
+issue #81. Operator authorised
+<code>brew install node@22 &amp;&amp; brew link --force --overwrite</code>.
+Updated .zshrc references.</li>
+</ol>
+<p>Then the hostname-colour palette rebalance:</p>
+<ul>
+<li>Operator: "nezha and Mistborn both show orange". Palette had 7
+orange-family colours out of 27.</li>
+<li>Rebalanced to 27 entries spanning the hue spectrum; no two adjacent
+within RGB Euclidean distance 80.</li>
+<li>NEW test 25: T1 nezha+Mistborn distance ≥ 80 (post-fix: 332.7); T2
+16-synthetic-hostname pairwise within pigeonhole tolerance; T3 palette
+adjacency check.</li>
+<li>NEW M23 mutation: revert palette → test 25 FAILs.</li>
+</ul>
+<p>Verification (Darwin quintuple-fresh, 2026-05-21):</p>
+<ul>
+<li>setup.sh --verify-only → PASS=23 FAIL=0 SKIP=2</li>
+<li>meta-test → 34 caught / 0 escaped / 6 skipped</li>
+<li>e2e → PASS=9 FAIL=0 SKIP=0</li>
+<li>codegraph_validate → PASS=4 FAIL=0 SKIP=1</li>
+<li>codegraph_cadence_check → GREEN</li>
+</ul>
 <p>Nezha verification: round-5 setup.sh full pipeline GREEN (after fix
 rounds 1-5 landed). v1.0.7 includes all 6 rounds + palette + test
 25.</p>
-<p>Out-of-scope this cycle (logged honestly per §11.4.6): -
-Auto-detection of Node version compatibility in setup.sh — deferred to
-v1.0.8. - Pre-tag Nezha re-verify of v1.0.7 final → will run after tag
-push as deferred post-release smoke.</p>
+<p>Out-of-scope this cycle (logged honestly per §11.4.6):</p>
+<ul>
+<li>Auto-detection of Node version compatibility in setup.sh — deferred
+to v1.0.8.</li>
+<li>Pre-tag Nezha re-verify of v1.0.7 final → will run after tag push as
+deferred post-release smoke.</li>
+</ul>
 <h3
-id="v1.0.6-workable-items-closure-11.4.80-cadence-containersqwen.md-release-tag-2026-05-21">§3.12
+id="312--v106-workable-items-closure--11480-cadence--containersqwenmd--release-tag-2026-05-21">§3.12
 — v1.0.6 workable-items closure + §11.4.80 cadence + Containers/QWEN.md
 + release tag (2026-05-21)</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-21T15:30Z).</p>
-<p>Operator directive (verbatim): “Finish all workable items you have
+<p>Operator directive (verbatim): "Finish all workable items you have
 presented here, rebuild and install again, retest fully and if fully
-working as expected release new version!”</p>
-<p>Closed (this cycle): - <strong>§11.4.80 automatic-trigger
-wiring</strong> (was the one deferred item from v1.0.5 audit). New
+working as expected release new version!"</p>
+<p>Closed (this cycle):</p>
+<ul>
+<li><strong>§11.4.80 automatic-trigger wiring</strong> (was the one
+deferred item from v1.0.5 audit). New
 <code>scripts/codegraph_cadence_check.sh</code> +
-<code>scripts/   codegraph_install_cadence.sh</code>. Darwin launchd
-plist installed + loaded (verified via <code>launchctl list</code>).
+<code>scripts/ codegraph_install_cadence.sh</code>. Darwin launchd plist
+installed + loaded (verified via <code>launchctl list</code>).
 Cross-platform git pre-push hook installed (warns on STALE;
 <code>CADENCE_MODE=block</code> available). Anti-bluff: cadence check
 reads STAMP CONTENT (regenerated_at + node_count), not just existence.
 §11.4.81 cross-platform-parity dispatch in the installer: Linux gets
-systemd user timer; Darwin gets launchd plist. -
-<strong>Containers/QWEN.md covenant gap</strong> (was the second-to-last
-out-of-scope item from v1.0.5 — <code>Containers/QWEN.md create</code>).
-Containers commit <code>fbef9d6</code> pushed to github + gitlab. Parent
-pointer bumped <code>4ca5491</code> → <code>fbef9d6</code> in this
-cycle’s commit. - <strong>Full rebuild + install</strong> via
-<code>bash scripts/setup.sh</code> (not just –verify-only). ~/.tmux.conf
-installed; .bashrc + .zshrc snippets appended; tmx wrapper installed. -
-<strong>Quintuple-fresh verification</strong> captured this session:
-setup.sh –verify-only → PASS=22/0/SKIP=2; meta-test → 32 caught / 0
+systemd user timer; Darwin gets launchd plist.</li>
+<li><strong>Containers/QWEN.md covenant gap</strong> (was the
+second-to-last out-of-scope item from v1.0.5 —
+<code>Containers/QWEN.md create</code>). Containers commit
+<code>fbef9d6</code> pushed to github + gitlab. Parent pointer bumped
+<code>4ca5491</code> → <code>fbef9d6</code> in this cycle's commit.</li>
+<li><strong>Full rebuild + install</strong> via
+<code>bash scripts/setup.sh</code> (not just --verify-only).
+~/.tmux.conf installed; .bashrc + .zshrc snippets appended; tmx wrapper
+installed.</li>
+<li><strong>Quintuple-fresh verification</strong> captured this session:
+setup.sh --verify-only → PASS=22/0/SKIP=2; meta-test → 32 caught / 0
 escaped / 6 skipped; e2e → 9/0/0; codegraph_validate → 4/0/SKIP=1;
-codegraph_cadence_check → GREEN.</p>
-<p>Still out of scope (logged honestly per §11.4.6): - Cadence-script
-paired §1.1 mutation (backdate-stamp → cadence FAILs) — deferred to
-v1.0.7. The script’s content-based read is already anti-bluff; the
-mutation would tighten regression protection. - CodeGraph upstream
-<code>--include-submodules</code> — separate cycle per §11.4.74. -
-Linux-host CI runner — would exercise the Linux systemd user timer
-install path + the Linux branches of tests 09/13/14.</p>
+codegraph_cadence_check → GREEN.</li>
+</ul>
+<p>Still out of scope (logged honestly per §11.4.6):</p>
+<ul>
+<li>Cadence-script paired §1.1 mutation (backdate-stamp → cadence FAILs)
+— deferred to v1.0.7. The script's content-based read is already
+anti-bluff; the mutation would tighten regression protection.</li>
+<li>CodeGraph upstream <code>--include-submodules</code> — separate
+cycle per §11.4.74.</li>
+<li>Linux-host CI runner — would exercise the Linux systemd user timer
+install path + the Linux branches of tests 09/13/14.</li>
+</ul>
 <p>Release <code>v1.0.6</code> tagged + pushed per §11.4.40 (complete
 fresh retest preceded the tag; no spot-check shortcut).</p>
 <h3
-id="cross-platform-parity-darwin-branches-constitution-11.4.81-2026-05-21">§3.11
+id="311--11481-cross-platform-parity--darwin-branches--constitution-11481-2026-05-21">§3.11
 — §11.4.81 cross-platform-parity + Darwin branches + constitution
 §11.4.81 (2026-05-21)</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-21T07:30Z).</p>
 <p>Triggering events (in arrival order):</p>
 <ul>
-<li>Operator (2026-05-21): “Any Linux-only blocker / issue we have MUST
+<li>Operator (2026-05-21): "Any Linux-only blocker / issue we have MUST
 BE created macOS and other supported platforms equivalent! So, depending
 on platform proper implementation will be used for particular OS!
-EVERYTHING MUST BE PROPERLY EXTENDED AND UPDATED!”</li>
-<li>Operator (2026-05-21): “Add this OS / Platform details / rules /
+EVERYTHING MUST BE PROPERLY EXTENDED AND UPDATED!"</li>
+<li>Operator (2026-05-21): "Add this OS / Platform details / rules /
 mandatory constraints into our root (constitution Submodule)
 Constitution.md, CLAUDE.md, AGENTS.md, QWEN.md and other constitution
 Submodule relevant files so all projects who inherit these in the future
@@ -1508,7 +1565,7 @@ immidiately in such situations create proper missing implementations for
 particular platform / OS! Make sure you first fetch and pull the latest
 version of constitution Submodule. Once all done and extended properly
 commit and push constitution Submodule to all upstreams, then re-process
-and re-evaluate all rules and mandatory constraints…”</li>
+and re-evaluate all rules and mandatory constraints..."</li>
 <li>(Power blackout mid-cycle — work resumed cleanly from working
 tree.)</li>
 </ul>
@@ -1535,7 +1592,7 @@ kept <code>tmux/**</code> excluded (third-party).
 <code>scripts/codegraph_validate.sh</code> NEW — 5 probes (V1 CLI
 version, V2 node count, V3 §11.4.79 split, V4 honest-gap re submodule
 traversal, V5 MCP spawn). M22 paired mutation (re-exclude → V3 FAILs).
-Honest gap: CodeGraph 0.6.8 doesn’t traverse submodules; config
+Honest gap: CodeGraph 0.6.8 doesn't traverse submodules; config
 compliance met but practical cross-submodule indexing waits for upstream
 CodeGraph support.</p></li>
 <li><p><strong>A25 + A22 + A24 — Darwin branches for tests 09/13/14 +
@@ -1546,7 +1603,7 @@ of the Linux cgroup primitives:</p>
 <li><strong>Test 09 Darwin (PASS=6/0/0):</strong> wrapper invokes
 <code>tmx-rlimit- wrapper.sh</code>, two operator-path sessions,
 distinct server PIDs, <code>ulimit -t</code>/<code>-u</code> readback
-inside each pane via send-keys + capture-pane, SIGKILL session A’s
+inside each pane via send-keys + capture-pane, SIGKILL session A's
 server, session B survives with ORIGINAL PID (positive evidence per
 §11.4.5).</li>
 <li><strong>Test 13 Darwin (PASS=2/0/0):</strong> child bash lowers
@@ -1557,7 +1614,7 @@ server, session B survives with ORIGINAL PID (positive evidence per
 kernel-enforced RLIMIT_NPROC.</li>
 </ul></li>
 <li><strong>Test 14 Darwin (PASS=5/0/0):</strong> 3 operator-path
-sessions; SIGKILL session A’s server (macOS adjacent test for
+sessions; SIGKILL session A's server (macOS adjacent test for
 OOM-independence per §11.4.81 (C) — Darwin has no OOM killer); verify
 B+C survive with ORIGINAL PIDs + tmx ls still lists them.</li>
 <li><strong>NEW Test 24 Darwin (PASS=2/0/0):</strong> child bash sets
@@ -1585,17 +1642,21 @@ per §11.4.26 step 7.</p></li>
 32/0/SKIP=6 (all SKIPs §11.4.3 topology-correct or
 retired-with-rationale), e2e 9/0/0, codegraph_validate
 PASS=4/0/SKIP=1.</p>
-<p>Out-of-scope this cycle (honest tracking per §11.4.6): - §11.4.80
-automatic-trigger wiring (cron / git hook for the constitution-provided
-<code>codegraph_update.sh</code> + <code>codegraph_sync.sh</code>) —
-deferred. Manual invocation works today. - CodeGraph upstream
-<code>--include-submodules</code> support — out of scope per §11.4.74. -
-<code>Containers/QWEN.md</code> create — separate PR to
-<code>vasic-digital/Containers</code> per §11.4.28. - Linux-host CI
-runner — would let us exercise the Linux branches of tests 09/13/14
-alongside the Darwin branches running today.</p>
+<p>Out-of-scope this cycle (honest tracking per §11.4.6):</p>
+<ul>
+<li>§11.4.80 automatic-trigger wiring (cron / git hook for the
+constitution-provided <code>codegraph_update.sh</code> +
+<code>codegraph_sync.sh</code>) — deferred. Manual invocation works
+today.</li>
+<li>CodeGraph upstream <code>--include-submodules</code> support — out
+of scope per §11.4.74.</li>
+<li><code>Containers/QWEN.md</code> create — separate PR to
+<code>vasic-digital/Containers</code> per §11.4.28.</li>
+<li>Linux-host CI runner — would let us exercise the Linux branches of
+tests 09/13/14 alongside the Darwin branches running today.</li>
+</ul>
 <h3
-id="codegraph-11.4.78-verbatim-covenant-audit-fixes-docs-reorg-2026-05-21">§3.10
+id="310--codegraph-11478--verbatim-covenant--audit-fixes--docs-reorg-2026-05-21">§3.10
 — CodeGraph (§11.4.78) + verbatim covenant + AUDIT fixes + docs reorg
 (2026-05-21)</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-21T05:30Z).</p>
@@ -1648,7 +1709,7 @@ explicit <code>uname -s</code> topology guard per §11.4.3 + portable
 translates the bare <code>kill</code> verb to <code>kill-session</code>.
 Test 23 PASS=5/0/0; CH-23; M19.</p></li>
 <li><p><strong>Docs reorganised</strong> under context-named
-subdirectories per the operator’s invocation of the constitution rule: 7
+subdirectories per the operator's invocation of the constitution rule: 7
 docs moved
 (GUIDE/SCROLLING/CODEGRAPH/CONTAINERIZATION_PLAN/NATIVE_DUAL_OS_PLAN/
 PER_SESSION_ISOLATION_PLAN/PLAN_v1.0.4). Every reference in governance +
@@ -1679,7 +1740,8 @@ harness is wired).</li>
 <p>Full gate this cycle (Darwin arm64, 2026-05-21):
 <code>setup.sh --verify-only</code> PASS=18/0/SKIP=5, meta-test
 26/0/SKIP=6 (all SKIPs §11.4.3 topology-correct), e2e 9/0/0.</p>
-<h3 id="scrolling-fix-helixconstitution-inheritance-2026-05-21">§3.9 —
+<h3
+id="39--scrolling-fix--helixconstitution-inheritance-2026-05-21">§3.9 —
 Scrolling fix + HelixConstitution inheritance (2026-05-21)</h3>
 <p><strong>Status:</strong> COMPLETE (2026-05-21).</p>
 <p>Triggering event: operator research note — tmux scrolling (up/down of
@@ -1721,7 +1783,7 @@ they now run on macOS instead of silently skipping. Meta-test: 18 caught
 <code>setup.sh --rebuild</code> GREEN, suite PASS=13/0/SKIP=5, meta-test
 18/0/6, e2e 9/0/0.</li>
 </ul>
-<h2 id="recent-commits">§4 — Recent commits</h2>
+<h2 id="4--recent-commits">§4 — Recent commits</h2>
 <ul>
 <li>(this commit, 2026-05-21) — <strong>A16 scrolling fix + A17
 HelixConstitution inheritance (v1.0.3 / versionCode 4).</strong>
@@ -1755,8 +1817,8 @@ reverted from <code>3f651d9f</code> to <code>cc117b5</code> (3.6a tag)
 after silent pin-drift caught; README.md test-count + PASS/SKIP
 staleness fixed (8→14 tests, PASS=6→10, SKIP=2→4); CLAUDE.md + AGENTS.md
 gained project summary, cross-links, fresh-conversation workflow,
-<code>NN_*.sh</code> glob fix, named four layers, “Files to never edit
-directly”; Issues.md restored A/B/C/D/E section headers; CONTINUATION.md
+<code>NN_*.sh</code> glob fix, named four layers, "Files to never edit
+directly"; Issues.md restored A/B/C/D/E section headers; CONTINUATION.md
 §3.8 + timestamp refresh per §12.10. See §3.8.</li>
 <li><code>f4132aa</code> — Auto-commit: opaque submodule bumps
 (Containers <code>e377dea</code>→<code>af51968</code> legitimate
@@ -1767,7 +1829,7 @@ reverted in this commit). §12.10 / §11.4.6 violation documented in
 (META-MUT-001): meta_test_false_positive_proof.sh with 5 mutations
 (10/0/0 all caught); CLAUDE.md/AGENTS.md PENDING→LANDED; Issues.md now
 empty of open items. Also: fixed 5 broken script references (REPO_ROOT
-wrong depth, filenames); implemented systemd-run –user –scope wrapping
+wrong depth, filenames); implemented systemd-run --user --scope wrapping
 in tmx.template; test 09 topology dispatch fixed (functional probe, not
 mount grep); CLAUDE.md compacted to match AGENTS.md; binary built and
 verified GREEN (PASS=10 FAIL=0 SKIP=4: OOM helper + 3 destructive).</li>
@@ -1788,7 +1850,7 @@ landed.</li>
 migrated from ATMOSphere project + per-session containerization plan +
 8-test verification gate.</li>
 </ul>
-<h2 id="resumption-recipe">§8 — Resumption recipe</h2>
+<h2 id="8--resumption-recipe">§8 — Resumption recipe</h2>
 <ol type="1">
 <li><code>cd ~/Projects/tmux</code></li>
 <li>Read this document</li>

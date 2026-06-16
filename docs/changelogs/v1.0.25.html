@@ -172,7 +172,7 @@
   </style>
 </head>
 <body>
-<h1 id="vasic-digital-tmux-v1.0.25-release-notes">vasic-digital tmux —
+<h1 id="vasic-digital-tmux--v1025-release-notes">vasic-digital tmux —
 v1.0.25 Release Notes</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
 2026-06-16T19:00:00Z <strong>Version:</strong> 1.0.25 / versionCode 26
@@ -181,8 +181,8 @@ Mistborn (Darwin arm64) + nezha (ALT Linux x86_64)</p>
 <hr />
 <h2 id="summary">Summary</h2>
 <p>v1.0.25 is a <strong>governance + tooling currency</strong> release
-(no tmux product-surface change) per the operator mandate “we MUST
-ALWAYS target the latest versions of all our submodules”: the
+(no tmux product-surface change) per the operator mandate "we MUST
+ALWAYS target the latest versions of all our submodules": the
 HelixConstitution submodule is advanced to its latest upstream,
 host-level codegraph version skew is fixed, and dead test-socket cruft
 is cleaned.</p>
@@ -200,6 +200,28 @@ already mirrored).</li>
 </ul>
 <h2 id="fixed">Fixed</h2>
 <ul>
+<li><strong>Test 17 (scrollback / copy-mode) load flake — root-caused +
+fixed, 2 vectors (§11.4.1/§11.4.6/§11.4.50).</strong> Flaked under heavy
+host load (FAIL-bluffs, not a product defect). (1) The T4 generator
+spelled the literal
+<code>SCROLLMARK_FIRST</code>/<code>SCROLLMARK_LAST</code> inline, so
+the terminal's echo of the typed command line contained
+<code>SCROLLMARK_LAST</code> and the <code>GEN_OK</code> poll matched
+the command echo before any real output; fix assembles the markers from
+a shell variable (<code>M=SCROLLMARK; echo ${M}_LAST</code>) so every
+grep matches REAL OUTPUT only. (2) Under all-core CPU saturation a
+<code>capture-pane</code> grid dump can momentarily lack the oldest
+<code>FIRST</code> marker although the buffer genuinely retains all 3000
+lines; fix asserts retention via the race-free
+<code>#{history_size}</code> counter (<code>&gt;= 2900</code>; the
+no-eviction value is a deterministic ~2982, the OLD 2000 cap pins it at
+2000 and evicts line 1), not a grid dump (T4.3/T4.4 operator copy-mode
+reach already proved retention robustly). Test source only
+(<code>scripts/tests/17_scrollback_copy_mode.sh</code>). Determinism
+(§11.4.50) PROVEN: macOS N=5 GREEN (5/5) + nezha N=20 under full
+all-core CPU saturation GREEN (20/20); <code>history_size</code>
+identical every run (macOS 2981 / nezha 2982 — counter does not
+race).</li>
 <li><strong>Tests 12 &amp; 14 (destructive cgroup OOM) — swap-aware OOM
 (§11.4.81/§11.4.50).</strong> Failed deterministically on nezha after
 the host gained 15 GiB swap (the cgroup enforced MemoryMax via swap,
@@ -216,11 +238,6 @@ test sockets</strong> (678 → 10), no live session touched.</li>
 <h2 id="validation-dual-host-release-gate">Validation (dual-host release
 gate)</h2>
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
 <thead>
 <tr>
 <th>Host</th>
@@ -263,10 +280,10 @@ pointers; <code>VERSION</code> (1.0.25/26); <code>CHANGELOG.md</code>;
 </ul>
 <h2 id="sources-verified-2026-06-16">Sources verified 2026-06-16</h2>
 <ul>
-<li><a href="https://github.com/HelixDevelopment/HelixConstitution"
-class="uri">https://github.com/HelixDevelopment/HelixConstitution</a></li>
-<li><a href="https://docs.npmjs.com/cli/v10/commands/npm-install"
-class="uri">https://docs.npmjs.com/cli/v10/commands/npm-install</a></li>
+<li><a
+href="https://github.com/HelixDevelopment/HelixConstitution">https://github.com/HelixDevelopment/HelixConstitution</a></li>
+<li><a
+href="https://docs.npmjs.com/cli/v10/commands/npm-install">https://docs.npmjs.com/cli/v10/commands/npm-install</a></li>
 </ul>
 </body>
 </html>
