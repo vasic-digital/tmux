@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>evidence</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1
+id="qa-evidence-tmx-orchestrator-containers-submodule-distribution-orchestrator">QA
+evidence — tmx-orchestrator: Containers-submodule distribution
+orchestrator</h1>
+<p><strong>Run-id:</strong> 2026-06-16-tmx-orchestrator
+<strong>Captured:</strong> 2026-06-16 <strong>Conductor:</strong>
+Mistborn (Darwin arm64, go 1.26.2) · <strong>Target:</strong>
+nezha.local (ALT Linux x86_64, podman 5.7.1) <strong>Deliverable
+(operator mandate):</strong> “Make a proper binary using the Containers
+submodule lib to orchestrate the distribution — for when/if we need it
+for our testing needs.”</p>
+<p>A real consumer binary at <code>scripts/tmx-orchestrator/</code>
+(module <code>digital.vasic.tmux/orchestrator</code>) imports the
+decoupled <code>digital.vasic.containers</code> submodule (via
+<code>replace =&gt; ../../Containers</code>) and orchestrates container
+distribution to nezha. The submodule was NOT modified for tmux-specifics
+(CONST-051); the ONE library change is a generic <code>Ports</code>
+capability (committed upstream <code>1b9da9b</code>, §11.4.76
+extend-don’t-reimplement).</p>
+<hr />
+<h2 id="hosts-real-cross-host-probe-macos-nezha-over-ssh">1.
+<code>hosts</code> — real cross-host probe (macOS → nezha over SSH)</h2>
+<pre><code>$ tmx-orchestrator-bin hosts --env Containers/.env
+[INFO] registered remote host: nezha (nezha.local)
+[DEBUG] ssh exec on nezha: cat /proc/stat &amp;&amp; ... /proc/meminfo ... /proc/loadavg ... nproc ...
+NAME   ADDRESS      PORT  REACHABLE  CPU%  MEM%  MEM(MB)     CORES
+nezha  nezha.local  22    yes        17.2  9.9   6365/64086  8</code></pre>
+<p>Real <code>/proc</code> resources parsed from nezha over SSH; exit
+0.</p>
+<h2
+id="distribute-deploy-a-real-container-on-nezha-health-check-the-anti-bluff-core">2.
+<code>distribute</code> — deploy a REAL container on nezha +
+health-check (the anti-bluff core)</h2>
+<pre><code>$ tmx-orchestrator-bin distribute --image docker.io/library/nginx:alpine \
+      --name tmx-orch-demo --port 80 --publish 18080 --health http --health-path /
+[INFO] batch: scheduled tmx-orch-demo -&gt; nezha (score=0.645)
+[INFO] deploying tmx-orch-demo on nezha: podman run -d --name tmx-orch-demo -p 18080:80/tcp docker.io/library/nginx:alpine
+[INFO] distribution complete: 0 local, 1 remote, 0 failed in 730ms
+
+Distribution summary:
+  total=1  local=0  remote=1  failed=0
+  CONTAINER      HOST   STATE    ERROR
+  tmx-orch-demo  nezha  running
+
+[INFO] health-checking http nezha.local:18080/ (polling until ready)
+Health check (http) nezha.local:18080 -&gt; HEALTHY (19ms)
+  status_code: 200
+distribute exit=0</code></pre>
+<p>Independent confirmation on nezha:</p>
+<pre><code>$ ssh nezha &#39;podman ps --format &quot;{{.Names}}|{{.Status}}|{{.Ports}}&quot;&#39;
+tmx-orch-demo|Up 1 second|0.0.0.0:18080-&gt;80/tcp
+$ ssh nezha &#39;curl -s -o /dev/null -w &quot;HTTP %{http_code}&quot; http://localhost:18080/&#39;
+HTTP 200</code></pre>
+<p>A genuine nginx container is running on nezha, published on host port
+18080, serving HTTP 200.</p>
+<h2 id="down-teardown-verified-clean">3. <code>down</code> — teardown,
+verified clean</h2>
+<pre><code>$ tmx-orchestrator-bin down --name tmx-orch-demo --env Containers/.env
+[INFO] removed container tmx-orch-demo on nezha
+teardown complete for container &quot;tmx-orch-demo&quot;
+down exit=0
+$ ssh nezha &#39;podman ps -a --format &quot;{{.Names}}&quot; | grep -q tmx-orch-demo &amp;&amp; echo PRESENT || echo REMOVED-CLEAN&#39;
+REMOVED-CLEAN</code></pre>
+<h2 id="library-extension-proof-containers-1b9da9b">4. Library extension
+proof (Containers <code>1b9da9b</code>)</h2>
+<ul>
+<li><code>ContainerRequirements.Ports []PortMapping</code> +
+<code>-p host:container[/proto]</code> rendered in
+<code>deployRemote</code>.</li>
+<li>Unit test <code>TestBuildPublishFlags</code> PASS 6/6.</li>
+<li>Bluff-audit (Seventh Law): <code>buildPublishFlags()</code> forced
+to <code>return ""</code> → <code>TestBuildPublishFlags</code> FAIL
+(<code>got "" want " -p 1:2/tcp -p 3:4/tcp"</code>) → restored → PASS;
+residue scan clean.</li>
+<li>Full <code>pkg/distribution</code> + <code>pkg/scheduler</code>
+tests PASS on the integrated upstream tree (<code>20173e8</code> +
+change).</li>
+<li>Containers full unit suite on nezha: all 37 packages
+<code>ok</code>, RC=0.</li>
+</ul>
+<h2 id="root-cause-fixes-during-bring-up-systematic-debugging-fact">5.
+Root-cause fixes during bring-up (systematic-debugging, FACT)</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Root cause (FACT)</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>health check “connection refused” on nezha:80</td>
+<td>container run with no <code>-p</code>; port only in container
+netns</td>
+<td>added <code>Ports</code> to the lib + <code>--publish</code> (extend
+§11.4.76)</td>
+</tr>
+<tr>
+<td>deploy fail “8080 Address already in use”</td>
+<td>nezha already serves on 8080 (curl → 404)</td>
+<td>pick a verified-free host port (18080)</td>
+</tr>
+<tr>
+<td>health “connection reset by peer” immediately after deploy</td>
+<td>readiness race — first connect before nginx + pasta port-forward
+accept</td>
+<td>poll the health check ~15 s until ready (no false PASS)</td>
+</tr>
+</tbody>
+</table>
+<p>All three were diagnosed to FACT root cause before fixing (no
+guessing, §11.4.6).</p>
+</body>
+</html>

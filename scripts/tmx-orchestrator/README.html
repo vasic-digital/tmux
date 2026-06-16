@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1 id="tmx-orchestrator">tmx-orchestrator</h1>
+<p><strong>Revision:</strong> 3 <strong>Last modified:</strong>
+2026-06-16T15:40:00Z</p>
+<p>A real, compile-correct Go consumer binary that drives the
+<code>digital.vasic.containers</code> submodule library to orchestrate
+container distribution to remote test hosts
+(e.g. <code>nezha.local</code>) for the tmux project’s testing
+needs.</p>
+<h2 id="purpose">Purpose</h2>
+<p>When the tmux project needs heavy/containerized test workloads run on
+a remote host instead of the developer’s laptop, this binary is the
+on-demand entry point. It:</p>
+<ol type="1">
+<li>Loads the remote-host configuration from
+<code>Containers/.env</code>.</li>
+<li>Auto-detects the local container runtime, sets up the SSH executor +
+host manager + resource-aware scheduler + distributor — the exact wiring
+proven in <code>Containers/cmd/boot/main.go</code>.</li>
+<li>Schedules a container onto the best remote host, runs it over SSH,
+and confirms it with a real health check.</li>
+</ol>
+<p>This binary lives entirely in the <strong>tmux (consumer)
+project</strong> and only <strong>imports</strong> the Containers
+library. It adds <strong>no</strong> tmux-specific code INTO the
+submodule — the submodule stays 100% decoupled (CONST-051).</p>
+<h2 id="how-it-consumes-the-containers-submodule">How it consumes the
+Containers submodule</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Containers package</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pkg/envconfig</code></td>
+<td><code>LoadFromFile</code> → <code>DistributionConfig</code> →
+<code>ToRemoteHosts()</code></td>
+</tr>
+<tr>
+<td><code>pkg/runtime</code></td>
+<td><code>AutoDetect(ctx)</code> for the local runtime</td>
+</tr>
+<tr>
+<td><code>pkg/remote</code></td>
+<td><code>NewSSHExecutor</code>, <code>NewHostManager</code>,
+<code>AddHost</code>, <code>ProbeHost</code>, <code>ListHosts</code>,
+<code>GetHost</code></td>
+</tr>
+<tr>
+<td><code>pkg/scheduler</code></td>
+<td><code>NewScheduler</code> + <code>WithStrategy</code>,
+<code>ContainerRequirements</code></td>
+</tr>
+<tr>
+<td><code>pkg/distribution</code></td>
+<td><code>NewDistributor</code> (+ <code>With*</code> options),
+<code>Distribute</code>, <code>Undistribute</code>,
+<code>DistributionSummary</code></td>
+</tr>
+<tr>
+<td><code>pkg/health</code></td>
+<td><code>NewDefaultChecker</code> +
+<code>HealthTarget{Type: HealthTCP|HealthHTTP}</code> +
+<code>Check(ctx)</code></td>
+</tr>
+<tr>
+<td><code>pkg/logging</code></td>
+<td><code>NewStdLogger("tmx-orchestrator")</code></td>
+</tr>
+</tbody>
+</table>
+<p>The dependency is wired via the module <code>replace</code> directive
+in <code>go.mod</code>:</p>
+<pre><code>require digital.vasic.containers v0.0.0-00010101000000-000000000000
+replace digital.vasic.containers =&gt; ../../Containers</code></pre>
+<h2 id="build">Build</h2>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> scripts/tmx-orchestrator</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">go</span> build <span class="at">-o</span> ../tmx-orchestrator-bin .</span></code></pre></div>
+<p>The compiled binary <code>scripts/tmx-orchestrator-bin</code> is
+<strong>gitignored</strong> and regenerated via <code>go build</code> on
+each host (§11.4.77). The module source (<code>go.mod</code>,
+<code>go.sum</code>, <code>main.go</code>, <code>README.md</code>) IS
+tracked.</p>
+<h2 id="usage">Usage</h2>
+<p>Run from the <code>scripts/tmx-orchestrator/</code> directory so the
+default <code>../../Containers/.env</code> resolution works, or pass
+<code>--env</code> explicitly.</p>
+<h3
+id="hosts-register-probe-every-configured-remote-host"><code>hosts</code>
+— register + probe every configured remote host</h3>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./tmx-orchestrator-bin</span> hosts</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./tmx-orchestrator-bin</span> hosts <span class="at">--env</span> ../../Containers/.env</span></code></pre></div>
+<p>Registers every <code>CONTAINERS_REMOTE_HOST_N_*</code> host, probes
+each for reachability + CPU/memory, and prints a table. <strong>Exits
+non-zero if any configured host is unreachable.</strong></p>
+<h3
+id="distribute-run-a-container-on-a-remote-host-health-check-it"><code>distribute</code>
+— run a container on a remote host + health-check it</h3>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># TCP health check (default image nginx:alpine, name tmx-orch-demo, port 80)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./tmx-orchestrator-bin</span> distribute</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># HTTP health check against a deployed web container</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">./tmx-orchestrator-bin</span> distribute <span class="dt">\</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image</span> docker.io/library/nginx:alpine <span class="dt">\</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">--name</span> tmx-web <span class="at">--port</span> 80 <span class="at">--health</span> http <span class="at">--health-path</span> /</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co"># TCP health check against a deployed redis container</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="ex">./tmx-orchestrator-bin</span> distribute <span class="dt">\</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image</span> docker.io/library/redis:7 <span class="dt">\</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">--name</span> tmx-redis <span class="at">--port</span> 6379 <span class="at">--health</span> tcp</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Publish container port 80 to host port 18080 on the remote, HTTP-check it</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="ex">./tmx-orchestrator-bin</span> distribute <span class="dt">\</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">--image</span> docker.io/library/nginx:alpine <span class="dt">\</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">--name</span> tmx-orch-demo <span class="at">--port</span> 80 <span class="at">--publish</span> 18080 <span class="dt">\</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">--health</span> http <span class="at">--health-path</span> /</span></code></pre></div>
+<p>Builds a <code>ContainerRequirements</code>, calls
+<code>Distributor.Distribute(...)</code> to place + run the container on
+the scheduled remote host, prints the <code>DistributionSummary</code>
+(local/remote/failed counts + per-container host placement), then runs
+the chosen health checker against the deployed host:port and prints the
+result. <strong>Exits non-zero on distribution failure OR health-check
+failure.</strong> This is the anti-bluff core — it actually runs a real
+container on the remote and confirms it via the health check.</p>
+<p>Flags: <code>--image</code> (default
+<code>docker.io/library/nginx:alpine</code>), <code>--name</code>
+(default <code>tmx-orch-demo</code>), <code>--port</code> (container
+port, default <code>80</code>), <code>--publish</code> (host port to
+publish <code>--port</code> to; <code>0</code> = same as
+<code>--port</code>), <code>--health</code>
+(<code>tcp</code>|<code>http</code>, default <code>tcp</code>),
+<code>--health-path</code> (http only, default <code>/</code>).</p>
+<p><strong>Port publishing is required for a cross-host health check to
+reach the service.</strong> The remote deploy runs
+<code>&lt;runtime&gt; run -d --name X -p host:container image</code>
+(the <code>Ports</code> field of <code>ContainerRequirements</code>,
+added to the Containers library per §11.4.76); without it the container
+port lives only inside the container’s network namespace and the
+conductor cannot reach it. The health check polls (~15 s) so a
+freshly-started service that is not yet accepting connections is given
+time to become ready (no false PASS — a genuinely-down service stays
+UNHEALTHY for the full window).</p>
+<blockquote>
+<p><strong>Health-check strength (<code>tcp</code> vs
+<code>http</code>).</strong> A <code>--health tcp</code> check is
+<em>connect-only</em>: against a <strong>published</strong> port it is
+satisfied by the runtime’s port-forward host listener even if the
+container itself is not serving that port — i.e. it confirms the port is
+published, not that the service responds. Prefer
+<code>--health http</code> for HTTP services: the request is forwarded
+through to the container, so a non-serving container yields
+<code>UNHEALTHY</code> (verified).</p>
+</blockquote>
+<p>On a failed health check the container is intentionally <strong>left
+running</strong> on its host for inspection (logs/exec); the command
+prints a hint to run <code>down --name &lt;name&gt;</code> so a failed
+deploy never silently leaks a container.</p>
+<h3 id="down-tear-down-distributed-containers"><code>down</code> — tear
+down distributed container(s)</h3>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./tmx-orchestrator-bin</span> down <span class="at">--name</span> tmx-web</span></code></pre></div>
+<p>Removes the named container on every registered remote host and calls
+<code>Distributor.Undistribute(...)</code> to close tunnels / unmount
+volumes. Idempotent.</p>
+<h3 id="common-flags">Common flags</h3>
+<ul>
+<li><code>--env &lt;path&gt;</code> — path to the <code>.env</code>
+config. Default search order: <code>../../Containers/.env</code>,
+<code>../../.env</code>, <code>./.env</code>,
+<code>$PWD/.env</code>.</li>
+<li><code>--timeout &lt;dur&gt;</code> — overall context timeout
+(default <code>3m</code>), e.g. <code>90s</code>, <code>5m</code>.
+SIGINT/SIGTERM cancels the context.</li>
+</ul>
+<h2 id="env-schema">.env schema</h2>
+<p>The config schema is owned by the Containers submodule —
+<code>Containers/pkg/envconfig/parser.go</code>. The operator-placed
+config lives at <code>Containers/.env</code> and registers
+<code>nezha.local</code>:</p>
+<pre><code>CONTAINERS_REMOTE_ENABLED=true
+CONTAINERS_REMOTE_SCHEDULER=resource_aware
+CONTAINERS_REMOTE_DEFAULT_SSH_USER=milosvasic
+CONTAINERS_REMOTE_DEFAULT_SSH_KEY=~/.ssh/id_ed25519
+CONTAINERS_REMOTE_DEFAULT_RUNTIME=podman
+
+CONTAINERS_REMOTE_HOST_1_NAME=nezha
+CONTAINERS_REMOTE_HOST_1_ADDRESS=nezha.local
+CONTAINERS_REMOTE_HOST_1_PORT=22
+CONTAINERS_REMOTE_HOST_1_USER=milosvasic
+CONTAINERS_REMOTE_HOST_1_KEY=~/.ssh/id_ed25519
+CONTAINERS_REMOTE_HOST_1_RUNTIME=podman
+CONTAINERS_REMOTE_HOST_1_LABELS=arch=amd64,podman_available=true,role=heavy-test</code></pre>
+<p>Hosts scale freely: append a <code>CONTAINERS_REMOTE_HOST_N_*</code>
+block (the loader stops at the first absent <code>_NAME</code>).
+<code>.env</code> is gitignored (CONST-053 / §11.4.10).</p>
+<blockquote>
+<p><strong>Key path:</strong> use an ABSOLUTE path (e.g.
+<code>/Users/&lt;you&gt;/.ssh/id_ed25519</code>) for <code>*_KEY</code>
+on the conductor host — the SSH-exec path does not expand a leading
+<code>~</code>.</p>
+</blockquote>
+<h2 id="related">Related</h2>
+<ul>
+<li><code>Containers/cmd/boot/main.go</code> — the proven wiring this
+binary mirrors.</li>
+<li><code>Containers/CLAUDE.md</code> — Composition + Remote
+Distribution sections.</li>
+<li><code>Containers/pkg/envconfig/parser.go</code> — <code>.env</code>
+schema source of truth.</li>
+</ul>
+</body>
+</html>

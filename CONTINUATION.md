@@ -56,6 +56,16 @@ ps + curl confirm); `down` → REMOVED-CLEAN. Runtime test
 Containers full unit suite on nezha all 37 pkgs ok. Two real bluff-audits (feature +
 security guard). Containers submodule was NOT modified for tmux-specifics (CONST-051).
 
+**Post-landing validation + hardening (2026-06-16, parallel-stream round):**
+Dual-host green — macOS full suite PASS=55/0/6 (zero regression; +1 SKIP = new
+test 62), nezha Containers integration tests (`-tags=integration`) all 40 pkgs
+`ok` against real podman. Orchestrator hardened: `distribute` now prints a
+cleanup hint when the health check fails (container left running for inspection,
+no silent leak — verified via a real induced HTTP failure). README documents the
+`--health tcp` vs `http` distinction (TCP connect-only false-passes on a
+published port; HTTP forwards through — verified). §11.4.65 .html/.pdf siblings
+generated for the new/changed docs. nezha synced to tmux a130a8f + Containers 82bd586.
+
 **Open follow-ups:** none. The binary is on-demand ("when and if we need it").
 
 ### §3.23 — libtinfo cross-distro static-link fix + test-determinism hardening → v1.0.23 (2026-06-16)

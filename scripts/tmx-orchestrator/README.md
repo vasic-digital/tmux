@@ -1,7 +1,7 @@
 # tmx-orchestrator
 
-**Revision:** 2
-**Last modified:** 2026-06-16T15:00:00Z
+**Revision:** 3
+**Last modified:** 2026-06-16T15:40:00Z
 
 A real, compile-correct Go consumer binary that drives the
 `digital.vasic.containers` submodule library to orchestrate container
@@ -117,6 +117,17 @@ only inside the container's network namespace and the conductor cannot reach
 it. The health check polls (~15 s) so a freshly-started service that is not
 yet accepting connections is given time to become ready (no false PASS — a
 genuinely-down service stays UNHEALTHY for the full window).
+
+> **Health-check strength (`tcp` vs `http`).** A `--health tcp` check is
+> *connect-only*: against a **published** port it is satisfied by the runtime's
+> port-forward host listener even if the container itself is not serving that
+> port — i.e. it confirms the port is published, not that the service responds.
+> Prefer `--health http` for HTTP services: the request is forwarded through to
+> the container, so a non-serving container yields `UNHEALTHY` (verified).
+
+On a failed health check the container is intentionally **left running** on its
+host for inspection (logs/exec); the command prints a hint to run
+`down --name <name>` so a failed deploy never silently leaks a container.
 
 ### `down` — tear down distributed container(s)
 

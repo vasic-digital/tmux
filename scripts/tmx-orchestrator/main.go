@@ -395,6 +395,13 @@ func cmdDistribute(args []string) int {
 	}
 
 	if !runHealthCheck(ctx, orch, target, publishPort, *healthKind, *healthPath) {
+		// The container is intentionally LEFT RUNNING on its host for
+		// inspection (logs/exec) rather than torn down on failure — but tell
+		// the operator so a failed deploy never silently leaks a container.
+		fmt.Fprintf(os.Stderr,
+			"tmx-orchestrator: container %q is still running on its host for "+
+				"inspection; run `tmx-orchestrator down --name %s` to remove it.\n",
+			*name, *name)
 		return 1
 	}
 	return 0
