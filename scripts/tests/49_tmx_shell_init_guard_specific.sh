@@ -26,9 +26,18 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TEMPLATE="$REPO_ROOT/scripts/tmx-shell-init.sh.template"
 GENERATED="$REPO_ROOT/scripts/tmx-shell-init.sh"
-INIT_FILE="/tmp/tmx-test-49-init-$$.sh"
+# §11.4.3 / D2 TMPDIR-HARDCODE-001 — route scratch through $TMPDIR so a full
+# host `/` cannot false-FAIL this test. Preflight below.
+SCRATCH="${TMPDIR:-/tmp}"
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 49: scratch root $SCRATCH not writable — §11.4.3"
+    exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
+INIT_FILE="$SCRATCH/tmx-test-49-init-$$.sh"
 PREFIX="tmx-test-49"
-export TMX_STATE_FILE="/tmp/tmx-test-49-state-$$.json"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-49-state-$$.json"
 MARKER_REGEX='tmx-shell-init: non-TTY guard fired'
 
 PASS=0; FAIL=0; SKIP=0
@@ -84,7 +93,7 @@ chmod 644 "$INIT_FILE"
 run_iteration() {
     local iter="$1"
     local stderr_file
-    stderr_file="/tmp/tmx-test-49-stderr-$$-$iter.txt"
+    stderr_file="$SCRATCH/tmx-test-49-stderr-$$-$iter.txt"
     local rc=0
     # Drop TMUX so the "already inside tmux" early-return doesn't intercept.
     # Run with stdin=/dev/null (definitively non-TTY) + the debug env var.

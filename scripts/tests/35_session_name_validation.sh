@@ -18,17 +18,28 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 INIT_TEMPLATE="$REPO_ROOT/scripts/tmx-shell-init.sh.template"
 DISPATCH_TEMPLATE="$REPO_ROOT/scripts/tmx-ssh-dispatch.sh.template"
-INIT_FILE="/tmp/tmx-shell-init-26-$$.sh"
-DISPATCH_FILE="/tmp/tmx-ssh-dispatch-26-$$.sh"
-INIT_STRIPPED="/tmp/tmx-shell-init-26-stripped-$$.sh"
-export TMX_STATE_FILE="/tmp/tmx-test-26-$$.json"
+# D2 TMPDIR-HARDCODE-001: route scratch through $TMPDIR so a full host /
+# does not false-FAIL this test (§11.4.3 scratch-root preflight below).
+SCRATCH="${TMPDIR:-/tmp}"
+INIT_FILE="$SCRATCH/tmx-shell-init-26-$$.sh"
+DISPATCH_FILE="$SCRATCH/tmx-ssh-dispatch-26-$$.sh"
+INIT_STRIPPED="$SCRATCH/tmx-shell-init-26-stripped-$$.sh"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-26-$$.json"
 
-FAKE_PATH_DIR="/tmp/tmx-test-26-fakepath-$$"
+FAKE_PATH_DIR="$SCRATCH/tmx-test-26-fakepath-$$"
 _cleanup() {
     rm -f "$INIT_FILE" "$DISPATCH_FILE" "$INIT_STRIPPED" "$TMX_STATE_FILE" 2>/dev/null || true
     rm -rf "$FAKE_PATH_DIR" 2>/dev/null || true
 }
 trap '_cleanup' EXIT
+
+# §11.4.3 scratch-root writability preflight — SKIP (not FAIL) when the
+# scratch root cannot hold our init/dispatch/fake-PATH files.
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 26: scratch root $SCRATCH not writable — §11.4.3"; exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
 
 [ -f "$INIT_TEMPLATE" ] || { echo "SKIP 26: tmx-shell-init.sh.template not present"; exit 77; }
 [ -f "$DISPATCH_TEMPLATE" ] || { echo "SKIP 26: tmx-ssh-dispatch.sh.template not present"; exit 77; }

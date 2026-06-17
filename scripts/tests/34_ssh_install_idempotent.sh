@@ -14,14 +14,25 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 INSTALL_SCRIPT="$REPO_ROOT/scripts/tmx-ssh-install.sh"
-RUN1="/tmp/tmx-test-25-run1-$$.txt"
-RUN2="/tmp/tmx-test-25-run2-$$.txt"
-DIFF="/tmp/tmx-test-25-diff-$$.txt"
+# D2 TMPDIR-HARDCODE-001: route scratch through $TMPDIR so a full host /
+# does not false-FAIL this test (§11.4.3 scratch-root preflight below).
+SCRATCH="${TMPDIR:-/tmp}"
+RUN1="$SCRATCH/tmx-test-25-run1-$$.txt"
+RUN2="$SCRATCH/tmx-test-25-run2-$$.txt"
+DIFF="$SCRATCH/tmx-test-25-diff-$$.txt"
 
 _cleanup() {
     rm -f "$RUN1" "$RUN2" "$DIFF" 2>/dev/null || true
 }
 trap '_cleanup' EXIT
+
+# §11.4.3 scratch-root writability preflight — SKIP (not FAIL) when the
+# scratch root cannot hold our run-capture files.
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 25: scratch root $SCRATCH not writable — §11.4.3"; exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
 
 [ -x "$INSTALL_SCRIPT" ] || { echo "SKIP 25: tmx-ssh-install.sh not present/executable"; exit 77; }
 # Probe for --dry-run support.

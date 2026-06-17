@@ -30,9 +30,24 @@ TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
 STATE_BIN="$REPO_ROOT/scripts/tmx-state-bin"
 TEMPLATE="$REPO_ROOT/scripts/tmx.template"
 
+# §11.4.3 / D2 TMPDIR-HARDCODE-001: route the scratch state file this test
+# CREATES through ${TMPDIR:-/tmp} so a full host / does not false-FAIL.
+# Default /tmp preserves prior behaviour when TMPDIR is unset.
+SCRATCH="${TMPDIR:-/tmp}"
+SCRATCH="${SCRATCH%/}"
+
+# §11.4.3 writability PREFLIGHT: disk-full / RO scratch root → honest SKIP.
+_wtest_dir="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest_dir" 2>/dev/null || [ ! -w "$_wtest_dir" ]; then
+    echo "SKIP 50: scratch root $SCRATCH not writable (disk full / RO) — §11.4.3"
+    rm -rf "$_wtest_dir" 2>/dev/null || true
+    exit 77
+fi
+rm -rf "$_wtest_dir" 2>/dev/null || true
+
 SESS="tmx_t50_$$"
 SOCK_LABEL="tmx-${SESS}"
-export TMX_STATE_FILE="/tmp/tmx-test-50-state-$$.json"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-50-state-$$.json"
 
 PASS=0; FAIL=0; SKIP=0
 _pass() { echo "PASS 50: $*"; PASS=$((PASS + 1)); }

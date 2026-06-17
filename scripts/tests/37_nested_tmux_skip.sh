@@ -13,9 +13,20 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TEMPLATE="$REPO_ROOT/scripts/tmx-shell-init.sh.template"
-INIT_FILE="/tmp/tmx-shell-init-28-$$.sh"
+# D2 TMPDIR-HARDCODE-001: route scratch through $TMPDIR so a full host /
+# does not false-FAIL this test (§11.4.3 scratch-root preflight below).
+SCRATCH="${TMPDIR:-/tmp}"
+INIT_FILE="$SCRATCH/tmx-shell-init-28-$$.sh"
 PREFIX="tmx-test-nested-28"
-export TMX_STATE_FILE="/tmp/tmx-test-28-$$.json"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-28-$$.json"
+
+# §11.4.3 scratch-root writability preflight — SKIP (not FAIL) when the
+# scratch root cannot hold our state/init files.
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 28: scratch root $SCRATCH not writable — §11.4.3"; exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
 
 _cleanup() {
     rm -f "$INIT_FILE" "$TMX_STATE_FILE" 2>/dev/null || true

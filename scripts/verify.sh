@@ -495,10 +495,64 @@ _check_CM_NO_DYNAMIC_LIBTINFO() {
     return 0
 }
 
+# CM-RUNALL-OS-AWARE — A2 RUNALL-NATIVE-RESOLVE-001 (§11.4.3/§11.4.81). The
+# standalone test runner MUST resolve the OS-appropriate build dir: prefer
+# tmux/build-darwin (macOS Mach-O) then fall back to tmux/build (Linux ELF), so
+# `bash scripts/tests/run_all.sh` works on BOTH OSes (was: hardcoded tmux/build
+# → Exec-format / not-executable on native macOS).
+_check_CM_RUNALL_OS_AWARE() {
+    local ra="$REPO_ROOT/scripts/tests/run_all.sh"
+    if [ ! -f "$ra" ]; then
+        printf '[FAIL] %s run_all.sh missing\n' "CM-RUNALL-OS-AWARE"; return 1
+    fi
+    if grep -q 'tmux/build-darwin/bin/tmux' "$ra" \
+       && grep -qE 'TMUX_BIN_DEFAULT=.*build/bin/tmux' "$ra"; then
+        printf '[PASS] %s (run_all resolves build-darwin then build)\n' \
+            "CM-RUNALL-OS-AWARE"
+        return 0
+    fi
+    printf '[FAIL] %s run_all.sh not OS-aware (missing build-darwin->build fallback)\n' \
+        "CM-RUNALL-OS-AWARE"
+    return 1
+}
+
+# CM-NO-HARDCODED-TMP-SCRATCH — D2 TMPDIR-HARDCODE-001 (§11.4.3/§11.4.50). The
+# cwd/state/dispatch tests MUST route scratch through ${TMPDIR:-/tmp} (a SCRATCH
+# var) so they SKIP-with-reason on an unwritable scratch root instead of
+# false-FAILing under host disk-pressure. Guards against a future test
+# re-introducing a hardcoded /tmp scratch ASSIGNMENT. (The SCRATCH fallback
+# `="${TMPDIR:-/tmp}"` ends in /tmp} not /tmp/ so it does NOT match; recorded
+# VALUE strings like `record k "/tmp/p"` are not assignments and do not match.)
+_check_CM_NO_HARDCODED_TMP_SCRATCH() {
+    local d="$REPO_ROOT/scripts/tests" bad="" t
+    for t in 27_state_persistence 33_state_concurrency 38_stale_pwd_fallback \
+             43_e2e_cwd_persist_real_shell 50_cwd_hook_autoinstall \
+             28_default_skip 29_default_skip_blank 30_non_tty_skip \
+             31_ssh_dispatch_local 34_ssh_install_idempotent \
+             35_session_name_validation 36_dispatcher_rejects_multiword \
+             37_nested_tmux_skip 40_macos_linux_parity \
+             49_tmx_shell_init_guard_specific 51_workable_items_db_integrity; do
+        [ -f "$d/$t.sh" ] || continue
+        if grep -qE '^[[:space:]]*(export[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*="?/tmp/' "$d/$t.sh"; then
+            bad="$bad $t"
+        fi
+    done
+    if [ -n "$bad" ]; then
+        printf '[FAIL] %s hardcoded /tmp scratch assignment in:%s — route through ${TMPDIR:-/tmp}\n' \
+            "CM-NO-HARDCODED-TMP-SCRATCH" "$bad"
+        return 1
+    fi
+    printf '[PASS] %s (16 cwd/state/dispatch tests route scratch through ${TMPDIR:-/tmp})\n' \
+        "CM-NO-HARDCODED-TMP-SCRATCH"
+    return 0
+}
+
 # Run the new gates. Aggregate failure into V109_FAIL — Layer 1 must
 # stay fail-fast, so any FAIL aborts before the runtime suite (binary is
 # NOT operator-safe with broken P1-P4 artefacts).
 V109_FAIL=0
+_check_CM_RUNALL_OS_AWARE            || V109_FAIL=1
+_check_CM_NO_HARDCODED_TMP_SCRATCH   || V109_FAIL=1
 _check_CM_TMX_STATE_GO_MOD_EXISTS    || V109_FAIL=1
 _check_CM_TMX_STATE_GO_PRESENT       || V109_FAIL=1
 _check_CM_TMX_SHELL_INIT_POSIX       || V109_FAIL=1

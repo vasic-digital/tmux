@@ -12,12 +12,23 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TEMPLATE="$REPO_ROOT/scripts/tmx-shell-init.sh.template"
-INIT_FILE="/tmp/tmx-shell-init-20-$$.sh"
+# D2 TMPDIR-HARDCODE-001: route scratch through $TMPDIR so a full host /
+# does not false-FAIL this test (§11.4.3 scratch-root preflight below).
+SCRATCH="${TMPDIR:-/tmp}"
+INIT_FILE="$SCRATCH/tmx-shell-init-20-$$.sh"
 PREFIX="tmx-test-blank-20"
-export TMX_STATE_FILE="/tmp/tmx-test-20-$$.json"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-20-$$.json"
+
+# §11.4.3 scratch-root writability preflight — SKIP (not FAIL) when the
+# scratch root cannot hold our state/init/stripped files.
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 20: scratch root $SCRATCH not writable — §11.4.3"; exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
 
 _cleanup() {
-    rm -f "$INIT_FILE" "$TMX_STATE_FILE" /tmp/tmx-shell-init-20-stripped-$$.sh 2>/dev/null || true
+    rm -f "$INIT_FILE" "$TMX_STATE_FILE" "$SCRATCH/tmx-shell-init-20-stripped-$$.sh" 2>/dev/null || true
     if command -v tmx >/dev/null 2>&1; then
         tmx ls 2>/dev/null | grep -oE "^${PREFIX}[^:]*" | while read -r s; do
             tmx kill-session -t "$s" >/dev/null 2>&1 || true
@@ -39,7 +50,7 @@ run_iteration() {
         echo "FAIL 20 iter=$iter: tmx already had a ${PREFIX} session before test"
         return 1
     fi
-    local stripped="/tmp/tmx-shell-init-20-stripped-$$-$iter.sh"
+    local stripped="$SCRATCH/tmx-shell-init-20-stripped-$$-$iter.sh"
     sed '/if \[ ! -t 0 \] || \[ ! -t 1 \]; then/,/^fi$/d' "$INIT_FILE" > "$stripped"
     # Feed pure blank input (single newline = empty session_name).
     local out rc

@@ -34,7 +34,17 @@ DB="$REPO_ROOT/docs/workable_items.db"
 ISSUES="$REPO_ROOT/Issues.md"
 FIXED="$REPO_ROOT/Fixed.md"
 
-WORK_DIR="/tmp/tmx-test-51-roundtrip-$$"
+# §11.4.3 / D2 TMPDIR-HARDCODE-001 — route scratch through $TMPDIR so a full
+# host `/` cannot false-FAIL this test. Preflight below.
+SCRATCH="${TMPDIR:-/tmp}"
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 51: scratch root $SCRATCH not writable — §11.4.3"
+    exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
+
+WORK_DIR="$SCRATCH/tmx-test-51-roundtrip-$$"
 
 PASS=0; FAIL=0; SKIP=0
 _pass() { echo "PASS 51: $*"; PASS=$((PASS + 1)); }
@@ -67,17 +77,17 @@ else
 fi
 
 # ── T2: schema applies cleanly (matches the constitution schema) ──────
-if "$BIN" validate --schema-only >/tmp/tmx-test-51-schema-$$.txt 2>&1; then
-    schema_out="$(cat /tmp/tmx-test-51-schema-$$.txt)"
+if "$BIN" validate --schema-only >"$SCRATCH/tmx-test-51-schema-$$.txt" 2>&1; then
+    schema_out="$(cat "$SCRATCH/tmx-test-51-schema-$$.txt")"
     if echo "$schema_out" | grep -qE 'schema OK'; then
         _pass "T2 schema applies cleanly: $schema_out"
     else
         _fail "T2 validate --schema-only exited 0 but output unexpected: $schema_out"
     fi
 else
-    _fail "T2 validate --schema-only failed: $(cat /tmp/tmx-test-51-schema-$$.txt)"
+    _fail "T2 validate --schema-only failed: $(cat "$SCRATCH/tmx-test-51-schema-$$.txt")"
 fi
-rm -f /tmp/tmx-test-51-schema-$$.txt
+rm -f "$SCRATCH/tmx-test-51-schema-$$.txt"
 
 # ── T3: validate against the live DB reports ZERO findings ────────────
 if [ -f "$DB" ]; then

@@ -10,7 +10,16 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-TMUX_BIN="${TMUX_BIN:-$REPO_ROOT/tmux/build/bin/tmux}"
+# A2 RUNALL-NATIVE-RESOLVE-001 (2026-06-17): OS-aware binary default. The native
+# macOS build (build_native.sh) installs the Mach-O binary to tmux/build-darwin;
+# the native Linux + build_containerized.sh ELF lives at tmux/build. Try the
+# Darwin path first — it only exists on a macOS native build, so a Linux host
+# falls through to tmux/build unchanged. Mirrors the resolution already used in
+# 27_state_persistence.sh, so standalone run_all.sh works on BOTH OSes (was:
+# hardcoded tmux/build → Exec-format/not-executable on native macOS).
+TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"
+[ -x "$TMUX_BIN_DEFAULT" ] || TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build/bin/tmux"
+TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 EXPECTED_VERSION="${EXPECTED_VERSION:-3.6a}"
 export TMUX_BIN WRAPPER EXPECTED_VERSION
@@ -32,7 +41,7 @@ if ! command -v codegraph >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; the
 fi
 
 if [ ! -x "$TMUX_BIN" ]; then
-    echo "ERROR: TMUX_BIN $TMUX_BIN not executable. Did you run build_containerized.sh?"
+    echo "ERROR: TMUX_BIN $TMUX_BIN not executable. Build first: scripts/build_native.sh (macOS/Linux native) or scripts/build_containerized.sh (Linux container)."
     exit 2
 fi
 

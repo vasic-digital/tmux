@@ -13,9 +13,20 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TEMPLATE="$REPO_ROOT/scripts/tmx-shell-init.sh.template"
-INIT_FILE="/tmp/tmx-shell-init-19-$$.sh"
+# D2 TMPDIR-HARDCODE-001: route scratch through $TMPDIR so a full host /
+# does not false-FAIL this test (§11.4.3 scratch-root preflight below).
+SCRATCH="${TMPDIR:-/tmp}"
+INIT_FILE="$SCRATCH/tmx-shell-init-19-$$.sh"
 PREFIX="tmx-test-default-19"
-export TMX_STATE_FILE="/tmp/tmx-test-19-$$.json"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-19-$$.json"
+
+# §11.4.3 scratch-root writability preflight — SKIP (not FAIL) when the
+# scratch root cannot hold our state/init/stripped files.
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 19: scratch root $SCRATCH not writable — §11.4.3"; exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
 
 _cleanup() {
     rm -f "$INIT_FILE" "$TMX_STATE_FILE" 2>/dev/null || true
@@ -93,7 +104,7 @@ run_iteration() {
     #   1. Skips the [ -t 0 ] check (we are testing the next branch).
     #   2. Pipes "default\n" to the rest of the script.
     # We emulate via a sed-stripped variant + driver script.
-    local stripped="/tmp/tmx-shell-init-19-stripped-$$.sh"
+    local stripped="$SCRATCH/tmx-shell-init-19-stripped-$$.sh"
     sed '/if \[ ! -t 0 \] || \[ ! -t 1 \]; then/,/^fi$/d' "$INIT_FILE" > "$stripped"
     # Run under bash -c so `return 0 2>/dev/null || exit 0` falls
     # through to exit. Feed "default\n" on stdin.

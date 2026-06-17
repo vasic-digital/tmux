@@ -59,6 +59,22 @@ for need in "$TMUX_BIN" "$WRAPPER" "$STATE_BIN" "$INIT_FILE"; do
     fi
 done
 
+# §11.4.3 / D2 TMPDIR-HARDCODE-001: route every scratch path this test
+# CREATES (state file, target dir; SANDBOX_HOME already honours TMPDIR via
+# mktemp -t) through ${TMPDIR:-/tmp} so a full host / does not false-FAIL
+# with pane_current_path=''. Default /tmp preserves prior behaviour.
+SCRATCH="${TMPDIR:-/tmp}"
+SCRATCH="${SCRATCH%/}"
+
+# §11.4.3 writability PREFLIGHT: disk-full / RO scratch root → honest SKIP.
+_wtest_dir="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest_dir" 2>/dev/null || [ ! -w "$_wtest_dir" ]; then
+    echo "SKIP 43: scratch root $SCRATCH not writable (disk full / RO) — §11.4.3"
+    rm -rf "$_wtest_dir" 2>/dev/null || true
+    exit 77
+fi
+rm -rf "$_wtest_dir" 2>/dev/null || true
+
 # Sandbox HOME so the pane's shell sources OUR rc files (which we control)
 # rather than the operator's actual rc — the operator's .zshrc may or
 # may not have the install snippet at any given moment (setup.sh's
@@ -85,11 +101,11 @@ printf '%s\n' "$RC_SNIPPET" > "$SANDBOX_HOME/.profile"
 export HOME="$SANDBOX_HOME"
 
 # Sandbox state file so we never touch the operator's real state.
-export TMX_STATE_FILE="/tmp/t43-state-$$.json"
+export TMX_STATE_FILE="$SCRATCH/t43-state-$$.json"
 
 # Unique session + target dir per run.
 SESS="t43-cwd-$$"
-TARGET="/tmp/t43-target-$$"
+TARGET="$SCRATCH/t43-target-$$"
 TARGET_REAL="$TARGET"
 mkdir -p "$TARGET"
 case "$(uname -s)" in

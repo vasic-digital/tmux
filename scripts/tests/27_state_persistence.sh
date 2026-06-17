@@ -24,14 +24,35 @@ TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
 STATE_BIN="$REPO_ROOT/scripts/tmx-state-bin"
 
+# §11.4.3 / D2 TMPDIR-HARDCODE-001: route every scratch path this test
+# CREATES through ${TMPDIR:-/tmp} instead of bare /tmp, so a full host /
+# does not false-FAIL with pane_current_path=''. When TMPDIR is unset the
+# default /tmp preserves the prior behaviour exactly.
+SCRATCH="${TMPDIR:-/tmp}"
+# Strip any trailing slash so "$SCRATCH/foo" never yields "//foo".
+SCRATCH="${SCRATCH%/}"
+
+# §11.4.3 writability PREFLIGHT: if the scratch root is not writable
+# (disk full / read-only), convert the would-be false-FAIL into an honest
+# SKIP rather than fail with a confusing empty pane_current_path.
+_wtest_dir="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest_dir" 2>/dev/null || [ ! -w "$_wtest_dir" ]; then
+    echo "SKIP 18: scratch root $SCRATCH not writable (disk full / RO) — §11.4.3"
+    rm -rf "$_wtest_dir" 2>/dev/null || true
+    exit 77
+fi
+rm -rf "$_wtest_dir" 2>/dev/null || true
+
 SESS="tmx-test-18-pwd-$$"
-TARGET_DIR="/tmp/tmx-test-18-target-$$"
+TARGET_DIR="$SCRATCH/tmx-test-18-target-$$"
 # macOS /tmp -> /private/tmp symlink. tmux #{pane_current_path} returns the
 # resolved path; compare against the resolved form (§11.4.81 parity).
+# With $TMPDIR=/Volumes/... there is no symlink, so the resolved form equals
+# the literal — the dual-form compare below still holds in both cases.
 mkdir -p "$TARGET_DIR" 2>/dev/null || true
 TARGET_DIR_REAL="$(cd "$TARGET_DIR" 2>/dev/null && pwd -P)"
 [ -z "$TARGET_DIR_REAL" ] && TARGET_DIR_REAL="$TARGET_DIR"
-export TMX_STATE_FILE="/tmp/tmx-test-18-$$.json"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-18-$$.json"
 SOCK_LABEL="tmx-${SESS}"
 
 _evidence=""
@@ -140,7 +161,7 @@ run_iteration() {
     # value (anything stripping the hook from the wrapper template fails
     # because the recall would still return the OLD value in Phase 1).
     local hook_target hook_target_real
-    hook_target="/tmp/tmx-test-18-hook-$$-$iter"
+    hook_target="$SCRATCH/tmx-test-18-hook-$$-$iter"
     mkdir -p "$hook_target"
     hook_target_real="$(cd "$hook_target" && pwd -P)"
     "$TMUX_BIN" -L "$SOCK_LABEL" send-keys "cd $hook_target" Enter 2>/dev/null

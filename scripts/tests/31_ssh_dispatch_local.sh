@@ -29,9 +29,20 @@ TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 [ -x "$TMUX_BIN_DEFAULT" ] || TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build/bin/tmux"
 TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
 
-DISPATCH_FILE="/tmp/tmx-ssh-dispatch-22-$$.sh"
+# D2 TMPDIR-HARDCODE-001: route scratch through $TMPDIR so a full host /
+# does not false-FAIL this test (§11.4.3 scratch-root preflight below).
+SCRATCH="${TMPDIR:-/tmp}"
+DISPATCH_FILE="$SCRATCH/tmx-ssh-dispatch-22-$$.sh"
 SESS="tmx-test-22-work-$$"
-export TMX_STATE_FILE="/tmp/tmx-test-22-$$.json"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-22-$$.json"
+
+# §11.4.3 scratch-root writability preflight — SKIP (not FAIL) when the
+# scratch root cannot hold our dispatcher/state files.
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 22: scratch root $SCRATCH not writable — §11.4.3"; exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
 
 _cleanup() {
     rm -f "$DISPATCH_FILE" "$TMX_STATE_FILE" 2>/dev/null || true

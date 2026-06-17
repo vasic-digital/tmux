@@ -20,9 +20,25 @@ TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
 STATE_BIN="$REPO_ROOT/scripts/tmx-state-bin"
 
+# §11.4.3 / D2 TMPDIR-HARDCODE-001: route every scratch path this test
+# uses (the recorded-but-absent GONE_DIR, the state file, the captured
+# stderr file) through ${TMPDIR:-/tmp}. Default /tmp preserves prior
+# behaviour when TMPDIR is unset.
+SCRATCH="${TMPDIR:-/tmp}"
+SCRATCH="${SCRATCH%/}"
+
+# §11.4.3 writability PREFLIGHT: disk-full / RO scratch root → honest SKIP.
+_wtest_dir="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest_dir" 2>/dev/null || [ ! -w "$_wtest_dir" ]; then
+    echo "SKIP 29: scratch root $SCRATCH not writable (disk full / RO) — §11.4.3"
+    rm -rf "$_wtest_dir" 2>/dev/null || true
+    exit 77
+fi
+rm -rf "$_wtest_dir" 2>/dev/null || true
+
 SESS="tmx-test-29-stale-$$"
-GONE_DIR="/tmp/tmx-test-29-gone-$$"
-export TMX_STATE_FILE="/tmp/tmx-test-29-$$.json"
+GONE_DIR="$SCRATCH/tmx-test-29-gone-$$"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-29-$$.json"
 SOCK_LABEL="tmx-${SESS}"
 
 _cleanup() {
@@ -62,7 +78,7 @@ run_iteration() {
         return 1
     fi
     # Run the wrapper — capture stderr to look for the notice.
-    local stderr_file="/tmp/tmx-test-29-stderr-$$-$iter.txt"
+    local stderr_file="$SCRATCH/tmx-test-29-stderr-$$-$iter.txt"
     "$WRAPPER" new -s "$SESS" -d 2>"$stderr_file" >/dev/null || true
     sleep 0.5
     local stderr_content
