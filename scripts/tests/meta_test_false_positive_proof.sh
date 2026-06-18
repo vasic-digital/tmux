@@ -1194,6 +1194,39 @@ else
     fi
 fi
 
+# ── M25: strip _apply_color from the generated wrapper → color test FAILs
+# Spec §102 per-session color: _apply_color is the function that paints the
+# 4 green surfaces with the explicit/persisted color. Without it the wrapper
+# still resolves EFFECTIVE_COLOR but never applies it, so every colored
+# session falls through to green/hostname and test 63's T1/T2/T3 (which read
+# live status-style == the chosen color) FAIL. scripts/tmx is the GENERATED
+# (gitignored) artefact test 63 runs, so cp-restore is clean (same pattern
+# as M-WRAPPER-TMUXBIN).
+v109_run_mutation \
+    "M25" \
+    "strip _apply_color from scripts/tmx (test 63 T1/T2/T3 read live status-style == chosen color)" \
+    "scripts/tmx" \
+    "inplace_sed '/^_apply_color()/,/^}/d' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
+    "scripts/tests/63_session_color.sh" \
+    "FAIL"
+
+# ── M26: neutralize the set-color call in the generated wrapper → T4 FAILs
+# Spec §102 decision #7: persisted color must win on a bare-name re-run. T4
+# sets a color, kills, re-creates bare, asserts the persisted color
+# re-applies. If _resolve_color never calls `tmx-state-bin set-color`, the
+# state file never records the color → bare re-run falls back to hostname
+# color → T4 FAILs. Mutates scripts/tmux (GENERATED, gitignored) so the
+# cp-revert is clean + needs no binary rebuild (avoids the §11.4.84
+# mutation-residue risk of a Go-source+rebuild mutation whose cp-only
+# revert would leave tmx-state-bin broken).
+v109_run_mutation \
+    "M26" \
+    "neutralize set-color call in scripts/tmux (test 63 T4 persisted-color-wins fails)" \
+    "scripts/tmx" \
+    "inplace_sed 's|\"\$TMX_DIR/tmx-state-bin\" set-color \"\$name\"|true #M26|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
+    "scripts/tests/63_session_color.sh" \
+    "FAIL"
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════

@@ -151,3 +151,19 @@ Two minor Queued robustness Tasks added from the v1.0.25 cycle: A2 RUNALL-NATIVE
 [tests hardcoding /tmp false-FAIL under host disk-pressure → should SKIP-with-reason / use
 $TMPDIR]. Both are environment/tooling robustness gaps, NOT product defects — the tmux
 product + all feature tests pass normally on both hosts.)
+
+---
+
+### M24-ESCAPE-001 — meta-test M24 (hostname 4-surface color) escapes: test 26 misses a 3-set-line removal
+
+**Status:** OPEN
+**Type:** Bug
+**Severity:** Minor (test-coverage gap, no user-facing break — hostname color still applies via the surviving set-lines; but the paired-mutation guarantee is incomplete)
+
+**What:** The §1.1 paired-mutation `M24` in `scripts/tests/meta_test_false_positive_proof.sh` removes three of the four `tmux set -g …` lines in `_apply_host_color()` and expects test 26 to FAIL. The harness reports `MUTATION ESCAPED` — test 26 does not FAIL, because it asserts only a subset of the four surfaces, so removing the un-asserted set-lines leaves the test green.
+
+**Evidence:** `bash scripts/tests/meta_test_false_positive_proof.sh 2>&1 | grep M24` → `FAIL: M24: MUTATION ESCAPED — test 26 did not FAIL with the three set-lines removed`. Confirmed pre-existing (M24 added in commit `f151d13`, v1.0.9 — before the per-session-color feature). Surfaced 2026-06-19 during the per-session-color M25/M26 verification run.
+
+**Fix direction:** strengthen test 26 to assert ALL FOUR surfaces (`status-style`, `pane-active-border-style`, `clock-mode-colour`, `window-status-current-style`) so the M24 mutation (removing any 3) reliably FAILs it — mirroring the all-4-surfaces assertion already proven in test 63 T3 for the per-session path. (This also closes the symmetry gap: the per-session path has a 4-surface guard; the hostname path should too.)
+
+**Out of scope:** the per-session-color feature (ATM-051). Tracked separately so the color release is not blocked by an unrelated pre-existing test-gap.
