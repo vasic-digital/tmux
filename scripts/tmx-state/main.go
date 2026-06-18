@@ -4,7 +4,7 @@
 //
 //	record <session> <abs-path>   atomically upsert a session's last_pwd
 //	recall <session>              print last_pwd to stdout (no newline)
-//	list                          print TSV: SESSION<TAB>LAST_PWD<TAB>LAST_SEEN_UNIX
+//	list                          print TSV: SESSION<TAB>LAST_PWD<TAB>LAST_SEEN_UNIX<TAB>COLOR
 //	forget <session>              remove a session key (idempotent)
 //	version                       print "tmx-state v1.0.9"
 //
@@ -28,7 +28,7 @@ import (
 
 // Version is reported by the `version` subcommand. Bumped per VERSION
 // file in the parent project — kept in sync via setup.sh.
-const Version = "tmx-state v1.0.9"
+const Version = "tmx-state v1.1.0"
 
 // usage prints a top-level help message to `w`.
 func usage(w io.Writer) {
@@ -201,7 +201,7 @@ func cmdRecall(args []string, stdout, stderr io.Writer) int {
 
 // cmdList: tmx-state list
 //
-// Prints SESSION\tLAST_PWD\tLAST_SEEN_UNIX lines, sorted by session name.
+// Prints SESSION\tLAST_PWD\tLAST_SEEN_UNIX\tCOLOR lines, sorted by session name.
 func cmdList(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("list", flag.ContinueOnError)
 	fs.SetOutput(stderr)
@@ -231,7 +231,7 @@ func cmdList(args []string, stdout, stderr io.Writer) int {
 	sort.Strings(names)
 	for _, n := range names {
 		s := st.Sessions[n]
-		fmt.Fprintf(stdout, "%s\t%s\t%d\n", n, s.LastPwd, s.LastSeenUnix)
+		fmt.Fprintf(stdout, "%s\t%s\t%d\t%s\n", n, s.LastPwd, s.LastSeenUnix, s.Color)
 	}
 	return 0
 }

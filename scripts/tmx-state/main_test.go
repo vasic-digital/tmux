@@ -29,7 +29,7 @@ func TestVersionPrintsExpectedString(t *testing.T) {
 	if code != 0 {
 		t.Errorf("exit code = %d, want 0", code)
 	}
-	want := "tmx-state v1.0.9\n"
+	want := "tmx-state v1.1.0\n"
 	if stdout != want {
 		t.Errorf("stdout = %q, want %q", stdout, want)
 	}
