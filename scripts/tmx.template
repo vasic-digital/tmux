@@ -40,6 +40,13 @@ TMX_SCOPE_PREFIX="tmx-"
 TMX_CLASSIFICATION=""
 HOST_OS="$(uname -s)"
 
+# Pure per-session color helpers (sourced so they are unit-testable in
+# isolation by scripts/tests/64_session_color_parse_unit.sh). §102.
+if [ -f "$TMX_DIR/tmx-color-lib.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$TMX_DIR/tmx-color-lib.sh"
+fi
+
 # ── jemalloc preload (per-OS env-var name) ────────────────────────────
 # Linux uses LD_PRELOAD; Darwin uses DYLD_INSERT_LIBRARIES (+ also needs
 # DYLD_FORCE_FLAT_NAMESPACE=1 for the interposition to take effect).
@@ -127,6 +134,43 @@ _apply_oom_score() {
     elif [ "$(id -u)" = "0" ] && [ -w "/proc/$server_pid/oom_score_adj" ]; then
         echo -500 > "/proc/$server_pid/oom_score_adj" 2>/dev/null || true
     fi
+}
+
+# Resolve the effective color for a session. §102 per-session color.
+# Args: <name> <inline_candidate>
+# - if inline candidate non-empty: validate; on invalid, return code 5
+#   (caller fails-fast, no session created); on valid, best-effort persist
+#   via tmx-state-bin (non-fatal) and print it.
+# - else: read persisted color (non-fatal if state binary absent); print it.
+# - else: print nothing (caller falls back to hostname color).
+# Non-fatal posture preserves the wrapper's "tmx-never-breaks" invariant.
+_resolve_color() {
+    name="$1"; cand="${2-}"
+    if [ -n "$cand" ]; then
+        if ! _color_valid "$cand"; then
+            printf 'tmx: invalid color %s (use a tmux name, colour0-255, or #hex)\n' "$cand" >&2
+            return 5
+        fi
+        if [ -x "$TMX_DIR/tmx-state-bin" ]; then
+            "$TMX_DIR/tmx-state-bin" set-color "$name" "$cand" >/dev/null 2>&1 || true
+        fi
+        printf '%s' "$cand"
+        return 0
+    fi
+    if [ -x "$TMX_DIR/tmx-state-bin" ]; then
+        "$TMX_DIR/tmx-state-bin" get-color "$name" 2>/dev/null || true
+    fi
+    return 0
+}
+
+# Apply an explicit color to the 4 "green" surfaces (mirrors _apply_host_color
+# minus the hostname derivation). Best-effort + silent on failure.
+_apply_color() {
+    sock_label="$1"; color="$2"
+    "$TMUX_BIN" -L "$sock_label" set -g status-style                "bg=$color" 2>/dev/null || true
+    "$TMUX_BIN" -L "$sock_label" set -g pane-active-border-style    "fg=$color" 2>/dev/null || true
+    "$TMUX_BIN" -L "$sock_label" set -g clock-mode-colour           "$color"    2>/dev/null || true
+    "$TMUX_BIN" -L "$sock_label" set -g window-status-current-style "bg=$color,fg=black" 2>/dev/null || true
 }
 
 # Apply hostname-derived status-bar bg colour on the running server.
@@ -241,12 +285,30 @@ for a in "$@"; do
     esac
 done
 
-NAME=""
-[ -n "$SESSION_ARG" ] && NAME="$SESSION_ARG"
-[ -z "$NAME" ] && [ -n "$TARGET_ARG" ] && NAME="$TARGET_ARG"
-[ -z "$NAME" ] && NAME="default"
+RAW_NAME=""
+[ -n "$SESSION_ARG" ] && RAW_NAME="$SESSION_ARG"
+[ -z "$RAW_NAME" ] && [ -n "$TARGET_ARG" ] && RAW_NAME="$TARGET_ARG"
+[ -z "$RAW_NAME" ] && RAW_NAME="default"
 
-SAFE_NAME=$(_sanitise "$NAME")
+# §102 per-session color: split "name:color[:ignored]" on unescaped ':'.
+if command -v _parse_session_value >/dev/null 2>&1; then
+    _parse_session_value "$RAW_NAME"
+else
+    PARSED_NAME="$RAW_NAME"; PARSED_COLOR=""
+fi
+NAME=$(_sanitise "$PARSED_NAME")
+# Resolve effective color (inline > persisted > "" → hostname fallback).
+# Invalid inline color → exit 5 BEFORE any socket/scope/session is created.
+EFFECTIVE_COLOR=""
+_resolve_rc=0
+if command -v _resolve_color >/dev/null 2>&1; then
+    EFFECTIVE_COLOR=$(_resolve_color "$NAME" "$PARSED_COLOR") || _resolve_rc=$?
+    if [ "${_resolve_rc:-0}" -eq 5 ]; then
+        exit 5
+    fi
+fi
+
+SAFE_NAME="$NAME"
 SOCK_LABEL="${TMX_SOCK_PREFIX}${SAFE_NAME}"
 SCOPE_UNIT="${TMX_SCOPE_PREFIX}${SAFE_NAME}.scope"
 
@@ -405,7 +467,11 @@ case "$SUBCMD" in
         esac
 
         _apply_oom_score "$SOCK_LABEL"
-        _apply_host_color "$SOCK_LABEL"
+        if [ -n "$EFFECTIVE_COLOR" ]; then
+            _apply_color "$SOCK_LABEL" "$EFFECTIVE_COLOR"
+        else
+            _apply_host_color "$SOCK_LABEL"
+        fi
 
         # §11.4 cwd capture: install tmux hooks that fire `tmx-state
         # record` on client-detached and session-closed, persisting the
@@ -465,6 +531,11 @@ case "$SUBCMD" in
         # silent if the session/config is absent.
         TMUX_CONF_ATTACH="$TMX_DIR/tmux.conf.template"
         [ -f "$TMUX_CONF_ATTACH" ] && "$TMUX_BIN" -L "$SOCK_LABEL" source-file "$TMUX_CONF_ATTACH" 2>/dev/null || true
+        # §102: re-apply a persisted/explicit color on attach so a
+        # pre-existing session reflects its color. Non-fatal + silent.
+        if [ -n "${EFFECTIVE_COLOR:-}" ]; then
+            _apply_color "$SOCK_LABEL" "$EFFECTIVE_COLOR"
+        fi
         exec "$TMUX_BIN" -L "$SOCK_LABEL" "$@"
         ;;
 
