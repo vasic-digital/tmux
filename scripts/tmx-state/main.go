@@ -39,6 +39,8 @@ Usage:
   tmx-state recall  <session>
   tmx-state list
   tmx-state forget  <session>
+  tmx-state set-color <session> <color>
+  tmx-state get-color <session>
   tmx-state version
 
 Env:
@@ -68,6 +70,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return cmdList(rest, stdout, stderr)
 	case "forget":
 		return cmdForget(rest, stderr)
+	case "set-color":
+		return cmdSetColor(rest, stderr)
+	case "get-color":
+		return cmdGetColor(rest, stdout, stderr)
 	case "version", "--version", "-v":
 		fmt.Fprintln(stdout, Version)
 		return 0
@@ -275,4 +281,104 @@ func cmdForget(args []string, stderr io.Writer) int {
 		return 1
 	}
 	return rc
+}
+
+// cmdSetColor: tmx-state set-color <session> <color>
+//
+// Validates <color> with validColor (§color.go), then persists it under
+// the existing lock, preserving all sibling fields. Exit 1 on invalid
+// color or IO error.
+func cmdSetColor(args []string, stderr io.Writer) int {
+	fs := flag.NewFlagSet("set-color", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	if err := fs.Parse(args); err != nil {
+		return 1
+	}
+	if fs.NArg() != 2 {
+		fmt.Fprintln(stderr, "tmx-state set-color: expected <session> <color>")
+		return 1
+	}
+	session := fs.Arg(0)
+	color := fs.Arg(1)
+	if session == "" {
+		fmt.Fprintln(stderr, "tmx-state set-color: empty session name")
+		return 1
+	}
+	if !validColor(color) {
+		fmt.Fprintf(stderr, "tmx-state set-color: invalid color %q\n", color)
+		return 1
+	}
+	path, err := statePath()
+	if err != nil {
+		fmt.Fprintf(stderr, "tmx-state set-color: %v\n", err)
+		return 1
+	}
+	var rc int
+	werr := withStateLock(path, func() error {
+		st, lerr := loadState(path)
+		if lerr != nil && !errors.Is(lerr, errStateRebuilt) {
+			fmt.Fprintf(stderr, "tmx-state set-color: load: %v\n", lerr)
+			rc = 1
+			return nil
+		}
+		if errors.Is(lerr, errStateRebuilt) {
+			fmt.Fprintln(stderr, "tmx-state: notice: state file was corrupt, rebuilt")
+		}
+		existing, had := st.Sessions[session]
+		now := time.Now().Unix()
+		s := existing
+		if !had {
+			s = Session{CreatedUnix: now}
+		}
+		s.Color = color
+		s.LastSeenUnix = now
+		st.Sessions[session] = s
+		if err := saveStateUnlocked(path, st); err != nil {
+			fmt.Fprintf(stderr, "tmx-state set-color: save: %v\n", err)
+			rc = 1
+			return nil
+		}
+		return nil
+	})
+	if werr != nil {
+		fmt.Fprintf(stderr, "tmx-state set-color: %v\n", werr)
+		return 1
+	}
+	return rc
+}
+
+// cmdGetColor: tmx-state get-color <session>
+//
+// Prints the persisted color (no newline) + exit 0; empty + exit 1 if
+// none/unset. Mirrors recall's contract.
+func cmdGetColor(args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("get-color", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	if err := fs.Parse(args); err != nil {
+		return 1
+	}
+	if fs.NArg() != 1 {
+		fmt.Fprintln(stderr, "tmx-state get-color: expected <session>")
+		return 1
+	}
+	session := fs.Arg(0)
+	path, err := statePath()
+	if err != nil {
+		fmt.Fprintf(stderr, "tmx-state get-color: %v\n", err)
+		return 1
+	}
+	st, lerr := loadState(path)
+	if errors.Is(lerr, errStateRebuilt) {
+		return 1
+	}
+	if lerr != nil {
+		fmt.Fprintf(stderr, "tmx-state get-color: %v\n", lerr)
+		return 1
+	}
+	sess, ok := st.Sessions[session]
+	if !ok || sess.Color == "" {
+		return 1
+	}
+	fmt.Fprint(stdout, sess.Color)
+	return 0
 }

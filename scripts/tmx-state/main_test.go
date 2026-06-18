@@ -246,3 +246,61 @@ func TestRecordPreservesCreatedUnixOnUpdate(t *testing.T) {
 		t.Errorf("LastPwd not updated: %q", st2.Sessions["k"].LastPwd)
 	}
 }
+
+func TestSetColorAndGetColor(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "state.json")
+	t.Setenv("TMX_STATE_FILE", tmp)
+
+	var buf bytes.Buffer
+	var stderr bytes.Buffer
+	// set-color work red
+	if rc := run([]string{"set-color", "work", "red"}, &buf, &stderr); rc != 0 {
+		t.Fatalf("set-color rc=%d stderr=%s", rc, stderr.String())
+	}
+	// get-color work → "red"
+	buf.Reset(); stderr.Reset()
+	if rc := run([]string{"get-color", "work"}, &buf, &stderr); rc != 0 {
+		t.Fatalf("get-color rc=%d", rc)
+	}
+	if buf.String() != "red" {
+		t.Errorf("get-color = %q, want red", buf.String())
+	}
+	// get-color unknown → exit 1, empty
+	buf.Reset()
+	if rc := run([]string{"get-color", "nope"}, &buf, &stderr); rc != 1 {
+		t.Errorf("get-color unknown rc=%d, want 1", rc)
+	}
+	if buf.String() != "" {
+		t.Errorf("get-color unknown = %q, want empty", buf.String())
+	}
+}
+
+func TestSetColorInvalid(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "state.json")
+	t.Setenv("TMX_STATE_FILE", tmp)
+	var stdout, stderr bytes.Buffer
+	if rc := run([]string{"set-color", "work", "notacolor"}, &stdout, &stderr); rc != 1 {
+		t.Errorf("set-color invalid rc=%d, want 1", rc)
+	}
+}
+
+// TestSetColorPreservesSiblingFields — set-color must not clobber last_pwd.
+func TestSetColorPreservesSiblingFields(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "state.json")
+	t.Setenv("TMX_STATE_FILE", tmp)
+	var o, e bytes.Buffer
+	run([]string{"record", "work", "/tmp"}, &o, &e)
+	o.Reset(); e.Reset()
+	run([]string{"set-color", "work", "blue"}, &o, &e)
+	// reload + check last_pwd intact
+	st, err := loadState(tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Sessions["work"].LastPwd != "/tmp" {
+		t.Errorf("last_pwd clobbered = %q", st.Sessions["work"].LastPwd)
+	}
+	if st.Sessions["work"].Color != "blue" {
+		t.Errorf("color = %q, want blue", st.Sessions["work"].Color)
+	}
+}
