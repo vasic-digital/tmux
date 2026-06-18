@@ -957,3 +957,33 @@ challenges:
       §11.4.3 topology: SKIPs gracefully if docs/guides/ tree absent
       (fresh checkout before setup.sh).
     severity: critical
+
+  - id: TMUX-CH-53
+    title: §102 per-session color via name:color
+    description: |
+      Enforces the per-session-color feature (§102 operator-path): an
+      operator can choose an explicit, persisted tmux color by typing it
+      into the -s value, colon-delimited — `tmx new -s name:color`.
+      The color is validated (tmux name / colour0-255 / #hex), applied to
+      all four "green" surfaces (status bar bg, active-pane border fg,
+      clock-mode-colour, current-window bg), persisted in tmx-state-bin
+      (state.json schema 2), and re-used on a bare-name re-run. An invalid
+      color is rejected before any session is created.
+    test_script: scripts/tests/63_session_color.sh
+    pass_condition: |
+      FAIL=0. T1 name:red → live status-style==bg=red; T2 name:#hex →
+      bg=#hex; T3 all-4-surfaces reflect the color; T4 persisted color
+      wins on bare re-run (kill→re-create bare); T5 invalid color
+      rejected + no server created; T6 escaped '\:' in name; T7 extra
+      :fields ignored; T8 hostname fallback intact for a fresh name.
+      Every assertion reads live show-options from the real server.
+    evidence: |
+      Per-subtest live show-options readback (status-style /
+      pane-active-border-style / clock-mode-colour /
+      window-status-current-style) + tmx-state get-color readback for
+      the persistence case.
+    skip_conditions: |
+      §11.4.3 topology: SKIPs gracefully if the tmux binary or
+      tmx-state-bin is not built, or if scripts/tmux is not generated
+      (run scripts/setup.sh).
+    severity: blocker
