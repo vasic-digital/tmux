@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Per-session color design</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Per-session color design</h1>
+</header>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-18T22:04:29Z <strong>Status:</strong> design / approved
+<strong>Authority:</strong> CLAUDE.md §102 (operator-path coverage),
+§103 (four-layer coverage), §11.4.6 (no guessing), §11.4.4(b)
+(four-layer test floor), §11.4.81 (cross-OS parity), §11.4.93/§11.4.95
+(single SSoT), §11.4.151 (release-tag prefix). Brainstorming-skill
+terminal flow → writing-plans → subagent-driven-development.</p>
+<h1 id="per-session-color-via-namecolorparams">Per-session color via
+<code>name:color[:params]</code></h1>
+<h2 id="1-goal">1. Goal</h2>
+<p>Let the operator choose an explicit per-session color at
+session-creation time by typing the color into the
+<code>-s</code>/<code>-t</code> value, colon-delimited:</p>
+<pre><code>tmx new -s work            # today&#39;s behaviour — hostname-derived color
+tmx new -s work:red        # explicit red; persisted; re-used on bare-name re-runs
+tmx new -s deploy:#3b82f6  # explicit hex color
+tmx new -s work:red:x:y    # color + ignored extra fields (forward-compatible)</code></pre>
+<p>Today every session on a given host is the <em>same</em>
+(hostname-derived) color. This adds an explicit, per-session, persisted
+override.</p>
+<h2 id="2-decisions-locked-at-brainstorm-2026-06-18">2. Decisions
+(locked at brainstorm, 2026-06-18)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Decision</th>
+<th>Choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Color scope</td>
+<td>All 4 "green" surfaces the existing <code>_apply_host_color()</code>
+touches: <code>status-style bg</code>,
+<code>pane-active-border-style fg</code>,
+<code>clock-mode-colour</code>,
+<code>window-status-current-style bg</code>. Yellow mode/message styles
+are deliberately NOT recolored (contrast).</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Color formats</td>
+<td>tmux color names (<code>red</code>, <code>green</code>,
+<code>yellow</code>, <code>blue</code>, <code>magenta</code>,
+<code>cyan</code>, <code>white</code>, <code>black</code>, plus
+<code>colour0</code>–<code>colour255</code>) <strong>and</strong>
+<code>#RRGGBB</code> / <code>#RGB</code> hex. Validated — invalid input
+is a hard error (no bluff, §11.4.6).</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>:</code> in name</td>
+<td>A literal <code>:</code> is the field delimiter; a <code>\:</code>
+<em>inside the name field</em> is unescaped to a literal <code>:</code>.
+Escapes honored only in field 0.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Hostname relation</td>
+<td>Explicit color <strong>overrides</strong> the hostname color for
+that session <strong>and persists</strong> the preference.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Other params</td>
+<td>Extra <code>:fields</code> (beyond name + color) are
+<strong>silently ignored</strong> for now. The parser is
+forward-compatible but ships zero params beyond color.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Persistence store</td>
+<td>Extend <code>scripts/tmx-state/</code> (the Go binary
+<code>tmx-state-bin</code> + <code>~/.tmx/state.json</code>) with a
+<code>color</code> field on <code>Session</code> +
+<code>set-color</code>/<code>get-color</code> subcommands. Reuses the
+existing atomic-write + advisory-lock + schema-version machinery. Single
+SSoT for all per-session state (§11.4.93/§11.4.95).</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Bare-name re-run</td>
+<td>When <code>tmx new -s foo</code> is run and <code>foo</code> has a
+persisted color, the persisted color wins; only if no persisted color
+exists does the hostname-derived color apply. Precedence: inline color
+&gt; persisted color &gt; hostname color &gt; default green.</td>
+</tr>
+</tbody>
+</table>
+<h2
+id="3-architecture-approach-a--parse-in-wrapper-validatestore-in-state-binary">3.
+Architecture (Approach A — parse in wrapper, validate+store in state
+binary)</h2>
+<pre><code>operator types: tmx new -s work:red
+                         │
+        ┌────────────────┴────────────────┐
+        │  tmx.template (bash dispatcher) │
+        │  ┌────────────────────────────┐ │
+        │  │ _parse_session_value()      │ │  ← new pure fn, no side effects
+        │  │  split on unescaped &#39;:&#39;     │ │     (unit-testable in isolation)
+        │  │  unescape &#39;\:&#39; in field 0   │ │
+        │  │  → PARSED_NAME, PARSED_COLOR│ │
+        │  └────────────┬───────────────┘ │
+        │               │                 │
+        │  NAME=_sanitise(PARSED_NAME)    │
+        │  SOCK_LABEL=tmx-&lt;NAME&gt;          │
+        │  CANDIDATE_COLOR=PARSED_COLOR   │
+        │               │                 │
+        │  ┌────────────▼───────────────┐ │
+        │  │ _resolve_color(NAME,CAND)  │ │  ← new fn
+        │  │  if CAND non-empty:        │ │
+        │  │    validate-or-FAIL        │ │
+        │  │    tmx-state set-color …   │ │     ┌──────────────────────────┐
+        │  │    echo CAND               │ │────▶│ tmx-state-bin (Go)       │
+        │  │  else:                     │ │     │  set-color/get-color/    │
+        │  │    c=$(tmx-state get-color)│ │◀────│  schema bump + atomic    │
+        │  │    echo c (may be empty)   │ │     │  write + advisory lock   │
+        │  └────────────┬───────────────┘ │     └──────────────────────────┘
+        │               │                 │
+        │  if COLOR non-empty:            │
+        │    _apply_color(SOCK,COLOR)     │  ← mirrors _apply_host_color&#39;s
+        │  else:                          │     4 `set` calls, explicit color
+        │    _apply_host_color(SOCK)      │
+        └─────────────────────────────────┘</code></pre>
+<h3 id="units-each-one-clear-purpose-independently-testable">Units (each
+one clear purpose, independently testable)</h3>
+<table>
+<thead>
+<tr>
+<th>Unit</th>
+<th>Language</th>
+<th>Responsibility</th>
+<th>Depends on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_parse_session_value</code></td>
+<td>bash (wrapper)</td>
+<td>split <code>name:color:…</code> on unescaped <code>:</code>,
+unescape <code>\:</code> in name, emit name + raw color candidate (+
+ignored tail). Pure.</td>
+<td>nothing</td>
+</tr>
+<tr>
+<td><code>_color_valid</code></td>
+<td>bash (wrapper)</td>
+<td>return 0 if token is a known tmux name / <code>colourNNN</code> /
+valid <code>#hex</code>, else 1 + stderr reason. Pure.</td>
+<td>a closed name list + regex</td>
+</tr>
+<tr>
+<td><code>tmx-state set-color</code> / <code>get-color</code></td>
+<td>Go (state binary)</td>
+<td>persist/read the per-session color in <code>state.json</code>
+atomically under the existing lock; <code>set-color</code> validates the
+token identically.</td>
+<td>existing atomic-write + lock infra</td>
+</tr>
+<tr>
+<td><code>_resolve_color</code></td>
+<td>bash (wrapper)</td>
+<td>given (NAME, inline candidate): validate+persist+return candidate,
+else return persisted color, else empty. Orchestrates the other
+three.</td>
+<td>the 3 above</td>
+</tr>
+<tr>
+<td><code>_apply_color</code></td>
+<td>bash (wrapper)</td>
+<td>apply an explicit color to the 4 green surfaces via
+<code>tmux set -g …</code> on <code>SOCK_LABEL</code>.</td>
+<td><code>TMUX_BIN</code>, socket</td>
+</tr>
+<tr>
+<td><code>_apply_host_color</code></td>
+<td>bash (wrapper, existing)</td>
+<td>unchanged — the fallback path when no explicit/persisted color
+exists.</td>
+<td><code>hostname_color.sh</code>, socket</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-parsing-contract-normative">4. Parsing contract
+(normative)</h2>
+<p>Input to <code>_parse_session_value</code> is the exact string the
+operator passed after <code>-s</code> or <code>-t</code> (one shell
+arg).</p>
+<p>Algorithm (POSIX-portable; must parse under <code>sh -n</code> per
+§11.4.67):</p>
+<ol type="1">
+<li>Walk the string char by char. Build field 0 until the first
+<strong>unescaped</strong> <code>:</code>. An escaped <code>\:</code>
+contributes a literal <code>:</code> to field 0 and does NOT end it. A
+<code>\</code> that is not followed by <code>:</code> contributes a
+literal <code>\</code>. Any other char contributes itself.</li>
+<li>The first unescaped <code>:</code> ends field 0 (the name).
+Everything after it is re-split on unescaped <code>:</code> into fields
+1..N (escapes are NOT honored in fields ≥ 1 — they pass through
+literally; this matches decision #3).</li>
+<li>Field 1 (if present and non-empty) is the <strong>color
+candidate</strong>. Fields 2..N are ignored for now (decision #5).</li>
+<li>Output: <code>PARSED_NAME</code> (raw, pre-<code>_sanitise</code>)
+and <code>PARSED_COLOR</code> (empty string if there was no second field
+or it was empty).</li>
+</ol>
+<p>Then (existing flow, unchanged):
+<code>NAME=$(_sanitise "$PARSED_NAME")</code>,
+<code>SOCK_LABEL=tmx-${NAME}</code>.</p>
+<h3 id="worked-examples">Worked examples</h3>
+<table>
+<thead>
+<tr>
+<th>operator input (<code>-s</code> value)</th>
+<th>PARSED_NAME</th>
+<th>PARSED_COLOR</th>
+<th>ignored tail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>work</code></td>
+<td><code>work</code></td>
+<td><em>(empty)</em></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>work:red</code></td>
+<td><code>work</code></td>
+<td><code>red</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>deploy:#3b82f6</code></td>
+<td><code>deploy</code></td>
+<td><code>#3b82f6</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>a\:b:cyan</code></td>
+<td><code>a:b</code></td>
+<td><code>cyan</code></td>
+<td>— (name sanitises to <code>a_b</code>)</td>
+</tr>
+<tr>
+<td><code>work:red:x:y</code></td>
+<td><code>work</code></td>
+<td><code>red</code></td>
+<td><code>x:y</code></td>
+</tr>
+<tr>
+<td><code>work:</code></td>
+<td><code>work</code></td>
+<td><em>(empty)</em></td>
+<td>— (treated as bare name)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-color-validation-normative">5. Color validation
+(normative)</h2>
+<p><code>_color_valid &lt;token&gt;</code> returns 0 (valid) iff
+<code>token</code> matches one of:</p>
+<ul>
+<li>a tmux named color, <strong>case-insensitive on input</strong>,
+drawn from this canonical closed set (stored lowercase; the bash list
+and the Go list MUST be byte-identical copies of this very line — they
+are the single source of truth, and a divergence between them is the
+§11.4.6 guessing surface this section exists to close):
+<code>red green yellow blue magenta cyan white black brightred brightgreen brightyellow brightblue brightmagenta brightcyan brightwhite default terminal</code>;
+<strong>or</strong></li>
+<li><code>colour</code> / <code>color</code> followed by 1–3 digits,
+value 0–255 (e.g. <code>colour160</code>, <code>color39</code>);
+<strong>or</strong></li>
+<li><code>#</code> followed by exactly 3 or 6 hex digits,
+case-insensitive (<code>#3b82f6</code>, <code>#f0a</code>). Validated by
+POSIX ERE, no colour-name expansion needed at parse time — the wrapper
+passes a tmux-style value to <code>tmux set</code>:
+<ul>
+<li>named → pass verbatim (<code>red</code>).</li>
+<li><code>colourNNN</code> → pass verbatim
+(<code>colour160</code>).</li>
+<li><code>#hex</code> → pass as <code>#3b82f6</code> (tmux ≥ 2.9 + the
+shipped <code>terminal-overrides …:Tc</code> true-color support render
+it directly; the conf template already enables Tc).</li>
+</ul></li>
+</ul>
+<p>Anything else → return non-zero + stderr
+<code>tmx: invalid color '&lt;token&gt;' (use a tmux name, colour0-255, or #hex)</code>.</p>
+<h2 id="6-persistence-schema-change-go-state-binary">6. Persistence
+schema change (Go state binary)</h2>
+<h3 id="61-statego--add-field-bump-schema">6.1 <code>state.go</code> —
+add field, bump schema</h3>
+<p><code>Session</code> gains one field:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode go"><code class="sourceCode go"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> Session <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    LastPwd      <span class="dt">string</span> <span class="st">`json:&quot;last_pwd&quot;`</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    LastSeenUnix <span class="dt">int64</span>  <span class="st">`json:&quot;last_seen_unix&quot;`</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    CreatedUnix  <span class="dt">int64</span>  <span class="st">`json:&quot;created_unix&quot;`</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    Host         <span class="dt">string</span> <span class="st">`json:&quot;host,omitempty&quot;`</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    Color        <span class="dt">string</span> <span class="st">`json:&quot;color,omitempty&quot;`</span>   <span class="co">// NEW — tmux color token, &quot;&quot; = none</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>SchemaVersion</code> is bumped <code>1 → 2</code>.
+<code>loadState</code> MUST accept schema_version 1 files (read them
+fine — the new field is <code>omitempty</code>, so old files simply have
+<code>Color:""</code>), and on next write stamp schema_version 2. A
+schema-2 file read by an old (schema-1) binary is also safe (Go JSON
+unmarshal ignores unknown fields). <strong>No migration script
+needed</strong> — additive <code>omitempty</code> field +
+forward/backward JSON tolerance. (Documented as an honest §11.4.6
+non-event, not a risk.)</p>
+<h3 id="62-maingo--new-subcommands">6.2 <code>main.go</code> — new
+subcommands</h3>
+<pre><code>tmx-state set-color &lt;session&gt; &lt;color&gt;   # validate + persist; exit 1 on invalid color
+tmx-state get-color &lt;session&gt;           # print color (no newline) + exit 0; &quot;&quot; + exit 1 if none/unset</code></pre>
+<ul>
+<li><code>set-color</code> reuses <code>withStateLock</code> +
+<code>loadState</code> + <code>saveStateUnlocked</code> (identical
+pattern to <code>record</code>). It preserves all other fields
+(<code>LastPwd</code>, <code>CreatedUnix</code>, etc.) via
+read-modify-write. It validates the color token with a Go
+<code>validColor()</code> whose accepted set is the
+<strong>byte-identical copy of §5's canonical list</strong> (same
+literals, same <code>colourNNN</code> rule, same <code>#hex</code> ERE)
+— bash and Go carry matching copies of the one list, and a unit test on
+each side asserts the same probe tokens agree, so persistence + wrapper
+can never disagree.</li>
+<li><code>get-color</code> mirrors <code>recall</code>'s exit-code
+contract (0 + value, 1 + "" if not present). State-binary-failure path
+returns exit 1 (non-fatal in the wrapper — see §8).</li>
+<li><code>list</code> output gains a 4th TSV column <code>COLOR</code>
+(empty for legacy rows) so <code>tmx-state list</code> stays a complete
+view of persisted state.</li>
+</ul>
+<h3 id="63-version-string">6.3 Version string</h3>
+<p><code>const Version = "tmx-state v1.1.0"</code> — feature bump
+(additive subcommands + schema field). <code>scripts/setup.sh</code>
+rebuilds <code>tmx-state-bin</code>.</p>
+<h2 id="7-wrapper-changes-tmxtemplate">7. Wrapper changes
+(<code>tmx.template</code>)</h2>
+<h3 id="71-new-helpers-above-the-dispatch-block">7.1 New helpers (above
+the dispatch block)</h3>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Pure: split &quot;name:color[:ignored]&quot; on unescaped &#39;:&#39;, unescape &#39;\:&#39; in name.</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Sets globals PARSED_NAME + PARSED_COLOR. No side effects.</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="fu">_parse_session_value()</span> <span class="kw">{</span> <span class="ex">…</span> }</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Pure: return 0 iff $1 is a valid tmux color token (name / colourNNN / #hex).</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">_color_valid()</span> <span class="kw">{</span> <span class="ex">…</span> }</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Orchestrate: given (NAME, inline candidate) decide the effective color,</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># persisting inline candidates. Prints the effective color (may be empty).</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="fu">_resolve_color()</span> <span class="kw">{</span> <span class="ex">…</span> }</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Apply an explicit color to the 4 green surfaces (mirrors _apply_host_color</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># minus the hostname derivation).</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="fu">_apply_color()</span> <span class="kw">{</span>  <span class="co"># args: sock_label color</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">local</span> <span class="va">sock_label</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$1</span><span class="st">&quot;</span> <span class="va">color</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$2</span><span class="st">&quot;</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;</span><span class="va">$TMUX_BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$sock_label</span><span class="st">&quot;</span> set <span class="at">-g</span> status-style              <span class="st">&quot;bg=</span><span class="va">$color</span><span class="st">&quot;</span> <span class="dv">2</span><span class="op">&gt;</span>/dev/null <span class="kw">||</span> <span class="fu">true</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;</span><span class="va">$TMUX_BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$sock_label</span><span class="st">&quot;</span> set <span class="at">-g</span> pane-active-border-style  <span class="st">&quot;fg=</span><span class="va">$color</span><span class="st">&quot;</span> <span class="dv">2</span><span class="op">&gt;</span>/dev/null <span class="kw">||</span> <span class="fu">true</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;</span><span class="va">$TMUX_BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$sock_label</span><span class="st">&quot;</span> set <span class="at">-g</span> clock-mode-colour         <span class="st">&quot;</span><span class="va">$color</span><span class="st">&quot;</span>    <span class="dv">2</span><span class="op">&gt;</span>/dev/null <span class="kw">||</span> <span class="fu">true</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;</span><span class="va">$TMUX_BIN</span><span class="st">&quot;</span> <span class="at">-L</span> <span class="st">&quot;</span><span class="va">$sock_label</span><span class="st">&quot;</span> set <span class="at">-g</span> window-status-current-style <span class="st">&quot;bg=</span><span class="va">$color</span><span class="st">,fg=black&quot;</span> <span class="dv">2</span><span class="op">&gt;</span>/dev/null <span class="kw">||</span> <span class="fu">true</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="kw">}</span></span></code></pre></div>
+<h3 id="72-wired-into-the-arg-parse--name-flow">7.2 Wired into the
+arg-parse → NAME flow</h3>
+<p>After the existing loop that captures
+<code>SESSION_ARG</code>/<code>TARGET_ARG</code>, replace the direct
+<code>NAME="$SESSION_ARG"</code> assignment with:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="va">RAW_NAME</span><span class="op">=</span><span class="st">&quot;&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">[</span> <span class="ot">-n</span> <span class="st">&quot;</span><span class="va">$SESSION_ARG</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="va">RAW_NAME</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$SESSION_ARG</span><span class="st">&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">[</span> <span class="ot">-z</span> <span class="st">&quot;</span><span class="va">$RAW_NAME</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="bu">[</span> <span class="ot">-n</span> <span class="st">&quot;</span><span class="va">$TARGET_ARG</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="va">RAW_NAME</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$TARGET_ARG</span><span class="st">&quot;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="bu">[</span> <span class="ot">-z</span> <span class="st">&quot;</span><span class="va">$RAW_NAME</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="va">RAW_NAME</span><span class="op">=</span><span class="st">&quot;default&quot;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">_parse_session_value</span> <span class="st">&quot;</span><span class="va">$RAW_NAME</span><span class="st">&quot;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="va">NAME</span><span class="op">=</span><span class="va">$(</span><span class="ex">_sanitise</span> <span class="st">&quot;</span><span class="va">$PARSED_NAME</span><span class="st">&quot;</span><span class="va">)</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co"># resolve color AFTER we know NAME (uses tmx-state-bin; non-fatal if absent)</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="va">EFFECTIVE_COLOR</span><span class="op">=</span><span class="va">$(</span><span class="ex">_resolve_color</span> <span class="st">&quot;</span><span class="va">$NAME</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$PARSED_COLOR</span><span class="st">&quot;</span> <span class="kw">||</span> <span class="fu">true</span><span class="va">)</span></span></code></pre></div>
+<p>If <code>_resolve_color</code> reports an <strong>invalid inline
+color</strong> (exit non-zero with a distinct code, e.g. 5), the wrapper
+prints the reason to stderr and exits <strong>before</strong> creating
+any socket/scope/session (fail-fast, §11.4.6 — do not create a session
+with a silently-dropped color).</p>
+<h3 id="73-applied-in-the-new-branch">7.3 Applied in the
+<code>new</code> branch</h3>
+<p>In the <code>new|new-session|start-server|""</code> case, after the
+per-OS isolation block + after <code>_apply_oom_score</code>, replace
+the unconditional <code>_apply_host_color "$SOCK_LABEL"</code> with:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="ot">-n</span> <span class="st">&quot;</span><span class="va">$EFFECTIVE_COLOR</span><span class="st">&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">_apply_color</span> <span class="st">&quot;</span><span class="va">$SOCK_LABEL</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$EFFECTIVE_COLOR</span><span class="st">&quot;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="ex">_apply_host_color</span> <span class="st">&quot;</span><span class="va">$SOCK_LABEL</span><span class="st">&quot;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span></code></pre></div>
+<h3 id="74-re-apply-on-attach-consistency">7.4 Re-apply on attach
+(consistency)</h3>
+<p>The existing <code>attach</code> branch already
+re-<code>source-file</code>s the conf into a pre-existing session. Add a
+parallel re-apply: if <code>EFFECTIVE_COLOR</code> is non-empty,
+<code>_apply_color</code> on attach too, so re-attaching an old session
+reflects its persisted color. Non-fatal + silent on failure (same
+posture as the existing attach reload).</p>
+<h3 id="75-macos-bridge">7.5 macOS bridge</h3>
+<p><strong>No change.</strong> <code>tmx-mac.template</code> forwards
+the <code>-s</code> value verbatim as one shell-quoted arg;
+<code>tmx.template</code> parses it VM-side. §11.4.81 parity holds by
+construction.</p>
+<h2 id="8-error-handling--precedence">8. Error handling &amp;
+precedence</h2>
+<pre><code>EFFECTIVE_COLOR resolution:
+  1. inline PARSED_COLOR non-empty?
+        validate → invalid?  → stderr + exit 5 (no session created)
+                     valid?    → tmx-state set-color NAME COLOR (best-effort;
+                                failure is logged, non-fatal) → EFFECTIVE=COLOR
+  2. else: tmx-state get-color NAME
+        success?  → EFFECTIVE=persisted
+        absent/fail? → EFFECTIVE=&quot;&quot; → hostname color path</code></pre>
+<ul>
+<li>State-binary unavailable / unreadable: NON-FATAL (the wrapper's
+"tmx-never-breaks" invariant is preserved — same posture as the existing
+cwd-recall fallback to <code>$HOME</code>). Inline color still applies
+for the current run; persistence just doesn't survive. Logged to stderr
+at most once.</li>
+<li>Collision checks (Linux scope / Darwin socket) happen
+<strong>before</strong> color resolution and are unchanged.</li>
+<li><code>tmx kill-session</code> does NOT clear the persisted color (a
+re-create should honor the preference — decision #7).
+<code>tmx-state forget</code> (existing) removes the whole session
+record including color. A dedicated <code>unset-color</code> is YAGNI
+for now (the <code>name:</code> form re-sets; <code>forget</code>
+clears).</li>
+</ul>
+<h2 id="9-testing--four-layer-coverage-1144b-102-operator-path">9.
+Testing — four-layer coverage (§11.4.4(b), §102 operator-path)</h2>
+<p>Every test drives the <strong>real operator path</strong>
+(<code>tmx new -s …</code>), never a hand-spawned equivalent.
+Anti-bluff: every PASS cites captured runtime evidence (a tmux option
+value read back from the live server via
+<code>tmux -L &lt;sock&gt; show-options -gv status-style</code>), never
+an exit code alone.</p>
+<h3
+id="layer-1--pre-build-gate-scriptstestsnn_session_colorsh-new">Layer 1
+— pre-build gate (<code>scripts/tests/NN_session_color.sh</code>,
+new)</h3>
+<p>Greps the wrapper + state sources for the contract invariants and
+refuses to build if missing (paired §1.1 mutation: strip one → gate
+FAILs). Asserts:</p>
+<ul>
+<li><code>_parse_session_value</code> + <code>_color_valid</code> +
+<code>_resolve_color</code> + <code>_apply_color</code> exist in
+<code>tmx.template</code>.</li>
+<li><code>set-color</code> / <code>get-color</code> subcommands exist in
+<code>tmx-state/main.go</code>.</li>
+<li><code>Session.Color</code> field + <code>SchemaVersion==2</code> in
+<code>state.go</code>.</li>
+</ul>
+<h3 id="layer-2--unit-go-scriptstmx-state_testgo">Layer 2 — unit (Go)
+<code>scripts/tmx-state/*_test.go</code></h3>
+<ul>
+<li><code>state_test.go</code>: round-trip <code>Color</code> field;
+schema-1 file loads with <code>Color==""</code>; schema-2 stamps on
+save; <code>list</code> 4th column present.</li>
+<li><code>main_test.go</code>: <code>set-color</code> rejects invalid
+tokens (exit 1); <code>get-color</code> exit-code contract (0/1);
+<code>set-color</code> preserves sibling fields.</li>
+<li>New <code>_parse_test.go</code>-equivalent for the bash parser lives
+in Layer 3.</li>
+</ul>
+<h3
+id="layer-3--runtime-operator-path-tests-new-scriptstests-files">Layer 3
+— runtime operator-path tests (new <code>scripts/tests/</code>
+files)</h3>
+<p>Driven through <code>tmx new -s …</code> against the real built
+wrapper + state binary. Each captures the live <code>status-style</code>
+from the socket as positive evidence:</p>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Operator path</th>
+<th>Asserted evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NN_name_color_basic</code></td>
+<td><code>tmx new -s work:red -d</code></td>
+<td><code>tmux -L tmx-work show -gv status-style</code> ==
+<code>bg=red</code></td>
+</tr>
+<tr>
+<td><code>NN_name_color_hex</code></td>
+<td><code>tmx new -s deploy:#3b82f6 -d</code></td>
+<td><code>status-style</code> == <code>bg=#3b82f6</code></td>
+</tr>
+<tr>
+<td><code>NN_name_color_persist</code></td>
+<td>set <code>work:red</code>; kill; <code>tmx new -s work -d</code>
+(bare)</td>
+<td><code>status-style</code> == <code>bg=red</code> (persisted
+wins)</td>
+</tr>
+<tr>
+<td><code>NN_name_color_invalid</code></td>
+<td><code>tmx new -s work:notacolor</code></td>
+<td>exit non-zero; <strong>no</strong> socket <code>tmx-work</code>
+created</td>
+</tr>
+<tr>
+<td><code>NN_name_color_escape</code></td>
+<td><code>tmx new -s 'a\:b:cyan' -d</code></td>
+<td>socket <code>tmx-a_b</code> exists; <code>status-style</code> ==
+<code>bg=cyan</code></td>
+</tr>
+<tr>
+<td><code>NN_name_color_extra_ignored</code></td>
+<td><code>tmx new -s work:red:x:y -d</code></td>
+<td><code>status-style</code> == <code>bg=red</code>; no error</td>
+</tr>
+<tr>
+<td><code>NN_name_color_all4_surfaces</code></td>
+<td><code>tmx new -s work:blue -d</code></td>
+<td>all 4 options
+(<code>status-style</code>/<code>pane-active-border-style</code>/<code>clock-mode-colour</code>/<code>window-status-current-style</code>)
+read back == blue</td>
+</tr>
+<tr>
+<td><code>NN_name_color_hostname_fallback</code></td>
+<td><code>tmx new -s fresh -d</code> (no persisted color)</td>
+<td><code>status-style</code> ==
+<code>bg=&lt;hostname_color.sh output&gt;</code> (fallback path
+intact)</td>
+</tr>
+</tbody>
+</table>
+<p>All DETERMINISTIC per §11.4.50 (N=3 identical). Cleanup:
+<code>tmux kill-server</code> on the test sockets in a
+<code>trap</code>.</p>
+<h3 id="layer-4--helixqa-challenge--paired-11-mutation">Layer 4 —
+HelixQA Challenge + paired §1.1 mutation</h3>
+<ul>
+<li>HelixQA Challenge (in <code>scripts/challenges/tmux.yaml</code>): a
+scenario that creates a colored session, reads back all 4 surfaces, and
+scores PASS only on captured evidence the explicit color landed (not
+green, not hostname color).</li>
+<li>Paired mutation (meta-test): strip <code>_apply_color</code> from
+the wrapper → the runtime test FAILs (color does not apply). Strip
+<code>set-color</code> → persistence test FAILs. This proves the tests
+genuinely catch the defect class (§1.1).</li>
+</ul>
+<h3 id="layer-0--bash-parseability-11467">Layer 0 — bash parseability
+(§11.4.67)</h3>
+<p><code>sh -n scripts/tmux.conf.template</code> +
+<code>bash -n scripts/tmx.template</code> after every edit. The new pure
+functions are POSIX-portable (no bash-only constructs un-guarded).</p>
+<h2 id="10-documentation-updates-same-commit-1141211465">10.
+Documentation updates (same commit, §11.4.12/§11.4.65)</h2>
+<ul>
+<li><code>docs/guide/README.md</code> — new "Per-session color"
+subsection with the operator-path examples from §3 + the escape
+rule.</li>
+<li><code>CLAUDE.md</code> Commands table — extend the
+<code>tmx {new|attach|ls|kill}</code> row note, or add a one-line
+"session value may be <code>name:color</code>".</li>
+<li><code>Fixed.md</code> / <code>Issues.md</code> — migrate a new
+ATM-NNN item (opened then closed in the same cycle).</li>
+<li>Version bump: <code>VERSION</code> <code>version=</code> +
+<code>versionCode=</code> together with a <code>CHANGELOG.md</code>
+entry; release tag prefixed per §11.4.151
+(<code>tmux-&lt;version&gt;</code> — prefix resolved from
+<code>HELIX_RELEASE_PREFIX</code> or the lowercased root dir name).</li>
+</ul>
+<h2 id="11-cross-os-parity-11481">11. Cross-OS parity (§11.4.81)</h2>
+<ul>
+<li>Linux: full path — wrapper parses, state binary persists, tmux
+applies.</li>
+<li>macOS: the bridge forwards the <code>-s</code> value verbatim; the
+VM-side wrapper does all the work. No Darwin-specific branch
+needed.</li>
+<li>Honest gap: none for this feature. (Hostname-color's XNU
+<code>RLIMIT_AS</code> gap is unrelated and already documented.)</li>
+</ul>
+<h2 id="12-out-of-scope-yagni">12. Out of scope (YAGNI)</h2>
+<ul>
+<li>Extra <code>:params</code> beyond color (decision #5).</li>
+<li><code>unset-color</code> subcommand (use
+<code>tmx-state forget</code> or re-set).</li>
+<li>Recoloring the yellow mode/message styles (decision #1).</li>
+<li>A TUI color picker.</li>
+<li>Applying color to the macOS host's native <code>tmux</code> (out of
+scope — <code>tmx</code> owns the colored path; system <code>tmux</code>
+is untouched by design).</li>
+</ul>
+<h2 id="13-acceptance-criteria-definition-of-done">13. Acceptance
+criteria (definition of done)</h2>
+<p>All of:</p>
+<ol type="1">
+<li><code>tmx new -s NAME:COLOR</code> creates a session whose
+<strong>live</strong> <code>status-style</code> (and the other 3
+surfaces) read back as the chosen color — captured evidence, not exit
+code.</li>
+<li>Re-running <code>tmx new -s NAME</code> (bare) re-uses the persisted
+color.</li>
+<li>An invalid color is rejected before any session/socket is
+created.</li>
+<li><code>tmx-state get-color NAME</code> returns the persisted value;
+schema is v2.</li>
+<li>All four test layers GREEN; paired mutation FAILs when the feature
+is stripped; HelixQA Challenge PASSes on captured evidence.</li>
+<li>Linux + macOS both work (macOS via the bridge, verified by the
+existing bridge-forward semantics + at least one macOS-path runtime
+assertion if a Mac is available, else documented §11.4.3
+SKIP-with-reason).</li>
+<li>Docs + version + changelog updated in the same commit; release tag
+prefixed per §11.4.151.</li>
+</ol>
+</body>
+</html>
