@@ -267,6 +267,60 @@ The dedicated operator-recipe document is [`docs/guides/clipboard.md`](../guides
 
 ---
 
+## §5.8 Per-session color (`name:color[:ignored]`)
+
+By default every session on a given host is the **same** color — derived
+deterministically from the hostname (`hostname_color.sh`, see §11). You can
+override that per session by typing the color into the `-s` value,
+colon-delimited:
+
+```sh
+$ tmx new -s work               # today's behaviour — hostname-derived color
+$ tmx new -s work:red           # explicit red, all 4 "green" surfaces
+$ tmx new -s deploy:#3b82f6     # explicit hex color (true-color)
+$ tmx new -s logs:green:x:y     # color + ignored extra fields (forward-compatible)
+```
+
+**What gets colored** — the same four surfaces the hostname color touches:
+the status bar background, the active-pane border, the clock face
+(`prefix` `t`), and the current-window marker. The yellow copy-mode and
+message banners are deliberately left yellow for contrast.
+
+**Accepted color formats** (validated — an invalid color is rejected before
+any session is created):
+- tmux color names: `red green yellow blue magenta cyan white black` (+ `bright*`, `default`, `terminal`), case-insensitive;
+- `colour0`–`colour255` (or `color0`–`color255`), the xterm 256-color indices;
+- `#RGB` / `#RRGGBB` hex (requires true-color; the shipped config enables it via `terminal-overrides …:Tc`).
+
+**Persistence + precedence.** Once you set a color for a name it is
+**persisted** (in `~/.tmx/state.json`, the same store used for cwd resume)
+and re-used on later bare-name runs:
+
+```sh
+$ tmx new -s work:red          # sets work → red
+$ tmx kill-session -t work
+$ tmx new -s work              # bare name → red is reused (persisted color wins)
+```
+
+Precedence: **inline `name:color` > persisted color > hostname-derived color > default green.**
+
+**Escaping a literal colon in the name.** A `:` is the field delimiter. If
+you need a literal `:` in the name, escape it as `\:` — it is unescaped
+before the name is sanitised:
+
+```sh
+$ tmx new -s 'a\:b:cyan'       # name "a:b" (→ sanitised socket tmx-a_b), color cyan
+```
+
+**Cross-OS.** Works identically on Linux and macOS — the macOS bridge
+forwards the `-s` value verbatim to the VM-side wrapper, which does all the
+parsing (§11.4.81 parity). **Test coverage:** `scripts/tests/63_session_color.sh`
+(reads live `show-options` from the real server for every assertion) +
+`scripts/tests/64_session_color_parse_unit.sh` (pure parser/validation unit
+tests). HelixQA Challenge `TMUX-CH-53`.
+
+---
+
 ## §6 Why we did this despite the data
 
 The forensic record (§12 incidents) does NOT name tmux as a root cause. The actual culprits were `soong_build`, `kotlinc`, `gradle`, `git pack-objects` — all already addressed by §12.6/§12.7/§12.8/§12.9. So the question naturally arises: why this work?

@@ -6,6 +6,63 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.26] — 2026-06-19
+
+**Per-session color via `tmx new -s name:color` — the first operator-chosen per-session color. Every session was previously the single hostname-derived color; now each session can carry its own validated, persisted color.**
+
+### Added
+
+- **Per-session color (`name:color[:ignored]`)** — an operator can choose an
+  explicit tmux color by typing it into the `-s` value, colon-delimited.
+  `tmx new -s work:red` paints all four "green" surfaces (status bar bg,
+  active-pane border, clock-mode-colour, current-window marker) red.
+  Accepted formats (validated): tmux names (`red`/`green`/…/`colour255`,
+  case-insensitive) and `#RGB`/`#RRGGBB` hex (true-color). An invalid color
+  is rejected before any session/socket is created (§11.4.6 — no bluff).
+- **Persistence + precedence** — the color is stored in `~/.tmx/state.json`
+  (schema 1→2, additive `color` field; forward+backward compatible) and
+  re-used on later bare-name runs. Precedence: inline > persisted >
+  hostname-derived > default-green. `tmx-state-bin` gains `set-color` /
+  `get-color` subcommands + a `COLOR` column in `list` (v1.1.0).
+- **Escaped colon in name** — `tmx new -s 'a\:b:cyan'` produces name `a:b`
+  (sanitised `a_b`) with color `cyan`. Extra `:fields` after the color are
+  ignored (forward-compatible).
+- **Cross-OS parity (§11.4.81)** — works identically on Linux + macOS; the
+  macOS bridge forwards the `-s` value verbatim, the VM-side wrapper parses.
+
+### Changed
+
+- `tmx-state-bin` `v1.0.9` → `v1.1.0` (additive: `Session.Color`, `set-color`/
+  `get-color`, `list` 4th column). Schema version 1→2 (additive, no migration).
+- `tmx.template` sources new `scripts/tmx-color-lib.sh` (pure helpers
+  `_parse_session_value` / `_color_valid`); resolves `EFFECTIVE_COLOR` and
+  applies via new `_apply_color` (mirrors `_apply_host_color`).
+
+### Tested (four-layer §11.4.4(b) + §102 operator-path)
+
+- `63_session_color.sh` — **8/8 PASS** reading live `show-options` from the
+  real server (T1 name, T2 #hex, T3 all-4-surfaces, T4 persistence,
+  T5 invalid-rejected, T6 escaped-colon, T7 extra-ignored, T8 hostname
+  fallback). Deterministic 3× (§11.4.50).
+- `64_session_color_parse_unit.sh` — **17/17** pure parser/validation unit
+  tests, incl. bash↔Go canonical-name-list parity.
+- §1.1 paired mutations **M25** (strip `_apply_color`) + **M26** (neutralize
+  `set-color`) both **CAUGHT** by test 63 — the tests genuinely catch the
+  defect class.
+- HelixQA Challenge **TMUX-CH-53** (blocker).
+- Full-suite `run_all.sh`: PASS=55, the 2 FAILs (test 13 Darwin
+  `ulimit -u` honest-gap §11.4.81; test 58 pre-existing mouse-drag
+  attach-refresh) are **pre-existing + environment-specific, not regressions**
+  — proven by empty diff overlap with mouse/bind/copy surfaces.
+
+### Known / tracked separately
+
+- `M24-ESCAPE-001` (pre-existing since v1.0.9, `f151d13`): the hostname
+  4-surface mutation escapes test 26. Tracked OPEN in `Issues.md`, fixed
+  separately — not a regression of this release.
+
+---
+
 ## [v1.0.25] — 2026-06-16
 
 **Governance + tooling currency: advance the HelixConstitution submodule to its latest upstream (`1d408cb`), fix host-level codegraph version skew, and clean dead test-socket cruft — per the operator mandate "we MUST ALWAYS target the latest versions of all our submodules." No tmux product-surface change.**

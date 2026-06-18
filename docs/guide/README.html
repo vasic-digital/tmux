@@ -201,38 +201,39 @@
       }
     pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
     div.sourceCode
-      {  background-color: #f8f8f8; }
+      {   }
     @media screen {
     pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
     }
-    code span.al { color: #ef2929; } /* Alert */
-    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
-    code span.at { color: #204a87; } /* Attribute */
-    code span.bn { color: #0000cf; } /* BaseN */
-    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
-    code span.ch { color: #4e9a06; } /* Char */
-    code span.cn { color: #8f5902; } /* Constant */
-    code span.co { color: #8f5902; font-style: italic; } /* Comment */
-    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
-    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
-    code span.dt { color: #204a87; } /* DataType */
-    code span.dv { color: #0000cf; } /* DecVal */
-    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
     code span.ex { } /* Extension */
-    code span.fl { color: #0000cf; } /* Float */
-    code span.fu { color: #204a87; font-weight: bold; } /* Function */
-    code span.im { } /* Import */
-    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
-    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
-    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
-    code span.ot { color: #8f5902; } /* Other */
-    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
-    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
-    code span.ss { color: #4e9a06; } /* SpecialString */
-    code span.st { color: #4e9a06; } /* String */
-    code span.va { color: #000000; } /* Variable */
-    code span.vs { color: #4e9a06; } /* VerbatimString */
-    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
   </style>
 </head>
 <body>
@@ -887,6 +888,59 @@ the alt-screen + mouse-tracking behaviour cited above is documented from
 direct observation against Claude Code CLI v2.x).</li>
 </ul>
 <hr />
+<h2 id="58-per-session-color-namecolorignored">§5.8 Per-session color
+(<code>name:color[:ignored]</code>)</h2>
+<p>By default every session on a given host is the <strong>same</strong>
+color — derived deterministically from the hostname
+(<code>hostname_color.sh</code>, see §11). You can override that per
+session by typing the color into the <code>-s</code> value,
+colon-delimited:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx new <span class="at">-s</span> work               <span class="co"># today&#39;s behaviour — hostname-derived color</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx new <span class="at">-s</span> work:red           <span class="co"># explicit red, all 4 &quot;green&quot; surfaces</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx new <span class="at">-s</span> deploy:#3b82f6     <span class="co"># explicit hex color (true-color)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx new <span class="at">-s</span> logs:green:x:y     <span class="co"># color + ignored extra fields (forward-compatible)</span></span></code></pre></div>
+<p><strong>What gets colored</strong> — the same four surfaces the
+hostname color touches: the status bar background, the active-pane
+border, the clock face (<code>prefix</code> <code>t</code>), and the
+current-window marker. The yellow copy-mode and message banners are
+deliberately left yellow for contrast.</p>
+<p><strong>Accepted color formats</strong> (validated — an invalid color
+is rejected before any session is created):</p>
+<ul>
+<li>tmux color names:
+<code>red green yellow blue magenta cyan white black</code> (+
+<code>bright*</code>, <code>default</code>, <code>terminal</code>),
+case-insensitive;</li>
+<li><code>colour0</code>–<code>colour255</code> (or
+<code>color0</code>–<code>color255</code>), the xterm 256-color
+indices;</li>
+<li><code>#RGB</code> / <code>#RRGGBB</code> hex (requires true-color;
+the shipped config enables it via
+<code>terminal-overrides …:Tc</code>).</li>
+</ul>
+<p><strong>Persistence + precedence.</strong> Once you set a color for a
+name it is <strong>persisted</strong> (in
+<code>~/.tmx/state.json</code>, the same store used for cwd resume) and
+re-used on later bare-name runs:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx new <span class="at">-s</span> work:red          <span class="co"># sets work → red</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx kill-session <span class="at">-t</span> work</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx new <span class="at">-s</span> work              <span class="co"># bare name → red is reused (persisted color wins)</span></span></code></pre></div>
+<p>Precedence: <strong>inline <code>name:color</code> &gt; persisted
+color &gt; hostname-derived color &gt; default green.</strong></p>
+<p><strong>Escaping a literal colon in the name.</strong> A
+<code>:</code> is the field delimiter. If you need a literal
+<code>:</code> in the name, escape it as <code>\:</code> — it is
+unescaped before the name is sanitised:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx new <span class="at">-s</span> <span class="st">&#39;a\:b:cyan&#39;</span>       <span class="co"># name &quot;a:b&quot; (→ sanitised socket tmx-a_b), color cyan</span></span></code></pre></div>
+<p><strong>Cross-OS.</strong> Works identically on Linux and macOS — the
+macOS bridge forwards the <code>-s</code> value verbatim to the VM-side
+wrapper, which does all the parsing (§11.4.81 parity). <strong>Test
+coverage:</strong> <code>scripts/tests/63_session_color.sh</code> (reads
+live <code>show-options</code> from the real server for every assertion)
++ <code>scripts/tests/64_session_color_parse_unit.sh</code> (pure
+parser/validation unit tests). HelixQA Challenge
+<code>TMUX-CH-53</code>.</p>
+<hr />
 <h2 id="6-why-we-did-this-despite-the-data">§6 Why we did this despite
 the data</h2>
 <p>The forensic record (§12 incidents) does NOT name tmux as a root
@@ -929,32 +983,32 @@ PASS.</p>
 for full OOM protection</h3>
 <h4 id="option-a--run-wrapper-via-sudo-simplest-annoying-ux">Option A —
 Run wrapper via sudo (simplest, annoying UX)</h4>
-<div class="sourceCode" id="cb6"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> tmux=<span class="st">&#39;sudo -E /path/to/tmx&#39;</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> tmux=<span class="st">&#39;sudo -E /path/to/tmx&#39;</span></span></code></pre></div>
 <p>Pro: works immediately, no new binaries. Con: requires sudo password
 every tmux launch.</p>
 <h4 id="option-b--setcap-enabled-oom_set-helper-recommended">Option B —
 setcap-enabled <code>oom_set</code> helper (recommended)</h4>
 <p>Build a tiny C helper that has CAP_SYS_RESOURCE via setcap, called by
 the wrapper:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* oom_set.c — minimal helper to set oom_score_adj on a target PID */</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">**</span>argv<span class="op">)</span> <span class="op">{</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>argc <span class="op">!=</span> <span class="dv">3</span><span class="op">)</span> <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> path<span class="op">[</span><span class="dv">256</span><span class="op">];</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    snprintf<span class="op">(</span>path<span class="op">,</span> <span class="kw">sizeof</span> path<span class="op">,</span> <span class="st">&quot;/proc/</span><span class="sc">%s</span><span class="st">/oom_score_adj&quot;</span><span class="op">,</span> argv<span class="op">[</span><span class="dv">1</span><span class="op">]);</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">FILE</span> <span class="op">*</span>f <span class="op">=</span> fopen<span class="op">(</span>path<span class="op">,</span> <span class="st">&quot;w&quot;</span><span class="op">);</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>f<span class="op">)</span> <span class="cf">return</span> <span class="dv">2</span><span class="op">;</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    fputs<span class="op">(</span>argv<span class="op">[</span><span class="dv">2</span><span class="op">],</span> f<span class="op">);</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    fclose<span class="op">(</span>f<span class="op">);</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* oom_set.c — minimal helper to set oom_score_adj on a target PID */</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">**</span>argv<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>argc <span class="op">!=</span> <span class="dv">3</span><span class="op">)</span> <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> path<span class="op">[</span><span class="dv">256</span><span class="op">];</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    snprintf<span class="op">(</span>path<span class="op">,</span> <span class="kw">sizeof</span> path<span class="op">,</span> <span class="st">&quot;/proc/</span><span class="sc">%s</span><span class="st">/oom_score_adj&quot;</span><span class="op">,</span> argv<span class="op">[</span><span class="dv">1</span><span class="op">]);</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">FILE</span> <span class="op">*</span>f <span class="op">=</span> fopen<span class="op">(</span>path<span class="op">,</span> <span class="st">&quot;w&quot;</span><span class="op">);</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>f<span class="op">)</span> <span class="cf">return</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    fputs<span class="op">(</span>argv<span class="op">[</span><span class="dv">2</span><span class="op">],</span> f<span class="op">);</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    fclose<span class="op">(</span>f<span class="op">);</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>Build + grant capability (one-time):</p>
-<div class="sourceCode" id="cb8"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">gcc</span> <span class="at">-o</span> oom_set oom_set.c</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> setcap cap_sys_resource+ep ./oom_set</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-m</span> 755 ./oom_set /usr/local/bin/tmx-oom-set</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">gcc</span> <span class="at">-o</span> oom_set oom_set.c</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> setcap cap_sys_resource+ep ./oom_set</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-m</span> 755 ./oom_set /usr/local/bin/tmx-oom-set</span></code></pre></div>
 <p>Then update the wrapper to call
 <code>tmx-oom-set "$server_pid" -500</code> instead of writing
 directly.</p>
@@ -966,17 +1020,17 @@ systemd user service with <code>OOMScoreAdjust=</code></h4>
 <p>Run tmux as a systemd user service whose unit file declares
 <code>OOMScoreAdjust=-500</code>. systemd applies the adjustment at
 process startup (it has CAP_SYS_RESOURCE).</p>
-<div class="sourceCode" id="cb9"><pre
-class="sourceCode ini"><code class="sourceCode ini"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ~/.config/systemd/user/tmux.service</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">[Service]</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="dt">ExecStart</span><span class="ot">=</span><span class="st">/path/to/tmx new-session -A -s main</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="dt">OOMScoreAdjust</span><span class="ot">=</span><span class="dv">-500</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="dt">Restart</span><span class="ot">=</span><span class="st">on-failure</span></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="kw">[Install]</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="dt">WantedBy</span><span class="ot">=</span><span class="st">default.target</span></span></code></pre></div>
-<div class="sourceCode" id="cb10"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">systemctl</span> <span class="at">--user</span> enable <span class="at">--now</span> tmux.service</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode ini"><code class="sourceCode ini"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ~/.config/systemd/user/tmux.service</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">[Service]</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="dt">ExecStart</span><span class="ot">=</span><span class="st">/path/to/tmx new-session -A -s main</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="dt">OOMScoreAdjust</span><span class="ot">=</span><span class="dv">-500</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="dt">Restart</span><span class="ot">=</span><span class="st">on-failure</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="kw">[Install]</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="dt">WantedBy</span><span class="ot">=</span><span class="st">default.target</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">systemctl</span> <span class="at">--user</span> enable <span class="at">--now</span> tmux.service</span></code></pre></div>
 <p>Pro: clean, capability-less from the operator's perspective. systemd
 handles everything. Con: tmux runs in a different cgroup hierarchy; some
 plugins / <code>$TMUX_PANE</code> integrations may behave

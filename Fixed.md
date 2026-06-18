@@ -2801,3 +2801,32 @@ M22 paired mutations.
 ---
 
 **Last reviewed:** 2026-05-08 (anti-bluff enforcement cycle).
+
+---
+
+### ATM-051 — Per-session color via `name:color[:ignored]`
+
+**Status:** Implemented (→ Fixed.md)
+**Type:** Feature
+**Closure cycle:** shipped in v1.0.26 (2026-06-19); operator request 2026-06-18 "Make sure we can choose the color for the session in form: session_name:color:some:other:params:we:could:pass."
+**Closure source (§11.4.34):** By **AI** (in-loop verification); On 2026-06-19; Reason: `captured-evidence-contradicts` (the prior absence-of-feature is superseded by live captured evidence); Evidence: `scripts/tests/63_session_color.sh` 8/8 PASS reading live `show-options`, deterministic 3×.
+
+**What.** An operator can now choose an explicit, persisted, per-session tmux color by typing it into the `-s` value, colon-delimited: `tmx new -s work:red`. The color is validated (tmux names / `colour0-255` / `#hex`), applied to all four "green" surfaces (status bar bg, active-pane border fg, clock-mode-colour, current-window bg), persisted in `~/.tmx/state.json` (schema 1→2 additive `color` field), and re-used on bare-name re-runs. Precedence: inline > persisted > hostname > default-green. Escaped `\:` in the name field; extra `:fields` ignored (forward-compatible). Invalid color rejected before any session created.
+
+**Architecture (Approach A).** Parse in the bash wrapper via pure helpers in new `scripts/tmx-color-lib.sh` (`_parse_session_value`, `_color_valid`, `CANON_COLOR_NAMES`); validate+persist in the Go `tmx-state-bin` (`set-color`/`get-color`, `Session.Color`, schema 2); apply via new `_apply_color` (mirrors `_apply_host_color`). macOS bridge unchanged (forwards `-s` verbatim → §11.4.81 parity by construction).
+
+**Anti-bluff evidence (§11.4.5/§11.4.69).**
+- `63_session_color.sh` — 8/8 PASS, every assertion reads live `show-options` from the real server socket: T1 `name:red`→`bg=red`; T2 `name:#3b82f6`→`bg=#3b82f6`; T3 all-4-surfaces blue; T4 persisted color wins on bare re-run (kill→re-create bare→`bg=magenta`); T5 invalid `notacolor` rejected + no server created; T6 escaped colon `a\:b:cyan`→socket `tmx-a_b` `bg=cyan`; T7 extra fields ignored; T8 hostname fallback intact (`bg=colour94`). Deterministic 3× (§11.4.50).
+- `64_session_color_parse_unit.sh` — 17/17 pure parser/validation unit tests incl. bash↔Go canonical-name-list parity (`TestCanonColorNamesBashTwin`).
+- §1.1 paired mutations **M25** (strip `_apply_color`) + **M26** (neutralize `set-color`) both **CAUGHT** by test 63 — the tests genuinely catch the defect class.
+- HelixQA Challenge **TMUX-CH-53** (blocker).
+
+**Regression guard (4-layer per §103 / §11.4.135):**
+- **Layer 1 (source gate):** `63_session_color.sh` + `64_session_color_parse_unit.sh` in `run_all.sh` (auto-discovered).
+- **Layer 2 (Go unit):** `color_test.go` `TestValidColor` + `TestCanonColorNamesBashTwin`; `state_test.go` `TestSessionColorRoundTrip` + `TestSchema1FileLoadsAsEmptyColor`; `main_test.go` `TestSetColorAndGetColor` + `TestSetColorInvalid` + `TestSetColorPreservesSiblingFields`.
+- **Layer 3 (runtime):** `63_session_color.sh` 8 sub-tests, live readback, 3× deterministic.
+- **Layer 4 (paired mutation):** M25 + M26 CAUGHT.
+
+**Known / tracked separately.** `M24-ESCAPE-001` (pre-existing hostname 4-surface mutation escape since v1.0.9) — OPEN in Issues.md, unrelated to this feature.
+
+**Key commits:** `e9e71c9` (validColor), `e97d561` (Color field+schema2), `76a1c61` (set-color/get-color), `72aeb4b` (list col+v1.1.0), `af04f89` (bash lib), `255ab68` (wrapper wiring), `9b36e6a` (test 63), M25/M26 commit (mutations), `6768ee5` (TMUX-CH-53), v1.0.26 docs/release.

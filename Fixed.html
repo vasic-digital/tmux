@@ -201,38 +201,39 @@
       }
     pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
     div.sourceCode
-      {  background-color: #f8f8f8; }
+      {   }
     @media screen {
     pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
     }
-    code span.al { color: #ef2929; } /* Alert */
-    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
-    code span.at { color: #204a87; } /* Attribute */
-    code span.bn { color: #0000cf; } /* BaseN */
-    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
-    code span.ch { color: #4e9a06; } /* Char */
-    code span.cn { color: #8f5902; } /* Constant */
-    code span.co { color: #8f5902; font-style: italic; } /* Comment */
-    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
-    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
-    code span.dt { color: #204a87; } /* DataType */
-    code span.dv { color: #0000cf; } /* DecVal */
-    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
     code span.ex { } /* Extension */
-    code span.fl { color: #0000cf; } /* Float */
-    code span.fu { color: #204a87; font-weight: bold; } /* Function */
-    code span.im { } /* Import */
-    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
-    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
-    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
-    code span.ot { color: #8f5902; } /* Other */
-    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
-    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
-    code span.ss { color: #4e9a06; } /* SpecialString */
-    code span.st { color: #4e9a06; } /* String */
-    code span.va { color: #000000; } /* Variable */
-    code span.vs { color: #4e9a06; } /* VerbatimString */
-    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
   </style>
 </head>
 <body>
@@ -3827,5 +3828,86 @@ paired-mutation harness with 5 registered mutations (all caught: 10 PASS
 <hr />
 <p><strong>Last reviewed:</strong> 2026-05-08 (anti-bluff enforcement
 cycle).</p>
+<hr />
+<h3 id="atm-051--per-session-color-via-namecolorignored">ATM-051 —
+Per-session color via <code>name:color[:ignored]</code></h3>
+<p><strong>Status:</strong> Implemented (→ Fixed.md)
+<strong>Type:</strong> Feature <strong>Closure cycle:</strong> shipped
+in v1.0.26 (2026-06-19); operator request 2026-06-18 "Make sure we can
+choose the color for the session in form:
+session_name:color:some:other:params:we:could:pass." <strong>Closure
+source (§11.4.34):</strong> By <strong>AI</strong> (in-loop
+verification); On 2026-06-19; Reason:
+<code>captured-evidence-contradicts</code> (the prior absence-of-feature
+is superseded by live captured evidence); Evidence:
+<code>scripts/tests/63_session_color.sh</code> 8/8 PASS reading live
+<code>show-options</code>, deterministic 3×.</p>
+<p><strong>What.</strong> An operator can now choose an explicit,
+persisted, per-session tmux color by typing it into the <code>-s</code>
+value, colon-delimited: <code>tmx new -s work:red</code>. The color is
+validated (tmux names / <code>colour0-255</code> / <code>#hex</code>),
+applied to all four "green" surfaces (status bar bg, active-pane border
+fg, clock-mode-colour, current-window bg), persisted in
+<code>~/.tmx/state.json</code> (schema 1→2 additive <code>color</code>
+field), and re-used on bare-name re-runs. Precedence: inline &gt;
+persisted &gt; hostname &gt; default-green. Escaped <code>\:</code> in
+the name field; extra <code>:fields</code> ignored (forward-compatible).
+Invalid color rejected before any session created.</p>
+<p><strong>Architecture (Approach A).</strong> Parse in the bash wrapper
+via pure helpers in new <code>scripts/tmx-color-lib.sh</code>
+(<code>_parse_session_value</code>, <code>_color_valid</code>,
+<code>CANON_COLOR_NAMES</code>); validate+persist in the Go
+<code>tmx-state-bin</code>
+(<code>set-color</code>/<code>get-color</code>,
+<code>Session.Color</code>, schema 2); apply via new
+<code>_apply_color</code> (mirrors <code>_apply_host_color</code>).
+macOS bridge unchanged (forwards <code>-s</code> verbatim → §11.4.81
+parity by construction).</p>
+<p><strong>Anti-bluff evidence (§11.4.5/§11.4.69).</strong></p>
+<ul>
+<li><code>63_session_color.sh</code> — 8/8 PASS, every assertion reads
+live <code>show-options</code> from the real server socket: T1
+<code>name:red</code>→<code>bg=red</code>; T2
+<code>name:#3b82f6</code>→<code>bg=#3b82f6</code>; T3 all-4-surfaces
+blue; T4 persisted color wins on bare re-run (kill→re-create
+bare→<code>bg=magenta</code>); T5 invalid <code>notacolor</code>
+rejected + no server created; T6 escaped colon
+<code>a\:b:cyan</code>→socket <code>tmx-a_b</code> <code>bg=cyan</code>;
+T7 extra fields ignored; T8 hostname fallback intact
+(<code>bg=colour94</code>). Deterministic 3× (§11.4.50).</li>
+<li><code>64_session_color_parse_unit.sh</code> — 17/17 pure
+parser/validation unit tests incl. bash↔︎Go canonical-name-list parity
+(<code>TestCanonColorNamesBashTwin</code>).</li>
+<li>§1.1 paired mutations <strong>M25</strong> (strip
+<code>_apply_color</code>) + <strong>M26</strong> (neutralize
+<code>set-color</code>) both <strong>CAUGHT</strong> by test 63 — the
+tests genuinely catch the defect class.</li>
+<li>HelixQA Challenge <strong>TMUX-CH-53</strong> (blocker).</li>
+</ul>
+<p><strong>Regression guard (4-layer per §103 / §11.4.135):</strong></p>
+<ul>
+<li><strong>Layer 1 (source gate):</strong>
+<code>63_session_color.sh</code> +
+<code>64_session_color_parse_unit.sh</code> in <code>run_all.sh</code>
+(auto-discovered).</li>
+<li><strong>Layer 2 (Go unit):</strong> <code>color_test.go</code>
+<code>TestValidColor</code> + <code>TestCanonColorNamesBashTwin</code>;
+<code>state_test.go</code> <code>TestSessionColorRoundTrip</code> +
+<code>TestSchema1FileLoadsAsEmptyColor</code>; <code>main_test.go</code>
+<code>TestSetColorAndGetColor</code> + <code>TestSetColorInvalid</code>
++ <code>TestSetColorPreservesSiblingFields</code>.</li>
+<li><strong>Layer 3 (runtime):</strong> <code>63_session_color.sh</code>
+8 sub-tests, live readback, 3× deterministic.</li>
+<li><strong>Layer 4 (paired mutation):</strong> M25 + M26 CAUGHT.</li>
+</ul>
+<p><strong>Known / tracked separately.</strong>
+<code>M24-ESCAPE-001</code> (pre-existing hostname 4-surface mutation
+escape since v1.0.9) — OPEN in Issues.md, unrelated to this feature.</p>
+<p><strong>Key commits:</strong> <code>e9e71c9</code> (validColor),
+<code>e97d561</code> (Color field+schema2), <code>76a1c61</code>
+(set-color/get-color), <code>72aeb4b</code> (list col+v1.1.0),
+<code>af04f89</code> (bash lib), <code>255ab68</code> (wrapper wiring),
+<code>9b36e6a</code> (test 63), M25/M26 commit (mutations),
+<code>6768ee5</code> (TMUX-CH-53), v1.0.26 docs/release.</p>
 </body>
 </html>

@@ -102,6 +102,7 @@ shell is the operator's host shell with full `$PATH`. Honest gap:
 | End-to-end automation | `bash scripts/test_e2e.sh` |
 | Commit + push (github+gitlab) | `bash commit_all.sh "message"` |
 | Per-session wrapper | `tmx {new\|attach\|ls\|kill}` |
+| Per-session color | `tmx new -s NAME[:color[:ignored]]` — color = tmux name / `colourNNN` / `#hex`; persisted; re-used on bare-name re-run (§5.8 README) |
 
 Never `git push` directly — use `commit_all.sh`.
 
