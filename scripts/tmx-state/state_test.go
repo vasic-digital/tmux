@@ -181,3 +181,44 @@ func TestSavedFileIsValidJSON(t *testing.T) {
 		t.Error("session 'b' missing in on-disk JSON")
 	}
 }
+
+func TestSessionColorRoundTrip(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "state.json")
+	st := newEmptyState()
+	st.SchemaVersion = SchemaVersion // current (2)
+	st.Sessions["work"] = Session{
+		LastPwd: "/tmp", LastSeenUnix: 1, CreatedUnix: 1, Color: "red",
+	}
+	if err := saveState(tmp, st); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	got, err := loadState(tmp)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if got.Sessions["work"].Color != "red" {
+		t.Errorf("Color round-trip = %q, want red", got.Sessions["work"].Color)
+	}
+	if got.SchemaVersion != 2 {
+		t.Errorf("SchemaVersion = %d, want 2", got.SchemaVersion)
+	}
+}
+
+// TestSchema1FileLoadsAsEmptyColor proves an old (schema-1) file with no
+// color field loads cleanly with Color=="" (forward compat — additive
+// omitempty field).
+func TestSchema1FileLoadsAsEmptyColor(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "state.json")
+	// Hand-write a schema-1 file with no color field.
+	old := []byte(`{"schema_version":1,"sessions":{"work":{"last_pwd":"/x","last_seen_unix":1,"created_unix":1}}}` + "\n")
+	if err := os.WriteFile(tmp, old, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := loadState(tmp)
+	if err != nil {
+		t.Fatalf("load schema-1: %v", err)
+	}
+	if got.Sessions["work"].Color != "" {
+		t.Errorf("legacy Color = %q, want empty", got.Sessions["work"].Color)
+	}
+}

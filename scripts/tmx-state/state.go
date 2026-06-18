@@ -23,7 +23,12 @@ import (
 )
 
 // SchemaVersion is the on-disk version of the state file.
-const SchemaVersion = 1
+//
+// v1 → v2 (per-session-color feature): additive Session.Color field
+// (json `color,omitempty`). Forward+backward compatible — a schema-1 file
+// (no color field) loads with Color==""; a schema-2 file read by an old
+// schema-1 binary ignores the unknown field. No migration script needed.
+const SchemaVersion = 2
 
 // Session is the per-session record.
 type Session struct {
@@ -31,6 +36,7 @@ type Session struct {
 	LastSeenUnix int64  `json:"last_seen_unix"`
 	CreatedUnix  int64  `json:"created_unix"`
 	Host         string `json:"host,omitempty"`
+	Color        string `json:"color,omitempty"`
 }
 
 // State is the root document persisted to disk.
