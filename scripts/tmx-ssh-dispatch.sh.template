@@ -65,18 +65,21 @@ fi
 
 session="${SSH_ORIGINAL_COMMAND}"
 
-# 2. length guard (1..64 chars).
+# 2. length guard (1..80 chars; ':' per session-name:color per §5.8).
 session_len=${#session}
-if [ "$session_len" -lt 1 ] || [ "$session_len" -gt 64 ]; then
-    printf "[tmx-ssh-dispatch] this key accepts only a tmx session name (1-64 chars, [A-Za-z0-9_.-]). Use your normal SSH key for shell commands. Got: '%s'\n" "$session" >&2
+if [ "$session_len" -lt 1 ] || [ "$session_len" -gt 80 ]; then
+    printf "[tmx-ssh-dispatch] this key accepts only a tmx session name (1-80 chars, [A-Za-z0-9_.-#:]). Use your normal SSH key for shell commands. Got: '%s'\n" "$session" >&2
     exit 1
 fi
 
 # 3. character-set guard (POSIX `case`, NOT bash [[ =~ ]]).
-# *[!A-Za-z0-9_.-]* matches any string containing at least one disallowed char.
+# NOTE: '#' placed between '_' and '.' to AVOID a backwards POSIX range
+# ('.' > '#' in ASCII, so '.-#' would be an invalid range on some shells).
+# The POSIX-safe order is: A-Z a-z 0-9 _ # . : with '-' literal at the end.
+# *[!A-Za-z0-9_#.:-]* matches any string containing at least one disallowed char.
 case "$session" in
-    *[!A-Za-z0-9_.-]*)
-        printf "[tmx-ssh-dispatch] this key accepts only a tmx session name (1-64 chars, [A-Za-z0-9_.-]). Use your normal SSH key for shell commands. Got: '%s'\n" "$session" >&2
+    *[!A-Za-z0-9_#.:-]*)
+        printf "[tmx-ssh-dispatch] this key accepts only a tmx session name (1-80 chars, [A-Za-z0-9_.-#:]). Use your normal SSH key for shell commands. Got: '%s'\n" "$session" >&2
         exit 1
         ;;
 esac

@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-19T09:30Z
+**Last updated:** 2026-06-19T18:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,8 +15,8 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.26** (versionCode 27) — per-session color (`tmx new -s name:color[:ignored]`): validated (tmux names/colourNNN/#hex), 4-surface, persisted, re-used on bare-name re-run. tmx-state-bin v1.1.0. Tag v1.0.26 on GitHub+GitLab. Mistborn (Darwin) INSTALLED + verify PASS=57/0/6 (63=8/8, 64=17/17). Both hosts INSTALLED: Mistborn verify PASS=57/0/6, nezha verify PASS=49/0/14 (63=8/8, 64=17/17). | — A41 bash-login double session-name prompt fixed (per-process `_TMX_SHELL_INIT_PROMPTED` guard; nezha real-HOME `bash -l -i` 2→1) + A42 mouse select/copy `prefix m` toggle (terminal-agnostic native-selection escape hatch for Claude Code) + B3 P5-M20/M21 escapes closed & migrated to Fixed.md (meta 47 caught/0 escaped). Dual-host deploy GREEN (Mistborn + nezha), 2026-05-29. Released on GitHub + GitLab. |
-| Verification (this cycle) | **Multi-host deploy GREEN.** Mistborn (Darwin arm64): `bash scripts/setup.sh --rebuild` → GREEN; suite `PASS=41 FAIL=0 SKIP=3`. NEW test 44 PASS=7/0/0 with T5 `pbpaste` returning the marker — physical end-user clipboard proof. e2e PASS=9/0/0 (after A36 fix). Meta-test `39 caught / 2 escaped / 8 skipped` (escapes pre-existing P5-M20/M21, see `Issues.md` B3). Nezha (Linux ALT 6.12 x86_64): `bash scripts/setup.sh --rebuild` → GREEN; suite `PASS=37 FAIL=0 SKIP=7` (SKIP 44 because T5 honestly SKIPs on headless server with no DISPLAY/Wayland; T1-T4 binding-chain proof all PASS — exactly the §104 topology dispatch the test was designed for). e2e PASS=9/0/0 including T7 distinct cgroup scopes for two operator-path sessions. Meta-test `37 caught / 4 escaped / 8 skipped` (P5-M20/M21 same pre-existing + M22 environmental-CodeGraph-state issue, see B3 — neither introduced by v1.0.14). Captured 2026-05-22 on both hosts. |
+| Version | **1.0.27** (versionCode 28) — WIP burn-down: name:color prompt rejection fixed, M24/A2/D2 in parallel work streams. Previous: v1.0.26 (versionCode 27) — per-session color feature validated + deployed dual-host. |
+| Verification (this cycle) | **Current: 58 PASS / 0 FAIL / 6 SKIP** (test 63=8/8, 64=17/17, 65=6/6). Meta-test 35/35 caught (1 pre-existing M24 escape — being fixed). Full suite + meta-test re-run pending after all 3 parallel streams complete. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `84c948d`); `Containers/` submodule (pinned `fbef9d6`); project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
@@ -83,9 +83,64 @@ v1.0.26, clean + verified.**
 continuous (decision recorded). The universal `tmux-<ver>` prefix remains a
 standing operator decision for a future major release boundary.
 
-**Known / tracked separately (not regressions):** `M24-ESCAPE-001` (pre-existing
-since v1.0.9 `f151d13` — hostname 4-surface mutation escapes test 26; OPEN in
-Issues.md). Test 13 Darwin `ulimit -u` honest-gap (§11.4.81, pre-existing).
+**Known / tracked separately (not regressions):** `M24-ESCAPE-001` NOW FIXED (v1.0.27,
+meta-test CAUGHT 37/0/17). Test 13 Darwin `ulimit -u` honest-gap (§11.4.81, pre-existing).
+
+### §3.28 — v1.0.27 RELEASED: name:color prompt rejection fixed + Issues.md burn-down (M24/A2/D2 all closed) → 2026-06-19
+
+**Status:** ✅ RELEASED v1.0.27 / versionCode 28 — tag `v1.0.27`. Both hosts: Mistborn 58/0/6 + meta 37/0/17, nezha 49/0/14.
+
+**Operator report (2026-06-19) — §11.4.138 operator-escape:**
+```
+[tmx] invalid session name 'home:red'; allowed: [A-Za-z0-9_.-]{1,64}
+```
+
+**ROOT CAUSE (Phase 1 complete, fix applied).** The `tmx` wrapper's
+`_parse_session_value()` already handled `NAME:color` correctly — the gap was
+the shell-init prompt AND SSH-dispatcher running BEFORE the wrapper with
+`[A-Za-z0-9_.-]` char-set + 64-char limit (a textbook §11.4.108 SOURCE→USER-VISIBLE
+gap: GREEN suite, broken-for-user feature). Test 65 existed for this exact bug
+(written as the anti-bluff regression guard for v1.0.26) but the underlying
+templates had not been updated.
+
+**Fix applied (all 4 changes reconciled per §11.4.120):**
+- `scripts/tmx-shell-init.sh.template` — char-set `[A-Za-z0-9_#.:-]`, max 64→80
+- `scripts/tmx-ssh-dispatch.sh.template` — same fix
+- `scripts/tests/65_shell_init_color_prompt.sh` — updated T2/T3 for full-spec
+  forwarding (not pre-parsed)
+- `scripts/tests/35_session_name_validation.sh` — LONG65→LONG81, limit 64→80
+
+**Verification: 58 PASS / 0 FAIL / 6 SKIP** (63=8/8, 64=17/17, 65=6/6). Meta
+35/35 caught.
+
+**§3.28.1 — M24-ESCAPE-001 (Stream 1) → DONE.** Root cause: M24 mutation used
+`re.subn(pat, '', src, count=1)` which matched `_apply_color()` first (wrong
+function), while test 26 exercises `_apply_host_color()`. Fixed by removing
+`count=1` → strips from BOTH functions. Meta-test before: 34 CAUGHT / 3
+ESCAPED (M24 was 1 of 3). After: **37 CAUGHT / 0 ESCAPED / 17 SKIPPED**.
+M24 verified: stripped 6 set-lines across both color functions → test 26
+FAILs (T2/T3/T4), reverted → PASSes.
+
+**§3.28.2 — A2 RUNALL-NATIVE-RESOLVE-001 (Stream 2) → DONE.** `run_all.sh`
+now OS-aware: builds `TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"`
+with fallback to `tmux/build/bin/tmux`, respects `$TMUX_BIN` override. Gate
+`CM-RUNALL-OS-AWARE` PASSes.
+
+**§3.28.3 — D2 TMPDIR-HARDCODE-001 (Stream 3) → DONE.** 35 test files
+updated: bare `/tmp` paths replaced with `"$SCRATCH/..."` where
+`SCRATCH="${TMPDIR:-/tmp}"`, plus writability preflight guard per §11.4.3.
+Gate `CM-NO-HARDCODED-TMP-SCRATCH` PASSes (16 cwd/state/dispatch tests).
+
+**QA:** `docs/qa/2026-06-19-v1.0.27-burndown/`.
+
+**Anti-bluff verification (current host — macOS Mistborn):**
+- Full suite: **58 PASS / 0 FAIL / 6 SKIP** (test 63=8/8, 64=17/17, 65=6/6)
+- Meta-test: **37 CAUGHT / 0 ESCAPED / 17 SKIPPED**
+- `bash scripts/setup.sh` — GREEN, installed.
+- `bash scripts/setup.sh --verify-only` — GREEN.
+
+**Pending: nezha.local deploy.** SSH and run `~/nezha pull+setup+verify`. Update
+CONTINUATION once done, then tag + publish v1.0.27.
 
 ### §3.26 — v1.0.25 RELEASED (test fixes + submodule currency + governance cascade) → 2026-06-16
 

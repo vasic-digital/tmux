@@ -54,10 +54,24 @@ SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SELF_DIR/../.." && pwd)"
 TMX="$REPO_ROOT/scripts/tmx"
 
-# Private, SHORT-path scratch root so tmux socket paths stay under the
-# sun_path limit. Everything this test creates lives under here.
-SCRATCH="/tmp/tmxg.$$"
-mkdir -p "$SCRATCH" 2>/dev/null || true
+# Private scratch root. tmux socket paths must stay under sun_path (~104 B).
+# Route through ${TMPDIR:-/tmp} per §11.4.3/D2 TMPDIR-HARDCODE-001, but if
+# TMPDIR is too long for socket paths, fall back to /tmp.
+SCRATCH_CANDID="${TMPDIR:-/tmp}"
+SCRATCH_CANDID="${SCRATCH_CANDID%/}"
+if [ "${#SCRATCH_CANDID}" -gt 90 ]; then
+    SCRATCH="/tmp/tmxg.$$"
+else
+    SCRATCH="$SCRATCH_CANDID/tmxg.$$"
+fi
+# §11.4.3 writability PREFLIGHT: full /tmp → SKIP, not false-FAIL.
+_wtest_dir="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest_dir" 2>/dev/null || [ ! -w "$_wtest_dir" ]; then
+    echo "SKIP 60: scratch root $SCRATCH not writable (disk full / RO) — §11.4.3"
+    rm -rf "$_wtest_dir" 2>/dev/null || true
+    exit 77
+fi
+rm -rf "$_wtest_dir" 2>/dev/null || true
 
 PASS=0; FAIL=0; SKIP=0
 _pass() { echo "PASS 60: $*"; PASS=$((PASS + 1)); }

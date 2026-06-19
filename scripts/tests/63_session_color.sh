@@ -7,6 +7,14 @@
 # window-status-current-style), never an exit code alone.
 # Covers spec §9 table T1..T8.
 set -uo pipefail
+# §11.4.3/D2 TMPDIR-HARDCODE-001: route scratch through ${TMPDIR:-/tmp}.
+SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 63: scratch root $SCRATCH not writable — §11.4.3"
+    rm -rf "$_wtest" 2>/dev/null || true; exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
@@ -29,7 +37,7 @@ if [ ! -x "$STATE_BIN" ];  then _skip "tmx-state-bin not built"; echo "PASS=$PAS
 if [ ! -x "$WRAPPER" ];    then _skip "scripts/tmx wrapper not generated (run setup.sh)"; echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0; fi
 
 # Isolated state file per run so persisted-color tests don't leak.
-export TMX_STATE_FILE="/tmp/tmx_t63_state.$$"
+export TMX_STATE_FILE="$SCRATCH/tmx_t63_state.$$"
 CLEAN=()
 trap 'rm -f "$TMX_STATE_FILE"; for s in "${CLEAN[@]}"; do "$WRAPPER" kill-session -t "$s" 2>/dev/null || true; "$TMUX_BIN" -L "tmx-$s" kill-server 2>/dev/null || true; done' EXIT
 

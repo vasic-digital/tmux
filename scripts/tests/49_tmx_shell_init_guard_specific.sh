@@ -24,17 +24,10 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
+# Preflight: SKIP if scratch root not writable (§11.4.3)
 TEMPLATE="$REPO_ROOT/scripts/tmx-shell-init.sh.template"
 GENERATED="$REPO_ROOT/scripts/tmx-shell-init.sh"
-# §11.4.3 / D2 TMPDIR-HARDCODE-001 — route scratch through $TMPDIR so a full
-# host `/` cannot false-FAIL this test. Preflight below.
-SCRATCH="${TMPDIR:-/tmp}"
-_wtest="$SCRATCH/.tmx_wtest_$$"
-if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
-    echo "SKIP 49: scratch root $SCRATCH not writable — §11.4.3"
-    exit 77
-fi
-rmdir "$_wtest" 2>/dev/null || true
 INIT_FILE="$SCRATCH/tmx-test-49-init-$$.sh"
 PREFIX="tmx-test-49"
 export TMX_STATE_FILE="$SCRATCH/tmx-test-49-state-$$.json"
@@ -48,6 +41,8 @@ _skip() { echo "SKIP 49: $*"; SKIP=$((SKIP + 1)); }
 _cleanup() {
     rm -f "$INIT_FILE" "$TMX_STATE_FILE" 2>/dev/null || true
 }
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then echo "SKIP: scratch root $SCRATCH not writable — §11.4.3"; exit 77; fi
 trap _cleanup EXIT
 
 echo "── Test 49: tmx-shell-init non-TTY guard SPECIFIC layer-4 isolation ──"

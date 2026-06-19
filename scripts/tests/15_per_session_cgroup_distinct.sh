@@ -18,7 +18,9 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-TMUX_BIN="${TMUX_BIN:-$REPO_ROOT/tmux/build/bin/tmux}"
+TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"
+[ -x "$TMUX_BIN_DEFAULT" ] || TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build/bin/tmux"
+TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 
 PASS=0

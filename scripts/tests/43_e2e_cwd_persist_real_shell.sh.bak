@@ -47,8 +47,6 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TMUX_BIN="${TMUX_BIN:-$REPO_ROOT/tmux/build-darwin/bin/tmux}"
-
-SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
 [ -x "$TMUX_BIN" ] || TMUX_BIN="$REPO_ROOT/tmux/build/bin/tmux"
 WRAPPER="$REPO_ROOT/scripts/tmx"
 STATE_BIN="$REPO_ROOT/scripts/tmx-state-bin"
@@ -87,12 +85,11 @@ printf '%s\n' "$RC_SNIPPET" > "$SANDBOX_HOME/.profile"
 export HOME="$SANDBOX_HOME"
 
 # Sandbox state file so we never touch the operator's real state.
-
-export TMX_STATE_FILE="$SCRATCH/t43-state-$$.json"
+export TMX_STATE_FILE="/tmp/t43-state-$$.json"
 
 # Unique session + target dir per run.
 SESS="t43-cwd-$$"
-TARGET="$SCRATCH/t43-target-$$"
+TARGET="/tmp/t43-target-$$"
 TARGET_REAL="$TARGET"
 mkdir -p "$TARGET"
 case "$(uname -s)" in

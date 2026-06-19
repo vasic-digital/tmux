@@ -14,6 +14,14 @@
 
 set -uo pipefail
 
+# §11.4.3/D2 TMPDIR-HARDCODE-001: route scratch through ${TMPDIR:-/tmp}.
+SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 24: scratch root $SCRATCH not writable — §11.4.3"; rm -rf "$_wtest" 2>/dev/null || true; exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
+
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 TMUX_BIN_OS="$(uname -s)"
@@ -152,10 +160,10 @@ systemd-run --user --scope --collect --quiet \
     --unit="$UNIT" \
     -p "CPUQuota=10%" \
     bash -c 'i=0; T_END=$(($(date +%s)+4)); while [ $(date +%s) -lt $T_END ]; do i=$((i+1)); done; echo $i' \
-    > /tmp/.t24_cpu_iters_$$
+    > "$SCRATCH/.t24_cpu_iters_$$"
 RC=$?
-ITERS=$(cat /tmp/.t24_cpu_iters_$$ 2>/dev/null || echo 0)
-rm -f /tmp/.t24_cpu_iters_$$
+ITERS=$(cat "$SCRATCH/.t24_cpu_iters_$$" 2>/dev/null || echo 0)
+rm -f "$SCRATCH/.t24_cpu_iters_$$"
 
 # Compare against an unrestricted reference run.
 REF=$(bash -c 'i=0; T_END=$(($(date +%s)+1)); while [ $(date +%s) -lt $T_END ]; do i=$((i+1)); done; echo $i')

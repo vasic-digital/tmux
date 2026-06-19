@@ -186,34 +186,15 @@ fi
 _pass "T8.precheck: captured B's MainPID=$B_PID and C's MainPID=$C_PID from cgroup.procs"
 
 # ── Trigger OOM in session A via send-keys ──────────────────────────
-# §11.4.81 host-independence: disable swap for A's scope so exceeding its 128M
-# MemoryMax OOM-kills deterministically. On a swap-enabled host (nezha has 15G
-# swap) the cap is otherwise enforced via swap — memory.current pins at 128M,
-# oom_kill stays 0, no OOM fires (verified: oom_kill 0 → 295 with swap off).
-# Delegate=yes makes memory.swap.max writable by the user; ONLY A's scope is
-# touched — B/C keep their own scopes (the independence under test).
-A_CG=$(systemctl --user show -p ControlGroup --value "tmx-${A_NAME}.scope" 2>/dev/null)
-if [ -n "$A_CG" ] && [ -w "/sys/fs/cgroup${A_CG}/memory.swap.max" ]; then
-    echo 0 > "/sys/fs/cgroup${A_CG}/memory.swap.max" 2>/dev/null || true
-fi
 DMESG_BEFORE=$(_kring_count)
 "$WRAPPER" send-keys -t "$A_NAME" "stress-ng --vm 1 --vm-bytes 200M --timeout 15s" Enter 2>/dev/null || true
 
+# Wait for the OOM to fire (stress-ng allocates over 128M cap → kernel OOM-kill).
+sleep 10
+
 # ── Assertions ──────────────────────────────────────────────────────
-# §11.4.1/§11.4.50 source-layer hardening: the kernel OOM-kill fires
-# ASYNCHRONOUSLY and on a `kernel.dmesg_restrict=1` host `journalctl -k` ingests
-# it with lag, so a fixed `sleep 10` + single sample raced the event → flaky
-# FALSE-NEGATIVE. Poll the kernel ring for the OOM line up to ~22 s (stress-ng
-# --timeout 15s + journald ingestion margin), breaking the instant it appears.
-# A genuinely broken cap never logs the line and still FAILs — assertion below
-# UNCHANGED.
-OOM_LINES=""
-for _oom_i in $(seq 1 44); do
-    DMESG_AFTER=$(_kring_count)
-    OOM_LINES=$(_kring_tail $((DMESG_AFTER - DMESG_BEFORE)) | grep -iE 'oom-kill|out of memory|memory cgroup out of memory' || true)
-    [ -n "$OOM_LINES" ] && break
-    sleep 0.5
-done
+DMESG_AFTER=$(_kring_count)
+OOM_LINES=$(_kring_tail $((DMESG_AFTER - DMESG_BEFORE)) | grep -iE 'oom-kill|out of memory|memory cgroup out of memory' || true)
 if [ -n "$OOM_LINES" ]; then
     _pass "T8.1: kernel OOM-kill detected (positive evidence: kernel log shows oom-kill / memory cgroup out of memory)"
 else

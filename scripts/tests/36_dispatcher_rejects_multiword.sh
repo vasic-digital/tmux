@@ -12,25 +12,18 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
+# Preflight: SKIP if scratch root not writable (§11.4.3)
 DISPATCH_TEMPLATE="$REPO_ROOT/scripts/tmx-ssh-dispatch.sh.template"
-# D2 TMPDIR-HARDCODE-001: route scratch through $TMPDIR so a full host /
-# does not false-FAIL this test (§11.4.3 scratch-root preflight below).
-SCRATCH="${TMPDIR:-/tmp}"
 DISPATCH_FILE="$SCRATCH/tmx-ssh-dispatch-27-$$.sh"
 export TMX_STATE_FILE="$SCRATCH/tmx-test-27-$$.json"
 
 _cleanup() {
     rm -f "$DISPATCH_FILE" "$TMX_STATE_FILE" 2>/dev/null || true
 }
-trap '_cleanup' EXIT
-
-# §11.4.3 scratch-root writability preflight — SKIP (not FAIL) when the
-# scratch root cannot hold our dispatcher/state files.
 _wtest="$SCRATCH/.tmx_wtest_$$"
-if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
-    echo "SKIP 27: scratch root $SCRATCH not writable — §11.4.3"; exit 77
-fi
-rmdir "$_wtest" 2>/dev/null || true
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then echo "SKIP: scratch root $SCRATCH not writable — §11.4.3"; exit 77; fi
+trap '_cleanup' EXIT
 
 [ -f "$DISPATCH_TEMPLATE" ] || { echo "SKIP 27: tmx-ssh-dispatch.sh.template not present"; exit 77; }
 

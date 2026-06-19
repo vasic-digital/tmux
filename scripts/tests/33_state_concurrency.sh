@@ -13,22 +13,13 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 STATE_BIN="$REPO_ROOT/scripts/tmx-state-bin"
-
-# §11.4.3 / D2 TMPDIR-HARDCODE-001: route the scratch state file this test
-# CREATES through ${TMPDIR:-/tmp} so a full host / does not false-FAIL.
-# Default /tmp preserves prior behaviour when TMPDIR is unset.
-SCRATCH="${TMPDIR:-/tmp}"
-SCRATCH="${SCRATCH%/}"
-
-# §11.4.3 writability PREFLIGHT: disk-full / RO scratch root → honest SKIP,
-# not a confusing record/list failure.
-_wtest_dir="$SCRATCH/.tmx_wtest_$$"
-if ! mkdir -p "$_wtest_dir" 2>/dev/null || [ ! -w "$_wtest_dir" ]; then
-    echo "SKIP 24: scratch root $SCRATCH not writable (disk full / RO) — §11.4.3"
-    rm -rf "$_wtest_dir" 2>/dev/null || true
-    exit 77
+# §11.4.3/D2 TMPDIR-HARDCODE-001: route scratch through ${TMPDIR:-/tmp}.
+SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 24: scratch root $SCRATCH not writable — §11.4.3"; rm -rf "$_wtest" 2>/dev/null || true; exit 77
 fi
-rm -rf "$_wtest_dir" 2>/dev/null || true
+rmdir "$_wtest" 2>/dev/null || true
 
 export TMX_STATE_FILE="$SCRATCH/tmx-test-24-$$.json"
 N=10
@@ -54,7 +45,7 @@ run_iteration() {
     # Spawn N parallel record processes (each writes a unique key).
     local pids=()
     for i in $(seq 1 $N); do
-        "$STATE_BIN" record "k$i" "/tmp/p$i" &
+        "$STATE_BIN" record "k$i" "$SCRATCH/p$i" &
         pids+=("$!")
     done
     # Wait for all.

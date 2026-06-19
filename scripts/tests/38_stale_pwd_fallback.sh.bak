@@ -18,14 +18,11 @@ WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 [ -x "$TMUX_BIN_DEFAULT" ] || TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build/bin/tmux"
 TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
-
-SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
 STATE_BIN="$REPO_ROOT/scripts/tmx-state-bin"
 
 SESS="tmx-test-29-stale-$$"
-GONE_DIR="$SCRATCH/tmx-test-29-gone-$$"
-
-export TMX_STATE_FILE="$SCRATCH/tmx-test-29-$$.json"
+GONE_DIR="/tmp/tmx-test-29-gone-$$"
+export TMX_STATE_FILE="/tmp/tmx-test-29-$$.json"
 SOCK_LABEL="tmx-${SESS}"
 
 _cleanup() {
@@ -65,7 +62,7 @@ run_iteration() {
         return 1
     fi
     # Run the wrapper — capture stderr to look for the notice.
-    local stderr_file="$SCRATCH/tmx-test-29-stderr-$$-$iter.txt"
+    local stderr_file="/tmp/tmx-test-29-stderr-$$-$iter.txt"
     "$WRAPPER" new -s "$SESS" -d 2>"$stderr_file" >/dev/null || true
     sleep 0.5
     local stderr_content

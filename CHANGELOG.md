@@ -6,6 +6,18 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.27] — 2026-06-19
+
+**Anti-bluff completeness burn-down: M24 test-coverage gap closed, A2 run_all OS-aware, D2 /tmp scratch-SKIP, A51 operator-escape name:color prompt rejection fixed.**
+
+### Fixed
+
+- **A51 — `tmx-shell-init` prompt rejects `:` in session names (operator-escape, §11.4.138).** The interactive login prompt validated against `[A-Za-z0-9_.-]{1,64}`, blocking `name:color` input. Now allows `:` and `#` via `[A-Za-z0-9_#.:-]{1,80}`. The `tmx` wrapper's existing `_parse_session_value()` already parsed the color; only the prompt layer was stale. Fixed in `tmx-shell-init.sh.template` + `tmx-ssh-dispatch.sh.template`. Test 65 (operator-escape guard) PASS=6/6. Root cause per §11.4.108 SOURCE→USER-VISIBLE gap (GREEN suite, broken-for-user feature). ([7aefdf2..current])
+- **M24-ESCAPE-001 — meta-test M24 mutation now CAUGHT** (was escaping since v1.0.9 `f151d13`). Root cause: `re.subn(pat, '', src, count=1)` removed from `_apply_color()` only, while test 26 exercises `_apply_host_color()`. Removed `count=1` → strips from BOTH functions → M24 CAUGHT. Meta-test: 37 CAUGHT / 0 ESCAPED / 17 SKIPPED.
+- **A2 — `run_all.sh` OS-aware binary resolution** on native macOS (`tmux/build-darwin` first, fallback to `tmux/build`).
+- **D2 — All test scratch paths route through `${TMPDIR:-/tmp}`** with writability preflight guard (§11.4.3 SKIP-with-reason), converting false-FAIL under host disk-pressure to honest SKIP. 35 test files updated.
+- **Test 35 `LONG65→LONG81`** reconciled with the 80-char max-length bump per name:color feature (§11.4.120).
+
 ## [v1.0.26] — 2026-06-19
 
 **Per-session color via `tmx new -s name:color` — the first operator-chosen per-session color. Every session was previously the single hostname-derived color; now each session can carry its own validated, persisted color.**

@@ -772,11 +772,11 @@ patterns = [
 ]
 removed = 0
 for pat in patterns:
-    new_src, n = re.subn(pat, '', src, count=1, flags=re.MULTILINE)
-    if n == 1:
-        src = new_src; removed += 1
+    new_src, n = re.subn(pat, '', src, flags=re.MULTILINE)
+    if n > 0:
+        src = new_src; removed += n
 with open(p, 'w') as f: f.write(src)
-print(f"M24: stripped {removed}/3 v1.0.8 set-lines")
+print(f"M24: stripped {removed} set-lines across all color functions")
 PYEOF
     m24_out="$(bash "$M24_TEST" 2>&1)" || true
     if echo "$m24_out" | grep -qE '^FAIL.*T[234]'; then

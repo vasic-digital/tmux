@@ -22,10 +22,17 @@ if [ -z "${TMX_TEST_REMOTE:-}" ]; then
     exit 77
 fi
 
+SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP 23: scratch root $SCRATCH not writable — §11.4.3"; rm -rf "$_wtest" 2>/dev/null || true; exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
+
 REMOTE_HOST="${TMX_TEST_REMOTE_HOST:-milosvasic@nezha.local}"
 REMOTE_ALIAS="${TMX_TEST_REMOTE_ALIAS:-nezha-tmx}"
 SESS="tmx-test-23-remote-$$"
-export TMX_STATE_FILE="/tmp/tmx-test-23-$$.json"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-23-$$.json"
 
 _cleanup() {
     # Best-effort: kill the remote session if reachable.

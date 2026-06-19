@@ -16,21 +16,13 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
+# Preflight: SKIP if scratch root not writable (§11.4.3)
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 [ -x "$TMUX_BIN_DEFAULT" ] || TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build/bin/tmux"
 TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
 STATE_BIN="$REPO_ROOT/scripts/tmx-state-bin"
-
-# §11.4.3 / D2 TMPDIR-HARDCODE-001 — route scratch through $TMPDIR so a full
-# host `/` cannot false-FAIL a writable-scratch test. Preflight below.
-SCRATCH="${TMPDIR:-/tmp}"
-_wtest="$SCRATCH/.tmx_wtest_$$"
-if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
-    echo "SKIP 31: scratch root $SCRATCH not writable — §11.4.3"
-    exit 77
-fi
-rmdir "$_wtest" 2>/dev/null || true
 
 SESS="tmx-test-31-parity-$$"
 export TMX_STATE_FILE="$SCRATCH/tmx-test-31-$$.json"
@@ -46,6 +38,8 @@ _cleanup() {
             ;;
     esac
 }
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then echo "SKIP: scratch root $SCRATCH not writable — §11.4.3"; exit 77; fi
 trap '_cleanup' EXIT
 
 [ -x "$STATE_BIN" ] || { echo "SKIP 31: tmx-state-bin not built"; exit 77; }

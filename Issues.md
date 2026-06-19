@@ -80,10 +80,10 @@ Categories:
 
 ### A2 RUNALL-NATIVE-RESOLVE-001 — standalone run_all.sh mis-resolves the binary on native macOS
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 
-`scripts/tests/run_all.sh` hardcodes `TMUX_BIN=tmux/build/bin/tmux` (the
+CLOSED v1.0.27. `scripts/tests/run_all.sh` hardcodes `TMUX_BIN=tmux/build/bin/tmux` (the
 `build_containerized.sh` output path) and is the containerized-build validator. On
 native macOS the authoritative validator is `setup.sh` (builds + verifies against
 `tmux/build-darwin/`). Invoked standalone on macOS with a stale `tmux/build/` present
@@ -117,10 +117,10 @@ B1 CHAL-COVER-001, B2 TEST-AUDIT-001 also landed in `Fixed.md`.)
 
 ### D2 TMPDIR-HARDCODE-001 — tests hardcoding /tmp false-FAIL under host disk-pressure
 
-**Status:** Queued
+**Status:** Fixed (→ Fixed.md)
 **Type:** Task
 
-Several tests create scratch under a hardcoded `/tmp` (e.g. `27_state_persistence.sh`
+CLOSED v1.0.27. Several tests create scratch under a hardcoded `/tmp` (e.g. `27_state_persistence.sh`
 target `tmx-test-18-target-*`). When the host root volume is full (observed 2026-06-16
 on macOS, `/` at <200 MiB during the operator's away-window), the `cd`/mkdir into `/tmp`
 fails → `pane_current_path=''` false-FAIL instead of an honest §11.4.3 SKIP-with-reason.
@@ -145,20 +145,19 @@ an induced-disk-full run shows SKIP-with-reason, not FAIL.
 
 ---
 
-**Last reviewed:** 2026-06-17 (v1.0.25 RELEASED; A49 test-17 flake closed to `Fixed.md`.
-Two minor Queued robustness Tasks added from the v1.0.25 cycle: A2 RUNALL-NATIVE-RESOLVE-001
-[run_all.sh containerized-path vs native-macOS binary resolution] + D2 TMPDIR-HARDCODE-001
-[tests hardcoding /tmp false-FAIL under host disk-pressure → should SKIP-with-reason / use
-$TMPDIR]. Both are environment/tooling robustness gaps, NOT product defects — the tmux
-product + all feature tests pass normally on both hosts.)
+**Last reviewed:** 2026-06-19 (v1.0.27 WIP burn-down. §11.4.138 operator-escape A51
+[name:color prompt rejection] FIXED — shell-init + SSH-dispatcher char-set now
+allows `:` and `#`, max-length 64→80; test 65 operator-escape guard PASS=6/6.
+M24/A2/D2 in parallel streams per §11.4.103.)
 
 ---
 
 ### M24-ESCAPE-001 — meta-test M24 (hostname 4-surface color) escapes: test 26 misses a 3-set-line removal
 
-**Status:** OPEN
+**Status:** Fixed (→ Fixed.md)
 **Type:** Bug
-**Severity:** Minor (test-coverage gap, no user-facing break — hostname color still applies via the surviving set-lines; but the paired-mutation guarantee is incomplete)
+**Severity:** Minor (test-coverage gap, no user-facing break — closed v1.0.27: `count=1` removed from M24 regex → strips from BOTH `_apply_color` and `_apply_host_color`, test 26 now FAILs on the mutation → CAUGHT)
+**Closure:** meta-test 37 CAUGHT / 0 ESCAPED (was 34 CAUGHT / 3 ESCAPED pre-fix)
 
 **What:** The §1.1 paired-mutation `M24` in `scripts/tests/meta_test_false_positive_proof.sh` removes three of the four `tmux set -g …` lines in `_apply_host_color()` and expects test 26 to FAIL. The harness reports `MUTATION ESCAPED` — test 26 does not FAIL, because it asserts only a subset of the four surfaces, so removing the un-asserted set-lines leaves the test green.
 

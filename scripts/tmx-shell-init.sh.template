@@ -131,20 +131,26 @@ if [ -z "$session_name" ] || [ "$session_name" = "default" ]; then
 fi
 
 # Validate via POSIX case (NOT bash-only [[ =~ ]]).
-# Allowed: [A-Za-z0-9_.-]{1,64}
+# Allowed: [A-Za-z0-9_.-:#]{1,80} — ':' separates inline color per §5.8;
+# '#' permits #hex color (e.g. name:#ff0000). The tmx wrapper performs the
+# actual NAME:color parsing via _parse_session_value; this prompt only
+# blocks genuinely-dangerous characters (shell meta-chars, etc.).
 # Reject in this order: length, then character set.
 session_name_len=${#session_name}
-if [ "$session_name_len" -lt 1 ] || [ "$session_name_len" -gt 64 ]; then
-    printf '[tmx] invalid session name %s; allowed: [A-Za-z0-9_.-]{1,64}\n' "'$session_name'" >&2
+if [ "$session_name_len" -lt 1 ] || [ "$session_name_len" -gt 80 ]; then
+    printf '[tmx] invalid session name %s (length %s); allowed: [A-Za-z0-9_.-:#]{1,80}\n' "'$session_name'" "$session_name_len" >&2
     return 1 2>/dev/null || exit 1
 fi
 
 # Character-class check: reject if any char is OUTSIDE the allowed set.
 # We use `case` with a glob that matches a string containing at least one
 # disallowed char. POSIX `case` glob `*[!...]*` = "contains anything not in set".
+# NOTE: '#' is placed between '_' and '.' to AVOID a backwards POSIX range
+# ('.' > '#' in ASCII, so '.-#' would be an invalid range on some shells).
+# The POSIX-safe order is: A-Z a-z 0-9 _ # . : with '-' literal at the end.
 case "$session_name" in
-    *[!A-Za-z0-9_.-]*)
-        printf '[tmx] invalid session name %s; allowed: [A-Za-z0-9_.-]{1,64}\n' "'$session_name'" >&2
+    *[!A-Za-z0-9_#.:-]*)
+        printf '[tmx] invalid session name %s; allowed: [A-Za-z0-9_.-#:]{1,80}\n' "'$session_name'" >&2
         return 1 2>/dev/null || exit 1
         ;;
 esac

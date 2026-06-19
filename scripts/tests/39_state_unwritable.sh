@@ -18,6 +18,9 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 STATE_BIN="$REPO_ROOT/scripts/tmx-state-bin"
 
+# §11.4.3/D2 TMPDIR-HARDCODE-001.
+SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
+
 # Two-level structure: GUARD_DIR (we make unwritable) > LEAF_DIR (where
 # state would live). MkdirAll on LEAF_DIR fails because its PARENT
 # (GUARD_DIR) refuses to create entries. tmx-state-bin's Chmod-repair
@@ -77,7 +80,7 @@ run_iteration() {
     fi
     # tmx-state record MUST fail with non-zero exit + stderr error.
     local state_out state_rc
-    state_out="$("$STATE_BIN" record k /tmp/p 2>&1)" && state_rc=0 || state_rc=$?
+    state_out="$("$STATE_BIN" record k "$SCRATCH/p" 2>&1)" && state_rc=0 || state_rc=$?
     if [ "$state_rc" -eq 0 ]; then
         echo "FAIL 30 iter=$iter: tmx-state record SUCCEEDED on unwritable dir (expected failure)"
         return 1

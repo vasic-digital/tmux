@@ -65,7 +65,7 @@ chmod 755 "$FAKE_PATH_DIR/tmx"
 export PATH="$FAKE_PATH_DIR:$PATH"
 
 # Build the 65-char string in pure bash for portability.
-LONG65="$(printf '%65s' '' | tr ' ' 'a')"
+LONG81="$(printf '%81s' '' | tr ' ' 'a')"
 # Bad names to test. Each MUST be rejected by both init and dispatcher.
 # Note: empty string is handled separately because init treats it as
 # "default" (skip), not as invalid. Per spec edge cases.
@@ -76,7 +76,7 @@ LONG65="$(printf '%65s' '' | tr ' ' 'a')"
 # templates intentionally permit dotted names. We exclude `..` from
 # this test list; if a future hardening pass adds explicit `..` /
 # `.` / `path-traversal` rejection, add the cases back here.
-BAD_NAMES=( 'with space' 'with;semi' 'with/slash' "$LONG65" 'a`b' 'a$b' 'a&b' )
+BAD_NAMES=( 'with space' 'with;semi' 'with/slash' "$LONG81" 'a`b' 'a$b' 'a&b' )
 
 run_iteration() {
     local iter="$1"

@@ -5,7 +5,15 @@
 # absolute drop >= 1 MB). With jemalloc, drops are usually larger.
 set -uo pipefail
 TMUX_BIN="${TMUX_BIN:?}"
-SOCKET="/tmp/tmx_test_$$"
+# §11.4.3/D2 TMPDIR-HARDCODE-001: route scratch through ${TMPDIR:-/tmp}
+# so a full host / does not false-FAIL.
+SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
+_wtest="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then
+    echo "SKIP: scratch root $SCRATCH not writable — §11.4.3"; rm -rf "$_wtest" 2>/dev/null || true; exit 77
+fi
+rmdir "$_wtest" 2>/dev/null || true
+SOCKET="$SCRATCH/tmx_test_$$"
 # §11.4.14 belt-and-suspenders cleanup: reap the server on EVERY exit path
 # (early exit 1, set -e abort, signal) so no orphan tmux server is left behind.
 trap '"$TMUX_BIN" -S "$SOCKET" kill-server 2>/dev/null || true; rm -f "$SOCKET" 2>/dev/null || true' EXIT

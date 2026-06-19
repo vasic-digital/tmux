@@ -29,6 +29,15 @@
 # Last verified: 2026-06-16
 # ─────────────────────────────────────────────────────────────────────────
 set -uo pipefail
+# §11.4.3/D2 TMPDIR-HARDCODE-001: route scratch through ${TMPDIR:-/tmp}.
+SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
+_wtest_dir="$SCRATCH/.tmx_wtest_$$"
+if ! mkdir -p "$_wtest_dir" 2>/dev/null || [ ! -w "$_wtest_dir" ]; then
+    echo "SKIP 62: scratch root $SCRATCH not writable (disk full / RO) — §11.4.3"
+    rm -rf "$_wtest_dir" 2>/dev/null || true
+    exit 77
+fi
+rm -rf "$_wtest_dir" 2>/dev/null || true
 
 SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SELF_DIR/../.." && pwd)"
@@ -80,15 +89,15 @@ echo "── Test 62: Containers-submodule distribution orchestrator (remote: $H
 P=0; F=0
 
 # ── T1: build the consumer binary ───────────────────────────────────────────
-if (cd "$ORCH_DIR" && go build -o "$BIN" . 2>/tmp/t62_build.$$); then
+if (cd "$ORCH_DIR" && go build -o "$BIN" . 2>"$SCRATCH/t62_build.$$"); then
     echo "PASS: T1 — orchestrator builds against the Containers submodule"
     P=$((P+1))
 else
-    echo "FAIL: T1 — orchestrator build failed:"; cat /tmp/t62_build.$$ 2>/dev/null | tail -5
-    rm -f /tmp/t62_build.$$; F=$((F+1))
+    echo "FAIL: T1 — orchestrator build failed:"; cat "$SCRATCH/t62_build.$$" 2>/dev/null | tail -5
+    rm -f "$SCRATCH/t62_build.$$"; F=$((F+1))
     echo "  Tests: PASS=$P  FAIL=$F  SKIP=0"; exit 1
 fi
-rm -f /tmp/t62_build.$$
+rm -f "$SCRATCH/t62_build.$$"
 
 # ── T2: hosts probe ─────────────────────────────────────────────────────────
 HOUT="$("$BIN" hosts --env "$ENV_FILE" 2>&1)"
