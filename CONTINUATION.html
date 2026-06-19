@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-06-17T00:45Z</p>
+<p><strong>Last updated:</strong> 2026-06-19T08:50Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -211,14 +211,13 @@ current state. Update this document as you work.</p>
 </tr>
 <tr>
 <td>Version</td>
-<td><strong>1.0.17</strong> (versionCode 18) — A41 bash-login double
-session-name prompt fixed (per-process
-<code>_TMX_SHELL_INIT_PROMPTED</code> guard; nezha real-HOME
-<code>bash -l -i</code> 2→1) + A42 mouse select/copy
-<code>prefix m</code> toggle (terminal-agnostic native-selection escape
-hatch for Claude Code) + B3 P5-M20/M21 escapes closed &amp; migrated to
-Fixed.md (meta 47 caught/0 escaped). Dual-host deploy GREEN (Mistborn +
-nezha), 2026-05-29. Released on GitHub + GitLab.</td>
+<td><strong>1.0.26</strong> (versionCode 27) — per-session color
+(<code>tmx new -s name:color[:ignored]</code>): validated (tmux
+names/colourNNN/#hex), 4-surface, persisted, re-used on bare-name
+re-run. tmx-state-bin v1.1.0. Tag v1.0.26 on GitHub+GitLab. Mistborn
+(Darwin) INSTALLED + verify PASS=57/0/6 (63=8/8, 64=17/17). nezha
+Operator-blocked (offline/off-LAN, §11.4.144) — see §3.27 + Issues.md
+NEZHA-INSTALL-v1.0.26-001.</td>
 </tr>
 <tr>
 <td>Verification (this cycle)</td>
@@ -274,6 +273,72 @@ user-mandate quote)</li>
 sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
+<h3
+id="327--v1026-released-per-session-color--mistborn-installed--2026-06-19">§3.27
+— v1.0.26 RELEASED (per-session color) + Mistborn INSTALLED →
+2026-06-19</h3>
+<p><strong>Status:</strong> ✅ RELEASED v1.0.26 / versionCode 27 — tag
+<code>v1.0.26</code> at <code>5244f4e</code> (<code>13ef83b</code>),
+published GitHub (<a
+href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.26">https://github.com/vasic-digital/tmux/releases/tag/v1.0.26</a>)
++ GitLab (<a
+href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.26">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.26</a>).
+main HEAD <code>5244f4e</code> identical on local + github + gitlab.</p>
+<p><strong>Feature:</strong> operator-chosen per-session tmux color via
+<code>tmx new -s name:color[:ignored]</code>. Color validated (tmux
+names / <code>colour0-255</code> / <code>#hex</code>), applied to all 4
+"green" surfaces (status-bar bg, active-pane border, clock-mode-colour,
+current-window bg), persisted in <code>~/.tmx/state.json</code> (schema
+1→2 additive <code>color</code> field), re-used on bare-name re-runs.
+Precedence: inline &gt; persisted &gt; hostname &gt; default-green.
+Escaped <code>\:</code> in name; extra <code>:fields</code> ignored.
+tmx-state-bin <code>v1.0.9 → v1.1.0</code>
+(<code>set-color</code>/<code>get-color</code> + <code>list</code> 4th
+col). Invalid color rejected (exit 5) before any session created. macOS
+bridge unchanged → §11.4.81 parity by construction.</p>
+<p><strong>Anti-bluff evidence (§11.4.5/§11.4.69):</strong></p>
+<ul>
+<li><code>scripts/tests/63_session_color.sh</code> — 8/8 PASS, every
+assertion reads LIVE <code>show-options</code> from the real server.
+Deterministic 3× (§11.4.50).</li>
+<li><code>scripts/tests/64_session_color_parse_unit.sh</code> — 17/17
+pure parser/validation unit tests incl. bash↔︎Go canonical-name-list
+parity.</li>
+<li>§1.1 paired mutations M25 (strip <code>_apply_color</code>) + M26
+(neutralize <code>set-color</code>) both CAUGHT by test 63.</li>
+<li>HelixQA Challenge TMUX-CH-53 (blocker).</li>
+<li><strong>Mistborn INSTALLED</strong>
+(<code>setup.sh --rebuild</code>): native Darwin arm64 build, tmux 3.6a,
+tmx-state-bin v1.1.0, VERSION 1.0.26. Verify gate
+<code>PASS=57 FAIL=0 SKIP=6</code> (test 63 = 8/8, test 64 = 17/17 ran
+during install). <strong>Live end-user proof on the installed
+build:</strong> <code>tmx new -s proofofwork:red</code> →
+<code>status-style=bg=red</code>, <code>clock-mode-colour=red</code>,
+<code>pane-active-border-style=fg=red</code>; persisted
+(<code>get-color</code> → <code>red</code>) + bare re-run reuses it;
+<code>#hex</code> works (<code>bg=#e63946</code>); invalid
+<code>notacolor</code> rejected exit 5 + no server.</li>
+</ul>
+<p>** nezha — Operator-blocked (§11.4.144 availability event):** nezha
+is offline / off-LAN from Mistborn as of 2026-06-19 —
+<code>ping nezha.local</code>, Bonjour <code>dns-sd</code>, and
+<code>ssh -i ~/.ssh/id_ed25519 milosvasic@nezha.local</code> all FAIL TO
+RESOLVE (credentials + key are correct; only reachability missing).
+Tracked as <code>NEZHA-INSTALL-v1.0.26-001</code> in Issues.md with the
+exact unblock condition (<code>ssh ... nezha.local 'uname -sm'</code>
+returns <code>Linux x86_64</code>). Non-blocking for the release (tag
+published; Mistborn installed); blocking only for "both hosts"
+closure.</p>
+<p><strong>§11.4.151 release-prefix — NOT adopted this release:</strong>
+project tag history is <code>v1.0.6…v1.0.25</code> (no prefix); operator
+chose <code>v1.0.26</code> to keep the series continuous (decision
+recorded). The universal <code>tmux-&lt;ver&gt;</code> prefix remains a
+standing operator decision for a future major release boundary.</p>
+<p><strong>Known / tracked separately (not regressions):</strong>
+<code>M24-ESCAPE-001</code> (pre-existing since v1.0.9
+<code>f151d13</code> — hostname 4-surface mutation escapes test 26; OPEN
+in Issues.md). Test 13 Darwin <code>ulimit -u</code> honest-gap
+(§11.4.81, pre-existing).</p>
 <h3
 id="326--v1025-released-test-fixes--submodule-currency--governance-cascade--2026-06-16">§3.26
 — v1.0.25 RELEASED (test fixes + submodule currency + governance

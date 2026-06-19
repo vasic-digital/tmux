@@ -167,3 +167,19 @@ product + all feature tests pass normally on both hosts.)
 **Fix direction:** strengthen test 26 to assert ALL FOUR surfaces (`status-style`, `pane-active-border-style`, `clock-mode-colour`, `window-status-current-style`) so the M24 mutation (removing any 3) reliably FAILs it — mirroring the all-4-surfaces assertion already proven in test 63 T3 for the per-session path. (This also closes the symmetry gap: the per-session path has a 4-surface guard; the hostname path should too.)
 
 **Out of scope:** the per-session-color feature (ATM-051). Tracked separately so the color release is not blocked by an unrelated pre-existing test-gap.
+
+---
+
+### NEZHA-INSTALL-v1.0.26-001 — v1.0.26 not yet installed on nezha (host offline / off-LAN)
+
+**Status:** Operator-blocked
+**Type:** Task
+**Severity:** Non-blocking for the release (tag v1.0.26 is published; Mistborn install in progress); blocking ONLY for the "both hosts installed" closure.
+
+**What:** Install v1.0.26 on the 2nd host **nezha** (`nezha.local`, ALT Linux 6.12 x86_64, user `milosvasic`, key `~/.ssh/id_ed25519`, port 22 — registered in `Containers/.env`) by syncing the repo to `5244f4e` (= tag v1.0.26) and running `bash scripts/setup.sh --rebuild`, then the verify gate + run_all + a color smoke (`tmx new -s <name>:red -d` → live `status-style` == `bg=red`).
+
+**Why blocked (§11.4.144 availability event — proven, not guessed):** probed 2026-06-19 from Mistborn: `ping nezha.local` no resolve, `dns-sd -G v4 nezha.local` no Bonjour resolve within 4 s, `ssh -i ~/.ssh/id_ed25519 milosvasic@nezha.local` → `Could not resolve hostname nezha.local`. All three fail at **DNS/mDNS resolution** → nezha is offline OR not on this Mac's current LAN (mDNS `.local` requires on-link). Credentials + key are correct (key present, config valid); only reachability is missing.
+
+**Unblock condition (observable, §11.4.21):** `ssh -i ~/.ssh/id_ed25519 milosvasic@nezha.local 'uname -sm'` returns a non-empty `Linux x86_64` line from Mistborn (i.e. Mistborn + nezha back on the same LAN / nezha powered on). Once true, run the install sequence above + record the captured evidence here, then close → Fixed.md.
+
+**Self-resolution exhaustion (§11.4.21):** attempted (a) bare `ssh nezha`, (b) `ssh nezha.local`, (c) `ping nezha.local`, (d) Bonjour `dns-sd`, (e) explicit key from `Containers/.env`. None resolve — the host is genuinely unreachable from this network position; no agent-side path can install on a host it cannot reach. Escalation is operator-side: bring nezha onto the LAN (or confirm it's powered on), then re-run.
