@@ -88,7 +88,12 @@ meta-test CAUGHT 37/0/17). Test 13 Darwin `ulimit -u` honest-gap (§11.4.81, pre
 
 ### §3.28 — v1.0.27 RELEASED: name:color prompt rejection fixed + Issues.md burn-down (M24/A2/D2 all closed) → 2026-06-19
 
-**Status:** ✅ RELEASED v1.0.27 / versionCode 28 — tag `v1.0.27`. Both hosts: Mistborn 58/0/6 + meta 37/0/17, nezha 49/0/14.
+**Status:** ✅ RELEASED v1.0.27 / versionCode 28 — tag `v1.0.27` pushed + published GitHub
+(https://github.com/vasic-digital/tmux/releases/tag/v1.0.27) + GitLab
+(https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.27). Both hosts validated:
+- Mistborn (macOS arm64): 58 PASS / 0 FAIL / 6 SKIP + meta 37 CAUGHT / 0 ESCAPED / 17 SKIPPED
+- Nezha (Linux x86_64): 49 PASS / 0 FAIL / 14 SKIP (meta pending post-push pull)
+- commit `67d5f01` at HEAD + tag `v1.0.27` — github + gitlab identical.
 
 **Operator report (2026-06-19) — §11.4.138 operator-escape:**
 ```
