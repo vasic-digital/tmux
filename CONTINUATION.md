@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-19T08:50Z
+**Last updated:** 2026-06-19T09:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,7 +15,7 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.26** (versionCode 27) — per-session color (`tmx new -s name:color[:ignored]`): validated (tmux names/colourNNN/#hex), 4-surface, persisted, re-used on bare-name re-run. tmx-state-bin v1.1.0. Tag v1.0.26 on GitHub+GitLab. Mistborn (Darwin) INSTALLED + verify PASS=57/0/6 (63=8/8, 64=17/17). nezha Operator-blocked (offline/off-LAN, §11.4.144) — see §3.27 + Issues.md NEZHA-INSTALL-v1.0.26-001. | — A41 bash-login double session-name prompt fixed (per-process `_TMX_SHELL_INIT_PROMPTED` guard; nezha real-HOME `bash -l -i` 2→1) + A42 mouse select/copy `prefix m` toggle (terminal-agnostic native-selection escape hatch for Claude Code) + B3 P5-M20/M21 escapes closed & migrated to Fixed.md (meta 47 caught/0 escaped). Dual-host deploy GREEN (Mistborn + nezha), 2026-05-29. Released on GitHub + GitLab. |
+| Version | **1.0.26** (versionCode 27) — per-session color (`tmx new -s name:color[:ignored]`): validated (tmux names/colourNNN/#hex), 4-surface, persisted, re-used on bare-name re-run. tmx-state-bin v1.1.0. Tag v1.0.26 on GitHub+GitLab. Mistborn (Darwin) INSTALLED + verify PASS=57/0/6 (63=8/8, 64=17/17). Both hosts INSTALLED: Mistborn verify PASS=57/0/6, nezha verify PASS=49/0/14 (63=8/8, 64=17/17). | — A41 bash-login double session-name prompt fixed (per-process `_TMX_SHELL_INIT_PROMPTED` guard; nezha real-HOME `bash -l -i` 2→1) + A42 mouse select/copy `prefix m` toggle (terminal-agnostic native-selection escape hatch for Claude Code) + B3 P5-M20/M21 escapes closed & migrated to Fixed.md (meta 47 caught/0 escaped). Dual-host deploy GREEN (Mistborn + nezha), 2026-05-29. Released on GitHub + GitLab. |
 | Verification (this cycle) | **Multi-host deploy GREEN.** Mistborn (Darwin arm64): `bash scripts/setup.sh --rebuild` → GREEN; suite `PASS=41 FAIL=0 SKIP=3`. NEW test 44 PASS=7/0/0 with T5 `pbpaste` returning the marker — physical end-user clipboard proof. e2e PASS=9/0/0 (after A36 fix). Meta-test `39 caught / 2 escaped / 8 skipped` (escapes pre-existing P5-M20/M21, see `Issues.md` B3). Nezha (Linux ALT 6.12 x86_64): `bash scripts/setup.sh --rebuild` → GREEN; suite `PASS=37 FAIL=0 SKIP=7` (SKIP 44 because T5 honestly SKIPs on headless server with no DISPLAY/Wayland; T1-T4 binding-chain proof all PASS — exactly the §104 topology dispatch the test was designed for). e2e PASS=9/0/0 including T7 distinct cgroup scopes for two operator-path sessions. Meta-test `37 caught / 4 escaped / 8 skipped` (P5-M20/M21 same pre-existing + M22 environmental-CodeGraph-state issue, see B3 — neither introduced by v1.0.14). Captured 2026-05-22 on both hosts. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `84c948d`); `Containers/` submodule (pinned `fbef9d6`); project `Constitution.md` (Project Articles §101–§109, extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `Issues.md`, `Fixed.md`, this document |
 
@@ -34,7 +34,7 @@ Paste this prompt:
 
 ## §3 — Active work
 
-### §3.27 — v1.0.26 RELEASED (per-session color) + Mistborn INSTALLED → 2026-06-19
+### §3.27 — v1.0.26 RELEASED (per-session color) + BOTH HOSTS INSTALLED → 2026-06-19
 
 **Status:** ✅ RELEASED v1.0.26 / versionCode 27 — tag `v1.0.26` at `5244f4e`
 (`13ef83b`), published GitHub
@@ -67,13 +67,16 @@ any session created. macOS bridge unchanged → §11.4.81 parity by construction
   persisted (`get-color` → `red`) + bare re-run reuses it; `#hex` works
   (`bg=#e63946`); invalid `notacolor` rejected exit 5 + no server.
 
-** nezha — Operator-blocked (§11.4.144 availability event):** nezha is offline /
-off-LAN from Mistborn as of 2026-06-19 — `ping nezha.local`, Bonjour `dns-sd`,
-and `ssh -i ~/.ssh/id_ed25519 milosvasic@nezha.local` all FAIL TO RESOLVE
-(credentials + key are correct; only reachability missing). Tracked as
-`NEZHA-INSTALL-v1.0.26-001` in Issues.md with the exact unblock condition
-(`ssh ... nezha.local 'uname -sm'` returns `Linux x86_64`). Non-blocking for the
-release (tag published; Mistborn installed); blocking only for "both hosts" closure.
+** nezha — INSTALLED** (`/home/milosvasic/Projects/tmux`, 2026-06-19): after the
+operator confirmed nezha back online (§11.4.144 unblock condition met — `ssh ... nezha.local`
+returned `Linux x86_64`), clean fast-forward `05569e5 (v1.0.25) → e1a2530 (v1.0.26)`
+(local in-flight D2 TMPDIR edits stashed — already superseded upstream at `5f86936`),
+`setup.sh --rebuild` → Linux ELF tmux 3.6a + `tmx-state-bin v1.1.0`. Verify gate
+**PASS=49 FAIL=0 SKIP=14**; test 63 **8/8** (T8 hostname fallback → `bg=colour94`,
+matching Mistborn → cross-OS parity §11.4.81) + test 64 **17/17**. Live color proof
+on nezha: `tmx new -s nezproof:red` → all 4 surfaces red; persisted; `#hex`; invalid
+rejected exit 5. `NEZHA-INSTALL-v1.0.26-001` closed → Fixed.md. **Both hosts now at
+v1.0.26, clean + verified.**
 
 **§11.4.151 release-prefix — NOT adopted this release:** project tag history is
 `v1.0.6…v1.0.25` (no prefix); operator chose `v1.0.26` to keep the series

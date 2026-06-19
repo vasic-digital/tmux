@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-06-19T08:50Z</p>
+<p><strong>Last updated:</strong> 2026-06-19T09:30Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -215,9 +215,9 @@ current state. Update this document as you work.</p>
 (<code>tmx new -s name:color[:ignored]</code>): validated (tmux
 names/colourNNN/#hex), 4-surface, persisted, re-used on bare-name
 re-run. tmx-state-bin v1.1.0. Tag v1.0.26 on GitHub+GitLab. Mistborn
-(Darwin) INSTALLED + verify PASS=57/0/6 (63=8/8, 64=17/17). nezha
-Operator-blocked (offline/off-LAN, §11.4.144) — see §3.27 + Issues.md
-NEZHA-INSTALL-v1.0.26-001.</td>
+(Darwin) INSTALLED + verify PASS=57/0/6 (63=8/8, 64=17/17). Both hosts
+INSTALLED: Mistborn verify PASS=57/0/6, nezha verify PASS=49/0/14
+(63=8/8, 64=17/17).</td>
 </tr>
 <tr>
 <td>Verification (this cycle)</td>
@@ -274,8 +274,8 @@ sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
 <h3
-id="327--v1026-released-per-session-color--mistborn-installed--2026-06-19">§3.27
-— v1.0.26 RELEASED (per-session color) + Mistborn INSTALLED →
+id="327--v1026-released-per-session-color--both-hosts-installed--2026-06-19">§3.27
+— v1.0.26 RELEASED (per-session color) + BOTH HOSTS INSTALLED →
 2026-06-19</h3>
 <p><strong>Status:</strong> ✅ RELEASED v1.0.26 / versionCode 27 — tag
 <code>v1.0.26</code> at <code>5244f4e</code> (<code>13ef83b</code>),
@@ -319,16 +319,21 @@ build:</strong> <code>tmx new -s proofofwork:red</code> →
 <code>#hex</code> works (<code>bg=#e63946</code>); invalid
 <code>notacolor</code> rejected exit 5 + no server.</li>
 </ul>
-<p>** nezha — Operator-blocked (§11.4.144 availability event):** nezha
-is offline / off-LAN from Mistborn as of 2026-06-19 —
-<code>ping nezha.local</code>, Bonjour <code>dns-sd</code>, and
-<code>ssh -i ~/.ssh/id_ed25519 milosvasic@nezha.local</code> all FAIL TO
-RESOLVE (credentials + key are correct; only reachability missing).
-Tracked as <code>NEZHA-INSTALL-v1.0.26-001</code> in Issues.md with the
-exact unblock condition (<code>ssh ... nezha.local 'uname -sm'</code>
-returns <code>Linux x86_64</code>). Non-blocking for the release (tag
-published; Mistborn installed); blocking only for "both hosts"
-closure.</p>
+<p>** nezha — INSTALLED** (<code>/home/milosvasic/Projects/tmux</code>,
+2026-06-19): after the operator confirmed nezha back online (§11.4.144
+unblock condition met — <code>ssh ... nezha.local</code> returned
+<code>Linux x86_64</code>), clean fast-forward
+<code>05569e5 (v1.0.25) → e1a2530 (v1.0.26)</code> (local in-flight D2
+TMPDIR edits stashed — already superseded upstream at
+<code>5f86936</code>), <code>setup.sh --rebuild</code> → Linux ELF tmux
+3.6a + <code>tmx-state-bin v1.1.0</code>. Verify gate <strong>PASS=49
+FAIL=0 SKIP=14</strong>; test 63 <strong>8/8</strong> (T8 hostname
+fallback → <code>bg=colour94</code>, matching Mistborn → cross-OS parity
+§11.4.81) + test 64 <strong>17/17</strong>. Live color proof on nezha:
+<code>tmx new -s nezproof:red</code> → all 4 surfaces red; persisted;
+<code>#hex</code>; invalid rejected exit 5.
+<code>NEZHA-INSTALL-v1.0.26-001</code> closed → Fixed.md. <strong>Both
+hosts now at v1.0.26, clean + verified.</strong></p>
 <p><strong>§11.4.151 release-prefix — NOT adopted this release:</strong>
 project tag history is <code>v1.0.6…v1.0.25</code> (no prefix); operator
 chose <code>v1.0.26</code> to keep the series continuous (decision

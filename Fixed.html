@@ -3909,5 +3909,51 @@ escape since v1.0.9) — OPEN in Issues.md, unrelated to this feature.</p>
 <code>af04f89</code> (bash lib), <code>255ab68</code> (wrapper wiring),
 <code>9b36e6a</code> (test 63), M25/M26 commit (mutations),
 <code>6768ee5</code> (TMUX-CH-53), v1.0.26 docs/release.</p>
+<hr />
+<h3
+id="nezha-install-v1026-001-closed--v1026-installed-on-nezha">NEZHA-INSTALL-v1.0.26-001
+(closed) — v1.0.26 installed on nezha</h3>
+<p><strong>Status:</strong> Completed (→ Fixed.md)
+<strong>Type:</strong> Task <strong>Closure cycle:</strong> 2026-06-19.
+Unblock condition met: operator confirmed nezha back online;
+<code>ssh -i ~/.ssh/id_ed25519 milosvasic@nezha.local</code> resolved +
+returned <code>Linux x86_64</code> (ALT Linux). <strong>Closure source
+(§11.4.34):</strong> By <strong>AI</strong> (in-loop verification); On
+2026-06-19; Reason: <code>captured-evidence-contradicts</code> (prior
+offline-blocked superseded by live install + captured evidence);
+Evidence: nezha verify gate PASS=49/0/14 GREEN + live color proof
+below.</p>
+<p><strong>What landed on nezha</strong>
+(<code>/home/milosvasic/Projects/tmux</code>): clean fast-forward
+<code>05569e5 (v1.0.25) → e1a2530 (v1.0.26)</code>, local in-flight D2
+TMPDIR edits safely stashed (already superseded by the same fix
+committed upstream at <code>5f86936</code>),
+<code>setup.sh --rebuild</code> → native Linux ELF tmux 3.6a +
+<code>tmx-state-bin v1.1.0</code> + generated wrapper carrying the 6
+color-helper refs.</p>
+<p><strong>Anti-bluff evidence (live on nezha, §11.4.5):</strong></p>
+<ul>
+<li>Verify gate: <strong>PASS=49 FAIL=0 SKIP=14</strong>
+(<code>verification GREEN</code>).</li>
+<li><code>scripts/tests/63_session_color.sh</code> → <strong>8/8
+PASS</strong> (T8 hostname fallback → <code>bg=colour94</code>, matching
+Mistborn → cross-OS parity §11.4.81).</li>
+<li><code>scripts/tests/64_session_color_parse_unit.sh</code> →
+<strong>17/17 PASS</strong>.</li>
+<li>Live end-user proof: <code>tmx new -s nezproof:red</code> → all 4
+surfaces red (<code>status-style=bg=red</code>,
+<code>clock-mode-colour=red</code>,
+<code>pane-active-border-style=fg=red</code>,
+<code>window-status-current-style=bg=red,fg=black</code>); persisted
+(<code>get-color</code> → <code>red</code>) + bare re-run reuses;
+<code>#hex</code> (<code>bg=#2a9d8f</code>); invalid
+<code>notacolor</code> rejected exit 5.</li>
+</ul>
+<p><strong>Stash note:</strong>
+<code>git stash push -u -m "pre-v1.0.26-sync local edits (D2 TMPDIR in-flight; verify already-in-main)"</code>
+remains on nezha (<code>stash@{0}</code>) as a belt-and-suspenders
+preserve per §9.2; the edits are byte-equivalent-intent to the
+upstream-committed D2 fix, so the stash is redundant and may be dropped
+(<code>git stash drop</code>) at the operator's discretion.</p>
 </body>
 </html>

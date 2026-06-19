@@ -2830,3 +2830,22 @@ M22 paired mutations.
 **Known / tracked separately.** `M24-ESCAPE-001` (pre-existing hostname 4-surface mutation escape since v1.0.9) — OPEN in Issues.md, unrelated to this feature.
 
 **Key commits:** `e9e71c9` (validColor), `e97d561` (Color field+schema2), `76a1c61` (set-color/get-color), `72aeb4b` (list col+v1.1.0), `af04f89` (bash lib), `255ab68` (wrapper wiring), `9b36e6a` (test 63), M25/M26 commit (mutations), `6768ee5` (TMUX-CH-53), v1.0.26 docs/release.
+
+---
+
+### NEZHA-INSTALL-v1.0.26-001 (closed) — v1.0.26 installed on nezha
+
+**Status:** Completed (→ Fixed.md)
+**Type:** Task
+**Closure cycle:** 2026-06-19. Unblock condition met: operator confirmed nezha back online; `ssh -i ~/.ssh/id_ed25519 milosvasic@nezha.local` resolved + returned `Linux x86_64` (ALT Linux).
+**Closure source (§11.4.34):** By **AI** (in-loop verification); On 2026-06-19; Reason: `captured-evidence-contradicts` (prior offline-blocked superseded by live install + captured evidence); Evidence: nezha verify gate PASS=49/0/14 GREEN + live color proof below.
+
+**What landed on nezha** (`/home/milosvasic/Projects/tmux`): clean fast-forward `05569e5 (v1.0.25) → e1a2530 (v1.0.26)`, local in-flight D2 TMPDIR edits safely stashed (already superseded by the same fix committed upstream at `5f86936`), `setup.sh --rebuild` → native Linux ELF tmux 3.6a + `tmx-state-bin v1.1.0` + generated wrapper carrying the 6 color-helper refs.
+
+**Anti-bluff evidence (live on nezha, §11.4.5):**
+- Verify gate: **PASS=49 FAIL=0 SKIP=14** (`verification GREEN`).
+- `scripts/tests/63_session_color.sh` → **8/8 PASS** (T8 hostname fallback → `bg=colour94`, matching Mistborn → cross-OS parity §11.4.81).
+- `scripts/tests/64_session_color_parse_unit.sh` → **17/17 PASS**.
+- Live end-user proof: `tmx new -s nezproof:red` → all 4 surfaces red (`status-style=bg=red`, `clock-mode-colour=red`, `pane-active-border-style=fg=red`, `window-status-current-style=bg=red,fg=black`); persisted (`get-color` → `red`) + bare re-run reuses; `#hex` (`bg=#2a9d8f`); invalid `notacolor` rejected exit 5.
+
+**Stash note:** `git stash push -u -m "pre-v1.0.26-sync local edits (D2 TMPDIR in-flight; verify already-in-main)"` remains on nezha (`stash@{0}`) as a belt-and-suspenders preserve per §9.2; the edits are byte-equivalent-intent to the upstream-committed D2 fix, so the stash is redundant and may be dropped (`git stash drop`) at the operator's discretion.
