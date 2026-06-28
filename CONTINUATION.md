@@ -148,7 +148,9 @@ Gate `CM-NO-HARDCODED-TMP-SCRATCH` PASSes (16 cwd/state/dispatch tests).
 
 ### §3.29 — v1.0.28 RELEASED: per-session password protection + governance sync (§11.4.159–170) → 2026-06-28
 
-**Status:** ✅ RELEASED v1.0.28 / versionCode 29 — tag pending. Commit `f30cd8b` pushed to github + gitlab.
+**Status:** ✅ RELEASED v1.0.28 / versionCode 29 — tag `v1.0.28` at `f30cd8b`, published GitHub
+(https://github.com/vasic-digital/tmux/releases/tag/v1.0.28) + GitLab
+(https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.28).
 
 **What landed:**
 - **Per-session password protection** — `tmx new -s NAME` prompts for optional password; `tmx attach -t NAME` verifies before granting access. SHA-256 hashed storage, schema v3, graceful degradation.
