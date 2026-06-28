@@ -193,13 +193,28 @@ HOST_OS="$(uname -s)"
 echo "[setup] step 1 — host capability check ($HOST_OS)"
 case "$HOST_OS" in
     Darwin)
-        if ! command -v brew >/dev/null 2>&1; then
+        # Resolve brew by ABSOLUTE path (§11.4.111) — `command -v brew` FAILS
+        # under a non-interactive SSH PATH that lacks /opt/homebrew/bin, which
+        # made this Step-1 gate hard-`exit 3` BEFORE Step-1b's resolver ever ran
+        # (forensic: mistborn.local clean-target validation, 2026-06-28; ATM-064
+        # follow-up). Check the canonical Homebrew install locations first, then
+        # PATH as a last resort; then prepend brew's bin to PATH so brew + its
+        # installed tools resolve for the rest of this run (non-interactive
+        # shells don't get `brew shellenv`). §11.4.108: source-green ≠
+        # runtime-works — this is the runtime wiring the host run exposed.
+        BREW=""
+        for _b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+            [ -x "$_b" ] && { BREW="$_b"; break; }
+        done
+        [ -z "$BREW" ] && BREW="$(command -v brew 2>/dev/null || true)"
+        if [ -z "$BREW" ]; then
             echo "  ✗ Homebrew not installed. Install via:"
             echo "    /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
             exit 3
         fi
-        echo "  ✓ Homebrew @ $(brew --prefix)"
-        JEMALLOC_DYLIB="$(brew --prefix jemalloc 2>/dev/null)/lib/libjemalloc.dylib"
+        export PATH="$(dirname "$BREW"):$PATH"
+        echo "  ✓ Homebrew @ $("$BREW" --prefix)"
+        JEMALLOC_DYLIB="$("$BREW" --prefix jemalloc 2>/dev/null)/lib/libjemalloc.dylib"
         if [ -f "$JEMALLOC_DYLIB" ]; then
             JEMALLOC="$JEMALLOC_DYLIB"
             echo "  ✓ jemalloc @ $JEMALLOC"
