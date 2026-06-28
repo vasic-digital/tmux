@@ -84,3 +84,9 @@ docs/workable_items.db-shm
 
 # Transient test/validation output (§11.4.30). Curated evidence goes under docs/qa/.
 qa-results/
+
+# Agent session scratch (§11.4.30) — superpowers SDD progress ledger + remember
+# buffer + docs_chain state are per-session working files, never tracked.
+.superpowers/
+.remember/
+.docs_chain/state.json

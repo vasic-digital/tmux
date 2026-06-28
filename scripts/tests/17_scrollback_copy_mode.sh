@@ -196,31 +196,40 @@ else
     _skip "T4.1: visible-screen state inconclusive (FIRST unexpectedly visible — pane too tall?) — test inert"
 fi
 
-# T4.2 — scrollback BUFFER retained line 1 of 3000. With the OLD default
-# (history-limit 2000) line 1 would be evicted; PASS here is positive
-# proof the 50000 bump is functional.
+# T4.2 — scrollback BUFFER retained ~all 3000 generated lines. With the OLD
+# default (history-limit 2000) the oldest ~1000 lines (incl. line 1) would be
+# evicted; retaining >=2900 of 3000 is positive proof the 50000 bump is
+# functional. Line 1 *specifically* is additionally proven reachable + copied
+# by T4.3b/T4.4 via copy-mode below.
 #
-# Nezha fix (2026-05-21): when this test ran inside the full setup.sh
-# suite on a busy host, the capture-pane sometimes returned BEFORE all
-# 3000 lines had been written into the scrollback (T4 GEN_OK polled the
-# VISIBLE pane for LAST, but tmux's scrollback ingestion can lag the
-# visible-frame paint by a few hundred ms on a loaded Linux box).
-# Standalone re-runs PASSed because the load profile differed. The fix:
-# poll the FULL capture-pane (-S -) for SCROLLMARK_FIRST too, with the
-# same up-to-15s budget. Same evidence shape, robust to load.
+# Robustness (2026-06-28, non-interactive hardening): T4.2 previously grepped
+# `capture-pane -p -S -` for a single SCROLLMARK_FIRST line. That is
+# NON-DETERMINISTIC under headless / SSH-batch (no-TTY) runs: the operator-path
+# pane runs the interactive shell (oh-my-bash startup + update-lock noise +
+# multi-line git prompt + PS2 `<` continuation), and `capture-pane` WITHOUT -J
+# splits the wrapped command-echo at the 80-col boundary, so a single-token
+# grep can miss SCROLLMARK_FIRST even though the buffer holds all 3000 lines.
+# Forensically confirmed on nezha: in the same run T4.2 "failed", copy-mode
+# reached scroll_position~2984 and copied SCROLLMARK_FIRST (T4.3b/T4.4 PASS).
+# Fix: COUNT retained generated lines from the -J (wrap-joined) full capture.
+# Immune to wrapping, prompt noise, and a single mangled line; still fails
+# decisively under any smaller history-limit (paired §1.1 mutation: lower the
+# limit -> count<2900 -> FAIL). Same up-to-15s poll absorbs ingestion lag.
 FULL=""
+T42_CNT=0
 T42_OK=0
 for _i in $(seq 1 30); do
-    FULL="$("$TMUX_BIN" -L "$S_SOCK" capture-pane -p -S - -t "$S_NAME" 2>/dev/null || true)"
-    if printf '%s' "$FULL" | grep -q 'SCROLLMARK_FIRST'; then
+    FULL="$("$TMUX_BIN" -L "$S_SOCK" capture-pane -p -J -S - -t "$S_NAME" 2>/dev/null || true)"
+    T42_CNT="$(printf '%s\n' "$FULL" | grep -c 'SCROLLMARK_' || true)"
+    if [ "$T42_CNT" -ge 2900 ]; then
         T42_OK=1; break
     fi
     sleep 0.5
 done
 if [ "$T42_OK" -eq 1 ]; then
-    _pass "T4.2: scrollback buffer retains line 1 of 3000 (history-limit bump is functional; poll-ingest captured)"
+    _pass "T4.2: scrollback retained $T42_CNT of 3000 generated lines (history-limit 50000 functional; old 2000 limit would retain <=~2000) [capture-pane -J -S -]"
 else
-    _fail "T4.2: SCROLLMARK_FIRST not in scrollback after 15s poll — buffer too small (history-limit not effective)"
+    _fail "T4.2: only $T42_CNT SCROLLMARK lines in scrollback after 15s poll (want >=2900) — history-limit not effective"
 fi
 
 # T4.3 + T4.4 — copy-mode navigation reaches the old content.

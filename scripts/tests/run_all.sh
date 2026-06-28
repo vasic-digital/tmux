@@ -52,7 +52,12 @@ for t in "$REPO_ROOT/scripts/tests/"[0-9][0-9]_*.sh; do
     [ -f "$t" ] || continue
     name=$(basename "$t")
     echo ""
-    out=$(bash "$t" 2>&1)
+    # §11.4.98 non-interactive guarantee: sever each test's stdin from the
+    # launcher (terminal / pipe). No test can EVER block on terminal input,
+    # regardless of how run_all.sh is invoked (interactive shell, SSH-batch,
+    # cron, CI). Tests that need a controlling terminal open /dev/tty
+    # explicitly and SKIP-with-reason when absent; closing stdin is orthogonal.
+    out=$(bash "$t" </dev/null 2>&1)
     echo "$out"
     # Classify: scan for first match of PASS/FAIL/SKIP at start of any line.
     # Priority: FAIL > SKIP > PASS.

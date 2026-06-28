@@ -444,9 +444,11 @@ run_mutation \
 #        The fix bumps history-limit 2000 → 50000 so terminal output
 #        survives in the scrollback buffer. Mutation: put it back to
 #        2000. Test 17 T2.1 (live `show-options -g history-limit`
-#        readback) FAILs immediately; T4.2 also FAILs because line 1 of
-#        the 3000-line stream is then evicted from the buffer — positive
-#        proof that the bump is FUNCTIONALLY load-bearing, not cosmetic.
+#        readback) FAILs immediately; T4.2 also FAILs because only ~2000
+#        of the 3000-line stream survive the smaller buffer, so the
+#        retained-SCROLLMARK_ line count (~2007) drops below the >=2900
+#        threshold (line 1 evicted) — positive proof the bump is
+#        FUNCTIONALLY load-bearing, not cosmetic.
 #
 #        Implementation: `sed` to a temp file + atomic rename (portable;
 #        no `sed -i` flavour divergence between BSD and GNU).
