@@ -15,7 +15,7 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.27** (versionCode 28) — post-release governance sync: constitution `84c948d` → `1576d3d`, propagation of §11.4.159–§11.4.170 to project governance files. Next version: v1.0.28 (per-session password protection). |
+| Version | **1.0.28** (versionCode 29) — per-session password protection + governance sync. Previous: v1.0.27 (name:color prompt rejection fixed). |
 | Verification (this cycle) | **Current: 58 PASS / 0 FAIL / 6 SKIP** (test 63=8/8, 64=17/17, 65=6/6). Meta-test 37 CAUGHT / 0 ESCAPED / 17 SKIPPED. Pending after password feature. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `1576d3d`); `Containers/` submodule (pinned `fbef9d6`); project `Constitution.md` (Project Articles §101–§170 extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `GEMINI.md` (all lockstep to §11.4.170), `Issues.md`, `Fixed.md`, this document |
 
@@ -146,21 +146,20 @@ Gate `CM-NO-HARDCODED-TMP-SCRATCH` PASSes (16 cwd/state/dispatch tests).
 
 **Nezha deploy:** completed 2026-06-19 post-tag (verified 49/0/14 + meta 37/0/17).
 
-### §3.29 — Governance sync: constitution advance `84c948d` → `1576d3d` + §11.4.159–§11.4.170 propagation → 2026-06-28
+### §3.29 — v1.0.28 RELEASED: per-session password protection + governance sync (§11.4.159–170) → 2026-06-28
 
-**Status:** IN PROGRESS — constitution submodule advanced + project governance files updated. Pending: GEMINI.md lockstep update, verify.sh Layer-1 gate update, commit_all.sh push.
+**Status:** ✅ RELEASED v1.0.28 / versionCode 29 — tag pending. Commit `f30cd8b` pushed to github + gitlab.
 
-**What landed this cycle:**
-- Constitution submodule advanced from `1d408cb` → `1576d3d` (~30 new commits, anchors §11.4.140–§11.4.170)
-- Project `CLAUDE.md` — appended short-form §11.4.159–§11.4.170 (including §11.4.166 REPEALED note, §11.4.170 rendered-UI visual-proof)
-- Project `AGENTS.md` — same anchors appended
-- Project `QWEN.md` — same anchors appended
-- Project `Constitution.md` — expanded from §11.4.99 to §11.4.170 with short-form inherited entries
-- `CONTINUATION.md` — updated snapshot (constitution pin, version note)
+**What landed:**
+- **Per-session password protection** — `tmx new -s NAME` prompts for optional password; `tmx attach -t NAME` verifies before granting access. SHA-256 hashed storage, schema v3, graceful degradation.
+- **tmx-state-bin v1.2.0** — new `set-password` / `verify-password` subcommands.
+- **Test 66** — 5 invariants × 3 iterations (15/15 PASS).
+- **Meta-test M27** — `verifyPassword` always-true mutation CAUGHT by test 66 T3.
+- **Governance sync** — constitution `1d408cb` → `1576d3d`; §11.4.159–§11.4.170 propagated to all 5 governance carriers.
 
-**Pending:** GEMINI.md lockstep update, verify.sh L1 gate re-audit, commit_all.sh push.
+**Verification:** Full suite PASS=51/FAIL=0/SKIP=14. Meta-test 55 CAUGHT/0 ESCAPED/8 SKIPPED.
 
-**Next (v1.0.28):** per-session password protection — new feature cycle per user request 2026-06-28.
+**Pending:** Release tag, deploy on Mistborn + mistborn.local.
 
 ### §3.26 — v1.0.25 RELEASED (test fixes + submodule currency + governance cascade) → 2026-06-16
 
