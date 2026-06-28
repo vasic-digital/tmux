@@ -15,6 +15,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,7 +30,10 @@ import (
 // (json `color,omitempty`). Forward+backward compatible — a schema-1 file
 // (no color field) loads with Color==""; a schema-2 file read by an old
 // schema-1 binary ignores the unknown field. No migration script needed.
-const SchemaVersion = 2
+// v2 → v3 (per-session-password feature): additive Session.PasswordHash
+// field (json `password_hash,omitempty`). Stored as hex-encoded SHA-256.
+// v3 file read by old binary ignores the unknown field.
+const SchemaVersion = 3
 
 // Session is the per-session record.
 type Session struct {
@@ -37,6 +42,7 @@ type Session struct {
 	CreatedUnix  int64  `json:"created_unix"`
 	Host         string `json:"host,omitempty"`
 	Color        string `json:"color,omitempty"`
+	PasswordHash string `json:"password_hash,omitempty"`
 }
 
 // State is the root document persisted to disk.
@@ -148,6 +154,25 @@ func saveStateUnlocked(path string, s *State) error {
 		return err
 	}
 	return atomicWrite(path, data, 0o600)
+}
+
+// hashPassword returns a hex-encoded SHA-256 hash of the password.
+// Empty passwords hash to empty string (no protection).
+func hashPassword(password string) string {
+	if password == "" {
+		return ""
+	}
+	h := sha256.Sum256([]byte(password))
+	return hex.EncodeToString(h[:])
+}
+
+// verifyPassword checks password against a stored hash. Empty hash means
+// no password is set — always returns true (no guard).
+func verifyPassword(password, hash string) bool {
+	if hash == "" {
+		return true
+	}
+	return hashPassword(password) == hash
 }
 
 func marshalState(s *State) ([]byte, error) {

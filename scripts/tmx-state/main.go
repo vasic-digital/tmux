@@ -28,7 +28,7 @@ import (
 
 // Version is reported by the `version` subcommand. Bumped per VERSION
 // file in the parent project — kept in sync via setup.sh.
-const Version = "tmx-state v1.1.0"
+const Version = "tmx-state v1.2.0"
 
 // usage prints a top-level help message to `w`.
 func usage(w io.Writer) {
@@ -41,6 +41,8 @@ Usage:
   tmx-state forget  <session>
   tmx-state set-color <session> <color>
   tmx-state get-color <session>
+  tmx-state set-password <session> <password>
+  tmx-state verify-password <session> <password>
   tmx-state version
 
 Env:
@@ -74,6 +76,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return cmdSetColor(rest, stderr)
 	case "get-color":
 		return cmdGetColor(rest, stdout, stderr)
+	case "set-password":
+		return cmdSetPassword(rest, stderr)
+	case "verify-password":
+		return cmdVerifyPassword(rest, stdout, stderr)
 	case "version", "--version", "-v":
 		fmt.Fprintln(stdout, Version)
 		return 0
@@ -381,4 +387,104 @@ func cmdGetColor(args []string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprint(stdout, sess.Color)
 	return 0
+}
+
+// cmdSetPassword: tmx-state set-password <session> <password>
+//
+// Stores a hex-encoded SHA-256 hash of the password for the session.
+// Empty password clears protection. Silent on success.
+func cmdSetPassword(args []string, stderr io.Writer) int {
+	fs := flag.NewFlagSet("set-password", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	if err := fs.Parse(args); err != nil {
+		return 1
+	}
+	if fs.NArg() != 2 {
+		fmt.Fprintln(stderr, "tmx-state set-password: expected <session> <password>")
+		return 1
+	}
+	session := fs.Arg(0)
+	password := fs.Arg(1)
+	if session == "" {
+		fmt.Fprintln(stderr, "tmx-state set-password: empty session name")
+		return 1
+	}
+
+	path, err := statePath()
+	if err != nil {
+		fmt.Fprintf(stderr, "tmx-state set-password: %v\n", err)
+		return 1
+	}
+	var rc int
+	werr := withStateLock(path, func() error {
+		st, lerr := loadState(path)
+		if lerr != nil && !errors.Is(lerr, errStateRebuilt) {
+			fmt.Fprintf(stderr, "tmx-state set-password: load: %v\n", lerr)
+			rc = 1
+			return nil
+		}
+		existing, had := st.Sessions[session]
+		now := time.Now().Unix()
+		s := existing
+		if !had {
+			s = Session{CreatedUnix: now}
+		}
+		s.PasswordHash = hashPassword(password)
+		s.LastSeenUnix = now
+		st.Sessions[session] = s
+		if err := saveStateUnlocked(path, st); err != nil {
+			fmt.Fprintf(stderr, "tmx-state set-password: save: %v\n", err)
+			rc = 1
+			return nil
+		}
+		return nil
+	})
+	if werr != nil {
+		fmt.Fprintf(stderr, "tmx-state set-password: %v\n", werr)
+		return 1
+	}
+	return rc
+}
+
+// cmdVerifyPassword: tmx-state verify-password <session> <password>
+//
+// Exits 0 if the password matches the stored hash (or no password is set).
+// Exits 1 if the session exists, has a password, and the password doesn't match.
+// Exits 2 if the session record doesn't exist at all.
+// Prints nothing to stdout (caller uses exit code).
+func cmdVerifyPassword(args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("verify-password", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	if err := fs.Parse(args); err != nil {
+		return 1
+	}
+	if fs.NArg() != 2 {
+		fmt.Fprintln(stderr, "tmx-state verify-password: expected <session> <password>")
+		return 1
+	}
+	session := fs.Arg(0)
+	password := fs.Arg(1)
+
+	path, err := statePath()
+	if err != nil {
+		fmt.Fprintf(stderr, "tmx-state verify-password: %v\n", err)
+		return 2
+	}
+
+	st, lerr := loadState(path)
+	if errors.Is(lerr, errStateRebuilt) {
+		return 2
+	}
+	if lerr != nil {
+		fmt.Fprintf(stderr, "tmx-state verify-password: %v\n", lerr)
+		return 2
+	}
+	sess, ok := st.Sessions[session]
+	if !ok {
+		return 2
+	}
+	if verifyPassword(password, sess.PasswordHash) {
+		return 0
+	}
+	return 1
 }

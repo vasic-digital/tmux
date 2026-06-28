@@ -5,7 +5,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -185,7 +187,7 @@ func TestSavedFileIsValidJSON(t *testing.T) {
 func TestSessionColorRoundTrip(t *testing.T) {
 	tmp := filepath.Join(t.TempDir(), "state.json")
 	st := newEmptyState()
-	st.SchemaVersion = SchemaVersion // current (2)
+	st.SchemaVersion = SchemaVersion // current (3)
 	st.Sessions["work"] = Session{
 		LastPwd: "/tmp", LastSeenUnix: 1, CreatedUnix: 1, Color: "red",
 	}
@@ -199,8 +201,8 @@ func TestSessionColorRoundTrip(t *testing.T) {
 	if got.Sessions["work"].Color != "red" {
 		t.Errorf("Color round-trip = %q, want red", got.Sessions["work"].Color)
 	}
-	if got.SchemaVersion != 2 {
-		t.Errorf("SchemaVersion = %d, want 2", got.SchemaVersion)
+	if got.SchemaVersion != 3 {
+		t.Errorf("SchemaVersion = %d, want 3", got.SchemaVersion)
 	}
 }
 
@@ -220,5 +222,69 @@ func TestSchema1FileLoadsAsEmptyColor(t *testing.T) {
 	}
 	if got.Sessions["work"].Color != "" {
 		t.Errorf("legacy Color = %q, want empty", got.Sessions["work"].Color)
+	}
+}
+
+// TestPasswordHashVerify proves hashPassword and verifyPassword work correctly.
+func TestPasswordHashVerify(t *testing.T) {
+	// Hashing is deterministic for same password
+	h1 := hashPassword("mypassword")
+	h2 := hashPassword("mypassword")
+	if h1 != h2 {
+		t.Errorf("hashPassword not deterministic: %q vs %q", h1, h2)
+	}
+	if h1 == "" {
+		t.Errorf("hashPassword returned empty for non-empty password")
+	}
+	// Different passwords produce different hashes
+	h3 := hashPassword("different")
+	if h1 == h3 {
+		t.Errorf("hashPassword collision: %q", h1)
+	}
+	// Empty password → empty hash
+	if h4 := hashPassword(""); h4 != "" {
+		t.Errorf("hashPassword('') = %q, want empty", h4)
+	}
+	// verifyPassword
+	if !verifyPassword("mypassword", h1) {
+		t.Errorf("verifyPassword failed for correct password")
+	}
+	if verifyPassword("wrong", h1) {
+		t.Errorf("verifyPassword passed for wrong password")
+	}
+	// Empty hash means no password — always passes
+	if !verifyPassword("anything", "") {
+		t.Errorf("verifyPassword failed for empty hash")
+	}
+}
+
+// TestPasswordRoundTrip proves set-password stores and verify-password works.
+func TestPasswordRoundTrip(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "state.json")
+	t.Setenv("TMX_STATE_FILE", tmp)
+
+	// Set password
+	if rc := cmdSetPassword([]string{"mysession", "secret123"}, io.Discard); rc != 0 {
+		t.Fatalf("cmdSetPassword failed: exit %d", rc)
+	}
+	// Verify correct password
+	var buf bytes.Buffer
+	if rc := cmdVerifyPassword([]string{"mysession", "secret123"}, &buf, io.Discard); rc != 0 {
+		t.Errorf("cmdVerifyPassword correct password: exit %d (want 0)", rc)
+	}
+	// Verify wrong password
+	if rc := cmdVerifyPassword([]string{"mysession", "wrongpass"}, &buf, io.Discard); rc != 1 {
+		t.Errorf("cmdVerifyPassword wrong password: exit %d (want 1)", rc)
+	}
+	// Non-existent session
+	if rc := cmdVerifyPassword([]string{"nosession", ""}, &buf, io.Discard); rc != 2 {
+		t.Errorf("cmdVerifyPassword missing session: exit %d (want 2)", rc)
+	}
+	// Empty password clears protection
+	if rc := cmdSetPassword([]string{"mysession", ""}, io.Discard); rc != 0 {
+		t.Fatalf("cmdSetPassword empty: exit %d", rc)
+	}
+	if rc := cmdVerifyPassword([]string{"mysession", "anything"}, &buf, io.Discard); rc != 0 {
+		t.Errorf("password not cleared: exit %d (want 0)", rc)
 	}
 }

@@ -6,6 +6,23 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.28] — 2026-06-28
+
+**Per-session password protection — any session can be optionally password-gated. Passwords stored as SHA-256 hashes, verified on attach.**
+
+### Added
+
+- **Per-session password protection (`tmx new -s NAME` prompts for optional password).** After creating a new interactive session, the operator is optionally prompted for a password. If set, every subsequent `tmx attach -t NAME` requires the correct password before the session can be accessed. Passwords are stored as hex-encoded SHA-256 hashes in `~/.tmx/state.json` (schema v2→v3, additive `password_hash` field; forward+backward compatible). `tmx-state-bin` gains `set-password` / `verify-password` subcommands (v1.2.0).
+- **State schema v3** — additive `password_hash` field on `Session`. A schema-2 file (no password field) loads with `PasswordHash==""` (no guard); a schema-3 file read by an old binary ignores the unknown field. No migration script needed.
+- **Test 66 (`66_session_password.sh`)** — 5 invariants × 3 iterations: set-password stores hash (exit 0), verify-password accepts correct (exit 0), rejects wrong (exit 1), accepts any when no password set (exit 0), empty password clears protection (exit 0).
+- **Meta-test mutation M27** — makes `verifyPassword` always return true → test 66 T3 (wrong password → exit 1) FAILs. Paired §1.1 mutation proves the password guard is not a bluff.
+- **Governance sync** — constitution submodule advanced `1d408cb` → `1576d3d`; §11.4.159–§11.4.170 propagated to CLAUDE.md, AGENTS.md, QWEN.md, GEMINI.md, Constitution.md.
+
+### Security
+
+- **No plaintext passwords** — passwords stored as SHA-256 hashes only. The `set-password` command hashes before writing; `verify-password` hashes the input and compares. Empty password clears the hash entirely.
+- **Graceful degradation** — if `tmx-state-bin` is absent or fails, the wrapper continues without password protection (tmx-never-breaks invariant). The password feature is opt-in only.
+
 ## [v1.0.27] — 2026-06-19
 
 **Anti-bluff completeness burn-down: M24 test-coverage gap closed, A2 run_all OS-aware, D2 /tmp scratch-SKIP, A51 operator-escape name:color prompt rejection fixed.**

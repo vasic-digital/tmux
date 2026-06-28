@@ -893,6 +893,7 @@ v109_run_mutation() {
     local mutate_cmd="$4"
     local test_script="$5"
     local expect_fail="${6:-FAIL}"
+    local custom_revert="${7:-}"
 
     local target_abs="$REPO_ROOT/$target"
     local test_abs="$REPO_ROOT/$test_script"
@@ -928,6 +929,7 @@ v109_run_mutation() {
     # global to track which file the trap touches so the trap function
     # is reusable across mutations.
     _V109_BACKUP_FILE="$backup"
+    _V109_CUSTOM_REVERT="$custom_revert"
     _V109_TARGET_FILE="$target_abs"
     # shellcheck disable=SC2064  # we want $-expansion now
     trap '_v109_restore' EXIT
@@ -965,8 +967,14 @@ _v109_restore() {
         cp -p "${_V109_BACKUP_FILE}" "${_V109_TARGET_FILE}" 2>/dev/null || true
         rm -f "${_V109_BACKUP_FILE}" 2>/dev/null || true
     fi
+    # Run custom revert command if provided (e.g. rebuild a binary after
+    # restoring Go source).
+    if [ -n "${_V109_CUSTOM_REVERT:-}" ]; then
+        eval "${_V109_CUSTOM_REVERT}" 2>/dev/null || true
+    fi
     _V109_BACKUP_FILE=""
     _V109_TARGET_FILE=""
+    _V109_CUSTOM_REVERT=""
 }
 
 # ── P5-M20: strip the distinctive non-TTY guard MARKER line from
@@ -1226,6 +1234,22 @@ v109_run_mutation \
     "inplace_sed 's|\"\$TMX_DIR/tmx-state-bin\" set-color \"\$name\"|true #M26|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
     "scripts/tests/63_session_color.sh" \
     "FAIL"
+
+# ── M27: make verifyPassword always return true → test 66 T3 FAILs
+# If verifyPassword always returns true, wrong passwords are accepted, so
+# test 66 T3 (wrong password → exit 1) FAILs because verify-password
+# returns exit 0 instead of exit 1. Mutates scripts/tmx-state/state.go
+# (Go source), rebuilds the binary, tests, then reverts + rebuilds.
+# Note: revert_cmd rebuilds the binary after restoring the source so the
+# FEATURE-RESTORED step (Step 4) runs against a clean binary.
+v109_run_mutation \
+    "M27" \
+    "make verifyPassword always return true (test 66 T3 wrong-password accepted)" \
+    "scripts/tmx-state/state.go" \
+    "inplace_sed 's|return hashPassword(password) == hash|return true //M27|' \"\$target_abs\" && cd \"\$REPO_ROOT/scripts/tmx-state\" && go build -o \"\$REPO_ROOT/scripts/tmx-state-bin\" . 2>/dev/null" \
+    "scripts/tests/66_session_password.sh" \
+    "FAIL" \
+    "cd \"\$REPO_ROOT/scripts/tmx-state\" && go build -o \"\$REPO_ROOT/scripts/tmx-state-bin\" . 2>/dev/null"
 
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
