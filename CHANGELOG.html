@@ -91,7 +91,6 @@
       color: #606060;
     }
     code {
-      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -155,6 +154,7 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
+    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
     div.columns{display: flex; gap: min(4vw, 1.5em);}
     div.column{flex: auto; overflow-x: auto;}
@@ -201,39 +201,38 @@
       }
     pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
     div.sourceCode
-      {   }
+      {  background-color: #f8f8f8; }
     @media screen {
     pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
     }
-    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
-    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-    code span.at { color: #7d9029; } /* Attribute */
-    code span.bn { color: #40a070; } /* BaseN */
-    code span.bu { color: #008000; } /* BuiltIn */
-    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-    code span.ch { color: #4070a0; } /* Char */
-    code span.cn { color: #880000; } /* Constant */
-    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
-    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
-    code span.dt { color: #902000; } /* DataType */
-    code span.dv { color: #40a070; } /* DecVal */
-    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
     code span.ex { } /* Extension */
-    code span.fl { color: #40a070; } /* Float */
-    code span.fu { color: #06287e; } /* Function */
-    code span.im { color: #008000; font-weight: bold; } /* Import */
-    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
-    code span.op { color: #666666; } /* Operator */
-    code span.ot { color: #007020; } /* Other */
-    code span.pp { color: #bc7a00; } /* Preprocessor */
-    code span.sc { color: #4070a0; } /* SpecialChar */
-    code span.ss { color: #bb6688; } /* SpecialString */
-    code span.st { color: #4070a0; } /* String */
-    code span.va { color: #19177c; } /* Variable */
-    code span.vs { color: #4070a0; } /* VerbatimString */
-    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
   </style>
 </head>
 <body>
@@ -244,12 +243,194 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project's anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v1029--2026-06-28">[v1.0.29] — 2026-06-28</h2>
+<p><strong>Full session lifecycle (name:color + password + cwd +
+detach/rejoin + recycle + delete-reset) proven working with real live
+tmux sessions. Cross-platform local-dependency mechanism. Six
+cross-platform defects found and fixed via §11.4.108 clean-target host
+validation.</strong></p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong><code>tmx delete -t NAME</code> (clause 7 —
+delete-to-reset).</strong> Kills the session + clears persisted state
+(dir/color/password) via <code>tmx-state-bin forget</code>. Re-create
+yields default color, <code>$HOME</code> dir, and a fresh password
+prompt. (<code>scripts/tmx.template</code>,
+<code>scripts/tmx-state/main.go</code>)</li>
+<li><strong>Idle-timeout session recycler (clause 6 —
+<code>tmx-recycler.sh</code>).</strong> External poll-watcher launched
+by <code>tmx new</code> when <code>TMX_RECYCLE_IDLE_SECS &gt; 0</code>
+(default 900s). Atomic <code>if-shell</code> race-guard ensures an
+attached session is never killed. Records state before teardown (tmux
+#1174 mitigation). <code>=0</code> disables. Linux: scope-stop +
+kill-session; macOS: kill-session only.
+(<code>scripts/tmx-recycler.sh</code>,
+<code>scripts/tmx.template</code>)</li>
+<li><strong><code>cmdRecord</code> preserves Color+PasswordHash across
+detach (pre-existing bug fix).</strong> <code>cmdRecord</code> was
+rebuilding the Session struct as a literal, silently dropping Color and
+PasswordHash on every detach/recycle. Now starts from the existing
+record and updates only cwd fields.
+(<code>scripts/tmx-state/main.go</code>,
+<code>scripts/tmx-state/main_test.go</code>)</li>
+<li><strong>7-clause full-automation PTY lifecycle test
+(<code>68_session_lifecycle.sh</code>).</strong> Drives real live tmux
+sessions via <code>tmx send-keys</code> PTY harness:
+create+color+password, cwd capture, kill-HUP detach survival, rejoin
+(same dir+color+password re-prompted), idle-recycle (state remembered),
+delete-reset. PASS=78/0/0 ×3 on nezha.
+(<code>scripts/tests/68_session_lifecycle.sh</code>,
+<code>scripts/tests/lib/pty_harness.sh</code>)</li>
+<li><strong>Darwin Homebrew absolute-path resolution in
+<code>setup.sh</code>.</strong> Resolves brew by absolute path
+(<code>/opt/homebrew/bin/brew</code>, <code>/usr/local/bin/brew</code>)
++ prepends to PATH before the hard-exit gate. Fixes mistborn (macOS)
+<code>setup.sh</code> exit 3 under non-interactive SSH PATH lacking
+<code>/opt/homebrew/bin</code>. (<code>scripts/setup.sh</code>)</li>
+<li><strong>Test 67 C3 prefix-agnostic probe + LD_LIBRARY_PATH
+proof.</strong> C3 now detects the resolved SO's exported symbol prefix
+via <code>nm</code> (<code>mallctl</code> vs <code>je_mallctl</code>)
+and compiles the probe accordingly. LD_LIBRARY_PATH assertion (the real
+product runtime mechanism) replaces the unreliable ldd path-assertion.
+Honest macOS local-build-override limitation documented.
+(<code>scripts/tests/67_local_deps.sh</code>)</li>
+<li><strong>Wrapper terminfo fallback + create-result check.</strong>
+Falls back to a terminfo-present TERM when <code>infocmp "$TERM"</code>
+fails. Checks <code>has-session</code> after create and fails loud with
+the tmux error instead of silently <code>exec attach</code>-ing onto a
+dead server. (<code>scripts/tmx.template</code>,
+<code>scripts/tests/lib/pty_harness.sh</code>)</li>
+</ul>
+<h3 id="fixed">Fixed</h3>
+<ul>
+<li><strong>test 17 T4.2 scrollback retention reconciled to race-free
+<code>#{history_size}</code>.</strong> v1.0.27 had regressed T4.2 to a
+grid <code>capture-pane</code> line count; restored the atomic-counter
+design (A49/v1.0.25).
+(<code>scripts/tests/17_scrollback_copy_mode.sh</code>,
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>)</li>
+<li><strong>codegraph tests 20/21/22 SKIP-with-reason when CLI
+absent.</strong> (<code>scripts/tests/20_codegraph_installed.sh</code>,
+<code>21_codegraph_index_present.sh</code>,
+<code>22_codegraph_mcp_wired.sh</code>)</li>
+<li><strong>test 27 macOS stale-cd race.</strong> Replaced blind
+<code>sleep 0.4</code> with poll on <code>#{pane_current_path}</code>.
+(<code>scripts/tests/27_state_persistence.sh</code>)</li>
+<li><strong>test 60 T3 socket-path guard.</strong> Realpath-projected
+measurement + <code>/tmp</code> fallback.
+(<code>scripts/tests/60_wrapper_tmux_bin_valid.sh</code>)</li>
+<li><strong>containerized build Docker-compatible.</strong> Gated
+<code>--userns=keep-id</code> to podman only.
+(<code>scripts/build_containerized.sh</code>)</li>
+<li><strong>cwd-persist hook resolves project binary (not bare
+<code>tmx</code>).</strong>
+(<code>scripts/tmx-shell-init.sh.template</code>,
+<code>scripts/setup.sh</code>)</li>
+</ul>
+<h3 id="verification">Verification</h3>
+<p>Captured physical evidence (real, not fabricated):</p>
+<ul>
+<li><strong>nezha (Linux x86_64):</strong> test 68 PASS=78/0/0 ×3, test
+67 PASS=5/0/0 ×3, run_all PASS=52/0/13, go test GREEN, §1.1 meta-sweep
+58 caught / 0 escaped.</li>
+<li><strong>thinker (Linux x86_64, tmux 3.4):</strong> setup exit 0,
+run_all 47/0/19, cwd-persist test 27 PASS 3/3 (was DEAD pre-fix).</li>
+<li><strong>mistborn (macOS arm64, bash 3.2.57):</strong> brew-abs-path
+resolved off-PATH, tmux 3.6a runs, tests 27+60 RED→GREEN.</li>
+<li><strong>amber (Linux x86_64, Docker 29.4.1):</strong>
+obtain-jemalloc acid-test GREEN (binary runs via LD_LIBRARY_PATH, was
+exit 127).</li>
+</ul>
+<p>Co-Authored-By: Claude Opus 4.8 (1M context) <a
+href="mailto:noreply@anthropic.com">noreply@anthropic.com</a></p>
+<hr />
+<h2 id="v1028--2026-06-28">[v1.0.28] — 2026-06-28</h2>
+<p><strong>Per-session password protection — any session can be
+optionally password-gated. Passwords stored as SHA-256 hashes, verified
+on attach.</strong></p>
+<h3 id="added-1">Added</h3>
+<ul>
+<li><strong>Per-session password protection
+(<code>tmx new -s NAME</code> prompts for optional password).</strong>
+After creating a new interactive session, the operator is optionally
+prompted for a password. If set, every subsequent
+<code>tmx attach -t NAME</code> requires the correct password before the
+session can be accessed. Passwords are stored as hex-encoded SHA-256
+hashes in <code>~/.tmx/state.json</code> (schema v2→v3, additive
+<code>password_hash</code> field; forward+backward compatible).
+<code>tmx-state-bin</code> gains <code>set-password</code> /
+<code>verify-password</code> subcommands (v1.2.0).</li>
+<li><strong>State schema v3</strong> — additive
+<code>password_hash</code> field on <code>Session</code>. A schema-2
+file (no password field) loads with <code>PasswordHash==""</code> (no
+guard); a schema-3 file read by an old binary ignores the unknown field.
+No migration script needed.</li>
+<li><strong>Test 66 (<code>66_session_password.sh</code>)</strong> — 5
+invariants × 3 iterations: set-password stores hash (exit 0),
+verify-password accepts correct (exit 0), rejects wrong (exit 1),
+accepts any when no password set (exit 0), empty password clears
+protection (exit 0).</li>
+<li><strong>Meta-test mutation M27</strong> — makes
+<code>verifyPassword</code> always return true → test 66 T3 (wrong
+password → exit 1) FAILs. Paired §1.1 mutation proves the password guard
+is not a bluff.</li>
+<li><strong>Governance sync</strong> — constitution submodule advanced
+<code>1d408cb</code> → <code>1576d3d</code>; §11.4.159–§11.4.170
+propagated to CLAUDE.md, AGENTS.md, QWEN.md, GEMINI.md,
+Constitution.md.</li>
+</ul>
+<h3 id="security">Security</h3>
+<ul>
+<li><strong>No plaintext passwords</strong> — passwords stored as
+SHA-256 hashes only. The <code>set-password</code> command hashes before
+writing; <code>verify-password</code> hashes the input and compares.
+Empty password clears the hash entirely.</li>
+<li><strong>Graceful degradation</strong> — if
+<code>tmx-state-bin</code> is absent or fails, the wrapper continues
+without password protection (tmx-never-breaks invariant). The password
+feature is opt-in only.</li>
+</ul>
+<h2 id="v1027--2026-06-19">[v1.0.27] — 2026-06-19</h2>
+<p><strong>Anti-bluff completeness burn-down: M24 test-coverage gap
+closed, A2 run_all OS-aware, D2 /tmp scratch-SKIP, A51 operator-escape
+name:color prompt rejection fixed.</strong></p>
+<h3 id="fixed-1">Fixed</h3>
+<ul>
+<li><strong>A51 — <code>tmx-shell-init</code> prompt rejects
+<code>:</code> in session names (operator-escape, §11.4.138).</strong>
+The interactive login prompt validated against
+<code>[A-Za-z0-9_.-]{1,64}</code>, blocking <code>name:color</code>
+input. Now allows <code>:</code> and <code>#</code> via
+<code>[A-Za-z0-9_#.:-]{1,80}</code>. The <code>tmx</code> wrapper's
+existing <code>_parse_session_value()</code> already parsed the color;
+only the prompt layer was stale. Fixed in
+<code>tmx-shell-init.sh.template</code> +
+<code>tmx-ssh-dispatch.sh.template</code>. Test 65 (operator-escape
+guard) PASS=6/6. Root cause per §11.4.108 SOURCE→USER-VISIBLE gap (GREEN
+suite, broken-for-user feature). ([7aefdf2..current])</li>
+<li><strong>M24-ESCAPE-001 — meta-test M24 mutation now CAUGHT</strong>
+(was escaping since v1.0.9 <code>f151d13</code>). Root cause:
+<code>re.subn(pat, '', src, count=1)</code> removed from
+<code>_apply_color()</code> only, while test 26 exercises
+<code>_apply_host_color()</code>. Removed <code>count=1</code> → strips
+from BOTH functions → M24 CAUGHT. Meta-test: 37 CAUGHT / 0 ESCAPED / 17
+SKIPPED.</li>
+<li><strong>A2 — <code>run_all.sh</code> OS-aware binary
+resolution</strong> on native macOS (<code>tmux/build-darwin</code>
+first, fallback to <code>tmux/build</code>).</li>
+<li><strong>D2 — All test scratch paths route through
+<code>${TMPDIR:-/tmp}</code></strong> with writability preflight guard
+(§11.4.3 SKIP-with-reason), converting false-FAIL under host
+disk-pressure to honest SKIP. 35 test files updated.</li>
+<li><strong>Test 35 <code>LONG65→LONG81</code></strong> reconciled with
+the 80-char max-length bump per name:color feature (§11.4.120).</li>
+</ul>
 <h2 id="v1026--2026-06-19">[v1.0.26] — 2026-06-19</h2>
 <p><strong>Per-session color via <code>tmx new -s name:color</code> —
 the first operator-chosen per-session color. Every session was
 previously the single hostname-derived color; now each session can carry
 its own validated, persisted color.</strong></p>
-<h3 id="added">Added</h3>
+<h3 id="added-2">Added</h3>
 <ul>
 <li><strong>Per-session color
 (<code>name:color[:ignored]</code>)</strong> — an operator can choose an
@@ -416,7 +597,7 @@ for our testing needs." The tmux product surface (the hardened tmux 3.6a
 binary + <code>tmx</code> wrapper) is <strong>unchanged</strong> from
 v1.0.23; this release adds testing tooling + extends + hardens the
 consumed Containers library.</p>
-<h3 id="added-1">Added</h3>
+<h3 id="added-3">Added</h3>
 <ul>
 <li><strong><code>scripts/tmx-orchestrator/</code></strong> — a Go
 consumer of the decoupled <code>digital.vasic.containers</code>
@@ -528,7 +709,7 @@ command. This release links terminfo <strong>statically</strong> so the
 warning is structurally impossible on any distribution, and fixes three
 test-harness timing races discovered while re-validating the full suite
 on real Linux hardware.</p>
-<h3 id="fixed">Fixed</h3>
+<h3 id="fixed-2">Fixed</h3>
 <ul>
 <li><strong>libtinfo cross-distro warning eliminated (cross-distro
 portability, §11.4.81).</strong>
@@ -564,7 +745,7 @@ raced it. Now polls the kernel ring for the OOM line up to a generous
 timeout (assertion unchanged). PASS 5/5 deterministic on nezha with real
 OOM-kill evidence.</li>
 </ul>
-<h3 id="added-2">Added</h3>
+<h3 id="added-4">Added</h3>
 <ul>
 <li><strong><code>scripts/tests/61_no_libtinfo_version_warning.sh</code></strong>
 — cross-platform regression guard (§11.4.81): T1 (both OSes) the binary
@@ -654,7 +835,7 @@ containerized Linux under macOS using Apple's native
 <code>container</code> runtime (1.0.0), so a developer on Apple Silicon
 can build the Linux ELF tmux binary inside a real Linux VM and run the
 project's own test suite against it with one command.</p>
-<h3 id="added-3">Added</h3>
+<h3 id="added-5">Added</h3>
 <ul>
 <li><strong>Containers-submodule backend (extended, not reimplemented —
 §11.4.76).</strong> The Apple <code>container</code> 1.0.0 runtime was
@@ -774,7 +955,7 @@ added ever-more tmux mouse bindings yet the operator still could not
 reliably select/copy — the signal that the <em>architecture</em>, not
 the bindings, was wrong (systematic-debugging: 3+ fixes failed →
 question the architecture).</p>
-<h3 id="fixed-1">Fixed</h3>
+<h3 id="fixed-3">Fixed</h3>
 <ul>
 <li><strong>Root cause (proven at the wire level, no guessing per
 §11.4.6).</strong> With <code>set -g mouse on</code>, on attach tmux
@@ -850,7 +1031,7 @@ works).</strong></p>
 it gets a completely new value"; then "Open new terminal -&gt; Test
 -&gt; ls -&gt; cannot select/copy". Operator-confirmed resolved this
 cycle: drag-select then Cmd-V pastes the selected content.</p>
-<h3 id="fixed-2">Fixed</h3>
+<h3 id="fixed-4">Fixed</h3>
 <ul>
 <li><strong><code>prefix P</code> paste binding (POSIX-clean
 rewrite).</strong> The old binding
@@ -925,7 +1106,7 @@ interactive-guard (<code>case $- in *i*) ;; *) return ;;</code>), so a
 NON-interactive invocation (ssh-batch / CI) never gets
 <code>codegraph</code> on PATH and the tests fail spuriously while real
 interactive agent usage works.</p>
-<h3 id="fixed-3">Fixed</h3>
+<h3 id="fixed-5">Fixed</h3>
 <ul>
 <li><strong><code>scripts/tests/run_all.sh</code></strong> +
 <strong><code>scripts/tests/meta_test_false_positive_proof.sh</code></strong>
@@ -1290,7 +1471,7 @@ workable item in our Issues doc and all relevant docs around it (with
 them all being exported in all expected file types — PDF, HTML, DOCX)!
 We MUST NEVER forget the flow: workable item → SQLite database → all
 docs we have related to workable items!"</p>
-<h3 id="fixed-4">Fixed</h3>
+<h3 id="fixed-6">Fixed</h3>
 <ul>
 <li><p><strong>A37 — Multi-line copy + PASTE-INTO + alt-screen TUI
 mouse-drag override</strong> (Fixed.md A37): v1.0.14 proved single-line
@@ -1406,7 +1587,7 @@ and to the terminal window and current tmux (tmx) session! Using mouse
 or keyboard MUST WORK properly!!! Scrolling the content / history MUST
 NOT be broken or anything else! ... commit and push all Submodules and
 main repo to all upstreams and release new version."</p>
-<h3 id="fixed-5">Fixed</h3>
+<h3 id="fixed-7">Fixed</h3>
 <ul>
 <li><p><strong>A35 — Clipboard copy-OUT had no physical-proof
 coverage.</strong> The bindings have existed in
@@ -1524,7 +1705,7 @@ correctly retrieves the cwd and passes <code>-c $START_DIR</code> to
 <code>tmux new-session</code>. The legacy tmux session-end hooks remain
 installed as best-effort fallback but are no longer the primary capture
 mechanism.</p>
-<h3 id="added-4">Added</h3>
+<h3 id="added-6">Added</h3>
 <ul>
 <li><strong><code>scripts/tests/43_e2e_cwd_persist_real_shell.sh</code></strong>
 — end-to-end test that reproduces the EXACT operator scenario from the
@@ -1560,7 +1741,7 @@ bug. <code>.zprofile</code> not touched (zsh always sources
 <code>_do_uninstall</code></strong> — also strips the snippet from
 <code>~/.bash_profile</code> and <code>~/.profile</code>.</li>
 </ul>
-<h3 id="fixed-6">Fixed</h3>
+<h3 id="fixed-8">Fixed</h3>
 <ul>
 <li>The user-reported bug: exit a tmx session → reopen with the same
 name → cwd is NOT restored. Now: exit → reopen → cwd is restored on the
@@ -1589,7 +1770,7 @@ HTML</p>
 <ul>
 <li>PDF exports refreshed.</li>
 </ul>
-<h3 id="verification">Verification</h3>
+<h3 id="verification-1">Verification</h3>
 <ul>
 <li>macOS verify-only sweep: PASS=40 FAIL=0 SKIP=3 → GREEN (includes new
 test 43 plus the four follow-up fixes test 35/41/43/wrapper).</li>
@@ -1654,7 +1835,7 @@ audit (2026-05-22): "if any missing details are not in docs please fill
 any gaps we have and release new version". Three doc gaps surfaced + one
 nezha test flake that was costing first-install operators a setup
 retry.</p>
-<h3 id="added-5">Added</h3>
+<h3 id="added-7">Added</h3>
 <ul>
 <li><strong>Manual §7a (Uninstall, v1.0.11+)</strong> —
 <code>docs/manual/tmx-shell-integration.md</code> now documents the
@@ -1688,7 +1869,7 @@ reporting a defect that's not in OUR code. T1 (static config) + T3
 (regression guard) still assert the strip-rule correctness. Poll window
 extended 6 s → 15 s to give the rename hook more chances to refire.</li>
 </ul>
-<h3 id="fixed-7">Fixed</h3>
+<h3 id="fixed-9">Fixed</h3>
 <ul>
 <li>nezha-Linux first-install setup.sh exiting RED on test 16 even
 though the .exe-strip rule itself works correctly. Eliminates the "run
@@ -1703,7 +1884,7 @@ any <code>## N. Section</code> chapter in the master manual that omits a
 v1.0.X+ feature introduced in code. Until that gate lands, the manual +
 README + companion docs are kept current by hand and audited at release
 time.</p>
-<h3 id="verification-1">Verification</h3>
+<h3 id="verification-2">Verification</h3>
 <ul>
 <li>Test 42 still PASSes 21/21 with identical hash (no regression)</li>
 <li>Test 16 now SKIP-with-reason on nezha when the rename race fires the
@@ -1738,7 +1919,7 @@ tmux session being created!".</p>
 <p>This release: (a) generates the file, (b) ships a proper uninstall
 entry point, (c) makes setup self-cleaning, (d) adds a regression test
 that would have caught the original bug.</p>
-<h3 id="added-6">Added</h3>
+<h3 id="added-8">Added</h3>
 <ul>
 <li><strong><code>scripts/setup.sh</code> step 3a</strong> — generates
 <code>scripts/tmx-shell-init.sh</code> from
@@ -1793,7 +1974,7 @@ helper</strong> — explicit <code>return 0</code> so <code>set -e</code>
 does not kill the script when quiet mode short-circuits the
 <code>[ -z "$quiet" ]</code> test.</li>
 </ul>
-<h3 id="fixed-8">Fixed</h3>
+<h3 id="fixed-10">Fixed</h3>
 <ul>
 <li>Operator opens new terminal → no prompt fires → no session created
 (the user-visible bug). Root cause: missing on-disk file. Step 3a now
@@ -1862,7 +2043,7 @@ parity</h3>
 <p>Test 42 works identically on Linux + macOS — uses a sandboxed rc file
 (not <code>~/.bashrc</code> / <code>~/.zshrc</code>) so no
 platform-specific shell detection is required.</p>
-<h3 id="verification-2">Verification</h3>
+<h3 id="verification-3">Verification</h3>
 <ul>
 <li>macOS full setup.sh --verify-only: PASS=39 FAIL=0 SKIP=3 →
 GREEN</li>
@@ -1899,7 +2080,7 @@ fixed-sleep timing window that flaked under load; tests 31 and 35 used
 bare <code>tmx</code> and assumed it was on PATH which fails on hosts
 where setup is RED. All six fixed, all 41 tests now GREEN on both macOS
 and nezha-Linux.</p>
-<h3 id="added-7">Added</h3>
+<h3 id="added-9">Added</h3>
 <ul>
 <li><strong><code>scripts/setup.sh</code> step 3d</strong> — Go-build
 <code>scripts/tmx-state-bin</code> for the HOST OS on every setup.
@@ -1946,7 +2127,7 @@ MUST NOT be versioned.</li>
 <code>.gitignore-meta/.regenerated/</code>, and <code>.claude/</code>
 added per §11.4.30 + §11.4.77.</li>
 </ul>
-<h3 id="fixed-9">Fixed</h3>
+<h3 id="fixed-11">Fixed</h3>
 <ul>
 <li>v1.0.9 cwd restore on Linux when <code>tmx new -s NAME -d</code> was
 used (the most common detached-spawn case). Previously the recall
@@ -2016,7 +2197,7 @@ and blocked non-TTY shells; an SSH dispatcher
 session with the right cwd; and the existing <code>tmx</code> wrapper
 gains tmux hooks that record cwd on detach + a
 <code>-c &lt;recalled-pwd&gt;</code> on <code>tmx new</code>.</p>
-<h3 id="added-8">Added</h3>
+<h3 id="added-10">Added</h3>
 <ul>
 <li><strong><code>scripts/tmx-state/</code> (Go module)</strong> —
 <code>tmx-state</code> binary with subcommands
@@ -2125,7 +2306,7 @@ passes <code>-c &lt;recalled-pwd&gt;</code> to
 <code>tmx-state record &lt;name&gt; #{pane_current_path}</code> on
 <code>client-detached</code> and <code>session-closed</code>.</li>
 </ul>
-<h3 id="fixed-10">Fixed</h3>
+<h3 id="fixed-12">Fixed</h3>
 <p>(none specific to v1.0.9 — every entry is an additive feature;
 existing defects continue to be tracked in <code>Issues.md</code> /
 <code>Fixed.md</code>).</p>
@@ -2207,7 +2388,7 @@ entry).</li>
 UI surfaces (active pane border + clock + selected-window highlight),
 not just the bottom status bar. NEW test 26 + M24 paired mutation.
 Darwin quintuple-fresh GREEN.</strong></p>
-<h3 id="fixed-11">Fixed</h3>
+<h3 id="fixed-13">Fixed</h3>
 <ul>
 <li><p><strong>Operator-reported (2026-05-21):</strong> "flying animated
 top decoration"</p>
@@ -2238,7 +2419,7 @@ recoloured — they default to yellow not green, and yellow provides the
 most accessible contrast against any palette-derived
 background.</p></li>
 </ul>
-<h3 id="added-9">Added</h3>
+<h3 id="added-11">Added</h3>
 <ul>
 <li><p><strong>NEW test 26
 (<code>26_ui_color_uniformity.sh</code>)</strong> — spawns an
@@ -2303,7 +2484,7 @@ divergent commits.</p>
 palette rebalance + Node-22 LTS pin for CodeGraph. Quintuple-verified on
 both macOS (Darwin arm64) and Linux (ALT 11 / kernel 6.12 / systemd 258)
 before tag.</strong></p>
-<h3 id="fixed-12">Fixed</h3>
+<h3 id="fixed-14">Fixed</h3>
 <ul>
 <li><p><strong>Test 09 T4.2 — cgroup-containment invariant rewrite
 (rounds 1-5, Nezha-driven).</strong> Pre-v1.0.7 the test polled
@@ -2358,7 +2539,7 @@ Palette rebalanced across the hue spectrum: red / orange / yellow /
 green / teal / blue / purple / pink / magenta / brown / cyan / lime — no
 two consecutive entries within RGB Euclidean distance 80.</p></li>
 </ul>
-<h3 id="added-10">Added</h3>
+<h3 id="added-12">Added</h3>
 <ul>
 <li><p><strong>NEW test 25
 (<code>25_hostname_color_perceptual_distance.sh</code>)</strong> — three
@@ -2707,7 +2888,7 @@ anti-bluff covenant propagated verbatim to every consumer governance
 file, audit follow-up fixes (M4/M5 portability + <code>tmx kill</code>
 shorthand), docs reorganised under context subdirectories per the
 constitution rule.</strong></p>
-<h3 id="added-11">Added</h3>
+<h3 id="added-13">Added</h3>
 <ul>
 <li><p><strong>A18 — CodeGraph integration (§11.4.78).</strong>
 Installed <code>@colbymchenry/codegraph</code> v0.6.8 globally (npm
@@ -2754,7 +2935,7 @@ cycle.</p></li>
 §11.4.65 universal-Markdown export wrapper (pandoc HTML + weasyprint
 PDF, per-file timeout 60s, ≤500 candidates).</p></li>
 </ul>
-<h3 id="fixed-13">Fixed</h3>
+<h3 id="fixed-15">Fixed</h3>
 <ul>
 <li><p><strong>A20 — M4/M5 paired mutations honest topology dispatch
 (AUDIT-1).</strong> Pre-fix: raw GNU <code>sed -i</code> silently
@@ -2868,7 +3049,7 @@ harness is wired).</li>
 <p><strong>tmux scrolling fixed for the Claude Code TUI and mobile
 (Termux); governance refactored to inherit from the HelixConstitution
 submodule.</strong></p>
-<h3 id="fixed-14">Fixed</h3>
+<h3 id="fixed-16">Fixed</h3>
 <ul>
 <li><strong>A16 — Scrolling terminal output up/down did not work,
 especially in the Claude Code TUI.</strong> Two root causes: (1) the
@@ -2893,7 +3074,7 @@ escape sequences reach the application;</li>
 termux-clipboard-set, detected at copy time) plus OSC-52.</li>
 </ul></li>
 </ul>
-<h3 id="added-12">Added</h3>
+<h3 id="added-14">Added</h3>
 <ul>
 <li><strong>A17 — HelixConstitution governance submodule + verified
 inheritance.</strong> The universal engineering rules (anti-bluff
@@ -2952,7 +3133,7 @@ same profile as v1.0.0).</li>
 <h2 id="v102--2026-05-16">[v1.0.2] — 2026-05-16</h2>
 <p><strong>Cosmetic: window-name strips <code>.exe</code> suffix from
 <code>pane_current_command</code>.</strong></p>
-<h3 id="fixed-15">Fixed</h3>
+<h3 id="fixed-17">Fixed</h3>
 <ul>
 <li><strong>A15 — Bottom-left status-bar showed <code>claude.exe</code>
 instead of <code>claude</code></strong> (operator-reported, 2026-05-16).

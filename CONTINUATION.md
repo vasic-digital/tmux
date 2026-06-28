@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-28T10:30Z
+**Last updated:** 2026-06-28T19:30Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,8 +15,8 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.28** (versionCode 29) — per-session password protection + governance sync. Previous: v1.0.27 (name:color prompt rejection fixed). |
-| Verification (this cycle) | **Current: 58 PASS / 0 FAIL / 6 SKIP** (test 63=8/8, 64=17/17, 65=6/6). Meta-test 37 CAUGHT / 0 ESCAPED / 17 SKIPPED. Pending after password feature. |
+| Version | **1.0.29** (versionCode 30) — session lifecycle (clause 1-7), cross-platform local-deps, Darwin brew, C3 prefix-agnostic, terminfo/TERM fallback. Previous: v1.0.28 (password protection). |
+| Verification (this cycle) | **test 68 PASS=78/0/0 ×3** (7 clauses, real live sessions), **test 67 PASS=5/0/0 ×3**, **run_all PASS=52/0/13** (nezha), **47/0/19** (thinker), **58/0/7** (mistborn). §1.1 meta-sweep 58/0 on f641987. 4-host §11.4.108 evidence captured. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `1576d3d`); `Containers/` submodule (pinned `fbef9d6`); project `Constitution.md` (Project Articles §101–§170 extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `GEMINI.md` (all lockstep to §11.4.170), `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)

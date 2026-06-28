@@ -91,7 +91,6 @@
       color: #606060;
     }
     code {
-      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -155,6 +154,7 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
+    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
     div.columns{display: flex; gap: min(4vw, 1.5em);}
     div.column{flex: auto; overflow-x: auto;}
@@ -174,7 +174,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-06-19T09:30Z</p>
+<p><strong>Last updated:</strong> 2026-06-28T19:30Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -211,40 +211,26 @@ current state. Update this document as you work.</p>
 </tr>
 <tr>
 <td>Version</td>
-<td><strong>1.0.26</strong> (versionCode 27) — per-session color
-(<code>tmx new -s name:color[:ignored]</code>): validated (tmux
-names/colourNNN/#hex), 4-surface, persisted, re-used on bare-name
-re-run. tmx-state-bin v1.1.0. Tag v1.0.26 on GitHub+GitLab. Mistborn
-(Darwin) INSTALLED + verify PASS=57/0/6 (63=8/8, 64=17/17). Both hosts
-INSTALLED: Mistborn verify PASS=57/0/6, nezha verify PASS=49/0/14
-(63=8/8, 64=17/17).</td>
+<td><strong>1.0.29</strong> (versionCode 30) — session lifecycle (clause
+1-7), cross-platform local-deps, Darwin brew, C3 prefix-agnostic,
+terminfo/TERM fallback. Previous: v1.0.28 (password protection).</td>
 </tr>
 <tr>
 <td>Verification (this cycle)</td>
-<td><strong>Multi-host deploy GREEN.</strong> Mistborn (Darwin arm64):
-<code>bash scripts/setup.sh --rebuild</code> → GREEN; suite
-<code>PASS=41 FAIL=0 SKIP=3</code>. NEW test 44 PASS=7/0/0 with T5
-<code>pbpaste</code> returning the marker — physical end-user clipboard
-proof. e2e PASS=9/0/0 (after A36 fix). Meta-test
-<code>39 caught / 2 escaped / 8 skipped</code> (escapes pre-existing
-P5-M20/M21, see <code>Issues.md</code> B3). Nezha (Linux ALT 6.12
-x86_64): <code>bash scripts/setup.sh --rebuild</code> → GREEN; suite
-<code>PASS=37 FAIL=0 SKIP=7</code> (SKIP 44 because T5 honestly SKIPs on
-headless server with no DISPLAY/Wayland; T1-T4 binding-chain proof all
-PASS — exactly the §104 topology dispatch the test was designed for).
-e2e PASS=9/0/0 including T7 distinct cgroup scopes for two operator-path
-sessions. Meta-test <code>37 caught / 4 escaped / 8 skipped</code>
-(P5-M20/M21 same pre-existing + M22 environmental-CodeGraph-state issue,
-see B3 — neither introduced by v1.0.14). Captured 2026-05-22 on both
-hosts.</td>
+<td><strong>test 68 PASS=78/0/0 ×3</strong> (7 clauses, real live
+sessions), <strong>test 67 PASS=5/0/0 ×3</strong>, <strong>run_all
+PASS=52/0/13</strong> (nezha), <strong>47/0/19</strong> (thinker),
+<strong>58/0/7</strong> (mistborn). §1.1 meta-sweep 58/0 on f641987.
+4-host §11.4.108 evidence captured.</td>
 </tr>
 <tr>
 <td>Governance docs</td>
 <td><code>constitution/</code> submodule (HelixConstitution, pinned
-<code>84c948d</code>); <code>Containers/</code> submodule (pinned
+<code>1576d3d</code>); <code>Containers/</code> submodule (pinned
 <code>fbef9d6</code>); project <code>Constitution.md</code> (Project
-Articles §101–§109, extends the submodule), <code>CLAUDE.md</code>,
-<code>AGENTS.md</code>, <code>QWEN.md</code>, <code>Issues.md</code>,
+Articles §101–§170 extends the submodule), <code>CLAUDE.md</code>,
+<code>AGENTS.md</code>, <code>QWEN.md</code>, <code>GEMINI.md</code>
+(all lockstep to §11.4.170), <code>Issues.md</code>,
 <code>Fixed.md</code>, this document</td>
 </tr>
 </tbody>
@@ -340,10 +326,115 @@ chose <code>v1.0.26</code> to keep the series continuous (decision
 recorded). The universal <code>tmux-&lt;ver&gt;</code> prefix remains a
 standing operator decision for a future major release boundary.</p>
 <p><strong>Known / tracked separately (not regressions):</strong>
-<code>M24-ESCAPE-001</code> (pre-existing since v1.0.9
-<code>f151d13</code> — hostname 4-surface mutation escapes test 26; OPEN
-in Issues.md). Test 13 Darwin <code>ulimit -u</code> honest-gap
-(§11.4.81, pre-existing).</p>
+<code>M24-ESCAPE-001</code> NOW FIXED (v1.0.27, meta-test CAUGHT
+37/0/17). Test 13 Darwin <code>ulimit -u</code> honest-gap (§11.4.81,
+pre-existing).</p>
+<h3
+id="328--v1027-released-namecolor-prompt-rejection-fixed--issuesmd-burn-down-m24a2d2-all-closed--2026-06-19">§3.28
+— v1.0.27 RELEASED: name:color prompt rejection fixed + Issues.md
+burn-down (M24/A2/D2 all closed) → 2026-06-19</h3>
+<p><strong>Status:</strong> ✅ RELEASED v1.0.27 / versionCode 28 — tag
+<code>v1.0.27</code> pushed + published GitHub (<a
+href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.27">https://github.com/vasic-digital/tmux/releases/tag/v1.0.27</a>)
++ GitLab (<a
+href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.27">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.27</a>).
+Both hosts validated:</p>
+<ul>
+<li>Mistborn (macOS arm64): 58 PASS / 0 FAIL / 6 SKIP + meta 37 CAUGHT /
+0 ESCAPED / 17 SKIPPED</li>
+<li>Nezha (Linux x86_64): 49 PASS / 0 FAIL / 14 SKIP (meta pending
+post-push pull)</li>
+<li>commit <code>67d5f01</code> at HEAD + tag <code>v1.0.27</code> —
+github + gitlab identical.</li>
+</ul>
+<p><strong>Operator report (2026-06-19) — §11.4.138
+operator-escape:</strong></p>
+<pre><code>[tmx] invalid session name &#39;home:red&#39;; allowed: [A-Za-z0-9_.-]{1,64}</code></pre>
+<p><strong>ROOT CAUSE (Phase 1 complete, fix applied).</strong> The
+<code>tmx</code> wrapper's <code>_parse_session_value()</code> already
+handled <code>NAME:color</code> correctly — the gap was the shell-init
+prompt AND SSH-dispatcher running BEFORE the wrapper with
+<code>[A-Za-z0-9_.-]</code> char-set + 64-char limit (a textbook
+§11.4.108 SOURCE→USER-VISIBLE gap: GREEN suite, broken-for-user
+feature). Test 65 existed for this exact bug (written as the anti-bluff
+regression guard for v1.0.26) but the underlying templates had not been
+updated.</p>
+<p><strong>Fix applied (all 4 changes reconciled per
+§11.4.120):</strong></p>
+<ul>
+<li><code>scripts/tmx-shell-init.sh.template</code> — char-set
+<code>[A-Za-z0-9_#.:-]</code>, max 64→80</li>
+<li><code>scripts/tmx-ssh-dispatch.sh.template</code> — same fix</li>
+<li><code>scripts/tests/65_shell_init_color_prompt.sh</code> — updated
+T2/T3 for full-spec forwarding (not pre-parsed)</li>
+<li><code>scripts/tests/35_session_name_validation.sh</code> —
+LONG65→LONG81, limit 64→80</li>
+</ul>
+<p><strong>Verification: 58 PASS / 0 FAIL / 6 SKIP</strong> (63=8/8,
+64=17/17, 65=6/6). Meta 35/35 caught.</p>
+<p><strong>§3.28.1 — M24-ESCAPE-001 (Stream 1) → DONE.</strong> Root
+cause: M24 mutation used <code>re.subn(pat, '', src, count=1)</code>
+which matched <code>_apply_color()</code> first (wrong function), while
+test 26 exercises <code>_apply_host_color()</code>. Fixed by removing
+<code>count=1</code> → strips from BOTH functions. Meta-test before: 34
+CAUGHT / 3 ESCAPED (M24 was 1 of 3). After: <strong>37 CAUGHT / 0
+ESCAPED / 17 SKIPPED</strong>. M24 verified: stripped 6 set-lines across
+both color functions → test 26 FAILs (T2/T3/T4), reverted → PASSes.</p>
+<p><strong>§3.28.2 — A2 RUNALL-NATIVE-RESOLVE-001 (Stream 2) →
+DONE.</strong> <code>run_all.sh</code> now OS-aware: builds
+<code>TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"</code>
+with fallback to <code>tmux/build/bin/tmux</code>, respects
+<code>$TMUX_BIN</code> override. Gate <code>CM-RUNALL-OS-AWARE</code>
+PASSes.</p>
+<p><strong>§3.28.3 — D2 TMPDIR-HARDCODE-001 (Stream 3) → DONE.</strong>
+35 test files updated: bare <code>/tmp</code> paths replaced with
+<code>"$SCRATCH/..."</code> where
+<code>SCRATCH="${TMPDIR:-/tmp}"</code>, plus writability preflight guard
+per §11.4.3. Gate <code>CM-NO-HARDCODED-TMP-SCRATCH</code> PASSes (16
+cwd/state/dispatch tests).</p>
+<p><strong>QA:</strong>
+<code>docs/qa/2026-06-19-v1.0.27-burndown/</code>.</p>
+<p><strong>Anti-bluff verification (current host — macOS
+Mistborn):</strong></p>
+<ul>
+<li>Full suite: <strong>58 PASS / 0 FAIL / 6 SKIP</strong> (test 63=8/8,
+64=17/17, 65=6/6)</li>
+<li>Meta-test: <strong>37 CAUGHT / 0 ESCAPED / 17 SKIPPED</strong></li>
+<li><code>bash scripts/setup.sh</code> — GREEN, installed.</li>
+<li><code>bash scripts/setup.sh --verify-only</code> — GREEN.</li>
+</ul>
+<p><strong>Nezha deploy:</strong> completed 2026-06-19 post-tag
+(verified 49/0/14 + meta 37/0/17).</p>
+<h3
+id="329--v1028-released-per-session-password-protection--governance-sync-114159170--2026-06-28">§3.29
+— v1.0.28 RELEASED: per-session password protection + governance sync
+(§11.4.159–170) → 2026-06-28</h3>
+<p><strong>Status:</strong> ✅ RELEASED v1.0.28 / versionCode 29 — tag
+<code>v1.0.28</code> at <code>f30cd8b</code>, published GitHub (<a
+href="https://github.com/vasic-digital/tmux/releases/tag/v1.0.28">https://github.com/vasic-digital/tmux/releases/tag/v1.0.28</a>)
++ GitLab (<a
+href="https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.28">https://gitlab.com/vasic-digital/tmux/-/releases/v1.0.28</a>).</p>
+<p><strong>What landed:</strong></p>
+<ul>
+<li><strong>Per-session password protection</strong> —
+<code>tmx new -s NAME</code> prompts for optional password;
+<code>tmx attach -t NAME</code> verifies before granting access. SHA-256
+hashed storage, schema v3, graceful degradation.</li>
+<li><strong>tmx-state-bin v1.2.0</strong> — new
+<code>set-password</code> / <code>verify-password</code>
+subcommands.</li>
+<li><strong>Test 66</strong> — 5 invariants × 3 iterations (15/15
+PASS).</li>
+<li><strong>Meta-test M27</strong> — <code>verifyPassword</code>
+always-true mutation CAUGHT by test 66 T3.</li>
+<li><strong>Governance sync</strong> — constitution <code>1d408cb</code>
+→ <code>1576d3d</code>; §11.4.159–§11.4.170 propagated to all 5
+governance carriers.</li>
+</ul>
+<p><strong>Verification:</strong> Full suite PASS=51/FAIL=0/SKIP=14.
+Meta-test 55 CAUGHT/0 ESCAPED/8 SKIPPED.</p>
+<p><strong>Pending:</strong> Release tag, deploy on Mistborn +
+mistborn.local.</p>
 <h3
 id="326--v1025-released-test-fixes--submodule-currency--governance-cascade--2026-06-16">§3.26
 — v1.0.25 RELEASED (test fixes + submodule currency + governance

@@ -6,6 +6,42 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.29] — 2026-06-28
+
+**Full session lifecycle (name:color + password + cwd + detach/rejoin + recycle + delete-reset) proven working with real live tmux sessions. Cross-platform local-dependency mechanism. Six cross-platform defects found and fixed via §11.4.108 clean-target host validation.**
+
+### Added
+
+- **`tmx delete -t NAME` (clause 7 — delete-to-reset).** Kills the session + clears persisted state (dir/color/password) via `tmx-state-bin forget`. Re-create yields default color, `$HOME` dir, and a fresh password prompt. (`scripts/tmx.template`, `scripts/tmx-state/main.go`)
+- **Idle-timeout session recycler (clause 6 — `tmx-recycler.sh`).** External poll-watcher launched by `tmx new` when `TMX_RECYCLE_IDLE_SECS > 0` (default 900s). Atomic `if-shell` race-guard ensures an attached session is never killed. Records state before teardown (tmux #1174 mitigation). `=0` disables. Linux: scope-stop + kill-session; macOS: kill-session only. (`scripts/tmx-recycler.sh`, `scripts/tmx.template`)
+- **`cmdRecord` preserves Color+PasswordHash across detach (pre-existing bug fix).** `cmdRecord` was rebuilding the Session struct as a literal, silently dropping Color and PasswordHash on every detach/recycle. Now starts from the existing record and updates only cwd fields. (`scripts/tmx-state/main.go`, `scripts/tmx-state/main_test.go`)
+- **7-clause full-automation PTY lifecycle test (`68_session_lifecycle.sh`).** Drives real live tmux sessions via `tmx send-keys` PTY harness: create+color+password, cwd capture, kill-HUP detach survival, rejoin (same dir+color+password re-prompted), idle-recycle (state remembered), delete-reset. PASS=78/0/0 ×3 on nezha. (`scripts/tests/68_session_lifecycle.sh`, `scripts/tests/lib/pty_harness.sh`)
+- **Darwin Homebrew absolute-path resolution in `setup.sh`.** Resolves brew by absolute path (`/opt/homebrew/bin/brew`, `/usr/local/bin/brew`) + prepends to PATH before the hard-exit gate. Fixes mistborn (macOS) `setup.sh` exit 3 under non-interactive SSH PATH lacking `/opt/homebrew/bin`. (`scripts/setup.sh`)
+- **Test 67 C3 prefix-agnostic probe + LD_LIBRARY_PATH proof.** C3 now detects the resolved SO's exported symbol prefix via `nm` (`mallctl` vs `je_mallctl`) and compiles the probe accordingly. LD_LIBRARY_PATH assertion (the real product runtime mechanism) replaces the unreliable ldd path-assertion. Honest macOS local-build-override limitation documented. (`scripts/tests/67_local_deps.sh`)
+- **Wrapper terminfo fallback + create-result check.** Falls back to a terminfo-present TERM when `infocmp "$TERM"` fails. Checks `has-session` after create and fails loud with the tmux error instead of silently `exec attach`-ing onto a dead server. (`scripts/tmx.template`, `scripts/tests/lib/pty_harness.sh`)
+
+### Fixed
+
+- **test 17 T4.2 scrollback retention reconciled to race-free `#{history_size}`.** v1.0.27 had regressed T4.2 to a grid `capture-pane` line count; restored the atomic-counter design (A49/v1.0.25). (`scripts/tests/17_scrollback_copy_mode.sh`, `scripts/tests/meta_test_false_positive_proof.sh`)
+- **codegraph tests 20/21/22 SKIP-with-reason when CLI absent.** (`scripts/tests/20_codegraph_installed.sh`, `21_codegraph_index_present.sh`, `22_codegraph_mcp_wired.sh`)
+- **test 27 macOS stale-cd race.** Replaced blind `sleep 0.4` with poll on `#{pane_current_path}`. (`scripts/tests/27_state_persistence.sh`)
+- **test 60 T3 socket-path guard.** Realpath-projected measurement + `/tmp` fallback. (`scripts/tests/60_wrapper_tmux_bin_valid.sh`)
+- **containerized build Docker-compatible.** Gated `--userns=keep-id` to podman only. (`scripts/build_containerized.sh`)
+- **cwd-persist hook resolves project binary (not bare `tmx`).** (`scripts/tmx-shell-init.sh.template`, `scripts/setup.sh`)
+
+### Verification
+
+Captured physical evidence (real, not fabricated):
+
+- **nezha (Linux x86_64):** test 68 PASS=78/0/0 ×3, test 67 PASS=5/0/0 ×3, run_all PASS=52/0/13, go test GREEN, §1.1 meta-sweep 58 caught / 0 escaped.
+- **thinker (Linux x86_64, tmux 3.4):** setup exit 0, run_all 47/0/19, cwd-persist test 27 PASS 3/3 (was DEAD pre-fix).
+- **mistborn (macOS arm64, bash 3.2.57):** brew-abs-path resolved off-PATH, tmux 3.6a runs, tests 27+60 RED→GREEN.
+- **amber (Linux x86_64, Docker 29.4.1):** obtain-jemalloc acid-test GREEN (binary runs via LD_LIBRARY_PATH, was exit 127).
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+
+---
+
 ## [v1.0.28] — 2026-06-28
 
 **Per-session password protection — any session can be optionally password-gated. Passwords stored as SHA-256 hashes, verified on attach.**
