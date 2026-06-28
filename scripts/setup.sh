@@ -296,8 +296,13 @@ echo "  ✓ wrote scripts/tmx ($HOST_OS native wrapper, host-process isolation: 
 # snippet but never generated the file it sources.
 echo "[setup] step 3a — generating tmx-shell-init.sh from template"
 if [ -f scripts/tmx-shell-init.sh.template ]; then
+    # __TMUX_BIN__ → the built binary's absolute path (same value injected into
+    # scripts/tmx at step 3) so the cwd-persist hook resolves the project's own
+    # 3.6a server, never a mismatched system tmux on PATH (§11.4.111/§11.4.108;
+    # forensic anchor: thinker system tmux 3.4 vs 3.6a server, 2026-06-28).
     sed \
         -e "s|__PROJECT__|$REPO_ROOT|g" \
+        -e "s|__TMUX_BIN__|$TMUX_BIN_ABS|g" \
         -e "s|__DATE__|$(date '+%Y-%m-%d')|" \
         scripts/tmx-shell-init.sh.template > scripts/tmx-shell-init.sh
     chmod +x scripts/tmx-shell-init.sh

@@ -59,10 +59,20 @@ TMX="$REPO_ROOT/scripts/tmx"
 # TMPDIR is too long for socket paths, fall back to /tmp.
 SCRATCH_CANDID="${TMPDIR:-/tmp}"
 SCRATCH_CANDID="${SCRATCH_CANDID%/}"
-if [ "${#SCRATCH_CANDID}" -gt 90 ]; then
+# Measure the FULL realpath-projected socket path, not just ${TMPDIR}. On macOS
+# $TMPDIR is short (~48 B: /var/folders/.../T) but its realpath is
+# /private/var/folders/.../T (~56 B), and tmux canonicalises TMUX_TMPDIR, so the
+# deepest T3 socket ($SCRATCH/tmxg.PID/t3home.N/tmux-UID/tmx-tmxg60_PID_N ≈ 48 B
+# of suffix) blew past the ~104 B AF_UNIX sun_path limit → "File name too long",
+# server_up=0 for all iters (captured: mistborn macOS, 2026-06-28). The OLD guard
+# measured only ${#TMPDIR} (48 < 90) so never fired. Use the realpath length +
+# the ~60 B socket suffix; if it would exceed the limit, fall back to /tmp
+# (→ /private/tmp on macOS ≈ 12 B realpath, ample headroom). §11.4.3/§11.4.50.
+SCRATCH_REAL="$(cd "$SCRATCH_CANDID" 2>/dev/null && pwd -P)" || SCRATCH_REAL="$SCRATCH_CANDID"
+if [ "$(( ${#SCRATCH_REAL} + 60 ))" -gt 100 ]; then
     SCRATCH="/tmp/tmxg.$$"
 else
-    SCRATCH="$SCRATCH_CANDID/tmxg.$$"
+    SCRATCH="$SCRATCH_REAL/tmxg.$$"
 fi
 # §11.4.3 writability PREFLIGHT: full /tmp → SKIP, not false-FAIL.
 _wtest_dir="$SCRATCH/.tmx_wtest_$$"

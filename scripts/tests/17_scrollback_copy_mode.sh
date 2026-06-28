@@ -196,40 +196,46 @@ else
     _skip "T4.1: visible-screen state inconclusive (FIRST unexpectedly visible — pane too tall?) — test inert"
 fi
 
-# T4.2 — scrollback BUFFER retained ~all 3000 generated lines. With the OLD
-# default (history-limit 2000) the oldest ~1000 lines (incl. line 1) would be
-# evicted; retaining >=2900 of 3000 is positive proof the 50000 bump is
-# functional. Line 1 *specifically* is additionally proven reachable + copied
-# by T4.3b/T4.4 via copy-mode below.
+# T4.2 — scrollback BUFFER retained ~all 3000 generated lines (history-limit
+# 50000 functional). With the OLD default (history-limit 2000) the oldest ~1000
+# lines (incl. line 1) would be evicted. Line 1 *specifically* is additionally
+# proven reachable + copied by T4.3b/T4.4 via copy-mode below.
 #
-# Robustness (2026-06-28, non-interactive hardening): T4.2 previously grepped
-# `capture-pane -p -S -` for a single SCROLLMARK_FIRST line. That is
-# NON-DETERMINISTIC under headless / SSH-batch (no-TTY) runs: the operator-path
-# pane runs the interactive shell (oh-my-bash startup + update-lock noise +
-# multi-line git prompt + PS2 `<` continuation), and `capture-pane` WITHOUT -J
-# splits the wrapped command-echo at the 80-col boundary, so a single-token
-# grep can miss SCROLLMARK_FIRST even though the buffer holds all 3000 lines.
-# Forensically confirmed on nezha: in the same run T4.2 "failed", copy-mode
-# reached scroll_position~2984 and copied SCROLLMARK_FIRST (T4.3b/T4.4 PASS).
-# Fix: COUNT retained generated lines from the -J (wrap-joined) full capture.
-# Immune to wrapping, prompt noise, and a single mangled line; still fails
-# decisively under any smaller history-limit (paired §1.1 mutation: lower the
-# limit -> count<2900 -> FAIL). Same up-to-15s poll absorbs ingestion lag.
-FULL=""
-T42_CNT=0
+# Probe: tmux's race-free `#{history_size}` counter (number of lines scrolled
+# OFF the visible page into scrollback), read via display-message — NOT a grid
+# dump, NOT a pane-content grep.
+#
+# History (§11.4.102/§11.4.114/§11.4.120 reconciliation): A49 (v1.0.25)
+# established this counter precisely because a `capture-pane -p -S -` grid dump
+# RACES under all-core CPU saturation — a point-in-time snapshot can momentarily
+# lack the oldest marker while the buffer genuinely retains all 3000 lines — and
+# is ALSO non-deterministic headless (the operator-path pane runs interactive
+# oh-my-bash at 80 cols, so a content grep WITHOUT -J splits wrapped markers).
+# v1.0.27 (67d5f01) regressed T4.2 back to a grid grep, which then FAILed under
+# headless/SSH-batch (no-TTY) runs. RESTORED here to the A49 known-good: the
+# counter read is atomic (never a partial snapshot), needs no pane-content grep
+# (immune to wrapping / prompt noise / no-TTY), and is deterministic — with
+# 80x24 + 3000 generated lines the no-eviction value is ~2982 (total ~3006 minus
+# the visible page; measured 2981 macOS / 2982 nezha, identical across A49's
+# 20/20 CPU-saturated runs). The OLD 2000 cap pins history_size at exactly 2000
+# and evicts line 1, so the threshold `>= 2900` sits strictly between the broken
+# 2000 cap and the functional ~2982 with margin both ways (paired §1.1 mutation:
+# lower the history-limit -> history_size < 2900 -> FAIL). The up-to-15s poll
+# absorbs generation-ingest lag (history_size rises as the stream scrolls off).
+HISTSZ=0
 T42_OK=0
 for _i in $(seq 1 30); do
-    FULL="$("$TMUX_BIN" -L "$S_SOCK" capture-pane -p -J -S - -t "$S_NAME" 2>/dev/null || true)"
-    T42_CNT="$(printf '%s\n' "$FULL" | grep -c 'SCROLLMARK_' || true)"
-    if [ "$T42_CNT" -ge 2900 ]; then
+    HISTSZ="$("$TMUX_BIN" -L "$S_SOCK" display-message -p -t "$S_NAME" '#{history_size}' 2>/dev/null | tr -dc '0-9')"
+    [ -n "$HISTSZ" ] || HISTSZ=0
+    if [ "$HISTSZ" -ge 2900 ]; then
         T42_OK=1; break
     fi
     sleep 0.5
 done
 if [ "$T42_OK" -eq 1 ]; then
-    _pass "T4.2: scrollback retained $T42_CNT of 3000 generated lines (history-limit 50000 functional; old 2000 limit would retain <=~2000) [capture-pane -J -S -]"
+    _pass "T4.2: scrollback retained line 1 of 3000 — live history_size=$HISTSZ >= 2900 (history-limit 50000 functional; OLD 2000 cap pins history_size at 2000 and evicts line 1) [race-free #{history_size}]"
 else
-    _fail "T4.2: only $T42_CNT SCROLLMARK lines in scrollback after 15s poll (want >=2900) — history-limit not effective"
+    _fail "T4.2: history_size=$HISTSZ < 2900 after 15s poll — scrollback did not retain all 3000 lines (history-limit not effective; OLD 2000 cap evicts line 1)"
 fi
 
 # T4.3 + T4.4 — copy-mode navigation reaches the old content.

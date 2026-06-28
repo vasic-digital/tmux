@@ -33,7 +33,26 @@ if [ -n "${TMUX:-}" ]; then
         # Resolve session name via tmux (#S = active session). More
         # reliable than env-var propagation — works even if the wrapper
         # didn't `set-environment` for any reason.
-        _tmx_sess="$(tmux display-message -p '#S' 2>/dev/null)" || _tmx_sess=""
+        #
+        # CRITICAL: resolve the PROJECT's own tmux binary, NOT bare `tmux` on
+        # PATH. The wrapper starts a hardened 3.6a server; if a DIFFERENT system
+        # tmux is first on PATH (e.g. an OS-packaged 3.4) it speaks an
+        # incompatible client protocol and `tmux display-message` returns
+        # "server exited unexpectedly" → empty session name → the cwd-persist
+        # hook silently never installs and the feature is DEAD for the operator
+        # — while a dev host whose system tmux happens to be 3.6a passes green
+        # (forensic anchor: thinker host, system tmux 3.4 vs 3.6a server,
+        # 2026-06-28; §11.4.111 resolve-by-stable-identity-not-ambient-PATH +
+        # §11.4.108 green-on-dev-host-dead-on-clean-target). setup.sh substitutes
+        # __TMUX_BIN__ with the built binary's absolute path (the same value it
+        # injects into scripts/tmx); the build-dir fallbacks keep the raw,
+        # un-substituted template working, and bare `tmux` remains the last
+        # resort. POSIX-only ([ -x ], ||, $()) — sh -n clean per §11.4.67.
+        _tmx_tmux="__TMUX_BIN__"
+        [ -x "$_tmx_tmux" ] || _tmx_tmux="$_tmx_dir/../tmux/build/bin/tmux"
+        [ -x "$_tmx_tmux" ] || _tmx_tmux="$_tmx_dir/../tmux/build-darwin/bin/tmux"
+        [ -x "$_tmx_tmux" ] || _tmx_tmux="$(command -v tmux 2>/dev/null)"
+        _tmx_sess="$("$_tmx_tmux" display-message -p '#S' 2>/dev/null)" || _tmx_sess=""
         # Reject names with shell-meta chars (defense in depth — tmx
         # wrapper already sanitises, but tmux's session list could in
         # theory contain hand-renamed names).

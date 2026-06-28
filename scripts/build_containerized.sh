@@ -42,12 +42,28 @@ fi
 # Remove any stale container
 $CONTAINER_CMD rm -f "$NAME" >/dev/null 2>&1 || true
 
+# --userns=keep-id is a PODMAN-only run mode (rootless UID-mapping so the
+# bind-mounted output is host-owned). Docker REJECTS it ("--userns: invalid
+# USER mode", exit 125) and does not need it: the Dockerfile's `USER builder`
+# + BUILD_UID/BUILD_GID build-args (passed above) already make a rootful
+# `docker run` execute as the host UID, so the mounted output is host-owned
+# without any --userns flag (forensic anchor: amber docker 29.4.1 rejected the
+# flag, 2026-06-28; §11.4.81 cross-platform-parity / §11.4.161). Gate the flag
+# on the engine. An `if` keeps the gate unambiguous under set -e (a bare
+# `[ cond ] && USERNS_ARGS+=(...)` is exempt from set -e only by the AND-list
+# rule — subtle + shell-dependent; the `if` is plainly correct regardless); the
+# ${arr[@]+"${arr[@]}"} idiom expands an empty array safely under set -u.
+USERNS_ARGS=()
+if [ "$CONTAINER_CMD" = "podman" ]; then
+    USERNS_ARGS+=(--userns=keep-id)
+fi
+
 # Launch
 echo "[build_containerized] launching container $NAME (mem_limit=2g, cpus=2)..."
 $CONTAINER_CMD run --rm \
     --name "$NAME" \
     --network none \
-    --userns=keep-id \
+    ${USERNS_ARGS[@]+"${USERNS_ARGS[@]}"} \
     --memory 2g \
     --memory-swap 3g \
     --cpus 2 \

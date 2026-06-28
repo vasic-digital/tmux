@@ -147,7 +147,26 @@ run_iteration() {
     mkdir -p "$hook_target"
     hook_target_real="$(cd "$hook_target" && pwd -P)"
     "$TMUX_BIN" -L "$SOCK_LABEL" send-keys "cd $hook_target" Enter 2>/dev/null
-    sleep 0.4
+    # §11.4.50/§11.4.1 deterministic: poll the LIVE pane cwd until the `cd`
+    # actually lands, instead of a blind `sleep 0.4`. On macOS the zsh-login
+    # pane processes `cd` far slower than 0.4 s (captured: cwd still pre-cd at
+    # t+0.6 s, lands at t+1.0 s), so the fixed sleep let the run-shell below
+    # expand `#{pane_current_path}` to the STALE Phase-1 path and record the
+    # wrong value → false FAIL 18 (harness timing race, NOT a product defect;
+    # forensic anchor: mistborn macOS, 2026-06-28). Wait up to 25 × 0.2 s = 5 s
+    # for #{pane_current_path} to reach hook_target BEFORE driving the record.
+    # NB: this poll targets the session via -t "$SESS"; the run-shell below
+    # resolves #{pane_current_path} against the active pane (no -t). In this
+    # single-session/single-pane detached test they are the SAME pane, so the
+    # value the poll waits for is exactly the one run-shell records.
+    _pcp=""; _cd_i=0
+    for _cd_i in $(seq 1 25); do
+        _pcp="$("$TMUX_BIN" -L "$SOCK_LABEL" display-message -t "$SESS" -p '#{pane_current_path}' 2>/dev/null)"
+        if [ "$_pcp" = "$hook_target" ] || [ "$_pcp" = "$hook_target_real" ]; then
+            break
+        fi
+        sleep 0.2
+    done
     # Drive the hook's run-shell command directly so we don't depend on
     # client-detached/session-closed firing (no client is attached in
     # this detached-session test). The wrapper installs the SAME command;

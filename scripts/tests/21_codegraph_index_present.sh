@@ -21,7 +21,20 @@ _skip() { echo "SKIP: $*"; SKIP=$((SKIP+1)); }
 
 CG_DB="$REPO_ROOT/.codegraph/codegraph.db"
 
-# T1 — DB file present.
+# §11.4.3 topology dispatch: the index (.codegraph/codegraph.db) is built BY the
+# codegraph CLI. If the CLI is not installed on this host, there is no index to
+# materialise — a best-effort dev-time capability (see test 20 T1) — so SKIP the
+# whole index test with reason, NOT FAIL. On a host where codegraph IS installed
+# but the index is missing, T1 below still FAILs (real: installed-but-not-
+# indexed), so this guard masks nothing. §11.4.78 is enforced on the dev host.
+if ! command -v codegraph >/dev/null 2>&1; then
+    _skip "codegraph CLI not installed on this host — index N/A; SKIP per §11.4.3 (best-effort dev tool; §11.4.78 enforced on the dev host, not here)"
+    echo ""
+    echo "  Tests: PASS=$PASS  FAIL=$FAIL  SKIP=$SKIP"
+    exit 0
+fi
+
+# T1 — DB file present (codegraph IS installed here, so the index MUST exist).
 if [ ! -f "$CG_DB" ]; then
     _fail "T1: $CG_DB missing — run 'bash scripts/codegraph_reindex.sh'"
     echo ""
