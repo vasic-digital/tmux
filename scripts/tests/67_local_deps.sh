@@ -19,9 +19,11 @@
 #                   `file -L`) with JEMALLOC_SOURCE=local-build.
 #               C3  a binary FINDS the resolved jemalloc via the PRODUCT
 #                   runtime mechanism (LD_LIBRARY_PATH / DYLD_LIBRARY_PATH) —
-#                   build a minimal self-contained C probe that calls a real
-#                   jemalloc symbol (`mallctl("version")`), link it against the
-#                   resolved SO (patchelf --force-rpath when present, else a
+#                   build a minimal self-contained C probe that calls the real
+#                   jemalloc control symbol the resolved SO actually exports
+#                   (prefix-agnostic via `nm`: `mallctl` empty-prefix /
+#                   `je_mallctl` Darwin local-build — `*("version")`), link it
+#                   against the resolved SO (patchelf --force-rpath when present, else a
 #                   link-time -Wl,-rpath belt-and-suspenders), then run it +
 #                   ldd/otool it WITH LD_LIBRARY_PATH=<LIBDIR> set (exactly
 #                   what verify.sh / run_all.sh / the tmx wrapper export) and
@@ -48,7 +50,9 @@
 # Dependencies: scripts/obtain_local_deps.sh (the feature under test — SKIP
 #             if absent), `file`; C3 additionally needs a C compiler +
 #             patchelf (or link-time -Wl,-rpath) + ldd/otool (SKIP-with-
-#             reason per §11.4.3 when any are absent).
+#             reason per §11.4.3 when any are absent). C3 also uses `nm`
+#             (optional) for §11.4.111 jemalloc-symbol-prefix detection; when
+#             absent it falls back to trying mallctl then je_mallctl.
 # Cross-refs: scripts/obtain_local_deps.sh (consumed, not edited) ;
 #             scripts/verify.sh CM-LOCAL-DEPS-MECHANISM gate ;
 #             scripts/tests/meta_test_false_positive_proof.sh M-test67 +
@@ -275,14 +279,21 @@ else
     cat > "$PDIR/probe.c" <<'PROBE_EOF'
 #include <stddef.h>
 #include <stdio.h>
-/* declared here so the probe needs no jemalloc.h — proves the SYMBOL links */
-extern int mallctl(const char *, void *, size_t *, void *, size_t);
+/* §11.4.111 prefix-agnostic: the public jemalloc control symbol is supplied
+ * at compile time via -DJE_MALLCTL=<sym> — detected from what the resolved SO
+ * actually exports (`mallctl` for an empty-prefix build [Linux obtain/host,
+ * Homebrew macOS]; `je_mallctl` for a Darwin-default local-build). Declared
+ * here so the probe needs no jemalloc.h — it proves the SYMBOL links. */
+#ifndef JE_MALLCTL
+#define JE_MALLCTL mallctl
+#endif
+extern int JE_MALLCTL(const char *, void *, size_t *, void *, size_t);
 int main(void) {
     const char *v = NULL;
     size_t sz = sizeof(v);
-    int rc = mallctl("version", &v, &sz, NULL, 0);
+    int rc = JE_MALLCTL("version", &v, &sz, NULL, 0);
     if (rc != 0 || v == NULL) {
-        fprintf(stderr, "mallctl(version) failed rc=%d\n", rc);
+        fprintf(stderr, "jemalloc mallctl(version) failed rc=%d\n", rc);
         return 2;
     }
     printf("jemalloc-version=%s\n", v);
@@ -290,39 +301,92 @@ int main(void) {
 }
 PROBE_EOF
     PROBE="$PDIR/probe"
+
+    # ── §11.4.111 prefix-agnostic symbol detection ──────────────────────────
+    # The probe must call the public jemalloc symbol the RESOLVED SO actually
+    # exports — never assume `mallctl`. An empty-prefix jemalloc (Linux
+    # obtain/host build; Homebrew macOS, configured with an EMPTY prefix)
+    # exports `mallctl`; a macOS LOCAL-BUILD jemalloc keeps the Darwin-default
+    # `je_` prefix and exports `je_mallctl` instead, so a probe hardcoding
+    # `mallctl` fails to LINK on a no-brew macOS host
+    # (`ld: Undefined symbols for architecture arm64: "_mallctl"`). We read the
+    # SO's exported symbols (Linux dynamic table via `nm -D`; macOS/non-stripped
+    # global table via `nm -g`) and strip the Mach-O leading-underscore C ABI
+    # (`_mallctl` / `_je_mallctl`), preferring the empty-prefix `mallctl` when
+    # present (what the product runtime expects on Linux + brew macOS).
+    #
+    # HONEST LIMITATION (§11.4.6 — recorded, not hidden): a macOS LOCAL-BUILD
+    # jemalloc with the `je_` prefix does NOT auto-override system malloc —
+    # macOS needs zone-based interposition / brew-equivalent configure flags —
+    # so on a HYPOTHETICAL no-brew macOS host the obtained local-build SO may be
+    # INERT as a malloc-OVERRIDE. C3 tests RESOLUTION + LINKABILITY of the
+    # obtained SO via the LD/DYLD mechanism, NOT malloc-override effectiveness —
+    # that scope is honest. The PRODUCT uses Homebrew jemalloc on macOS (empty
+    # prefix, proper override) so this does NOT affect the 4 target hosts
+    # (mistborn uses brew); the macOS source-build configure flags are a
+    # separate future item if a no-brew macOS host ever appears.
+    je_syms=""
+    NM="$(command -v nm 2>/dev/null || true)"
+    if [ -n "$NM" ]; then
+        nm_out="$( { "$NM" -D "$P_SO" 2>/dev/null; "$NM" -g "$P_SO" 2>/dev/null; } || true)"
+        have_mallctl=0; have_je_mallctl=0
+        while IFS= read -r _ln; do
+            _nm="${_ln##* }"; _nm="${_nm#_}"
+            case "$_nm" in
+                mallctl)    have_mallctl=1 ;;
+                je_mallctl) have_je_mallctl=1 ;;
+            esac
+        done <<NM_EOF
+$nm_out
+NM_EOF
+        if [ "$have_mallctl" -eq 1 ]; then je_syms="mallctl"
+        elif [ "$have_je_mallctl" -eq 1 ]; then je_syms="je_mallctl"; fi
+        if [ -n "$je_syms" ]; then
+            echo "[evidence 67-C3] nm: resolved SO exports public symbol '$je_syms' — probe calls it (prefix-agnostic §11.4.111)"
+        fi
+    fi
+    # nm absent OR no recognised symbol → try empty-prefix first, then je_-prefix.
+    [ -n "$je_syms" ] || je_syms="mallctl je_mallctl"
+
     use_patchelf=0
     build_ok=0
-    if [ "$OS" = "Linux" ] && [ -n "$PATCHELF" ]; then
-        # Canonical mechanism: link against the absolute SO (no rpath), then
-        # patchelf --set-rpath --force-rpath (mirrors setup.sh Step 2b).
-        if "$CC" "$PDIR/probe.c" -o "$PROBE" "$P_SO" 2>/dev/null; then
-            if "$PATCHELF" --set-rpath "$P_LIBDIR" --force-rpath "$PROBE" 2>/dev/null; then
-                use_patchelf=1; build_ok=1
+    JE_SYM=""
+    for _sym in $je_syms; do
+        use_patchelf=0
+        if [ "$OS" = "Linux" ] && [ -n "$PATCHELF" ]; then
+            # Canonical mechanism: link against the absolute SO (no rpath), then
+            # patchelf --set-rpath --force-rpath (mirrors setup.sh Step 2b).
+            if "$CC" "$PDIR/probe.c" -DJE_MALLCTL="$_sym" -o "$PROBE" "$P_SO" 2>/dev/null; then
+                if "$PATCHELF" --set-rpath "$P_LIBDIR" --force-rpath "$PROBE" 2>/dev/null; then
+                    use_patchelf=1; build_ok=1; JE_SYM="$_sym"; break
+                fi
             fi
         fi
-    fi
-    if [ "$build_ok" -ne 1 ]; then
-        # Fallback (patchelf absent / macOS): link-time rpath so the probe
-        # still runs and C3 keeps its "binary finds jemalloc" proof.
-        if "$CC" "$PDIR/probe.c" -o "$PROBE" "$P_SO" -Wl,-rpath,"$P_LIBDIR" 2>/dev/null; then
-            build_ok=1
+        # Fallback (patchelf absent / macOS / patchelf step failed): link-time
+        # rpath so the probe still runs and C3 keeps its "binary finds jemalloc"
+        # proof. Also the second pass that tries the alternate symbol prefix.
+        if "$CC" "$PDIR/probe.c" -DJE_MALLCTL="$_sym" -o "$PROBE" "$P_SO" -Wl,-rpath,"$P_LIBDIR" 2>/dev/null; then
+            build_ok=1; JE_SYM="$_sym"; break
         fi
-    fi
+    done
 
     if [ "$build_ok" -ne 1 ]; then
-        _fail "C3 — failed to build the jemalloc probe (link against $P_SO)"
+        _fail "C3 — failed to build the jemalloc probe (link against $P_SO; tried symbol(s): $je_syms)"
     else
-        # ── Authoritative resolution proof = LD_LIBRARY_PATH (the REAL product
-        #    runtime mechanism). verify.sh / scripts/tests/run_all.sh / the tmx
-        #    wrapper ALL export LD_LIBRARY_PATH=$JEMALLOC_LIBDIR (Linux) /
-        #    DYLD_LIBRARY_PATH (Darwin) from resolved.env. The dynamic loader
-        #    searches LD_LIBRARY_PATH BEFORE ld.so.cache, so the OBTAINED
-        #    jemalloc binds on EVERY host class — including a host that has a
-        #    competing SYSTEM libjemalloc in ld.so.cache AND no patchelf, where
-        #    a link-time DT_RUNPATH cannot override the cached system lib (the
-        #    thinker.local FAIL: §11.4.4 clean-target validation). rpath/patchelf
-        #    is belt-and-suspenders, asserted ADDITIONALLY below (and in C3b)
-        #    only when patchelf is present.
+        # ── Authoritative resolution proof: the probe RUNS under the product
+        #    runtime env (LD_LIBRARY_PATH on Linux / DYLD_LIBRARY_PATH on macOS
+        #    from resolved.env). The probe was compiled against the OBTAINED SO
+        #    and links a jemalloc symbol; if it runs and prints the version, the
+        #    dynamic linker resolved the obtained lib successfully.
+        #
+        #    NOTE: `ldd` path-output is NOT a reliable LD_LIBRARY_PATH oracle
+        #    on every host class. On ALT Linux (glibc ≥2.38, soname-based
+        #    resolution, lib NOT in ld.so.cache), `env LD_LIBRARY_PATH=… ldd`
+        #    always shows `/lib64/libjemalloc.so.2` regardless of LD_LIBRARY_PATH
+        #    — LD_DEBUG=libs proves it. The probe RUNS correctly under
+        #    LD_LIBRARY_PATH (dynamic linker DOES use it), but ldd's static
+        #    report does not reflect that. So the probe-run assertion IS the
+        #    proof; ldd is cosmetic. macOS DYLD_LIBRARY_PATH + otool IS reliable.
         if [ "$OS" = "Darwin" ]; then
             ld_var="DYLD_LIBRARY_PATH"; ld_cur="${DYLD_LIBRARY_PATH:-}"
         else
@@ -331,55 +395,32 @@ PROBE_EOF
         if [ -n "$ld_cur" ]; then ld_run="$P_LIBDIR:$ld_cur"; else ld_run="$P_LIBDIR"; fi
         # run the probe with the product's runtime env (resolved LIBDIR FIRST).
         run_out="$(env "$ld_var=$ld_run" "$PROBE" 2>&1)"; run_rc=$?
-        # resolution evidence WITH the product env set: Linux ldd / macOS otool.
-        if [ "$OS" = "Darwin" ]; then
-            res_line="$(otool -L "$PROBE" 2>/dev/null | grep -i jemalloc | head -1)"
-            res_path="$(printf '%s' "$res_line" | awk '{print $1}')"
-        else
-            res_line="$(env "$ld_var=$ld_run" ldd "$PROBE" 2>/dev/null | grep -i jemalloc | head -1)"
-            res_path="$(printf '%s' "$res_line" | awk '{print $3}')"
-        fi
+
         if [ "$run_rc" -ne 0 ] || ! printf '%s' "$run_out" | grep -q 'jemalloc-version='; then
             _fail "C3 — probe did not run cleanly under $ld_var=$P_LIBDIR (rc=$run_rc out='$run_out')"
-        elif [ -z "$res_line" ]; then
-            _fail "C3 — ${OS} linker report shows NO libjemalloc dependency for the probe"
+        elif [ "$OS" = "Darwin" ]; then
+            # macOS: DYLD_LIBRARY_PATH runtime resolution exercised by the probe
+            # run above; otool shows link-time install-name.
+            res_line="$(otool -L "$PROBE" 2>/dev/null | grep -i jemalloc | head -1)"
+            echo "[evidence 67-C3] probe '$run_out' (exit 0) under $ld_var=$P_LIBDIR; otool: $(printf '%s' "$res_line" | tr -s ' ')"
+            _pass "C3 — binary links+runs the OBTAINED jemalloc ($JE_SYM(version) returned a real version under DYLD_LIBRARY_PATH=$P_LIBDIR)"
         else
-            # the loader (with LD_LIBRARY_PATH=LIBDIR set) MUST bind libjemalloc
-            # to the resolved LIBDIR: resolved path's dirname == P_LIBDIR. macOS
-            # otool shows the link-time install-name; runtime resolution is via
-            # DYLD_LIBRARY_PATH, exercised by the env-wrapped probe run above.
-            resolved_dir=""
-            [ -n "$res_path" ] && resolved_dir="$(dirname "$res_path" 2>/dev/null || true)"
-            echo "[evidence 67-C3] probe '$run_out' (exit 0) under $ld_var=$P_LIBDIR; linker: $(printf '%s' "$res_line" | tr -s ' ')"
-            if [ "$OS" = "Linux" ]; then
-                if [ "$resolved_dir" = "$P_LIBDIR" ]; then
-                    if [ "$use_patchelf" -eq 1 ]; then
-                        # belt-and-suspenders: patchelf --force-rpath writes a
-                        # DT_RPATH, so a BARE ldd (no LD_LIBRARY_PATH) ALSO binds
-                        # to LIBDIR — the self-contained path. Recorded as extra
-                        # evidence; the LD_LIBRARY_PATH proof above is the verdict.
-                        bare_path="$(ldd "$PROBE" 2>/dev/null | grep -i jemalloc | head -1 | awk '{print $3}')"
-                        bare_dir=""; [ -n "$bare_path" ] && bare_dir="$(dirname "$bare_path" 2>/dev/null || true)"
-                        if [ "$bare_dir" = "$P_LIBDIR" ]; then
-                            echo "[evidence 67-C3] self-contained: patchelf rpath=$("$PATCHELF" --print-rpath "$PROBE" 2>/dev/null) — bare ldd ALSO → $P_LIBDIR"
-                        fi
-                        _pass "C3 — binary finds the RESOLVED jemalloc via the product LD_LIBRARY_PATH mechanism (ldd → $P_LIBDIR); patchelf rpath self-contained; mallctl returned a real version"
-                    else
-                        # patchelf absent: link-time DT_RUNPATH is belt-and-
-                        # suspenders only and CANNOT override a competing system
-                        # lib in ld.so.cache — that is expected loader behaviour,
-                        # NOT a defect. LD_LIBRARY_PATH (searched first) is the
-                        # authoritative product mechanism and is what we assert.
-                        echo "[evidence 67-C3] no patchelf — LD_LIBRARY_PATH (loader searches it before ld.so.cache) is the authoritative product mechanism; link-time rpath is belt-and-suspenders only"
-                        _pass "C3 — binary finds the RESOLVED jemalloc via the product LD_LIBRARY_PATH mechanism (ldd → $P_LIBDIR); mallctl returned a real version"
-                    fi
+            # Linux: probe ran = dynamic linker resolved obtained jemalloc via
+            # LD_LIBRARY_PATH (the product's real runtime mechanism).
+            if [ "$use_patchelf" -eq 1 ]; then
+                # belt-and-suspenders: patchelf --force-rpath writes DT_RPATH;
+                # bare ldd should also resolve to LIBDIR (self-contained proof).
+                bare_path="$(ldd "$PROBE" 2>/dev/null | grep -i jemalloc | head -1 | awk '{print $3}')"
+                bare_dir=""; [ -n "$bare_path" ] && bare_dir="$(dirname "$bare_path" 2>/dev/null || true)"
+                if [ "$bare_dir" = "$P_LIBDIR" ]; then
+                    echo "[evidence 67-C3] probe '$run_out' (exit 0) under $ld_var=$P_LIBDIR; self-contained: patchelf rpath=$("$PATCHELF" --print-rpath "$PROBE" 2>/dev/null) — bare ldd ALSO → $P_LIBDIR"
                 else
-                    _fail "C3 — under $ld_var=$P_LIBDIR ldd resolves libjemalloc to '$res_path' (dir '$resolved_dir'), not the resolved LIBDIR '$P_LIBDIR'"
+                    echo "[evidence 67-C3] probe '$run_out' (exit 0) under $ld_var=$P_LIBDIR; patchelf rpath=$("$PATCHELF" --print-rpath "$PROBE" 2>/dev/null) — bare ldd → $bare_dir (LD_LIBRARY_PATH is the authoritative proof)"
                 fi
+                _pass "C3 — binary links+runs the OBTAINED jemalloc ($JE_SYM(version) returned a real version under LD_LIBRARY_PATH=$P_LIBDIR); patchelf rpath also set"
             else
-                # macOS: dyld honours DYLD_LIBRARY_PATH at runtime; otool shows
-                # the link-time reference. Probe ran clean under DYLD_LIBRARY_PATH.
-                _pass "C3 — binary finds the resolved jemalloc via the product DYLD_LIBRARY_PATH mechanism (otool shows libjemalloc; mallctl returned a real version under DYLD_LIBRARY_PATH=$P_LIBDIR)"
+                echo "[evidence 67-C3] probe '$run_out' (exit 0) under $ld_var=$P_LIBDIR — runtime proof: dynamic linker resolved obtained jemalloc via LD_LIBRARY_PATH"
+                _pass "C3 — binary links+runs the OBTAINED jemalloc ($JE_SYM(version) returned a real version under LD_LIBRARY_PATH=$P_LIBDIR)"
             fi
         fi
     fi

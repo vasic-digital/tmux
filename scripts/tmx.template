@@ -251,6 +251,38 @@ _list_all_sessions() {
     done < <(_our_sockets)
 }
 
+# Ensure $TERM names a terminal that HAS a terminfo entry on this host before
+# the inner per-session `tmux new-session` runs. tmux validates $TERM against
+# the terminfo database on a real PTY and REFUSES to start its server with
+# "missing or unsuitable terminal: <TERM>" when the entry is absent — the exact
+# failure seen when tmx is launched from inside another tmux (the outer pane
+# exports TERM=tmux-256color) on a host whose terminfo lacks that entry
+# (minimal containers, nested-tmux, BSD bases). This is best-effort + honest:
+# - if `infocmp` is unavailable we cannot probe, so leave $TERM untouched;
+# - if the current $TERM resolves, leave it untouched (real interactive use
+#   under a present TERM — xterm-256color etc. — is unaffected);
+# - otherwise fall back to the first terminfo-PRESENT candidate and emit a
+#   one-line stderr note so the substitution is never silent. §11.4.6/§11.4.111.
+_ensure_terminfo_term() {
+    command -v infocmp >/dev/null 2>&1 || return 0
+    if infocmp "${TERM:-}" >/dev/null 2>&1; then
+        return 0
+    fi
+    _eff_fallback=""
+    for _eff_t in screen-256color xterm-256color screen xterm; do
+        if infocmp "$_eff_t" >/dev/null 2>&1; then
+            _eff_fallback="$_eff_t"
+            break
+        fi
+    done
+    if [ -n "$_eff_fallback" ]; then
+        printf 'tmx: TERM=%s has no terminfo entry on this host; using %s for the session terminal.\n' \
+            "${TERM:-<unset>}" "$_eff_fallback" >&2
+        TERM="$_eff_fallback"
+        export TERM
+    fi
+}
+
 # ── arg parsing ──────────────────────────────────────────────────────
 
 SUBCMD=""
@@ -380,6 +412,20 @@ case "$SUBCMD" in
             case "$a" in -d|-D) INTERACTIVE=0 ;; esac
         done
 
+        # §11.4.111 wrapper robustness: make $TERM terminfo-valid for the inner
+        # tmux server BEFORE we spawn it, so tmx works from inside a nested tmux
+        # / minimal-terminfo host instead of dying with "missing or unsuitable
+        # terminal". No-op when $TERM already resolves (normal interactive use).
+        _ensure_terminfo_term
+
+        # §11.4.108 runtime signature plumbing: capture the inner create's
+        # stderr so that, if the server fails to come up, we can surface tmux's
+        # OWN error (e.g. the terminal-type message) instead of silently
+        # `exec attach`-ing onto a dead server. Per-command 2> redirect bypasses
+        # the global libtinfo-filter on fd2 so the real error is preserved.
+        CREATE_ERR="${TMUX_TMPDIR:-/tmp}/.tmx-create-err.$$"
+        : > "$CREATE_ERR" 2>/dev/null || CREATE_ERR="/dev/null"
+
         # ── PER-OS ISOLATION ────────────────────────────────────────
         case "$HOST_OS" in
             Linux)
@@ -430,9 +476,9 @@ case "$SUBCMD" in
                         -p "CPUQuota=${TMX_CPU_EFFECTIVE}%" \
                         -p "TasksMax=4096" \
                         -p "Delegate=yes" \
-                        "$TMUX_BIN" "${NEW_ARGS[@]}"
+                        "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
                 else
-                    "$TMUX_BIN" "${NEW_ARGS[@]}"
+                    "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
                 fi
                 ;;
 
@@ -469,9 +515,9 @@ case "$SUBCMD" in
                 # new session's initial pane in the recalled cwd. tmux's
                 # arg order is `-c <dir>` before the trailing command.
                 if [ "$INTERACTIVE" -eq 1 ]; then
-                    "$TMUX_BIN" -L "$SOCK_LABEL" -f "$TMUX_CONF" new-session -d -s "$NAME" -c "$START_DIR" "$SESSION_CMD"
+                    "$TMUX_BIN" -L "$SOCK_LABEL" -f "$TMUX_CONF" new-session -d -s "$NAME" -c "$START_DIR" "$SESSION_CMD" 2>"$CREATE_ERR"
                 else
-                    "$TMUX_BIN" -L "$SOCK_LABEL" -f "$TMUX_CONF" new-session -d -s "$NAME" -c "$START_DIR" "$SESSION_CMD"
+                    "$TMUX_BIN" -L "$SOCK_LABEL" -f "$TMUX_CONF" new-session -d -s "$NAME" -c "$START_DIR" "$SESSION_CMD" 2>"$CREATE_ERR"
                 fi
 
                 # Also wrap default-command so :new-window / :split-window
@@ -479,6 +525,25 @@ case "$SUBCMD" in
                 "$TMUX_BIN" -L "$SOCK_LABEL" set -g default-command "$SESSION_CMD" 2>/dev/null || true
                 ;;
         esac
+
+        # §11.4.108 runtime signature: the inner `tmux new-session` ran under
+        # `set -u` (NOT `set -e`), so a create failure does NOT abort the
+        # wrapper. WITHOUT this check the wrapper would carry on to the password
+        # prompt and then `exec attach` onto a server that never came up — a
+        # SILENT failure the operator only sees as "attach hangs / no session"
+        # (the §11.4 bluff this fixes). Verify the server is actually up BEFORE
+        # any further work; on failure surface tmux's OWN error + exit non-zero.
+        if ! "$TMUX_BIN" -L "$SOCK_LABEL" has-session -t "$NAME" 2>/dev/null; then
+            printf 'tmx: failed to create session "%s" — the tmux server did not come up.\n' "$NAME" >&2
+            if [ "$CREATE_ERR" != "/dev/null" ] && [ -s "$CREATE_ERR" ]; then
+                printf 'tmx: tmux reported:\n' >&2
+                sed 's/^/      /' "$CREATE_ERR" >&2 2>/dev/null || cat "$CREATE_ERR" >&2
+            fi
+            printf 'tmx: (TERM=%s — ensure the terminal type has a terminfo entry, or that the build is intact)\n' "${TERM:-<unset>}" >&2
+            [ "$CREATE_ERR" != "/dev/null" ] && rm -f "$CREATE_ERR" 2>/dev/null || true
+            exit 1
+        fi
+        [ "$CREATE_ERR" != "/dev/null" ] && rm -f "$CREATE_ERR" 2>/dev/null || true
 
         _apply_oom_score "$SOCK_LABEL"
         if [ -n "$EFFECTIVE_COLOR" ]; then
@@ -499,6 +564,45 @@ case "$SUBCMD" in
             HOOK_CMD="run-shell '$TMX_DIR/tmx-state-bin record $NAME #{pane_current_path}'"
             "$TMUX_BIN" -L "$SOCK_LABEL" set-hook -g client-detached "$HOOK_CMD" 2>/dev/null || true
             "$TMUX_BIN" -L "$SOCK_LABEL" set-hook -g session-closed  "$HOOK_CMD" 2>/dev/null || true
+        fi
+
+        # ── clause 6: idle-timeout session recycler ─────────────────────
+        # Launch a per-session external watcher (scripts/tmx-recycler.sh)
+        # that recycles this session after it has had NO client attached for
+        # >= TMX_RECYCLE_IDLE_SECS (default 900). The watcher tears the
+        # runtime down (kill-session + Linux scope-stop) WITHOUT clearing
+        # state, so last_pwd / color / password persist for a later
+        # `tmx new -s NAME`. TMX_RECYCLE_IDLE_SECS=0 disables it (per-session
+        # opt-out for intentionally long-lived detached sessions). Singleton
+        # per session (§11.4.119); backgrounded + disowned (§11.4.89) so it
+        # survives the `exec attach` below. The watcher is the SAME on Linux
+        # and macOS (only the teardown's scope-stop step is Linux-only).
+        TMX_RECYCLE_WINDOW="${TMX_RECYCLE_IDLE_SECS:-900}"
+        RECYCLER="$TMX_DIR/tmx-recycler.sh"
+        MARKER_DIR="${TMUX_TMPDIR:-/tmp}/tmx-recycler-$(id -u)"
+        MARKER_PATH="$MARKER_DIR/${SAFE_NAME}.detached"
+        if [ -f "$RECYCLER" ] && [ "$TMX_RECYCLE_WINDOW" != "0" ]; then
+            mkdir -p "$MARKER_DIR" 2>/dev/null || true
+            # Marker hooks: write the detach-since epoch on client-detached
+            # (appended via -ga so the existing cwd-record hook still runs),
+            # and CLEAR it on client-attached (cancel-on-attach race-guard).
+            # A quick `printf`/`rm` is sub-second, so it does NOT block the
+            # tmux command queue the way `run-shell 'sleep'` would.
+            DET_CMD="run-shell 'bash $RECYCLER detached $MARKER_PATH'"
+            ATT_CMD="run-shell 'bash $RECYCLER attached $MARKER_PATH'"
+            "$TMUX_BIN" -L "$SOCK_LABEL" set-hook -ga client-detached "$DET_CMD" 2>/dev/null || true
+            "$TMUX_BIN" -L "$SOCK_LABEL" set-hook -g  client-attached "$ATT_CMD" 2>/dev/null || true
+            # Background the watcher (§11.4.89). Config passed via env.
+            TMX_RC_TMUX_BIN="$TMUX_BIN" \
+            TMX_RC_SOCK="$SOCK_LABEL" \
+            TMX_RC_NAME="$NAME" \
+            TMX_RC_SCOPE="$SCOPE_UNIT" \
+            TMX_RC_STATE_BIN="$TMX_DIR/tmx-state-bin" \
+            TMX_RC_WINDOW="$TMX_RECYCLE_WINDOW" \
+            TMX_RC_MARKER="$MARKER_PATH" \
+            TMX_RC_HOST_OS="$HOST_OS" \
+                nohup bash "$RECYCLER" watch >/dev/null 2>&1 &
+            disown 2>/dev/null || true
         fi
 
         # Propagate TMX_HOSTNAME for status-bar conditional.
@@ -542,6 +646,29 @@ case "$SUBCMD" in
         "$TMUX_BIN" -L "$SOCK_LABEL" kill-session -t "$NAME" 2>/dev/null || true
         if [ "$HOST_OS" = "Linux" ]; then
             systemctl --user stop "$SCOPE_UNIT" 2>/dev/null || true
+        fi
+        ;;
+
+    delete)
+        # clause 7: kill the session if alive AND clear its persisted state
+        # so a fresh `tmx new -s NAME` starts from defaults (host-fallback
+        # color, $HOME dir, fresh password prompt). This is the ONLY verb
+        # that clears state — kill-session and the idle recycler PRESERVE it.
+        # 1. Tear down the runtime (reuse the kill-session teardown path).
+        "$TMUX_BIN" -L "$SOCK_LABEL" kill-session -t "$NAME" 2>/dev/null || true
+        if [ "$HOST_OS" = "Linux" ]; then
+            systemctl --user stop "$SCOPE_UNIT" 2>/dev/null || true
+        fi
+        # 2. Tidy the recycler's transient marker + singleton lock for this
+        #    session. The watcher self-exits on its next poll once its
+        #    session is gone; this just removes the leftover files now.
+        _RC_DIR="${TMUX_TMPDIR:-/tmp}/tmx-recycler-$(id -u)"
+        rm -f  "$_RC_DIR/${SAFE_NAME}.detached" 2>/dev/null || true
+        rm -rf "$_RC_DIR/${SAFE_NAME}.lock"     2>/dev/null || true
+        # 3. Clear persisted last_pwd + color + password_hash. `forget`
+        #    deletes the whole session record, so all three are cleared.
+        if [ -x "$TMX_DIR/tmx-state-bin" ]; then
+            "$TMX_DIR/tmx-state-bin" forget "$NAME" >/dev/null 2>&1 || true
         fi
         ;;
 

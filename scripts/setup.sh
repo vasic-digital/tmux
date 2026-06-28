@@ -402,6 +402,19 @@ sed \
 chmod +x scripts/tmx
 echo "  ✓ wrote scripts/tmx ($HOST_OS native wrapper, host-process isolation: $(if [ "$HOST_OS" = "Darwin" ]; then echo "POSIX rlimit"; else echo "cgroup-v2 transient scope"; fi))"
 
+# clause 6: the idle-timeout session recycler (scripts/tmx-recycler.sh) is a
+# STATIC script (no __PLACEHOLDER__ substitution — the generated wrapper
+# passes all config via env at launch, and the marker hooks bake the marker
+# path inline). It lives beside the generated scripts/tmx and is resolved at
+# "$TMX_DIR/tmx-recycler.sh". Ensure it is executable so a direct invocation
+# works (the wrapper also calls it via `bash …` defensively). No generation.
+if [ -f scripts/tmx-recycler.sh ]; then
+    chmod +x scripts/tmx-recycler.sh 2>/dev/null || true
+    echo "  ✓ scripts/tmx-recycler.sh present + executable (idle-session recycler, TMX_RECYCLE_IDLE_SECS=${TMX_RECYCLE_IDLE_SECS:-900}; 0 disables)"
+else
+    echo "  ⓘ scripts/tmx-recycler.sh not present (pre-recycler tree); idle recycle disabled"
+fi
+
 # Step 3a — generate the tmx-shell-init.sh from its template (v1.0.9+).
 # CRITICAL: the bashrc snippet sources scripts/tmx-shell-init.sh; without
 # this step, the snippet's `[ -r ... ] && . ...` guard silently skips

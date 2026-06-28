@@ -177,6 +177,76 @@ func TestForgetRemovesSessionAndIsIdempotent(t *testing.T) {
 	}
 }
 
+// TestForgetClearsAllThreeFields — clause 7 `tmx delete` contract: forget
+// MUST clear last_pwd AND color AND password_hash (it deletes the whole
+// session record), so a fresh `tmx new -s NAME` starts from defaults.
+func TestForgetClearsAllThreeFields(t *testing.T) {
+	path := withTempState(t)
+	// Seed all three persisted fields.
+	if _, _, c := runCLI(t, "record", "sess", "/tmp/work"); c != 0 {
+		t.Fatalf("record: %d", c)
+	}
+	if _, _, c := runCLI(t, "set-color", "sess", "blue"); c != 0 {
+		t.Fatalf("set-color: %d", c)
+	}
+	if _, _, c := runCLI(t, "set-password", "sess", "hunter2"); c != 0 {
+		t.Fatalf("set-password: %d", c)
+	}
+	// Pre-condition: all three present on disk.
+	var pre State
+	raw, _ := os.ReadFile(path)
+	if err := json.Unmarshal(raw, &pre); err != nil {
+		t.Fatalf("pre JSON: %v", err)
+	}
+	s := pre.Sessions["sess"]
+	if s.LastPwd == "" || s.Color == "" || s.PasswordHash == "" {
+		t.Fatalf("seed incomplete: last_pwd=%q color=%q pwhash=%q", s.LastPwd, s.Color, s.PasswordHash)
+	}
+	// forget → exit 0, whole record gone (all three cleared).
+	if _, _, c := runCLI(t, "forget", "sess"); c != 0 {
+		t.Fatalf("forget: %d", c)
+	}
+	var post State
+	raw, _ = os.ReadFile(path)
+	_ = json.Unmarshal(raw, &post)
+	if _, ok := post.Sessions["sess"]; ok {
+		t.Errorf("session record still present after forget: %+v", post.Sessions["sess"])
+	}
+}
+
+// TestRecordPreservesColorAndPassword — the clause-6 recycler (and the
+// clause-4 client-detached hook) call `record` to capture last_pwd before
+// teardown. record MUST PRESERVE color + password_hash, otherwise recycle/
+// detach silently wipes them (the §11.4 "color/password PERSIST" bluff).
+func TestRecordPreservesColorAndPassword(t *testing.T) {
+	path := withTempState(t)
+	if _, _, c := runCLI(t, "set-color", "sess", "red"); c != 0 {
+		t.Fatalf("set-color: %d", c)
+	}
+	if _, _, c := runCLI(t, "set-password", "sess", "s3cret"); c != 0 {
+		t.Fatalf("set-password: %d", c)
+	}
+	// record updates last_pwd; must NOT clobber color / password_hash.
+	if _, _, c := runCLI(t, "record", "sess", "/tmp/proj"); c != 0 {
+		t.Fatalf("record: %d", c)
+	}
+	var st State
+	raw, _ := os.ReadFile(path)
+	if err := json.Unmarshal(raw, &st); err != nil {
+		t.Fatalf("JSON: %v", err)
+	}
+	got := st.Sessions["sess"]
+	if got.LastPwd != "/tmp/proj" {
+		t.Errorf("last_pwd = %q, want /tmp/proj", got.LastPwd)
+	}
+	if got.Color != "red" {
+		t.Errorf("color wiped by record = %q, want red", got.Color)
+	}
+	if got.PasswordHash != hashPassword("s3cret") {
+		t.Errorf("password_hash wiped by record = %q, want %q", got.PasswordHash, hashPassword("s3cret"))
+	}
+}
+
 func TestRecordRejectsRelativePath(t *testing.T) {
 	withTempState(t)
 	_, stderr, code := runCLI(t, "record", "x", "relative/path")

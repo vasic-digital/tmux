@@ -139,16 +139,27 @@ func cmdRecord(args []string, stderr io.Writer) int {
 		now := time.Now().Unix()
 		host, _ := os.Hostname()
 		existing, had := st.Sessions[session]
-		created := now
-		if had && existing.CreatedUnix > 0 {
-			created = existing.CreatedUnix
+		// Start from the EXISTING record and update only the cwd-tracking
+		// fields. This PRESERVES sibling fields (Color, PasswordHash) that
+		// record must not touch — mirroring cmdSetColor / cmdSetPassword.
+		// Forensic anchor (clause 6 idle-recycler, 2026-06-28): the prior
+		// `Session{LastPwd,…}` struct literal dropped Color + PasswordHash
+		// on every `record`, so each client-detached hook (and the
+		// recycler's record-before-teardown) silently wiped the session's
+		// color + password — breaking the "color/password PERSIST across
+		// recycle/recreate" guarantee. Carrying `existing` forward fixes
+		// both the recycler path and the pre-existing detach-hook wipe.
+		s := existing
+		if !had {
+			s = Session{CreatedUnix: now}
 		}
-		st.Sessions[session] = Session{
-			LastPwd:      pwd,
-			LastSeenUnix: now,
-			CreatedUnix:  created,
-			Host:         host,
+		s.LastPwd = pwd
+		s.LastSeenUnix = now
+		if s.CreatedUnix == 0 {
+			s.CreatedUnix = now
 		}
+		s.Host = host
+		st.Sessions[session] = s
 		if err := saveStateUnlocked(path, st); err != nil {
 			fmt.Fprintf(stderr, "tmx-state record: save: %v\n", err)
 			rc = 1
