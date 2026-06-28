@@ -13,6 +13,33 @@ TMUX_BIN="${TMUX_BIN:-$REPO_ROOT/tmux/build/bin/tmux}"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 export TMUX_BIN WRAPPER
 
+# ── resolve obtained jemalloc for the RAW $TMUX_BIN — NO patchelf required ──
+# The ldd pre-check below + the whole test suite (run_all.sh, which this gate
+# invokes) exercise the RAW binary directly, NOT via the `tmx` wrapper. On a
+# host with NO system jemalloc AND no patchelf (amber: no sudo), the binary's
+# DT_NEEDED libjemalloc.so.2 resolves ONLY if its libdir is on the loader's
+# search path — rpath needs patchelf (absent), and the wrapper's LD_PRELOAD
+# never touches the raw binary. obtain_local_deps.sh wrote the resolved
+# ABSOLUTE libdir into .local-deps/<plat>/resolved.env; export it as
+# LD_LIBRARY_PATH (Linux) / DYLD_LIBRARY_PATH (Darwin) so BOTH the ldd gate
+# AND every raw-$TMUX_BIN test (run_all.sh children inherit this exported env)
+# find jemalloc with NO patchelf. jemalloc STAYS DYNAMIC — this only adds a
+# search dir, never a static link (§11.4.111 + research Angle 2,
+# docs/research/local_deps_20260628). Harmless when the resolved libdir is
+# already a default system path (e.g. /lib64). Guarded on resolved.env
+# existing, so on a host that never ran obtain it is a no-op.
+_LD_RESOLVED_ENV="$REPO_ROOT/.local-deps/$(uname -s)_$(uname -m)/resolved.env"
+if [ -f "$_LD_RESOLVED_ENV" ]; then
+    # shellcheck disable=SC1090
+    . "$_LD_RESOLVED_ENV"
+    if [ -n "${JEMALLOC_LIBDIR:-}" ]; then
+        case "$(uname -s)" in
+            Darwin) export DYLD_LIBRARY_PATH="${JEMALLOC_LIBDIR}${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}" ;;
+            *)      export LD_LIBRARY_PATH="${JEMALLOC_LIBDIR}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ;;
+        esac
+    fi
+fi
+
 echo "════════════════════════════════════════════════════════════════"
 echo "  tmux verification gate (per §11.4 anti-bluff covenant)"
 echo "════════════════════════════════════════════════════════════════"
@@ -547,6 +574,70 @@ _check_CM_NO_HARDCODED_TMP_SCRATCH() {
     return 0
 }
 
+# CM-LOCAL-DEPS-MECHANISM — §11.4.77 + §11.4.81 + §11.4.111 per-host
+# local-dependency obtaining mechanism. The build links jemalloc DYNAMIC
+# (DT_NEEDED libjemalloc.so.2 preserved); on a host that lacks a system
+# jemalloc AND has no sudo (amber) the container-built ELF cannot start
+# ("libjemalloc.so.2: cannot open shared object file"), and on a host whose
+# Homebrew is off the non-interactive SSH PATH (mistborn — the `command -v
+# brew` exit-3 root cause) setup never resolves it. scripts/obtain_local_deps.sh
+# RESOLVES a present dependency by ABSOLUTE path (§11.4.111 — never ambient
+# PATH) and OBTAINS it git-ignored into .local-deps/ when genuinely missing,
+# so setup's patchelf rpath + the wrapper's absolute LD_PRELOAD find a
+# host-runnable libjemalloc.so.2. This SOURCE-layer gate asserts the
+# mechanism is wired end-to-end; the runtime/anti-bluff half lives in
+# scripts/tests/67_local_deps.sh + its paired meta-test mutation (which
+# REMOVES the setup.sh invocation — assertion (iv) — to force this gate FAIL).
+# NOTE: assertions (ii)-(v) depend on artefacts produced by the concurrent
+# setup.sh / tmx.template / .gitignore / .gitignore-meta streams; this gate
+# may report FAIL until those land — that is expected, and the conductor runs
+# verify.sh only after all streams merge.
+_check_CM_LOCAL_DEPS_MECHANISM() {
+    local g="CM-LOCAL-DEPS-MECHANISM"
+    local rc=0
+    local s="$REPO_ROOT/scripts/obtain_local_deps.sh"
+
+    # (i) obtaining script present + executable + `bash -n` parseable (§11.4.67).
+    if [ ! -f "$s" ]; then
+        printf '[FAIL] %s (i) missing scripts/obtain_local_deps.sh\n' "$g"; rc=1
+    elif [ ! -x "$s" ]; then
+        printf '[FAIL] %s (i) scripts/obtain_local_deps.sh is not executable\n' "$g"; rc=1
+    elif ! bash -n "$s" >/dev/null 2>&1; then
+        printf '[FAIL] %s (i) scripts/obtain_local_deps.sh fails `bash -n` (§11.4.67)\n' "$g"; rc=1
+    fi
+
+    # (ii) .gitignore ignores the obtained-deps tree (§11.4.30 + §11.4.77).
+    if ! grep -qE '(^|/)\.local-deps(/|$)' "$REPO_ROOT/.gitignore" 2>/dev/null; then
+        printf '[FAIL] %s (ii) .gitignore has no .local-deps/ ignore entry\n' "$g"; rc=1
+    fi
+
+    # (iii) §11.4.77 regen manifest present for the git-ignored .local-deps/ tree.
+    if [ ! -f "$REPO_ROOT/.gitignore-meta/local_deps.yaml" ]; then
+        printf '[FAIL] %s (iii) missing .gitignore-meta/local_deps.yaml (§11.4.77 regen manifest)\n' "$g"; rc=1
+    fi
+
+    # (iv) setup.sh invokes the obtaining mechanism out-of-the-box.
+    #      (Stream B's paired meta-test mutation removes this invocation line.)
+    if ! grep -q 'obtain_local_deps.sh' "$REPO_ROOT/scripts/setup.sh" 2>/dev/null; then
+        printf '[FAIL] %s (iv) scripts/setup.sh does not invoke obtain_local_deps.sh\n' "$g"; rc=1
+    fi
+
+    # (v) the wrapper template consumes the resolved-jemalloc mechanism. Require
+    #     the EXACT __JEMALLOC_SO__ placeholder setup.sh substitutes (N2): a
+    #     generic LD_PRELOAD reference must NOT let a gutted wiring pass — the
+    #     placeholder is the load-bearing substitution seam (Step 3). The
+    #     M-CM-LOCAL-DEPS-MECHANISM meta-test mutation targets invariant (iv)
+    #     (setup.sh invocation) and is untouched by this tightening.
+    if ! grep -q '__JEMALLOC_SO__' "$REPO_ROOT/scripts/tmx.template" 2>/dev/null; then
+        printf '[FAIL] %s (v) scripts/tmx.template lacks the __JEMALLOC_SO__ placeholder setup.sh substitutes (resolved-jemalloc wiring gutted)\n' "$g"; rc=1
+    fi
+
+    if [ "$rc" -eq 0 ]; then
+        printf '[PASS] %s (obtaining script + .gitignore + regen manifest + setup wiring + wrapper consume all present)\n' "$g"
+    fi
+    return "$rc"
+}
+
 # Run the new gates. Aggregate failure into V109_FAIL — Layer 1 must
 # stay fail-fast, so any FAIL aborts before the runtime suite (binary is
 # NOT operator-safe with broken P1-P4 artefacts).
@@ -567,6 +658,23 @@ if [ "$V109_FAIL" -ne 0 ]; then
     exit 1
 fi
 echo "  ✓ Layer-1 v1.0.9 PWU gates GREEN"
+
+# ── Layer-1 — CM-LOCAL-DEPS-MECHANISM (§11.4.77/.81/.111) ──────────────
+# Self-contained run block (its own FAIL var + accurate message) for the
+# per-host local-dependency obtaining mechanism gate.
+echo ""
+echo "  Layer-1 static gate — CM-LOCAL-DEPS-MECHANISM (§11.4.77/.81/.111)..."
+LOCALDEPS_FAIL=0
+_check_CM_LOCAL_DEPS_MECHANISM || LOCALDEPS_FAIL=1
+if [ "$LOCALDEPS_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: CM-LOCAL-DEPS-MECHANISM FAILed. The per-host local-dependency"
+    echo "     obtaining mechanism (scripts/obtain_local_deps.sh) is not wired"
+    echo "     end-to-end — investigate the individual [FAIL] (i)-(v) lines"
+    echo "     above. setup.sh will REFUSE to PATH-export the binary."
+    exit 1
+fi
+echo "  ✓ Layer-1 CM-LOCAL-DEPS-MECHANISM gate GREEN"
 
 # Run the full test suite
 echo ""

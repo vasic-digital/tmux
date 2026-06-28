@@ -36,6 +36,13 @@ scripts/tmx-state-bin
 # `go build -o ../tmx-orchestrator-bin .` on each host.
 scripts/tmx-orchestrator-bin
 
+# §11.4.30 + §11.4.77 — per-host LOCAL dependency tree (jemalloc etc.).
+# Obtained/resolved git-ignored by scripts/obtain_local_deps.sh (the
+# §11.4.77 regeneration mechanism, declared in .gitignore-meta/local_deps.yaml).
+# Contains the resolved.env + any locally-built/extracted shared libraries +
+# the tarball cache — all per-machine build derivatives, never versioned.
+.local-deps/
+
 # §11.4.78 CodeGraph — local SQLite knowledge graph (per-machine, regenerated via scripts/codegraph_reindex.sh per §11.4.77)
 .codegraph/codegraph.db
 .codegraph/codegraph.db-*

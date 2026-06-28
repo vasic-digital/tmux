@@ -157,10 +157,41 @@ case "$HOST_OS" in
         BUILD_DIR="$REPO_ROOT/tmux/build"
         BIN_PATH="$BUILD_DIR/bin/tmux"
 
+        # ── local-dependency jemalloc wiring (§11.4.77 + I1 remediation) ────
+        # A host with a compiler but NO container engine + NO system jemalloc
+        # routes here (setup.sh Step 2 Linux: no ENGINE ⇒ build_native). The
+        # bare `-ljemalloc` below would then have NO `-L` to find the
+        # local-prefix libjemalloc that obtain_local_deps.sh source-built into
+        # .local-deps/<plat>/lib → the link would fail. Source resolved.env
+        # directly (so this works standalone AND via setup.sh — a subprocess
+        # does NOT inherit setup's shell vars) and add the local prefix's
+        # include/lib dirs. Also APPEND any inherited CPPFLAGS/CFLAGS/LDFLAGS
+        # (was: plain-assign DISCARDED them — the dead-flag defect). PoC that
+        # `-L$JEMALLOC_LIBDIR -ljemalloc` links a local-prefix jemalloc:
+        # scripts/tests/67_local_deps.sh C3 (builds+runs a mallctl probe
+        # against the resolved local libjemalloc). For a host-system jemalloc
+        # (default path) JEM_* stay empty ⇒ behaviour unchanged (no regression).
+        JEM_CPPFLAGS=""; JEM_LDFLAGS=""
+        _RENV="$REPO_ROOT/.local-deps/${HOST_OS}_${HOST_ARCH}/resolved.env"
+        if [ -f "$_RENV" ]; then
+            # shellcheck disable=SC1090
+            . "$_RENV"
+            case "${JEMALLOC_SOURCE:-}" in
+                host-system|host-probe-fallback|"") : ;;  # default path — no -L/-I needed
+                *)
+                    [ -n "${LOCAL_DEPS_PREFIX:-}" ] && [ -d "${LOCAL_DEPS_PREFIX}/include" ] \
+                        && JEM_CPPFLAGS="-I${LOCAL_DEPS_PREFIX}/include"
+                    [ -n "${JEMALLOC_LIBDIR:-}" ] && JEM_LDFLAGS="-L${JEMALLOC_LIBDIR}"
+                    ;;
+            esac
+        fi
+
         CFLAGS="-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2 \
-                -Wno-unused-parameter -Wno-deprecated-declarations"
-        LDFLAGS="-Wl,-z,relro,-z,now \
-                 -Wl,--no-as-needed -ljemalloc -Wl,--as-needed"
+                -Wno-unused-parameter -Wno-deprecated-declarations \
+                ${JEM_CPPFLAGS} ${CPPFLAGS:-} ${CFLAGS:-}"
+        # -L MUST precede -ljemalloc for the linker to find the local prefix.
+        LDFLAGS="-Wl,-z,relro,-z,now ${JEM_LDFLAGS} \
+                 -Wl,--no-as-needed -ljemalloc -Wl,--as-needed ${LDFLAGS:-}"
 
         cd "$REPO_ROOT/tmux"
         if [ ! -f configure ]; then

@@ -1,0 +1,76 @@
+# §11.4.77 regeneration-mechanism manifest for the per-host LOCAL dependency
+# tree (.local-deps/).
+#
+# The .local-deps/ tree is gitignored per §11.4.30 (per-machine build
+# derivative — resolved.env + obtained/built shared libraries + tarball
+# cache). §11.4.77 requires every gitignored artefact essential to
+# building/running/testing the project to declare HOW it is regenerated so a
+# fresh clone can produce it without operator guesswork.
+#
+# Forensic anchor — ATM-064 (local-dependency obtaining mechanism):
+#   amber  has NO host jemalloc AND no sudo → a container-built binary with
+#          DT_NEEDED libjemalloc.so.2 cannot start without the lib obtained
+#          locally; mistborn HAS jemalloc via Homebrew but `command -v brew`
+#          fails under the non-interactive SSH PATH. The obtain script
+#          RESOLVES by absolute path (§11.4.111) or OBTAINS locally, keeping
+#          jemalloc DYNAMIC (DT_NEEDED preserved — test 61 T3 invariant).
+#
+# A bare .gitignore entry without this manifest would be a §11.4 PASS-bluff
+# variant: the project appears complete to casual inspection but a fresh
+# clone cannot rebuild the local dependency tree.
+
+schema_version: 1
+pattern: .local-deps/
+mechanism_type: obtain
+script_path: scripts/obtain_local_deps.sh
+expected_disk_usage_mb: 20          # resolved.env + lib(s) + include + tarball cache; source-built prefix is the upper bound
+vendor_url_or_source: "per-dep upstream tarball (see deps[].url) / host system / Homebrew"
+integrity_hash: null                # per-dep sha256 pinned in deps[].sha256 (the integrity gate is per dependency, not per-tree)
+requires_network: true              # downloading a dep's source tarball when it must be OBTAINED; false when RESOLVED from an already-present host/brew copy
+requires_credentials: false
+
+# Platforms the obtain mechanism supports (§11.4.81 cross-platform-parity).
+platforms:
+  - Linux            # source build (cc/make) or container extract (docker/Dockerfile) fallback
+  - Darwin           # source build (Xcode CLT clang) or `brew install` fallback
+
+# Dependencies obtained/resolved into .local-deps/<uname-s>_<uname-m>/.
+# Values MIRROR scripts/obtain_local_deps.sh `dep_field` registry — keep in
+# sync when adding a dep there (the script is the source of truth).
+deps:
+  - name: jemalloc
+    version: "5.3.0"
+    url: "https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2"
+    sha256: "2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa"
+    linux_lib: libjemalloc.so.2
+    macos_libs: "libjemalloc.2.dylib libjemalloc.dylib"
+    why: "core hardening allocator; loaded via the tmx wrapper's LD_PRELOAD and linked DT_NEEDED into the binary (test 61 T3 invariant — STAYS DYNAMIC)"
+
+notes: |
+  scripts/obtain_local_deps.sh RESOLVES an already-present dependency by
+  ABSOLUTE path (pkg-config / ldconfig / absolute brew / common lib dirs)
+  or OBTAINS it git-ignored into .local-deps/<plat>/lib when missing
+  (source build with a pinned + sha256-verified tarball, or — Linux, no
+  compiler — extract from the docker/Dockerfile build image). It writes a
+  sourceable .local-deps/<plat>/resolved.env exporting:
+      LOCAL_DEPS_PREFIX, JEMALLOC_SO (ABSOLUTE), JEMALLOC_LIBDIR, JEMALLOC_SOURCE
+
+  Regeneration is idempotent: a present + valid local library is reused, not
+  rebuilt. Force a fresh local build with FORCE_OBTAIN=1; override the root
+  with LOCAL_DEPS_ROOT=<path>; subset with DEPS="jemalloc"; pick the Linux
+  method with OBTAIN_METHOD=auto|source|container.
+
+  Typed exit codes (never a fake success): 10 no obtain toolchain,
+  11 network unreachable, 12 sha256 mismatch, 13 container obtain failed,
+  14 unsupported dep/os.
+
+  scripts/setup.sh step 1b invokes this script + sources resolved.env;
+  step 2b applies `patchelf --set-rpath "$JEMALLOC_LIBDIR" --force-rpath`
+  to the binary (DT_NEEDED runtime resolution); step 3 substitutes the
+  resolved ABSOLUTE path into the generated wrapper's LD_PRELOAD /
+  LD_LIBRARY_PATH (Linux) / DYLD_INSERT_LIBRARIES / DYLD_LIBRARY_PATH
+  (macOS) — LD_PRELOAD does NOT consult rpath, so the absolute path is
+  mandatory (docs/research/local_deps_20260628/research.md Angle 2).
+
+  Anti-bluff coverage: scripts/tests/67_local_deps.sh; §11.4.18 companion
+  guide: docs/scripts/obtain_local_deps.md.

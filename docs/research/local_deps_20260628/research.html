@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>research</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1
+id="deep-multi-angle-research--local-dependency-obtaining-mechanism-atm-064">Deep
+multi-angle research — local-dependency obtaining mechanism
+(ATM-064)</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-28T00:00:00Z <strong>Authority:</strong> §11.4.150 (deep
+multi-angle research before closure), §11.4.8, §11.4.99 (latest-source
+cited) <strong>Scope:</strong> ATM-064 — git-ignored per-host
+local-dependency layer + cross-platform obtaining script
+(<code>scripts/obtain_local_deps.sh</code>); first consumer = jemalloc
+(amber has no host jemalloc</p>
+<ul>
+<li>no sudo; mistborn has it via brew but brew is off the
+non-interactive SSH PATH).</li>
+</ul>
+<h2 id="why-this-research-114150">Why this research (§11.4.150)</h2>
+<p>Before closing ATM-064 (and the ATM-063 jemalloc gap it subsumes),
+confirm — from authoritative sources, ≥2 distinct angles — that (i) the
+chosen approach (obtain <code>libjemalloc.so.2</code> as a git-ignored
+local dep + make the binary/wrapper find it) is correct and standard,
+and (ii) there is no <em>bigger problem</em> we are unaware of. The hard
+project invariant (FACT-confirmed this cycle): <strong>jemalloc MUST
+stay DYNAMIC</strong> — <code>scripts/tests/61_*</code> T3 asserts
+<code>objdump -p | grep NEEDED.*libjemalloc</code>, and jemalloc is
+loaded via the wrapper's <code>LD_PRELOAD</code>. So static-linking is
+forbidden (would be a §11.4.1 fix-A-creates-B); the dependency must be
+<em>obtained + located</em>, not eliminated.</p>
+<h2
+id="angle-1--bundling-a-dynamic-lib-via-rpath-dt_needed-resolution">Angle
+1 — Bundling a dynamic lib via rpath (DT_NEEDED resolution)</h2>
+<p><code>-Wl,-rpath</code> / <code>patchelf</code> with
+<code>$ORIGIN</code> is the standard way to make an executable find a
+bundled <code>.so</code> without a system install. <code>$ORIGIN</code>
+resolves to the executable's own directory at run-time (single-quote it
+so the shell/<code>make</code> don't expand it). This satisfies the
+<code>DT_NEEDED libjemalloc</code> resolution (test-61 invariant
+preserved — jemalloc stays a dynamic dep).</p>
+<ul>
+<li><code>patchelf --set-rpath</code> writes <strong>RUNPATH</strong> by
+default; add <strong><code>--force-rpath</code></strong> to write
+<strong>RPATH</strong>. RPATH takes precedence and (unlike RUNPATH) is
+NOT overridable by <code>LD_LIBRARY_PATH</code>.</li>
+<li><code>make</code>/autoconf mangle a literal <code>$ORIGIN</code> in
+<code>LDFLAGS</code> (<code>$O</code> expansion) → set the rpath with
+<strong>patchelf after the build</strong>, or escape it — NEVER a raw
+<code>-Wl,-rpath,$ORIGIN</code> through <code>make</code>.</li>
+</ul>
+<h2 id="angle-2--ld_preload-ignores-rpathrunpath-the-gotcha">Angle 2 —
+LD_PRELOAD ignores rpath/RUNPATH (THE gotcha)</h2>
+<p>man7 <code>ld.so(8)</code>: libraries named in
+<strong><code>LD_PRELOAD</code> are loaded BEFORE the normal search
+begins</strong>, and preloads do <strong>not</strong> benefit from
+RPATH/RUNPATH the way regular <code>DT_NEEDED</code> deps do — so a
+preload pathname that is not a recognised token must be
+<strong>absolute</strong> (or a
+<code>$ORIGIN</code>/<code>$LIB</code>/<code>$PLATFORM</code>
+dynamic-string token, which <code>LD_PRELOAD</code> <em>does</em>
+understand) to be reliably found.</p>
+<p><strong>Consequence for us:</strong> the project preloads jemalloc,
+so the generated wrapper MUST hand <code>LD_PRELOAD</code> the
+<strong>resolved ABSOLUTE path</strong> to <code>libjemalloc.so.2</code>
+(host / brew-prefix / <code>.local-deps</code>). rpath alone is
+insufficient for the preload. → The mechanism needs
+<strong>BOTH</strong>: (a) patchelf rpath on the binary for the
+<code>DT_NEEDED</code> resolution, (b) the wrapper's
+<code>LD_PRELOAD</code>/<code>LD_LIBRARY_PATH</code> (Linux) /
+<code>DYLD_INSERT_LIBRARIES</code>+<code>DYLD_LIBRARY_PATH</code>
+(macOS) set to the resolved absolute path. This is the §11.4.111
+"resolve-by-stable-identity, not ambient PATH" discipline applied to the
+runtime loader.</p>
+<h2 id="angle-3--jemalloc-specific--obtain-method">Angle 3 —
+jemalloc-specific + obtain method</h2>
+<p>jemalloc upstream (<code>INSTALL.md</code>) supports building from
+source with a custom <code>--prefix</code> (install into a git-ignored
+local prefix, no sudo) and
+<code>--with-jemalloc-prefix</code>/soname-suffix for coexistence. The
+standard production pattern for a host that can't install it system-wide
+is exactly <code>export LD_PRELOAD=/abs/path/to/libjemalloc.so.2</code>
+— i.e. obtain the <code>.so</code> locally + point the loader at it
+(precisely the operator's "git-ignored local dependency" directive). On
+a host with <strong>no compiler</strong> (amber routed to the
+containerised build for that reason), build/extract jemalloc inside the
+build container (glibc 2.35) and place the <code>.so</code> in the
+bind-mounted git-ignored prefix — amber's glibc 2.39 ≥ 2.35, so the
+container-built <code>.so</code> runs on the host.</p>
+<h2 id="no-bigger-problem-verdict-114150c">No-bigger-problem verdict
+(§11.4.150(C))</h2>
+<p>No deeper defect surfaced. The only non-obvious trap —
+<strong>LD_PRELOAD does not use rpath</strong> — is real and is already
+handled by the design (absolute preload path + patchelf rpath for
+DT_NEEDED). The approach (obtain-locally +
+locate-via-rpath+absolute-preload, jemalloc stays dynamic) is the
+documented, standard one; it keeps test-61's
+<code>DT_NEEDED libjemalloc</code> invariant intact (no §11.4.1
+regression) and needs no host install / no sudo on any platform.</p>
+<h2 id="sources-verified-2026-06-28">Sources verified 2026-06-28</h2>
+<ul>
+<li>ld.so(8) — Linux manual page (LD_PRELOAD load order; preload vs
+RPATH/RUNPATH; dynamic string tokens): <a
+href="https://man7.org/linux/man-pages/man8/ld.so.8.html">https://man7.org/linux/man-pages/man8/ld.so.8.html</a></li>
+<li>patchelf(1) manpage (<code>--set-rpath</code>,
+<code>--force-rpath</code> RPATH-vs-RUNPATH): <a
+href="https://manpages.debian.org/unstable/patchelf/patchelf.1.en.html">https://manpages.debian.org/unstable/patchelf/patchelf.1.en.html</a></li>
+<li>Creating relocatable Linux executables with RPATH
+<code>$ORIGIN</code> (single-quote / relocatable bundling): <a
+href="https://nehckl0.medium.com/creating-relocatable-linux-executables-by-setting-rpath-with-origin-45de573a2e98">https://nehckl0.medium.com/creating-relocatable-linux-executables-by-setting-rpath-with-origin-45de573a2e98</a></li>
+<li>rpath — Wikipedia (RPATH vs RUNPATH precedence; LD_LIBRARY_PATH
+override): <a
+href="https://en.wikipedia.org/wiki/Rpath">https://en.wikipedia.org/wiki/Rpath</a></li>
+<li>jemalloc INSTALL.md (build-from-source <code>--prefix</code>,
+prefix/soname options): <a
+href="https://github.com/jemalloc/jemalloc/blob/dev/INSTALL.md">https://github.com/jemalloc/jemalloc/blob/dev/INSTALL.md</a></li>
+<li>jemalloc production LD_PRELOAD pattern (obtain + absolute preload
+path): <a
+href="https://medium.com/@david.lowenfels/just-do-it-manually-3a7b4d151b44">https://medium.com/@david.lowenfels/just-do-it-manually-3a7b4d151b44</a></li>
+</ul>
+</body>
+</html>

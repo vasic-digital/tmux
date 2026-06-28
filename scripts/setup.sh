@@ -239,6 +239,58 @@ case "$HOST_OS" in
         ;;
 esac
 
+# Step 1b — obtain/resolve LOCAL dependencies (jemalloc) out-of-the-box.
+# §11.4.77 regen mechanism + §11.4.111 resolve-by-absolute-path. The
+# obtain script (scripts/obtain_local_deps.sh) RESOLVES an already-present
+# jemalloc by absolute path, or OBTAINS it git-ignored into .local-deps/
+# when genuinely missing, then writes a sourceable resolved.env exporting
+# JEMALLOC_SO (ABSOLUTE), JEMALLOC_LIBDIR, JEMALLOC_SOURCE. We consume
+# those downstream for: Step 2b patchelf rpath (DT_NEEDED resolution at
+# runtime) + Step 3 wrapper LD_PRELOAD/LD_LIBRARY_PATH (LD_PRELOAD ignores
+# rpath → MUST be the absolute path; docs/research/local_deps_20260628).
+echo ""
+echo "[setup] step 1b — obtain/resolve local dependencies (jemalloc)"
+JEMALLOC_SO=""
+JEMALLOC_LIBDIR=""
+JEMALLOC_SOURCE=""
+LOCAL_DEPS_PREFIX=""
+RESOLVED_ENV="$REPO_ROOT/.local-deps/$(uname -s)_$(uname -m)/resolved.env"
+obtain_rc=0
+bash scripts/obtain_local_deps.sh || obtain_rc=$?
+if [ "$obtain_rc" -ne 0 ]; then
+    echo "  ⚠ obtain_local_deps.sh exited $obtain_rc (typed error 10-14, see output above) — NOT faking success (§11.4)"
+fi
+if [ -f "$RESOLVED_ENV" ]; then
+    # shellcheck disable=SC1090
+    . "$RESOLVED_ENV"
+fi
+# Canonicalise: prefer the resolved ABSOLUTE path; fall back to the Step 1
+# host probe ($JEMALLOC) so the wrapper still preloads on hosts where the
+# obtain step found nothing new (honest degradation, never a fake resolution).
+if [ -z "${JEMALLOC_SO:-}" ] && [ -n "${JEMALLOC:-}" ]; then
+    JEMALLOC_SO="$JEMALLOC"
+    JEMALLOC_LIBDIR="$(dirname "$JEMALLOC")"
+    JEMALLOC_SOURCE="host-probe-fallback"
+fi
+if [ -n "${JEMALLOC_SO:-}" ]; then
+    echo "  ✓ resolved jemalloc: $JEMALLOC_SO (libdir: ${JEMALLOC_LIBDIR:-?}, source: ${JEMALLOC_SOURCE:-?})"
+else
+    echo "  ⚠ no jemalloc resolved — wrapper LD_PRELOAD will be inert (tmux still runs; hardening allocator absent)"
+fi
+
+# Build-flag wiring for a local-prefix jemalloc is done DIRECTLY by
+# build_native.sh (§11.4.6/§11.4.124): it sources .local-deps/<plat>/resolved.env
+# itself and adds `-I$LOCAL_DEPS_PREFIX/include -L$JEMALLOC_LIBDIR` (appending,
+# not discarding, inherited flags) — the load-bearing link wiring for the
+# {compiler, no-engine, no-system-jemalloc} host. A previous setup-side
+# `export CPPFLAGS/CFLAGS/LDFLAGS` block lived here but was DEAD: build_native.sh
+# AND build_containerized.sh both plain-ASSIGNED their own flags (and the
+# containerized build runs `--network none` linking libjemalloc-dev INSIDE the
+# image), so nothing consumed the exports. Removed as redundant now that
+# build_native.sh consumes resolved.env directly. The local-prefix RUNTIME
+# resolution remains Step 2b patchelf rpath (belt-and-suspenders) + the
+# wrapper's absolute LD_PRELOAD + LD_LIBRARY_PATH=$JEMALLOC_LIBDIR.
+
 # Step 2 — build the tmux binary natively for this OS
 echo ""
 echo "[setup] step 2 — native build"
@@ -270,6 +322,48 @@ case "$HOST_OS" in
         ;;
 esac
 
+# Step 2b — set the built binary's rpath to the resolved jemalloc libdir so
+# DT_NEEDED libjemalloc.so.2 resolves at RUNTIME with no system install
+# (§11.4.111). `patchelf --set-rpath <dir> --force-rpath` writes RPATH (not
+# RUNPATH) — honoured for the binary's own DT_NEEDED deps. jemalloc STAYS
+# DYNAMIC: patchelf touches only the rpath entry, NEVER DT_NEEDED, so test 61
+# T3 (objdump -p | grep NEEDED.*libjemalloc) stays GREEN. make/autoconf
+# mangle a literal $ORIGIN in LDFLAGS, so the rpath is set with patchelf
+# AFTER the build (docs/research/local_deps_20260628 Angle 1).
+# patchelf is OPTIONAL belt-and-suspenders, NOT required: it makes the binary
+# self-contained when present. When patchelf is ABSENT (e.g. amber: no sudo),
+# jemalloc is resolved by LD_LIBRARY_PATH=$JEMALLOC_LIBDIR (sourced from
+# .local-deps/<plat>/resolved.env) — exported by verify.sh + run_all.sh for the
+# RAW $TMUX_BIN gate/tests AND by the tmx wrapper (Step 3) for interactive use,
+# so the raw-binary verification gate passes with NO patchelf. Linux/ELF only;
+# macOS resolves via the wrapper's DYLD_* env (Mach-O has no patchelf in this
+# toolchain — verify.sh/run_all.sh export DYLD_LIBRARY_PATH there).
+echo ""
+echo "[setup] step 2b — set rpath to resolved jemalloc libdir (Linux/ELF)"
+if [ "$HOST_OS" = "Linux" ]; then
+    PATCHELF_BIN=""
+    for _P in patchelf "$HOME/.local/bin/patchelf" /usr/bin/patchelf /usr/local/bin/patchelf; do
+        if [ "${_P#/}" != "$_P" ]; then
+            [ -x "$_P" ] && { PATCHELF_BIN="$_P"; break; }
+        else
+            command -v "$_P" >/dev/null 2>&1 && { PATCHELF_BIN="$_P"; break; }
+        fi
+    done
+    if [ -n "$PATCHELF_BIN" ] && [ -n "${JEMALLOC_LIBDIR:-}" ] && [ -x "$TMUX_BIN_ABS" ]; then
+        if "$PATCHELF_BIN" --set-rpath "$JEMALLOC_LIBDIR" --force-rpath "$TMUX_BIN_ABS" 2>/dev/null; then
+            echo "  ✓ rpath = $("$PATCHELF_BIN" --print-rpath "$TMUX_BIN_ABS" 2>/dev/null) (jemalloc DT_NEEDED preserved; belt-and-suspenders — binary self-contained)"
+        else
+            echo "  ⚠ patchelf --set-rpath failed — jemalloc still resolves via LD_LIBRARY_PATH=${JEMALLOC_LIBDIR:-?} (resolved.env; exported by verify.sh/run_all.sh + the tmx wrapper)"
+        fi
+    elif [ -z "$PATCHELF_BIN" ]; then
+        echo "  ⓘ patchelf absent (optional belt-and-suspenders) — jemalloc resolves via LD_LIBRARY_PATH=${JEMALLOC_LIBDIR:-?} from resolved.env: exported by verify.sh + run_all.sh for the raw-binary gate/tests AND by the tmx wrapper for interactive use (no patchelf required)"
+    else
+        echo "  ⓘ no resolved JEMALLOC_LIBDIR or binary absent — skip rpath (wrapper LD_PRELOAD still set)"
+    fi
+elif [ "$HOST_OS" = "Darwin" ]; then
+    echo "  ⓘ Darwin: jemalloc resolved via wrapper DYLD_INSERT_LIBRARIES + DYLD_LIBRARY_PATH (Mach-O; no patchelf in toolchain)"
+fi
+
 if [ "$MODE" = "build-only" ]; then
     echo "[setup] --build-only: stopping after step 2"
     exit 0
@@ -279,9 +373,15 @@ fi
 echo ""
 echo "[setup] step 3 — generating tmx wrapper"
 RLIMIT_WRAPPER_ABS="$REPO_ROOT/scripts/tmx-rlimit-wrapper.sh"
+# __JEMALLOC_SO__ / __JEMALLOC_LIBDIR__ come from the resolved.env consumed
+# in Step 1b (the ABSOLUTE path + its libdir) — LD_PRELOAD ignores rpath, so
+# the wrapper needs the absolute path (§11.4.111 + research.md Angle 2). The
+# `:-` guards keep the substitution safe under `set -u` even if obtain found
+# nothing (empty → wrapper's `[ -n "$JEMALLOC_SO" ]` guard skips preload).
 sed \
     -e "s|__TMUX_BIN__|$TMUX_BIN_ABS|g" \
-    -e "s|__JEMALLOC_PATH__|$JEMALLOC|g" \
+    -e "s|__JEMALLOC_SO__|${JEMALLOC_SO:-}|g" \
+    -e "s|__JEMALLOC_LIBDIR__|${JEMALLOC_LIBDIR:-}|g" \
     -e "s|__RLIMIT_WRAPPER__|$RLIMIT_WRAPPER_ABS|g" \
     scripts/tmx.template > scripts/tmx
 chmod +x scripts/tmx

@@ -91,7 +91,6 @@
       color: #606060;
     }
     code {
-      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -155,6 +154,7 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
+    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
     div.columns{display: flex; gap: min(4vw, 1.5em);}
     div.column{flex: auto; overflow-x: auto;}
@@ -305,6 +305,16 @@ source the rc for your shell (<code>source ~/.bashrc</code> or
 <code>source ~/.zshrc</code>). Then <code>tmx new|attach|ls|kill</code>
 invokes the verified vasic-digital build; the system <code>tmux</code>
 command stays untouched and reachable side-by-side.</p>
+<blockquote>
+<p><strong>Local dependencies (§11.4.77).</strong> Missing build/runtime
+deps (e.g. jemalloc) are obtained git-ignored into
+<code>.local-deps/</code> automatically by setup via
+<code>scripts/obtain_local_deps.sh</code> — it resolves a present dep by
+absolute path (§11.4.111; fixes the non-interactive-PATH case) and
+builds/extracts it locally when missing (cross-platform: Linux
+source/container, macOS source/brew). See <a
+href="docs/scripts/obtain_local_deps.md"><code>docs/scripts/obtain_local_deps.md</code></a>.</p>
+</blockquote>
 <h2 id="architecture-native-dual-os-per-session-isolation">Architecture
 (native dual-OS per-session isolation)</h2>
 <pre><code>                    ┌────────────────────────────────────┐
@@ -551,6 +561,13 @@ href="docs/scrolling/README.md"><code>docs/scrolling/README.md</code></a></td>
 <td><a
 href="docs/codegraph/README.md"><code>docs/codegraph/README.md</code></a>
 — install, per-agent MCP wiring, anti-bluff verification</td>
+</tr>
+<tr>
+<td>Local dependencies (§11.4.77)</td>
+<td><a
+href="docs/scripts/obtain_local_deps.md"><code>docs/scripts/obtain_local_deps.md</code></a>
+— per-host obtain-or-resolve mechanism for git-ignored deps
+(jemalloc)</td>
 </tr>
 <tr>
 <td>Architecture plans</td>

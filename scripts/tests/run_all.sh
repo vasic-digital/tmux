@@ -17,6 +17,29 @@ WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 EXPECTED_VERSION="${EXPECTED_VERSION:-3.6a}"
 export TMUX_BIN WRAPPER EXPECTED_VERSION
 
+# ── resolve obtained jemalloc for every raw-$TMUX_BIN test (NO patchelf) ──
+# Each [0-9][0-9]_*.sh test runs the RAW binary directly (not via the tmx
+# wrapper). On a host with NO system jemalloc and NO patchelf (amber: no
+# sudo), the binary's DT_NEEDED libjemalloc.so.2 resolves ONLY if its libdir
+# is on the loader search path. obtain_local_deps.sh wrote the resolved
+# ABSOLUTE libdir into .local-deps/<plat>/resolved.env; export it so every
+# child test inherits it (verify.sh exports the same — this is for the
+# standalone `bash scripts/tests/run_all.sh` path). jemalloc STAYS DYNAMIC:
+# this only adds a search dir, never a static link (§11.4.111; research
+# Angle 2, docs/research/local_deps_20260628). No-op when resolved.env is
+# absent or its libdir is already a default path (e.g. /lib64).
+_LD_RESOLVED_ENV="$REPO_ROOT/.local-deps/$(uname -s)_$(uname -m)/resolved.env"
+if [ -f "$_LD_RESOLVED_ENV" ]; then
+    # shellcheck disable=SC1090
+    . "$_LD_RESOLVED_ENV"
+    if [ -n "${JEMALLOC_LIBDIR:-}" ]; then
+        case "$(uname -s)" in
+            Darwin) export DYLD_LIBRARY_PATH="${JEMALLOC_LIBDIR}${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}" ;;
+            *)      export LD_LIBRARY_PATH="${JEMALLOC_LIBDIR}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ;;
+        esac
+    fi
+fi
+
 # Augment PATH from npm's reported prefix so the codegraph tests (20/22) and
 # codegraph_reindex.sh resolve `codegraph` even when run_all.sh is invoked from
 # a NON-INTERACTIVE shell (SSH-batch, cron, CI). On hosts whose .bashrc adds

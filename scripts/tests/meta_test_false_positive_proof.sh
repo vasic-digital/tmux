@@ -1252,6 +1252,86 @@ v109_run_mutation \
     "FAIL" \
     "cd \"\$REPO_ROOT/scripts/tmx-state\" && go build -o \"\$REPO_ROOT/scripts/tmx-state-bin\" . 2>/dev/null"
 
+# ── M-test67: obtain_local_deps.sh — make resolved.env emit a NONEXISTENT
+#    JEMALLOC_SO → test 67 C1/C2 FAIL ("resolved lib does not exist").
+#    §11.4.77/.81/.111/.115 per-host local-dependency obtaining mechanism.
+#    The SOURCE-layer wiring is asserted by the verify.sh gate
+#    CM-LOCAL-DEPS-MECHANISM; THIS mutation proves the RUNTIME guard (test 67)
+#    has teeth: replacing the `%s_SO=` printf with an echo of a bogus absolute
+#    path makes the script still exit 0 (it "succeeds") while writing a
+#    JEMALLOC_SO that does not exist — exactly the §11.4 PASS-bluff (resolve
+#    reported success, the lib is unusable). Test 67 C1's existence check
+#    catches it → FAIL. scripts/obtain_local_deps.sh is consumed (never
+#    edited) by Stream B; the cp-restore is clean.
+v109_run_mutation \
+    "M-test67" \
+    "make obtain_local_deps.sh resolved.env emit a nonexistent JEMALLOC_SO (test 67 catches the resolved-lib-does-not-exist bluff)" \
+    "scripts/obtain_local_deps.sh" \
+    "inplace_sed 's#.*%s_SO=.*#        echo JEMALLOC_SO=/NONEXISTENT_M_TEST67/libjemalloc.so.2#' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
+    "scripts/tests/67_local_deps.sh" \
+    "^FAIL 67"
+
+# ── M-CM-LOCAL-DEPS-MECHANISM: remove the obtain_local_deps.sh invocation
+#    from setup.sh → the verify.sh gate CM-LOCAL-DEPS-MECHANISM invariant
+#    (iv) (`grep -q obtain_local_deps.sh setup.sh`) FAILs. This is the §1.1
+#    paired mutation for Stream C's gate. setup.sh is owned by Stream A; this
+#    block mutates the REAL setup.sh transiently (backup → delete the
+#    obtain_local_deps lines → run verify.sh → assert the gate [FAIL] line →
+#    restore from backup, EXIT-trapped). It SKIPs cleanly until BOTH the gate
+#    (Stream C) AND the setup.sh invocation (Stream A) have landed — the
+#    conductor runs the pair in the green post-merge tree (per the §11.4.84
+#    no-mutation-residue + dirty-tree guards below).
+echo ""
+echo "--- MUTATION: M-CM-LOCAL-DEPS-MECHANISM (verify.sh gate; setup.sh invocation removed) ---"
+LD_VERIFY="$REPO_ROOT/scripts/verify.sh"
+LD_SETUP="$REPO_ROOT/scripts/setup.sh"
+LD_GATE="CM-LOCAL-DEPS-MECHANISM"
+if [ ! -f "$LD_VERIFY" ] || ! grep -q "$LD_GATE" "$LD_VERIFY" 2>/dev/null; then
+    _skip "$LD_GATE: scripts/verify.sh absent or gate not present yet (Stream C) — conductor runs this after the gate lands"
+elif [ ! -f "$LD_SETUP" ]; then
+    _skip "$LD_GATE: scripts/setup.sh absent"
+elif ! grep -q 'obtain_local_deps.sh' "$LD_SETUP" 2>/dev/null; then
+    _skip "$LD_GATE: scripts/setup.sh does not yet invoke obtain_local_deps.sh (Stream A pending) — nothing to remove; conductor runs this after the setup wiring lands"
+elif git -C "$REPO_ROOT" status --porcelain -- scripts/setup.sh 2>/dev/null | grep -qE '^( M| A|MM|AM|UU)'; then
+    _skip "$LD_GATE: scripts/setup.sh has uncommitted changes — refusing to mutate (§11.4.84 quiescence)"
+else
+    LD_BAK="$LD_SETUP.bak.mldm"
+    if ! cp -p "$LD_SETUP" "$LD_BAK" 2>/dev/null; then
+        _skip "$LD_GATE: backup of setup.sh failed"
+    else
+        _MLDM_BAK="$LD_BAK"; _MLDM_TGT="$LD_SETUP"
+        # EXIT-trapped restore guarantees no mutation residue even on error.
+        trap 'cp -p "$_MLDM_BAK" "$_MLDM_TGT" 2>/dev/null; rm -f "$_MLDM_BAK" 2>/dev/null' EXIT
+        # Delete every line referencing the obtaining script so invariant (iv)
+        # `grep -q obtain_local_deps.sh setup.sh` finds nothing → gate FAILs.
+        inplace_sed '/obtain_local_deps/d' "$LD_SETUP"
+        if grep -q 'obtain_local_deps.sh' "$LD_SETUP" 2>/dev/null; then
+            _fail "$LD_GATE: mutation did not remove the obtain_local_deps.sh invocation from setup.sh"
+        else
+            ld_out="$(bash "$LD_VERIFY" 2>&1)" || true
+            if printf '%s\n' "$ld_out" | grep -q "\[FAIL\] $LD_GATE"; then
+                echo "  [evidence] $(printf '%s\n' "$ld_out" | grep "\[FAIL\] $LD_GATE" | head -1)"
+                _pass "$LD_GATE MUTATION CAUGHT — verify.sh reports [FAIL] $LD_GATE when setup.sh no longer invokes obtain_local_deps.sh (invariant iv)"
+            elif ! printf '%s\n' "$ld_out" | grep -q "$LD_GATE"; then
+                _skip "$LD_GATE: verify.sh exited before reaching the gate (an earlier gate FAILed in the current tree) — conductor runs this in a green post-merge tree"
+            else
+                echo "  >>> verify.sh gate lines: $(printf '%s\n' "$ld_out" | grep "$LD_GATE" | tr '\n' ';')"
+                _fail "$LD_GATE MUTATION ESCAPED — gate did not [FAIL] despite setup.sh missing the obtain_local_deps.sh invocation"
+            fi
+        fi
+        # Manual restore + disarm trap (§11.4.84 — leave no residue).
+        cp -p "$_MLDM_BAK" "$_MLDM_TGT" 2>/dev/null || true
+        rm -f "$_MLDM_BAK" 2>/dev/null || true
+        trap - EXIT
+        # Restore-direction proof (cheap, no full suite): invariant (iv) holds.
+        if grep -q 'obtain_local_deps.sh' "$LD_SETUP" 2>/dev/null; then
+            _pass "$LD_GATE FEATURE RESTORED — setup.sh invokes obtain_local_deps.sh again (invariant iv satisfied)"
+        else
+            _fail "$LD_GATE — setup.sh did not restore the obtain_local_deps.sh invocation after revert"
+        fi
+    fi
+fi
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════
