@@ -6,6 +6,36 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.31] — 2026-06-29
+
+**Fully-autonomous ROOT-FREE build + 4-host install/retest hardening. A live install+retest on all four hosts (nezha, amber, thinker, mistborn) caught six findings — every one a test-harness / build-orchestration robustness issue, NOT a product defect (tmx builds, sessions, and the root-free build work on every host) — all fixed and re-verified GREEN on all four hosts: Linux x86_64 ×3 (including a host with no system jemalloc) and macOS arm64.**
+
+### Added
+
+- **Root-free, sudo-free, interaction-free build path.** `obtain_local_deps.sh` obtains a prebuilt Zig `cc` toolchain (clang+lld+libc+crt, sha256-verified) into git-ignored `.local-deps/`, and `build_native.sh` builds tmux from the 3.6a release tarball with it — so `setup.sh` produces a working `tmx` even on a host with no C toolchain, no root, no sudo, and no interactive prompts. Proven on nezha (test 71 `12/0`). Enforced by the new `CM-NO-SUDO-NO-INTERACTION` verify gate (rejects any `sudo`/`su` command execution and any interactive prompt anywhere in the automation/test scripts).
+
+### Fixed
+
+- **test 68 (session lifecycle) — §11.4.1 harness FAIL-bluff.** `pty_harness.sh` + `68_session_lifecycle.sh` accepted `TERM=dumb` over non-interactive SSH, so the tmux client never attached and the lifecycle test failed while the product worked. Now rejects `dumb`/non-cursor-addressable TERM via a `tput -T <cand> clear` probe and falls through to a usable terminal; + macOS `/tmp`→`/private/tmp` dir-canonical fix. RED→GREEN N=3 (78/0 under forced `TERM=dumb`).
+- **test 71 — unbounded download hang.** The Zig download had no timeout, so a throttled mirror hung the test ~8h. Now bounded (`curl --max-time` / `--speed-limit`) → fails fast (exit 28 in 30s) → honest SKIP when the mirror is throttled; the normal path is unaffected (12/0).
+- **amber build-orchestration (native host-cc path on a constrained host).** (a) `build_native.sh` exports `LD_LIBRARY_PATH` around `./configure` so the autoconf run-test can load the obtained local jemalloc (was EXIT 77 "cannot run C compiled programs"); (b) `setup.sh`'s containerized-success check applies `resolved.env` `LD_LIBRARY_PATH` so a working containerized build is no longer false-failed into a needless native fallback; (c) the native build obtains a LOCAL static `libtinfo.a` (local ncurses `--with-termlib`, or a host `libtinfo.a` fallback) so the binary links no dynamic `-ltinfo` → `CM-NO-DYNAMIC-LIBTINFO` gate + test 61 pass (readelf: 0 `libtinfo` `DT_NEEDED`); (d) `setup.sh` auto-obtains the Go toolchain → `CM-TMX-STATE-GO-PRESENT` gate pass.
+- **macOS self-containment.** `install_deps.sh` honors `INSTALL_DEPS_FORCE_DISTRO` before OS-detection (test 70 C4/C5); `run_all.sh` adds the brew `gnubin` PATH (GNU `timeout`) and re-execs under bash ≥ 4 (tests 30/39/49/57) — a no-op on Linux.
+
+### Changed
+
+- **test 70 C8/G1 + C10 reconciled (§11.4.120)** to assert the new `_cb_ok` containerized-fallback wiring (teeth proven by the paired §1.1 mutation — neither fake-passed nor reverted).
+
+### Verified — all 4 hosts GREEN on this release (captured evidence under `qa-results/loop-20260629/`, no bluff)
+
+| Host | OS | `run_all` | `tmx` → tmux 3.6a |
+|---|---|---|---|
+| nezha | Linux x86_64 | PASS=58 FAIL=0 SKIP=12 (root-free test 71 `12/0`) | ✓ |
+| amber | Linux x86_64 (no system jemalloc) | PASS=50 FAIL=0 SKIP=20 | ✓ |
+| thinker | Linux x86_64 | PASS=50 FAIL=0 SKIP=20 | ✓ |
+| mistborn | macOS arm64 | PASS=61 FAIL=0 SKIP=9 | ✓ |
+
+---
+
 ## [v1.0.30] — 2026-06-29
 
 **Workable-item key prefix corrected ATM- → TMX- (this project, not ATMOSphere). Cross-platform install hardening: curl one-liner installer, libevent/ncurses local-dependency obtain, native-build fallback for rootless-Podman hosts, and an escaped-colon session-color fix.**
