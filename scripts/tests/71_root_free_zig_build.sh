@@ -40,7 +40,9 @@
 # Inputs:     RED_MODE (default 0 = standing GREEN guard; 1 = RED reproduction).
 #             TMX_ZIG_BUILD_N (default 3) — determinism iterations.
 #             ZIG_TEST_SKIP_HEAVY=1 — run only the cheap static checks.
-#             Honours $TMPDIR. Network needed for the GREEN build (else SKIP).
+#             Honours $TMPDIR. Network needed for the GREEN build when no zig
+#             tarball is cached; a throttled/unreachable mirror fails FAST (the
+#             bounded _download) → honest SKIP (§11.4.3), never an ~8-hour hang.
 # Outputs:    EVIDENCE / PASS / FAIL / SKIP lines + summary (run_all-classified).
 # Side-effects: builds under ${TMPDIR}/tmx71.$$ + a scratch LOCAL_DEPS_ROOT +
 #             scratch TMX_BUILD_DIR (trap-cleaned, §11.4.14). HOST-SAFE: NEVER
@@ -167,7 +169,7 @@ if [ "${ZIG_TEST_SKIP_HEAVY:-0}" = "1" ]; then
 fi
 
 # ── build the neuter shim (curated generic tools; NO toolchain/autotools) ──────
-ALLOW="sh bash env printf echo test true false sleep mktemp mkdir rm rmdir ln cp mv cat head tail sort uniq wc tr cut sed awk gawk grep egrep fgrep find xargs basename dirname date chmod chown touch tee expr dd stat readlink realpath od cmp diff tar xz gzip gunzip bzip2 curl wget sha256sum sha1sum md5sum nproc uname id whoami getconf pwd ls file patch which command sync seq comm join paste make gmake install readelf"
+ALLOW="sh bash env printf echo test true false sleep mktemp mkdir rm rmdir ln cp mv cat head tail sort uniq wc tr cut sed awk gawk grep egrep fgrep find xargs basename dirname date chmod chown touch tee expr dd stat readlink realpath od cmp diff tar xz gzip gunzip bzip2 curl wget timeout sha256sum sha1sum md5sum nproc uname id whoami getconf pwd ls file patch which command sync seq comm join paste make gmake install readelf"
 for t in $ALLOW; do
     for d in /usr/bin /bin /usr/local/bin /sbin /usr/sbin; do
         if [ -x "$d/$t" ] && [ ! -e "$SHIM/$t" ]; then ln -s "$d/$t" "$SHIM/$t"; break; fi
@@ -196,7 +198,14 @@ fi
 mkdir -p "$LDR/.tarballs" "$PERSIST_CACHE" 2>/dev/null || true
 cp -n "$PERSIST_CACHE"/*.tar.* "$LDR/.tarballs/" 2>/dev/null || true
 
-# network reachability (only matters when a needed tarball is NOT cached)
+# network reachability (only matters when a needed tarball is NOT cached). This
+# is a CHEAP upfront reachability probe (HEAD) that catches a fully-unreachable
+# mirror → upfront SKIP. NOTE (download-robustness fix): a HEAD returns FAST even
+# when the mirror is BODY-throttled (observed ~1.6 KB/s on the 45 MB zig tarball),
+# so a throttle slips PAST this probe — that case is handled WITHOUT a hang by the
+# bounded _download in obtain_local_deps.sh (it fast-fails the real transfer in
+# seconds) + the network-failure → honest-SKIP classification at the GREEN
+# no-binary branch below (§11.4.3, never the old ~8-hour hang, never a fake PASS).
 _net_ok() { curl -fsI --connect-timeout 12 --max-time 25 https://ziglang.org/download/index.json >/dev/null 2>&1 \
             || wget -q --spider --timeout=25 https://ziglang.org/download/index.json 2>/dev/null; }
 
@@ -256,6 +265,30 @@ neutered_build 1 green
 cp -n "$LDR/.tarballs"/*.tar.* "$PERSIST_CACHE/" 2>/dev/null || true
 
 if [ -z "$BUILT_BIN" ]; then
+    # §11.4.3 honest SKIP vs §11.4.1 FAIL (download-robustness fix): distinguish an
+    # obtain that failed because the zig toolchain could not be DOWNLOADED (mirror
+    # throttled/unreachable — an environment gap, NOT a product defect) from a
+    # genuine build defect. The bounded _download (obtain_local_deps.sh) makes a
+    # throttled/unreachable mirror fail FAST with a typed network error instead of
+    # the old ~8-hour hang; when NO zig was obtained (CC_KIND≠zig) AND the obtain
+    # log carries that typed network signature, the build legitimately cannot
+    # proceed → honest SKIP, never a hang, never a fake PASS. Any non-network cause
+    # (zig obtained but the build broke / a code bug) still FAILs — teeth intact.
+    green_cck="$(sed -n 's/^CC_KIND=//p' "$PFX/resolved.env" 2>/dev/null | head -1)"
+    if [ "$green_cck" != "zig" ] \
+       && grep -qiE 'download failed|REFUSING to download unverified|network unreachable' "$WORK/obtain_green.log" 2>/dev/null; then
+        _skip "C4-C8 GREEN build: zig toolchain could NOT be obtained — mirror throttled/unreachable + no cached tarball (bounded download failed fast, no ~8-hour hang; §11.4.3, never a fake PASS)"
+        tail -8 "$WORK/obtain_green.log" 2>/dev/null | sed 's/^/    obtain> /'
+        { echo "=== throttled/unreachable mirror → honest SKIP $(date -u '+%Y-%m-%dT%H:%M:%SZ') ==="
+          echo "CC_KIND=$green_cck (zig NOT obtained — no toolchain to build with)"
+          echo "--- obtain_green.log tail (typed network failure) ---"
+          tail -15 "$WORK/obtain_green.log" 2>/dev/null; } \
+            > "$EVID_DIR/GREEN_network_skip.log" 2>/dev/null || true
+        echo "════════════════════════════════════════════════════════════════"
+        echo "  test 71 SUMMARY: PASS=$PASS FAIL=$FAIL SKIP=$SKIP (RED_MODE=$RED_MODE)"
+        echo "════════════════════════════════════════════════════════════════"
+        [ "$FAIL" -gt 0 ] && exit 1; exit 0
+    fi
     _fail "C4 GREEN build FAILED — no tmux produced under the obtained zig toolchain"
     tail -20 "$WORK/obtain_green.log" 2>/dev/null | sed 's/^/    obtain> /'
     tail -25 "$WORK/build_green.log"  2>/dev/null | sed 's/^/    build>  /'

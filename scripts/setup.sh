@@ -482,7 +482,7 @@ esac
 # runtime) + Step 3 wrapper LD_PRELOAD/LD_LIBRARY_PATH (LD_PRELOAD ignores
 # rpath → MUST be the absolute path; docs/research/local_deps_20260628).
 echo ""
-echo "[setup] step 1b — obtain/resolve local dependencies (cc + jemalloc + libevent + ncurses)"
+echo "[setup] step 1b — obtain/resolve local dependencies (cc + jemalloc + libevent + ncurses + go)"
 JEMALLOC_SO=""
 JEMALLOC_LIBDIR=""
 JEMALLOC_SOURCE=""
@@ -504,7 +504,15 @@ obtain_rc=0
 # working host compiler the obtained zig feeds the libevent/ncurses/jemalloc
 # source builds that follow. On a normal host `cc` resolves to the host
 # compiler (CC_KIND=host) and nothing changes (no zig obtained, no regression).
-DEPS="cc jemalloc libevent ncurses" bash scripts/obtain_local_deps.sh || obtain_rc=$?
+#
+# `go` (TMX-057, kind=toolchain) is requested too: scripts/tmx-state-bin (Step
+# 3d) + the CM-TMX-STATE-GO-PRESENT verify gate (Step 4) need a Go >= 1.21.
+# obtain_local_deps.sh RESOLVES a suitable host go by absolute path (cheap, no
+# download) or OBTAINS the official prebuilt tarball ROOT-FREE into .local-deps
+# and writes GO_BIN/GOROOT to resolved.env — so a host that shipped no go (e.g.
+# amber 2026-06-29: CM-TMX-STATE-GO-PRESENT FAIL → setup EXIT 4) is auto-solved
+# with no sudo. On a host that already has go, it resolves in place (no obtain).
+DEPS="cc jemalloc libevent ncurses go" bash scripts/obtain_local_deps.sh || obtain_rc=$?
 if [ "$obtain_rc" -ne 0 ]; then
     echo "  ⚠ obtain_local_deps.sh exited $obtain_rc (typed error 10-14, see output above) — NOT faking success (§11.4)"
 fi
@@ -532,6 +540,51 @@ if [ -n "${JEMALLOC_SO:-}" ]; then
 else
     echo "  ⚠ no jemalloc resolved — wrapper LD_PRELOAD will be inert (tmux still runs; hardening allocator absent)"
 fi
+
+# Step 1b (go) — put the resolved/obtained Go toolchain on PATH so Step 3d
+# (tmx-state-bin build) AND Step 4's CM-TMX-STATE-GO-PRESENT gate (verify.sh
+# uses `command -v go`) resolve `go` even on a host that shipped none (TMX-057).
+# obtain_local_deps.sh (DEPS now includes `go`) wrote GO_BIN/GOROOT into
+# resolved.env, sourced above. We only touch PATH when `go` is not already
+# resolvable → a host that already has a suitable go is unchanged (idempotent).
+# §11.4.6: probe the real binary (`go version`) — never claim a go that does not
+# run; on genuine non-obtain (no network etc.) we say so honestly, no fake.
+if ! command -v go >/dev/null 2>&1; then
+    GO_BINDIR=""
+    if [ -n "${GO_BIN:-}" ] && [ -x "${GO_BIN}" ]; then
+        GO_BINDIR="$(dirname "${GO_BIN}")"
+    elif [ -n "${GOROOT:-}" ] && [ -x "${GOROOT}/bin/go" ]; then
+        GO_BINDIR="${GOROOT}/bin"
+    fi
+    if [ -n "$GO_BINDIR" ] && "$GO_BINDIR/go" version >/dev/null 2>&1; then
+        export PATH="${GO_BINDIR}:$PATH"
+        echo "  ✓ go on PATH via ${GO_BINDIR} ($("$GO_BINDIR/go" version 2>/dev/null))"
+    else
+        echo "  ⚠ go not resolved/obtained (GO_BIN/GOROOT absent in resolved.env) — Step 3d + CM-TMX-STATE-GO-PRESENT will be RED (honest, §11.4.6)"
+    fi
+fi
+
+# Step 1b (LD path) — assemble LD_LIBRARY_PATH for HOST runs of the built binary
+# (TMX-FIX-b). build_containerized.sh ends by RUNNING the container-built binary
+# on the HOST (`tmux -V`) as its success-check; that binary dynamically loads
+# libjemalloc.so.2 (+ a source-built libevent/ncursesw). When those resolved
+# into .local-deps (NOT on the default ld.so path) the host run-check dies with
+#   error while loading shared libraries: libjemalloc.so.2
+# → build_containerized exits non-zero → setup needlessly falls back to a native
+# build even though the CONTAINER build SUCCEEDED (forensic:
+# qa-results/loop-20260629/host-install-amber/06_setup_rebuild_full.log). Step 2
+# passes this LD_LIBRARY_PATH into the build_containerized.sh invocation so the
+# host run-check can load the libs. Same source-gating as build_native.sh; EMPTY
+# when every dep is host-system-resolved (default path) ⇒ no behaviour change.
+LOCAL_DEPS_LDPATH=""
+_setup_add_run_libdir() {
+    [ -n "${1:-}" ] || return 0
+    case ":${LOCAL_DEPS_LDPATH}:" in *":$1:"*) return 0 ;; esac
+    LOCAL_DEPS_LDPATH="${LOCAL_DEPS_LDPATH:+${LOCAL_DEPS_LDPATH}:}$1"
+}
+case "${JEMALLOC_SOURCE:-}" in host-system|host-brew|host-probe-fallback|"") : ;; *) _setup_add_run_libdir "${JEMALLOC_LIBDIR:-}" ;; esac
+case "${LIBEVENT_SOURCE:-}" in host-system|host-brew|host-probe-fallback|"") : ;; *) _setup_add_run_libdir "${LIBEVENT_LIBDIR:-}" ;; esac
+case "${NCURSES_SOURCE:-}" in host-system|host-brew|host-probe-fallback|"") : ;; *) _setup_add_run_libdir "${NCURSES_LIBDIR:-}" ;; esac
 
 # Build-flag wiring for a local-prefix jemalloc is done DIRECTLY by
 # build_native.sh (§11.4.6/§11.4.124): it sources .local-deps/<plat>/resolved.env
@@ -584,7 +637,18 @@ case "$HOST_OS" in
                 # decision — native is the safe fallback when the host already
                 # has the build prerequisites). If BOTH fail, surface both and
                 # exit non-zero (never a silent green).
-                if ! bash scripts/build_containerized.sh; then
+                # TMX-FIX-b: pass the local-deps LD_LIBRARY_PATH into the child so
+                # build_containerized.sh's host-side `tmux -V` success-check can
+                # load libjemalloc.so.2 (+ local libevent/ncursesw). The VAR=value
+                # prefix scopes it to this child ONLY (never leaks into Step 2b/3/4
+                # which manage their own). EMPTY ⇒ plain invocation (byte-identical).
+                _cb_ok=1
+                if [ -n "$LOCAL_DEPS_LDPATH" ]; then
+                    LD_LIBRARY_PATH="${LOCAL_DEPS_LDPATH}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" bash scripts/build_containerized.sh || _cb_ok=0
+                else
+                    bash scripts/build_containerized.sh || _cb_ok=0
+                fi
+                if [ "$_cb_ok" = "0" ]; then
                     echo ""
                     echo "[setup] ⚠ containerized build failed (see output above) —"
                     echo "        falling back to a NATIVE host build (§11.4.101)."

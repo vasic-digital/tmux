@@ -58,6 +58,34 @@
 # ticks already used in tests 44/45/46/17.
 PTH_TICK="${PTH_TICK:-0.2}"
 
+# pth_term_usable CAND — return 0 iff CAND is a tmux-USABLE terminal: not just
+# terminfo-present, but cursor-addressable (advertises the `clear` capability
+# tmux requires for an interactive client). A terminfo entry ALONE is NOT
+# enough — `dumb` / `unknown` (the value a non-interactive `ssh host 'cmd'`
+# without `-t`, and minimal/CI hosts, inject as $TERM) DO resolve via
+# `infocmp`, but tmux REFUSES them: the inner `tmux attach` exits 1 with
+# "open terminal failed: terminal does not support clear", so the driver pane
+# dies and #{session_attached} never reaches 1 (the deterministic cross-host
+# C1 failure: PASS under a real TERM on the dev host, FAIL under TERM=dumb over
+# ssh). §11.4.6: `tput -T CAND clear` is the portable Linux+macOS query of the
+# SAME capability whose absence yields tmux's error — proven on every owned
+# host (dumb/unknown → FAIL; screen-256color/xterm-256color → OK).
+pth_term_usable() {
+    _ptu_c="${1:-}"
+    [ -n "$_ptu_c" ] || return 1
+    case "$_ptu_c" in dumb|unknown) return 1 ;; esac
+    if command -v tput >/dev/null 2>&1; then
+        tput -T "$_ptu_c" clear >/dev/null 2>&1 && return 0
+        return 1
+    fi
+    # tput absent (rare): fall back to infocmp + an explicit `clear=` capability
+    # check — a bare `infocmp` success is the very gap that accepted `dumb`.
+    if command -v infocmp >/dev/null 2>&1; then
+        infocmp "$_ptu_c" 2>/dev/null | grep -qE '(^|[,[:space:]])clear=' && return 0
+    fi
+    return 1
+}
+
 # pth_require — verify the three required caller vars are set + the driver
 # binary is executable. Returns 0 if usable, 1 otherwise (caller SKIPs).
 pth_require() {
@@ -92,12 +120,9 @@ pth_run_pane() {
     _pth_dconf="$PTH_TMPDIR/pth_driver.conf"
     if [ ! -f "$_pth_dconf" ]; then
         _pth_dterm=""
-        if command -v infocmp >/dev/null 2>&1; then
-            for _pth_t in "${TERM:-}" screen-256color xterm-256color screen xterm; do
-                [ -n "$_pth_t" ] || continue
-                if infocmp "$_pth_t" >/dev/null 2>&1; then _pth_dterm="$_pth_t"; break; fi
-            done
-        fi
+        for _pth_t in "${TERM:-}" screen-256color xterm-256color screen xterm; do
+            if pth_term_usable "$_pth_t"; then _pth_dterm="$_pth_t"; break; fi
+        done
         [ -n "$_pth_dterm" ] || _pth_dterm="screen-256color"
         printf 'set -g default-terminal "%s"\n' "$_pth_dterm" > "$_pth_dconf" 2>/dev/null || _pth_dconf=""
     fi

@@ -9,6 +9,49 @@
 
 set -uo pipefail
 
+# ── macOS self-containment (§11.4.81) ────────────────────────────────────────
+# A bare non-interactive SSH PATH on macOS is /usr/bin:/bin:/usr/sbin:/sbin —
+# it has NO GNU `timeout` (Homebrew coreutils gnubin) and resolves `bash` to the
+# system /bin/bash 3.2 (no bash-4 features — e.g. test 39's `${_hashes[-1]}`
+# negative array index → "bad array subscript"; tests 30/49 call `timeout` →
+# "command not found"). setup.sh prepends Homebrew's bin and runs the test phase
+# so every child test resolves GNU `timeout` + Homebrew bash; run_all.sh MUST do
+# the SAME so a direct `bash scripts/tests/run_all.sh` matches the setup.sh gate
+# environment (forensic: mistborn.local clean-target retest, 2026-06-29). NO test
+# is weakened — only the harness environment is corrected. Brew is resolved by
+# ABSOLUTE path (§11.4.111) — `command -v brew` fails under the bare SSH PATH.
+# Idempotent + guarded against infinite re-exec; entirely a no-op on Linux.
+if [ "$(uname -s)" = "Darwin" ]; then
+    _BREW=""
+    for _b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+        [ -x "$_b" ] && { _BREW="$_b"; break; }
+    done
+    [ -z "$_BREW" ] && _BREW="$(command -v brew 2>/dev/null || true)"
+    _BREW_BIN=""
+    if [ -n "$_BREW" ]; then
+        _BREW_BIN="$(dirname "$_BREW")"
+        # GNU coreutils gnubin first (so `timeout` resolves to GNU timeout) …
+        _GNUBIN="$("$_BREW" --prefix coreutils 2>/dev/null)/libexec/gnubin"
+        if [ -d "$_GNUBIN" ]; then
+            case ":$PATH:" in *":$_GNUBIN:"*) ;; *) PATH="$_GNUBIN:$PATH" ;; esac
+        fi
+        # … then Homebrew's bin (so every child `bash "$t"` resolves brew bash≥4).
+        case ":$PATH:" in *":$_BREW_BIN:"*) ;; *) PATH="$_BREW_BIN:$PATH" ;; esac
+        export PATH
+    fi
+    # Re-exec under Homebrew bash≥4 when invoked under macOS /bin/bash 3.2, so
+    # run_all.sh itself (and, via PATH above, every child test) runs in a bash-4
+    # environment — the same the setup.sh gate provides. Guard prevents looping.
+    if [ "${BASH_VERSINFO:-0}" -lt 4 ] && [ -z "${TMX_RUNALL_REEXEC:-}" ]; then
+        for _cand in "$_BREW_BIN/bash" /opt/homebrew/bin/bash /usr/local/bin/bash; do
+            [ -n "$_cand" ] && [ -x "$_cand" ] || continue
+            [ "$("$_cand" -c 'echo "${BASH_VERSINFO:-0}"' 2>/dev/null || echo 0)" -ge 4 ] || continue
+            export TMX_RUNALL_REEXEC=1
+            exec "$_cand" "$0" "$@"
+        done
+    fi
+fi
+
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 [ -x "$TMUX_BIN_DEFAULT" ] || TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build/bin/tmux"

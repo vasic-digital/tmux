@@ -278,9 +278,16 @@ else
 fi
 
 # ── C8: G1 native-fallback wiring + G3 build_native invoked behind preflight ──
-if grep -qE 'if ! bash scripts/build_containerized.sh; then' "$SETUP" \
+# Reconciled 2026-06-29 (§11.4.120): the containerized-fail wiring was reworded
+# from `if ! bash scripts/build_containerized.sh; then` to a `_cb_ok` capture
+# (TMX-FIX-b: the LD_LIBRARY_PATH-scoped containerized invocation needs the
+# `|| _cb_ok=0` form). Assert the NEW mechanism — containerized-build failure
+# captured into _cb_ok AND the `_cb_ok=0` branch running build_native — so the
+# native-fallback wiring is still required (teeth: remove the fallback → FAIL).
+if grep -qE 'bash scripts/build_containerized.sh \|\| _cb_ok=0' "$SETUP" \
+   && grep -qE 'if \[ "\$_cb_ok" = "0" \]; then' "$SETUP" \
    && grep -qE 'bash scripts/build_native.sh' "$SETUP"; then
-    _pass "C8/G1 native-fallback wiring present (containerized-fail → build_native.sh)"
+    _pass "C8/G1 native-fallback wiring present (containerized-fail _cb_ok=0 → build_native.sh)"
 else
     _fail "C8/G1 native-fallback wiring missing in setup.sh"
 fi
@@ -347,7 +354,12 @@ fi
 c10_fail=0
 for _f in "$REPO_ROOT/scripts/setup.sh" "$REPO_ROOT/scripts/install_deps.sh" "$REPO_ROOT/scripts/install.sh"; do
     [ -f "$_f" ] || continue
-    _su_hits="$(grep -nE '\bsudo\b|\bsu[ -]' "$_f" 2>/dev/null || true)"
+    # Pure `#` comment lines are filtered (reconciled 2026-06-29, §11.4.120 — same
+    # as the verify.sh CM-NO-SUDO-NO-INTERACTION gate (A)): an internal code comment
+    # mentioning sudo (setup.sh's go-obtain note "# … with no sudo …") is neither an
+    # executed command nor printed advice, so it must not false-FAIL (§11.4.6).
+    _su_hits="$(grep -nE '\bsudo\b|\bsu[ -]' "$_f" 2>/dev/null \
+                | grep -vE '^[0-9]+:[[:space:]]*#' || true)"
     if [ -n "$_su_hits" ]; then
         echo "  >>> ${_f#$REPO_ROOT/} privilege-escalation token(s):"
         printf '%s\n' "$_su_hits" | sed 's/^/      /'

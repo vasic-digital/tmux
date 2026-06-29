@@ -437,13 +437,49 @@ _local_lib_present() {
     return 1
 }
 
+# §11.4.6 BOUNDED-transfer download helper (download-robustness fix, thinker-host
+# retest). The SINGLE download chokepoint for every fetch (jemalloc/libevent/
+# ncurses/go/zig tarballs + zig index.json), so bounding it here bounds them all.
+# Forensic anchor (FACT captured on thinker): ziglang.org body-throttled to
+# ~1.6 KB/s (16135 B in 10 s) — an UNBOUNDED `curl -fsSL` / `wget` would drag the
+# ~45 MB zig tarball at that rate for ~8 HOURS instead of failing. The bounds
+# below make a throttled/dead/unreachable mirror fail FAST (seconds), never hang:
+#   curl (tried FIRST — the finding's path):
+#     --connect-timeout 30   abort if TCP/TLS connect not up in 30 s (unreachable)
+#     --speed-limit 16384 --speed-time 30
+#                            abort if avg throughput stays below 16 KB/s for 30 s
+#                            — 16 KB/s is ~10x the observed 1.6 KB/s throttle yet
+#                            far below any healthy CDN's MB/s, so it trips a real
+#                            throttle in ~30 s but never a healthy download.
+#     --max-time 600         absolute 10-min ceiling backstop (a 45 MB tarball on
+#                            a healthy link finishes in well under a minute; at the
+#                            16 KB/s floor it would be ~48 min, so this caps the
+#                            oscillates-around-the-floor pathological case).
+#   wget (fallback — no native speed-floor):
+#     --timeout=30 --read-timeout=30   connect/dns/read + dead-stall ceilings
+#     --tries=2              bound retries (wget's default is 20 → multiplied hang)
+#     EXTERNAL `timeout 600` wrap when a `timeout` binary is present — the
+#                            wall-clock cap that closes wget's trickle-throttle gap
+#                            (a transfer trickling below the floor but never
+#                            stalling won't trip --read-timeout); falls back to the
+#                            native flags when `timeout` is absent.
+# A partial/aborted download then fails the caller's sha256 verify → a clean typed
+# failure (EC_NETWORK / EC_SHA), NEVER a fake success (§11.4 anti-bluff).
 _download() {
-    local url="$1" out="$2" tool
+    local url="$1" out="$2" tool to
+    to="$(_first_exe /usr/bin/timeout /bin/timeout timeout || true)"
     if tool="$(_first_exe /usr/bin/curl /bin/curl curl || true)"; then
-        "$tool" -fsSL -o "$out" "$url" && return 0
+        "$tool" --connect-timeout 30 --speed-limit 16384 --speed-time 30 \
+                --max-time 600 -fsSL -o "$out" "$url" && return 0
     fi
     if tool="$(_first_exe /usr/bin/wget /bin/wget wget || true)"; then
-        "$tool" -q -O "$out" "$url" && return 0
+        if [ -n "$to" ]; then
+            "$to" 600 "$tool" --timeout=30 --read-timeout=30 --tries=2 \
+                  -q -O "$out" "$url" && return 0
+        else
+            "$tool" --timeout=30 --read-timeout=30 --tries=2 \
+                  -q -O "$out" "$url" && return 0
+        fi
     fi
     return 1
 }
@@ -1010,6 +1046,107 @@ _ncurses_compat_symlinks() {
     return 0
 }
 
+# ── static libtinfo.a — native host-cc build cross-distro guard (TMX-FIX-c) ────
+# §11.4.108/§11.4.120/§11.4.81. The native host-cc build (build_native.sh
+# CC_KIND=host) otherwise links the DYNAMIC host `-ltinfo` (tmux's configure
+# AC_SEARCH_LIBS(setupterm,[tinfo …]) finds libtinfo.so first), giving a
+# DT_NEEDED libtinfo.so that emits the cross-distro
+#   /lib64/libtinfo.so.6: no version information available
+# loader warning on a host whose libtinfo lacks the build-host's NCURSES6_TINFO
+# version nodes → CM-NO-DYNAMIC-LIBTINFO + test 61 T2 FAIL. The containerized
+# build avoids it by passing `LIBTINFO_LIBS="-l:libtinfo.a"` (ubuntu:22.04
+# libncurses-dev ships /usr/lib/.../libtinfo.a). Mirror that for the native path:
+# RESOLVE a host static libtinfo.a by ABSOLUTE path (§11.4.111 — amber:
+# /usr/lib/x86_64-linux-gnu/libtinfo.a from libncurses-dev [FACT 2026-06-29];
+# nezha: /usr/lib64/libtinfo.a), and when the host genuinely has none, OBTAIN a
+# local one via a narrow ncurses `--with-termlib --without-shared` source build.
+# build_native.sh then passes LIBTINFO_CFLAGS+LIBTINFO_LIBS so tmux links the
+# STATIC archive (no libtinfo.so DT_NEEDED). Linux + host-cc ONLY — the zig
+# root-free path KEEPS its DYNAMIC local libncursesw (test 71 C7) and is skipped.
+
+# RESOLVE: print "ABS_LIBTINFO_A|LIBDIR|INCDIR" for a genuine host static
+# libtinfo.a, or return 1. "Genuine" = `ar t` lists members AND (when nm is
+# present) it DEFINES setupterm — a stub/empty file is rejected (§11.4.6/§11.4.123,
+# never claim a fake archive).
+_resolve_static_tinfo() {
+    local d a incd artool nmtool
+    artool="$(_first_exe /usr/bin/ar /bin/ar ar || true)"
+    nmtool="$(_first_exe /usr/bin/nm /bin/nm nm || true)"
+    incd="/usr/include"
+    for d in /usr/include /usr/local/include "/usr/include/$HOST_ARCH-linux-gnu"; do
+        if [ -e "$d/term.h" ] || [ -e "$d/ncurses.h" ]; then incd="$d"; break; fi
+    done
+    for d in "/usr/lib/$HOST_ARCH-linux-gnu" /usr/lib64 /usr/lib /lib64 /lib /usr/local/lib; do
+        a="$d/libtinfo.a"
+        [ -f "$a" ] || continue
+        if [ -n "$artool" ]; then "$artool" t "$a" >/dev/null 2>&1 || continue; fi
+        # Subshell with pipefail OFF: `grep -q` exits early on match, SIGPIPE-ing
+        # `nm` → under the script-wide `set -o pipefail` that non-zero would poison
+        # the pipeline and FALSE-reject a genuine archive (FACT 2026-06-29 nezha).
+        if [ -n "$nmtool" ]; then
+            ( set +o pipefail; "$nmtool" "$a" 2>/dev/null | grep -qE ' [TtRrDd] setupterm$' ) || continue
+        fi
+        printf '%s|%s|%s' "$a" "$d" "$incd"
+        return 0
+    done
+    return 1
+}
+
+# OBTAIN (fallback, host has no static libtinfo.a): a narrow ncurses
+# --with-termlib --without-shared source build → $LIBDIR/libtinfo.a + matching
+# headers → $INCDIR. Uses the resolved host cc (this path is host-cc-gated by the
+# caller). Prints "ABS|LIBDIR|INCDIR" + returns 0 on success; non-zero on failure
+# (the caller is best-effort: a failure leaves TINFO_* unset → build_native links
+# dynamic -ltinfo → CM-NO-DYNAMIC-LIBTINFO FAILs HONESTLY, never a silent green).
+_obtain_static_tinfo() {
+    local ver url want_sha tar dl_sha work srcdir cc mk blog found
+    ver="$(dep_field ncurses version)"
+    url="$(dep_field ncurses url)"
+    want_sha="$(dep_field ncurses sha256)"
+    cc="$(_first_exe /usr/bin/cc /usr/bin/gcc /usr/bin/clang cc gcc clang || true)"
+    mk="$(_first_exe /usr/bin/make /bin/make make || true)"
+    [ -n "$cc" ] && [ -n "$mk" ] || { _err "static tinfo: no host cc/make"; return 1; }
+    mkdir -p "$TARBALL_CACHE"
+    tar="$TARBALL_CACHE/$(basename "$url")"
+    if [ -f "$tar" ]; then dl_sha="$(_sha256_of "$tar" || true)"; [ "$dl_sha" = "$want_sha" ] || rm -f "$tar"; fi
+    if [ ! -f "$tar" ]; then
+        _info "static tinfo: downloading $url" >&2
+        _download "$url" "$tar" || { rm -f "$tar" 2>/dev/null || true; _err "static tinfo: ncurses download failed"; return 1; }
+    fi
+    dl_sha="$(_sha256_of "$tar" || true)"
+    [ "$dl_sha" = "$want_sha" ] || { rm -f "$tar" 2>/dev/null || true; _err "static tinfo: ncurses sha256 mismatch"; return 1; }
+    work="$LOCAL_PREFIX/.tinfo-build"; rm -rf "$work"; mkdir -p "$work" "$LIBDIR" "$INCDIR"
+    tar xf "$tar" -C "$work" 2>/dev/null || { _err "static tinfo: extract failed"; return 1; }
+    srcdir="$(find "$work" -maxdepth 1 -type d -name 'ncurses-*' 2>/dev/null | head -1)"
+    [ -d "$srcdir" ] || { _err "static tinfo: source dir missing"; return 1; }
+    blog="$LOCAL_PREFIX/build_tinfo.log"; : > "$blog" 2>/dev/null || true
+    _info "static tinfo: building narrow termlib static (log: $blog) with CC=$cc" >&2
+    # `make libs` ONLY — NOT `make install` (which runs `tic` to install the
+    # terminfo DB and FAILS when --without-progs leaves no tic built, FACT
+    # 2026-06-29). The static archive lands in $srcdir/lib/; copy it + the
+    # generated public headers directly (no install, no tic).
+    (
+        cd "$srcdir"
+        export CC="$cc" MAKE="$mk"
+        ./configure --prefix="$work/pfx" CC="$cc" MAKE="$mk" \
+            --with-termlib --without-shared --with-normal --without-debug \
+            --without-ada --without-cxx --without-cxx-binding \
+            --without-tests --without-manpages --without-progs \
+            --disable-stripping >>"$blog" 2>&1
+        "$mk" -j"$( (command -v nproc >/dev/null 2>&1 && nproc) || echo 2)" libs >>"$blog" 2>&1
+    ) || { _err "static tinfo: source build failed — see $blog"; return 1; }
+    found="$(find "$srcdir/lib" "$work" -name 'libtinfo*.a' 2>/dev/null | head -1)"
+    [ -n "$found" ] || { _err "static tinfo: build produced no libtinfo*.a — see $blog"; return 1; }
+    cp -f "$found" "$LIBDIR/libtinfo.a" || { _err "static tinfo: copy failed"; return 1; }
+    # matching public headers (curses.h/term.h generated under $srcdir/include)
+    # so build_native's LIBTINFO_CFLAGS=-I$INCDIR resolves <ncurses.h>/<term.h>.
+    cp -f "$srcdir/include"/*.h "$INCDIR/" 2>/dev/null || true
+    [ -f "$INCDIR/ncurses.h" ] || { [ -f "$INCDIR/curses.h" ] && cp -f "$INCDIR/curses.h" "$INCDIR/ncurses.h"; }
+    rm -rf "$work"
+    printf '%s|%s|%s' "$LIBDIR/libtinfo.a" "$LIBDIR" "$INCDIR"
+    return 0
+}
+
 obtain_dep() {
     local dep="$1"
     # Idempotent reuse.
@@ -1257,6 +1394,38 @@ for dep in $DEPS; do
         fi
     } >> "$RESOLVED_ENV.tmp"
 done
+
+# ── TMX-FIX-c: static libtinfo.a for the native host-cc build (§11.4.108) ─────
+# Linux + host-cc ONLY. The zig root-free path (CC_KIND=zig) KEEPS its DYNAMIC
+# local libncursesw (test 71 C7) so it is SKIPPED here. Best-effort: a failure is
+# NON-fatal (does NOT touch overall_rc) — build_native then links dynamic -ltinfo
+# and CM-NO-DYNAMIC-LIBTINFO FAILs HONESTLY (never a silent green, §11.4.6/§11.4.1).
+# Emitted AFTER the DEPS loop so RESOLVED_CC_KIND (set when the `cc` dep is
+# processed) is known. RESOLVE host static archive first (§11.4.111), OBTAIN local
+# only as fallback.
+if [ "$HOST_OS" = "Linux" ] && [ "${RESOLVED_CC_KIND:-host}" != "zig" ]; then
+    _tinfo_out=""; _tinfo_src=""
+    if _tinfo_out="$(_resolve_static_tinfo 2>/dev/null)" && [ -n "$_tinfo_out" ]; then
+        _tinfo_src="host-system"
+        _info "RESOLVED static tinfo → ${_tinfo_out%%|*} (host-system)"
+    elif _tinfo_out="$(_obtain_static_tinfo 2>/dev/null)" && [ -n "$_tinfo_out" ]; then
+        _tinfo_src="local-build"
+        _info "OBTAINED static tinfo → ${_tinfo_out%%|*} (local-build)"
+    else
+        _tinfo_out=""
+        _warn "no static libtinfo.a resolved/obtained — native host-cc build will link DYNAMIC -ltinfo (CM-NO-DYNAMIC-LIBTINFO will FAIL honestly)"
+    fi
+    if [ -n "$_tinfo_out" ]; then
+        _ta="${_tinfo_out%%|*}"; _trest="${_tinfo_out#*|}"
+        _tld="${_trest%%|*}"; _tinc="${_trest##*|}"
+        {
+            printf 'TINFO_STATIC=%s\n' "$_ta"
+            printf 'TINFO_LIBDIR=%s\n' "$_tld"
+            printf 'TINFO_INCDIR=%s\n' "$_tinc"
+            printf 'TINFO_SOURCE=%s\n' "$_tinfo_src"
+        } >> "$RESOLVED_ENV.tmp"
+    fi
+fi
 
 mv "$RESOLVED_ENV.tmp" "$RESOLVED_ENV"
 _info "wrote $RESOLVED_ENV"

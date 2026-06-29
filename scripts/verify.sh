@@ -642,13 +642,14 @@ _check_CM_LOCAL_DEPS_MECHANISM() {
 # "There cannot be any use of su or sudo inside our project full automation
 # scripts or test and no user interaction!" — DIRECT user authority, 2026-06-29.
 # This gate mechanically forbids, at pre-build time:
-#   (A) sudo/su EXECUTION-or-advice tokens in the install/build automation path
-#       (scripts/setup.sh + scripts/install_deps.sh + scripts/install.sh). Those
-#       three files were reworded 2026-06-29 to ZERO sudo/su tokens (the real
-#       escalation `sudo bash install_deps.sh` was removed; root-only install,
-#       honest "re-run as root" message otherwise), so ANY occurrence — exec OR
-#       printed advice — is a regression a bare token-census catches with no
-#       false positive.
+#   (A) sudo/su EXECUTION-or-printed-advice tokens in the install/build automation
+#       path (scripts/setup.sh + scripts/install_deps.sh + scripts/install.sh).
+#       The real escalation `sudo bash install_deps.sh` was removed; root-only
+#       install, honest "re-run as root" message otherwise. A near-zero-token
+#       census catches any executed sudo OR echo/printf "run sudo …" advice as a
+#       regression; PURE `#` comment lines are filtered (consistent with (B)/(C))
+#       so an internal code comment mentioning sudo (setup.sh's go-obtain note
+#       "# … with no sudo …") is not a false positive (§11.4.6/§11.4.120).
 #   (B) human-waiting prompts (`read … </dev/tty` / `read -p`) in ANY automation
 #       script or test under scripts/. EXCLUDED BY DESIGN (NOT automation):
 #         • scripts/tmx + scripts/tmx.template — the INTERACTIVE end-user wrapper
@@ -678,10 +679,19 @@ _check_CM_NO_SUDO_NO_INTERACTION() {
     local rc=0
     local f hits rel
 
-    # (A) install/build path: ZERO sudo/su EXECUTION-or-advice tokens.
+    # (A) install/build path: ZERO sudo/su EXECUTION-or-PRINTED-ADVICE tokens.
+    #     Pure `#` comment lines are filtered (consistent with (B)/(C) below):
+    #     an INTERNAL code comment mentioning sudo (e.g. setup.sh's go-obtain note
+    #     "# … with no sudo …", 2026-06-29) is neither an executed command nor
+    #     user-facing printed advice, so it must not false-FAIL the install path
+    #     (§11.4.6 — match the real invariant, not a literal mention; §11.4.120 —
+    #     reconciled to the gate's OWN comment-handling, NOT weakened: a real
+    #     command-position sudo AND an echo/printf "run sudo …" advice line are
+    #     still caught here, and (C) catches EXECUTION project-wide).
     for f in scripts/setup.sh scripts/install_deps.sh scripts/install.sh; do
         [ -f "$REPO_ROOT/$f" ] || continue
-        hits="$(grep -nE '\bsudo\b|\bsu[ -]' "$REPO_ROOT/$f" 2>/dev/null || true)"
+        hits="$(grep -nE '\bsudo\b|\bsu[ -]' "$REPO_ROOT/$f" 2>/dev/null \
+                | grep -vE '^[0-9]+:[[:space:]]*#' || true)"
         if [ -n "$hits" ]; then
             printf '[FAIL] %s sudo/su token in install/build automation %s:\n' "$g" "$f"
             printf '%s\n' "$hits" | sed 's/^/         /'

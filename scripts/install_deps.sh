@@ -27,7 +27,11 @@
 #                                 install?" preview). Used by the regression test.
 #   INSTALL_DEPS_FORCE_DISTRO=ID  override /etc/os-release ID (test/debug — lets
 #                                 the cross-distro mapping be exercised off-distro
-#                                 under DRY_RUN; §11.4.81).
+#                                 under DRY_RUN; §11.4.81). Applied BEFORE host
+#                                 OS-detection: a forced-distro run takes the
+#                                 Linux distro path on ANY host (incl. macOS), so
+#                                 the platform-neutral package plan is produced
+#                                 cross-platform (no Darwin short-circuit).
 #   INSTALL_DEPS_ASSUME_MISSING=1 treat every package as not-installed (test:
 #                                 forces the full resolved set into the DRY_RUN
 #                                 plan regardless of host state).
@@ -91,7 +95,14 @@ DRY_RUN="${INSTALL_DEPS_DRY_RUN:-0}"
 ASSUME_MISSING="${INSTALL_DEPS_ASSUME_MISSING:-0}"
 
 # ── macOS branch: Xcode Command Line Tools (the C toolchain) + Homebrew libs ──
-if [ "$HOST_OS" = "Darwin" ]; then
+# §11.4.81: honour INSTALL_DEPS_FORCE_DISTRO BEFORE the host OS-detection. A
+# forced-distro run (test/debug DRY-RUN) is platform-NEUTRAL — it must produce
+# THAT distro's Linux package plan on ANY host, including macOS. Without this
+# guard a forced run on Darwin short-circuits into the brew path and dies on a
+# bare SSH PATH ("Homebrew not installed"), so test 70 C4/C5 could never verify
+# the cross-distro mapping off-Linux. No-FORCE on macOS still uses brew; FORCE on
+# Linux is unaffected (HOST_OS already != Darwin there).
+if [ "$HOST_OS" = "Darwin" ] && [ -z "${INSTALL_DEPS_FORCE_DISTRO:-}" ]; then
     # The macOS C compiler/linker/libSystem comes from the Xcode Command Line
     # Tools, NOT Homebrew. A host can have brew yet fail to link if the CLT is
     # absent → the macOS analogue of the missing-crt1.o failure (§11.4.81).

@@ -149,17 +149,26 @@ cat > "$LAUNCH" <<'LAUNCHSH'
 # outer driver pane, then execs the wrapper with the test's isolated env.
 unset TMUX TMUX_PANE
 # §11.4.111: the outer driver pane inherits its TERM from the driver tmux's
-# default-terminal, which on a minimal host may name a terminal with NO
-# terminfo entry (e.g. tmux-256color). The inner tmx server validates $TERM
-# against terminfo on its real PTY and refuses to start when it is absent —
-# the exact C1 failure. Pick the first terminfo-PRESENT candidate so the test
-# exercises the REAL operator scenario (a present TERM), not the terminfo edge.
-if command -v infocmp >/dev/null 2>&1; then
-    for _t in "$TERM" screen-256color xterm-256color screen xterm; do
-        [ -n "$_t" ] || continue
-        if infocmp "$_t" >/dev/null 2>&1; then TERM="$_t"; export TERM; break; fi
-    done
-fi
+# default-terminal. The inner tmx server validates $TERM on its real PTY and
+# the inner `tmux attach` REFUSES a terminal that is not cursor-addressable —
+# the exact C1 failure when a non-interactive `ssh host 'cmd'` (or a minimal/CI
+# host) injects TERM=dumb: `tmux attach` exits 1 with "open terminal failed:
+# terminal does not support clear", the driver pane dies, and the inner client
+# never attaches. A terminfo entry ALONE is NOT a sufficient gate — `dumb` /
+# `unknown` DO resolve via `infocmp` yet tmux rejects them. Pick the first
+# tmux-USABLE candidate (terminfo-present AND `clear`-capable, the capability
+# tmux's error names), so the test exercises the REAL operator scenario (a
+# usable TERM) deterministically on every host. §11.4.6: `tput -T X clear` is
+# the portable Linux+macOS query of that exact capability.
+for _t in "$TERM" screen-256color xterm-256color screen xterm; do
+    [ -n "$_t" ] || continue
+    case "$_t" in dumb|unknown) continue ;; esac
+    if command -v tput >/dev/null 2>&1; then
+        if tput -T "$_t" clear >/dev/null 2>&1; then TERM="$_t"; export TERM; break; fi
+    elif command -v infocmp >/dev/null 2>&1; then
+        if infocmp "$_t" 2>/dev/null | grep -qE '(^|[,[:space:]])clear='; then TERM="$_t"; export TERM; break; fi
+    fi
+done
 exec "$@"
 LAUNCHSH
 chmod +x "$LAUNCH"
@@ -217,6 +226,15 @@ for _iter in 1 2 3; do
     C6SOCK="tmx-$C6NAME"
     NAMES="$NAMES $NAME $C6NAME"
     PROJ="$HOME_DIR/Projects/work_$_iter"; mkdir -p "$PROJ"
+    # §11.4.6 host-robust path compare: the cwd-record hook persists
+    # #{pane_current_path}, which the kernel reports CANONICALISED (symlinks
+    # resolved). On macOS /tmp is a symlink to /private/tmp, so the recorded
+    # value is /private/tmp/... while $PROJ is the /tmp/... literal — they name
+    # the SAME directory. C3/C5 grep the pane's `pwd` OUTPUT (logical, /tmp/...)
+    # so they match, but the C6 `_recall` compare is against the physical path
+    # and FAILed on macOS only. Compare against the canonical form too (Linux:
+    # /tmp is real, so PROJ_REAL == PROJ; no behaviour change there).
+    PROJ_REAL="$(cd "$PROJ" 2>/dev/null && pwd -P || echo "$PROJ")"
     echo "── iter $_iter: session '$NAME' ──"
 
     # ───────────────────────────── C1 + C2 ──────────────────────────────
@@ -419,8 +437,12 @@ for _iter in 1 2 3; do
         else
             _pass "iter $_iter C6: detached session RECYCLED after idle window (has-session gone)"
             # State REMEMBERED across recycle (only the runtime is torn down).
-            [ "$(_recall "$C6NAME")" = "$PROJ" ] && _pass "iter $_iter C6: dir remembered (recall=$PROJ)" \
-                || _fail "iter $_iter C6: dir NOT remembered (recall='$(_recall "$C6NAME")')"
+            _c6_recall="$(_recall "$C6NAME")"
+            if [ "$_c6_recall" = "$PROJ" ] || [ "$_c6_recall" = "$PROJ_REAL" ]; then
+                _pass "iter $_iter C6: dir remembered (recall=$_c6_recall)"
+            else
+                _fail "iter $_iter C6: dir NOT remembered (recall='$_c6_recall')"
+            fi
             [ "$(_getcolor "$C6NAME")" = "red" ] && _pass "iter $_iter C6: color remembered (get-color=red)" \
                 || _fail "iter $_iter C6: color NOT remembered (get-color='$(_getcolor "$C6NAME")')"
             # §11.4.123: prove the password genuinely PERSISTED across recycle —

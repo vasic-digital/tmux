@@ -193,6 +193,19 @@ case "$HOST_OS" in
         LE_CPPFLAGS=""; LE_LDFLAGS=""; NC_CPPFLAGS=""; NC_LDFLAGS=""
         LOCAL_PKGCONFIG=""; _NEED_LOCAL_PC=0
         CC_KIND=""; CC_WRAPPER_DIR=""
+        # Colon-joined list of LOCAL-prefix lib dirs holding a source-built /
+        # obtained dependency the built binary loads at RUNTIME (TMX-FIX-a).
+        # Exported as LD_LIBRARY_PATH below so autoconf's "checking whether we
+        # are cross compiling" RUN-test (./conftest) AND the final `tmux -V`
+        # probe can dynamically load them. STAYS EMPTY when every dep is
+        # host-system-resolved (default ld.so path) ⇒ no LD_LIBRARY_PATH change
+        # ⇒ host-toolchain path byte-identical (no regression).
+        LOCAL_RUN_LIBDIRS=""
+        _add_run_libdir() {
+            [ -n "${1:-}" ] || return 0
+            case ":${LOCAL_RUN_LIBDIRS}:" in *":$1:"*) return 0 ;; esac
+            LOCAL_RUN_LIBDIRS="${LOCAL_RUN_LIBDIRS:+${LOCAL_RUN_LIBDIRS}:}$1"
+        }
         _RENV="$LOCAL_DEPS_ROOT/${HOST_OS}_${HOST_ARCH}/resolved.env"
         if [ -f "$_RENV" ]; then
             # shellcheck disable=SC1090
@@ -203,6 +216,7 @@ case "$HOST_OS" in
                     [ -n "${LOCAL_DEPS_PREFIX:-}" ] && [ -d "${LOCAL_DEPS_PREFIX}/include" ] \
                         && JEM_CPPFLAGS="-I${LOCAL_DEPS_PREFIX}/include"
                     [ -n "${JEMALLOC_LIBDIR:-}" ] && JEM_LDFLAGS="-L${JEMALLOC_LIBDIR}"
+                    _add_run_libdir "${JEMALLOC_LIBDIR:-}"
                     ;;
             esac
             case "${LIBEVENT_SOURCE:-}" in
@@ -210,6 +224,7 @@ case "$HOST_OS" in
                 *)
                     [ -n "${LIBEVENT_INCDIR:-}" ] && LE_CPPFLAGS="-I${LIBEVENT_INCDIR}"
                     [ -n "${LIBEVENT_LIBDIR:-}" ] && LE_LDFLAGS="-L${LIBEVENT_LIBDIR}"
+                    _add_run_libdir "${LIBEVENT_LIBDIR:-}"
                     _NEED_LOCAL_PC=1
                     ;;
             esac
@@ -218,6 +233,7 @@ case "$HOST_OS" in
                 *)
                     [ -n "${NCURSES_INCDIR:-}" ] && NC_CPPFLAGS="-I${NCURSES_INCDIR}"
                     [ -n "${NCURSES_LIBDIR:-}" ] && NC_LDFLAGS="-L${NCURSES_LIBDIR}"
+                    _add_run_libdir "${NCURSES_LIBDIR:-}"
                     _NEED_LOCAL_PC=1
                     ;;
             esac
@@ -228,6 +244,24 @@ case "$HOST_OS" in
                && [ -d "${LOCAL_DEPS_PREFIX}/lib/pkgconfig" ]; then
                 LOCAL_PKGCONFIG="${LOCAL_DEPS_PREFIX}/lib/pkgconfig"
             fi
+        fi
+
+        # ── LD_LIBRARY_PATH for autoconf RUN-tests + the final `tmux -V` probe
+        # (TMX-FIX-a; amber 2026-06-29) ─────────────────────────────────────
+        # autoconf's "checking whether we are cross compiling" RUNS ./conftest,
+        # and below this script RUNS the built binary (`"$BIN_PATH" -V`). When a
+        # dependency was source-built/obtained into a LOCAL prefix (libjemalloc.so.2
+        # / libevent / ncursesw) that is NOT on the default ld.so path, a RUN with
+        # no LD_LIBRARY_PATH dies with
+        #   ./conftest: error while loading shared libraries: libjemalloc.so.2
+        # → autoconf aborts `configure: error: cannot run C compiled programs`
+        # (setup --rebuild EXIT 77; forensic:
+        # qa-results/loop-20260629/host-install-amber/07_config_log.txt:124). Export
+        # the SAME local lib dirs the -L flags already point at so the run-tests +
+        # the -V probe can load them. Inherited by the zig subshell below too.
+        # EMPTY ⇒ no LD_LIBRARY_PATH change ⇒ fully-host-resolved path unchanged.
+        if [ -n "$LOCAL_RUN_LIBDIRS" ]; then
+            export LD_LIBRARY_PATH="${LOCAL_RUN_LIBDIRS}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
         fi
 
         CFLAGS="-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2 \
@@ -306,7 +340,29 @@ case "$HOST_OS" in
                 "$MKBIN" install 2>&1 | tail -3
             ) || { echo "[build_native] ✗ zig tmux build FAILED"; exit 1; }
         else
-            # ── existing host-toolchain submodule path (unchanged) ───────────
+            # ── existing host-toolchain submodule path ───────────────────────
+            # ── TMX-FIX-c: static libtinfo seam (CC_KIND=host native build) ──
+            # resolved.env (sourced above) carries TINFO_STATIC when
+            # obtain_local_deps RESOLVED a host static libtinfo.a (amber:
+            # /usr/lib/x86_64-linux-gnu/libtinfo.a) OR BUILT a local one. tmux's
+            # configure uses PKG_CHECK_MODULES(LIBTINFO,tinfo) — setting BOTH
+            # LIBTINFO_CFLAGS (non-empty) AND LIBTINFO_LIBS makes it take the
+            # ENV-override branch WITHOUT a tinfo.pc (amber has none), so tmux
+            # links the STATIC archive (-l:libtinfo.a) → NO libtinfo.so DT_NEEDED
+            # → CM-NO-DYNAMIC-LIBTINFO / test 61 T2 pass (the cross-distro guard
+            # the containerized build already gets). EMPTY TINFO_STATIC ⇒ both
+            # vars stay empty ⇒ `test -n ""` false in PKG_CHECK_MODULES ⇒
+            # configure unchanged (dynamic -ltinfo; gate FAILs honestly). The zig
+            # path above keeps its DYNAMIC local libncursesw (test 71 C7).
+            TINFO_CFG_CFLAGS=""; TINFO_CFG_LIBS=""
+            if [ -n "${TINFO_STATIC:-}" ] && [ -f "${TINFO_STATIC}" ]; then
+                TINFO_CFG_CFLAGS="-I${TINFO_INCDIR:-/usr/include}"
+                TINFO_CFG_LIBS="-l:libtinfo.a"
+                [ -n "${TINFO_LIBDIR:-}" ] && LDFLAGS="-L${TINFO_LIBDIR} $LDFLAGS"
+                echo "[build_native] static tinfo: LIBTINFO_LIBS='$TINFO_CFG_LIBS' from ${TINFO_STATIC} (${TINFO_SOURCE:-?})"
+            else
+                echo "[build_native] ⚠ no static libtinfo.a (TINFO_STATIC unset) — linking dynamic -ltinfo (CM-NO-DYNAMIC-LIBTINFO will FAIL honestly)"
+            fi
             cd "$REPO_ROOT/tmux"
             if [ ! -f configure ]; then
                 sh autogen.sh 2>&1 | tail -3
@@ -317,6 +373,7 @@ case "$HOST_OS" in
 
             echo "[build_native] configuring..."
             CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" \
+            LIBTINFO_CFLAGS="$TINFO_CFG_CFLAGS" LIBTINFO_LIBS="$TINFO_CFG_LIBS" \
             PKG_CONFIG_PATH="${LOCAL_PKGCONFIG:+${LOCAL_PKGCONFIG}:}${PKG_CONFIG_PATH:-}" \
                 ./configure --prefix="$BUILD_DIR" --disable-debug 2>&1 | tail -10
 
