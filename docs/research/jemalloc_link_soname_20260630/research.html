@@ -1,0 +1,139 @@
+<h1
+id="deep-research-jemalloc-link-by-soname-fix-install.sh-exit-77">Deep
+research — jemalloc link-by-SONAME fix (install.sh exit 77)</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-30T00:00:00Z <strong>Scope:</strong> §11.4.150 mandatory deep
+multi-angle research for the <code>build_native.sh</code> jemalloc-link
+fix (host path) + its zig-path exception.</p>
+<h2 id="problem-fact-captured">Problem (FACT, captured)</h2>
+<p><code>bash scripts/install.sh</code> on a base ALT host exited 77.
+Forensic chain: rootless podman lacked <code>newuidmap</code> →
+containerized build failed → §11.4.101 native fallback ran
+<code>build_native.sh</code> → <code>./configure</code> died
+<code>C compiler cannot create executables</code>.
+<code>config.log</code> real cause:</p>
+<pre><code>/usr/bin/ld.bfd: cannot find -ljemalloc: No such file or directory</code></pre>
+<p>The host ships a <strong>runtime-only</strong> jemalloc —
+<code>/lib64/libjemalloc.so.2</code> (+ <code>.so.2.0</code>) with
+<strong>no</strong> <code>-devel</code> <code>libjemalloc.so</code>
+symlink and no <code>.a</code>. <code>build_native.sh</code> injected
+bare <code>-ljemalloc</code> into the configure-time
+<code>LDFLAGS</code>, which the GNU linker cannot resolve without a
+<code>libjemalloc.so</code> symlink — poisoning even the trivial “can
+the compiler link?” probe.</p>
+<p>Captured proof
+(<code>qa-results/loop-20260630/jemalloc-link-soname/</code>): -
+<code>C1_bare_ljemalloc.log</code>:
+<code>/usr/bin/ld.bfd: cannot find -ljemalloc</code> (FAILS) -
+<code>C1_soname_link.log</code>: empty →
+<code>-l:libjemalloc.so.2</code> LINKS</p>
+<h2 id="angle-1-gnu-ld--lnamespec-authoritative">Angle 1 — GNU ld
+<code>-l:namespec</code> (authoritative)</h2>
+<p>GNU Binutils <code>ld</code> manual, <em>Options</em>
+(<code>-l namespec</code> / <code>--library=namespec</code>):</p>
+<blockquote>
+<p>“If namespec is of the form <code>:filename</code>, ld will search
+the library path for a file called filename … which always specifies a
+file called filename.”</p>
+</blockquote>
+<p>⇒ <code>-l:libjemalloc.so.2</code> resolves the
+<strong>exact</strong> runtime SONAME file with no name-mangling and
+<strong>no dev symlink required</strong>. This is the correct, root-free
+resolution for a runtime-only host jemalloc, and aligns with the
+project’s §11.4.111 resolve-by-stable-name discipline (the resolved
+<code>JEMALLOC_SO</code> SONAME basename is the stable identifier).</p>
+<p>Source: <a
+href="https://sourceware.org/binutils/docs/ld/Options.html"
+class="uri">https://sourceware.org/binutils/docs/ld/Options.html</a>
+(verified 2026-06-30).</p>
+<h2
+id="angle-2-zig-cc-does-not-support--l-authoritative-empirical">Angle 2
+— <code>zig cc</code> does NOT support <code>-l:</code> (authoritative +
+empirical)</h2>
+<p>Applying the same <code>-l:</code> form to the <strong>zig</strong>
+native-build path (the ROOT-FREE obtained-toolchain branch) BROKE it:
+configure died <code>C compiler cannot create executables</code> under
+the obtained zig toolchain.</p>
+<p>Authoritative confirmation — ziglang/zig issue #10851:
+“<code>zig cc</code> doesn’t handle <code>-l :$FILE</code>” → underlying
+<code>ld.lld: error: cannot open :libfoo.so.1</code>. <code>-l:</code>
+is a GNU-ld extension <code>zig cc</code>/LLD does not accept.</p>
+<p>Source: <a href="https://github.com/ziglang/zig/issues/10851"
+class="uri">https://github.com/ziglang/zig/issues/10851</a> (verified
+2026-06-30).</p>
+<p>Empirical corroboration:
+<code>scripts/tests/71_root_free_zig_build.sh</code> PASSED (12/0/0) on
+the pre-fix tree (bare <code>-ljemalloc</code>), FAILED with
+<code>-l:</code> applied, and PASSED again (12/0/0) after the zig line
+was reverted to bare — isolated in a throwaway <code>git worktree</code>
+(§11.4.114). The zig path’s jemalloc is a LOCAL source-build whose
+<code>make install</code> ships a <code>libjemalloc.so</code> dev
+symlink, so bare <code>-ljemalloc</code> (+ <code>-L$PFX/lib</code>)
+resolves correctly there.</p>
+<h2 id="resolution-two-mechanism-11.4.111-honest-boundary">Resolution
+(two-mechanism, §11.4.111 honest boundary)</h2>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>Path</th>
+<th>jemalloc provenance</th>
+<th>dev symlink?</th>
+<th>linker</th>
+<th>link token</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>host-toolchain (<code>LDFLAGS</code>)</td>
+<td>host runtime-only <code>.so.2</code></td>
+<td>NO</td>
+<td>GNU ld</td>
+<td><code>-l:$(basename "$JEMALLOC_SO")</code>
+(<code>${JEM_LINK}</code>)</td>
+</tr>
+<tr>
+<td>zig (<code>ZLDFLAGS</code>)</td>
+<td>local source-build</td>
+<td>YES</td>
+<td>ld.lld</td>
+<td>bare <code>-ljemalloc</code></td>
+</tr>
+<tr>
+<td>macOS (<code>LDFLAGS</code>)</td>
+<td>brew</td>
+<td>YES (<code>.dylib</code>)</td>
+<td>ld64</td>
+<td>bare <code>-ljemalloc</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="confirm-no-bigger-problem-11.4.150c">Confirm-no-bigger-problem
+(§11.4.150(C))</h2>
+<p>The fix is a pure <strong>link-token</strong> change. The produced
+binary’s DT_NEEDED is unchanged — <code>ldd tmux/build/bin/tmux</code>
+shows <code>libjemalloc.so.2 =&gt; /lib64/libjemalloc.so.2</code> (same
+SONAME recorded as before), and <code>tmux -V</code> =
+<code>tmux 3.6a</code>. No runtime behaviour change; only the
+configure/link-time resolution is fixed. No deeper defect masked: the
+original failure was a missing dev symlink, not a broken jemalloc.</p>
+<h2 id="sources-verified-2026-06-30">Sources verified 2026-06-30</h2>
+<ul>
+<li>GNU Binutils <code>ld</code> manual — Options
+(<code>-l:namespec</code>): <a
+href="https://sourceware.org/binutils/docs/ld/Options.html"
+class="uri">https://sourceware.org/binutils/docs/ld/Options.html</a></li>
+<li>ziglang/zig#10851 (<code>zig cc</code> no <code>-l:</code> support):
+<a href="https://github.com/ziglang/zig/issues/10851"
+class="uri">https://github.com/ziglang/zig/issues/10851</a></li>
+<li>Captured evidence:
+<code>qa-results/loop-20260630/jemalloc-link-soname/C1_*.log</code>,
+test 71 isolation (pre-fix PASS / <code>-l:</code> FAIL / reverted
+PASS).</li>
+</ul>

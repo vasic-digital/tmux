@@ -853,6 +853,21 @@ run_mutation \
     "scripts/tests/48_modifier_drag_override.sh" \
     "FAIL.*T1"
 
+# ── M72: build_native.sh — revert jemalloc link to bare -ljemalloc ──────
+# §11.4.111 / §1.1 paired mutation for CM-JEMALLOC-LINK-BY-SONAME. Reverting
+# the resolved-SONAME ${JEM_LINK} form back to bare -ljemalloc reintroduces the
+# defect (install.sh exit 77 on a runtime-only-jemalloc host, forensic
+# 2026-06-30). Test 72's mode-agnostic C2b standing invariant (current artifact
+# carries the fix) then FAILs → MUTATION CAUGHT. The `\${JEM_LINK}` is escaped so
+# the literal reaches sed at eval-time (not shell-expanded to empty here).
+run_mutation \
+    "M72: build_native.sh jemalloc link reverted to bare -ljemalloc (§11.4.111)" \
+    "scripts/build_native.sh" \
+    "inplace_sed 's|\${JEM_LINK}|-ljemalloc|g' \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/72_jemalloc_link_soname.sh" \
+    "FAIL.*C2b"
+
 # ═══════════════════════════════════════════════════════════════════════
 # v1.0.9 shell-session-resume PWUs (P5) — paired mutations
 # ═══════════════════════════════════════════════════════════════════════

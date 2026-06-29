@@ -638,6 +638,53 @@ _check_CM_LOCAL_DEPS_MECHANISM() {
     return "$rc"
 }
 
+# ── CM-JEMALLOC-LINK-BY-SONAME — §11.4.111 resolve-by-stable-name ─────────────
+# The jemalloc LINK token in scripts/build_native.sh (Linux native path). A host
+# with a RUNTIME-only jemalloc (libjemalloc.so.2, NO -devel `libjemalloc.so`
+# symlink) makes bare `-ljemalloc` unresolvable → `cannot find -ljemalloc`
+# poisons even configure's "C compiler cannot create executables" probe
+# (install.sh exit 77; forensic 2026-06-30, qa-results/loop-20260630/). The fix
+# links by the resolved SONAME basename (`-l:libjemalloc.so.2`) which the GNU
+# linker resolves WITHOUT a dev symlink. This SOURCE-layer gate asserts the
+# HOST-toolchain native LDFLAGS line — the GNU (--no-as-needed) jemalloc-link
+# line — uses the resolved ${JEM_LINK} form AND carries the
+# -l:$(basename "$JEMALLOC_SO") derivation. The zig path legitimately keeps bare
+# -ljemalloc (local-build jemalloc with a dev symlink + the zig wrapper rejects
+# -l:NAME, regression caught 2026-06-30) and the macOS line (brew dev .dylib,
+# -search_paths_first) keeps bare too — both OUT of scope. Runtime/anti-bluff
+# half: scripts/tests/72_jemalloc_link_soname.sh
+# + the paired meta-test mutation M-CM-JEMALLOC-LINK-BY-SONAME (reverts
+# ${JEM_LINK}→-ljemalloc → forces this gate FAIL).
+_check_CM_JEMALLOC_LINK_BY_SONAME() {
+    local g="CM-JEMALLOC-LINK-BY-SONAME"
+    local rc=0
+    local s="$REPO_ROOT/scripts/build_native.sh"
+    if [ ! -f "$s" ]; then
+        printf '[FAIL] %s (i) missing scripts/build_native.sh\n' "$g"; return 1
+    fi
+    if ! bash -n "$s" >/dev/null 2>&1; then
+        printf '[FAIL] %s (i) scripts/build_native.sh fails `bash -n` (§11.4.67)\n' "$g"; rc=1
+    fi
+    local fixed
+    # The HOST-toolchain native LDFLAGS line is the GNU (--no-as-needed) jemalloc
+    # link line that MUST use the resolved ${JEM_LINK} form (this is the actual
+    # fix). The zig path legitimately keeps bare -ljemalloc — its local-build
+    # jemalloc ships a `libjemalloc.so` dev symlink AND the zig cc/LLD wrapper
+    # rejects the `-l:NAME` extension (§11.4.111 honest boundary) — and the macOS
+    # line uses brew's dev dylib; both are OUT of scope.
+    fixed="$(grep -nE -- '-Wl,--no-as-needed' "$s" | grep -F -- '${JEM_LINK}' | grep -cE . || true)"
+    if [ "${fixed:-0}" -lt 1 ]; then
+        printf '[FAIL] %s (ii) host-toolchain GNU jemalloc-link line does NOT use the resolved ${JEM_LINK} form — bare -ljemalloc cannot resolve a runtime-only host jemalloc (install.sh exit 77)\n' "$g"; rc=1
+    fi
+    if ! grep -qE -- '-l:\$\(basename "\$JEMALLOC_SO"\)' "$s"; then
+        printf '[FAIL] %s (iii) missing -l:$(basename "$JEMALLOC_SO") SONAME derivation (§11.4.111)\n' "$g"; rc=1
+    fi
+    if [ "$rc" -eq 0 ]; then
+        printf '[PASS] %s (host-toolchain GNU jemalloc-link uses resolved -l:SONAME via ${JEM_LINK}; -l:$(basename …) derivation present)\n' "$g"
+    fi
+    return "$rc"
+}
+
 # ── CM-NO-SUDO-NO-INTERACTION (operator mandate 2026-06-29) ──────────────────
 # "There cannot be any use of su or sudo inside our project full automation
 # scripts or test and no user interaction!" — DIRECT user authority, 2026-06-29.
@@ -800,6 +847,23 @@ if [ "$LOCALDEPS_FAIL" -ne 0 ]; then
     exit 1
 fi
 echo "  ✓ Layer-1 CM-LOCAL-DEPS-MECHANISM gate GREEN"
+
+# ── Layer-1 — CM-JEMALLOC-LINK-BY-SONAME (§11.4.111) ──────────────────
+# Self-contained run block for the jemalloc resolve-by-SONAME link gate.
+echo ""
+echo "  Layer-1 static gate — CM-JEMALLOC-LINK-BY-SONAME (§11.4.111)..."
+JEMLINK_FAIL=0
+_check_CM_JEMALLOC_LINK_BY_SONAME || JEMLINK_FAIL=1
+if [ "$JEMLINK_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: CM-JEMALLOC-LINK-BY-SONAME FAILed. scripts/build_native.sh links"
+    echo "     jemalloc with a bare -ljemalloc that a RUNTIME-only host (no -devel"
+    echo "     libjemalloc.so symlink) cannot resolve → configure dies 'C compiler"
+    echo "     cannot create executables' (install.sh exit 77). Link by the resolved"
+    echo "     SONAME basename (-l:\$(basename \"\$JEMALLOC_SO\")) via \${JEM_LINK}."
+    exit 1
+fi
+echo "  ✓ Layer-1 CM-JEMALLOC-LINK-BY-SONAME gate GREEN"
 
 # ── Layer-1 — CM-NO-SUDO-NO-INTERACTION (operator mandate 2026-06-29) ──
 # Self-contained run block (own FAIL var + accurate message) for the

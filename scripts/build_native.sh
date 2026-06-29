@@ -180,6 +180,18 @@ case "$HOST_OS" in
         # against the resolved local libjemalloc). For a host-system jemalloc
         # (default path) JEM_* stay empty ⇒ behaviour unchanged (no regression).
         JEM_CPPFLAGS=""; JEM_LDFLAGS=""
+        # ── jemalloc LINK token (§11.4.111 resolve-by-stable-name) ──────────
+        # Default bare `-ljemalloc` REQUIRES a `libjemalloc.so` dev symlink
+        # (the -devel package). A host with a RUNTIME-only jemalloc (just
+        # libjemalloc.so.2, no dev symlink — the common base-distro case) makes
+        # bare `-ljemalloc` UNRESOLVABLE → `cannot find -ljemalloc` poisons even
+        # configure's "C compiler cannot create executables" probe (install.sh
+        # exit 77; forensic 2026-06-30, qa-results/loop-20260630/). Below, when
+        # resolved.env records a concrete JEMALLOC_SO, we link it by its
+        # resolved SONAME basename via `-l:NAME`, which the GNU linker resolves
+        # WITHOUT a dev symlink (works for a host-system runtime-only .so.2 AND
+        # a local-build .so/.a alike). Empty JEMALLOC_SO ⇒ keep the bare default.
+        JEM_LINK="-ljemalloc"
         # ── local-prefix BUILD deps (libevent + ncurses) (§11.4.77) ─────────
         # A minimal host with a compiler but NO libevent-dev / libncurses-dev
         # (e.g. nezha: /usr/include/event2/event.h absent) source-builds them
@@ -210,6 +222,11 @@ case "$HOST_OS" in
         if [ -f "$_RENV" ]; then
             # shellcheck disable=SC1090
             . "$_RENV"
+            # §11.4.111: link jemalloc by its resolved SONAME basename so a
+            # runtime-only host jemalloc (no -devel `libjemalloc.so` symlink)
+            # links via `-l:libjemalloc.so.2` instead of the unresolvable bare
+            # `-ljemalloc`. Empty JEMALLOC_SO ⇒ keep the bare default.
+            [ -n "${JEMALLOC_SO:-}" ] && JEM_LINK="-l:$(basename "$JEMALLOC_SO")"
             case "${JEMALLOC_SOURCE:-}" in
                 host-system|host-probe-fallback|"") : ;;  # default path — no -L/-I needed
                 *)
@@ -270,7 +287,7 @@ case "$HOST_OS" in
         # -L MUST precede -ljemalloc / the libevent+ncurses link for the linker
         # to find the local prefix before any system copy.
         LDFLAGS="-Wl,-z,relro,-z,now ${JEM_LDFLAGS} ${LE_LDFLAGS} ${NC_LDFLAGS} \
-                 -Wl,--no-as-needed -ljemalloc -Wl,--as-needed ${LDFLAGS:-}"
+                 -Wl,--no-as-needed ${JEM_LINK} -Wl,--as-needed ${LDFLAGS:-}"
 
         if [ "${CC_KIND:-}" = "zig" ] && [ -n "${CC_WRAPPER_DIR:-}" ] && [ -x "${CC_WRAPPER_DIR}/cc" ]; then
             # ── ROOT-FREE zig toolchain path (TMX-063) ───────────────────────
@@ -325,6 +342,17 @@ case "$HOST_OS" in
                      -I$PFX/include -I$PFX/include/ncursesw"
             ZLDFLAGS="-Wl,-z,relro,-z,now -L$PFX/lib -Wl,--allow-shlib-undefined"
             [ -n "${JEMALLOC_LIBDIR:-}" ] && ZLDFLAGS="$ZLDFLAGS -L${JEMALLOC_LIBDIR}"
+            # zig path links the LOCAL-BUILD jemalloc in $PFX/lib, which jemalloc's
+            # `make install` ships WITH a `libjemalloc.so` dev symlink, so bare
+            # `-ljemalloc` (resolved via -L$PFX/lib above) links correctly here.
+            # It MUST stay bare: the obtained zig cc/LLD wrapper does NOT accept
+            # the GNU `-l:NAME` extension — passing ${JEM_LINK}=-l:libjemalloc.so.2
+            # dies `configure: error: C compiler cannot create executables`
+            # (regression caught 2026-06-30, qa-results/loop-20260630/). The
+            # resolved-SONAME ${JEM_LINK} form is needed ONLY on the HOST path
+            # (a runtime-only host jemalloc with no dev symlink). §11.4.111 honest
+            # boundary: same resource, but the zig toolchain + local-build symlink
+            # make bare the correct stable resolution here.
             ZLDFLAGS="$ZLDFLAGS -Wl,--no-as-needed -ljemalloc -Wl,--as-needed"
 
             echo "[build_native] configuring tmux $TMUX_REL_VER (zig, YACC=true, release tarball)..."
