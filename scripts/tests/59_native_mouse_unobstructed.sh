@@ -51,6 +51,13 @@ BIN="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 [ -x "$BIN" ] || BIN=$(command -v tmux 2>/dev/null || true)
 [ -n "$BIN" ] || { echo "SKIP: 59 — no tmux binary (§11.4.3 topology)"; exit 0; }
 command -v python3 >/dev/null 2>&1 || { echo "SKIP: 59 — python3 unavailable (§11.4.3 topology)"; exit 0; }
+# §11.4.3 topology dispatch: the substantive contracts drive `prefix m` over a
+# PTY-attached tmux client, which a headless container cannot provide (the client
+# registers no usable terminal size, so keystrokes/mouse toggles do not function
+# — discriminator 2026-06-30). The static `mouse off` default is independently
+# guarded by verify.sh Layer-1. SKIP here; a real terminal runs the full proof.
+. "$SELF_DIR/lib/interactive_pty_probe.sh"
+ipty_interactive_terminal_ok "$BIN" || { echo "SKIP: 59 — headless: no functional interactive terminal (PTY-attached tmux client registers no usable size); 'prefix m' toggle cannot be driven (needs a real terminal) — §11.4.3"; exit 0; }
 
 fail=0
 

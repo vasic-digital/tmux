@@ -61,6 +61,15 @@ for need in "$TMUX_BIN" "$WRAPPER" "$STATE_BIN" "$INIT_FILE"; do
     fi
 done
 
+# §11.4.3 topology dispatch: the cwd-persist proof needs a REAL interactive
+# shell in a tmux pane whose PROMPT_COMMAND/precmd hook fires — which requires a
+# functional interactive terminal. A headless container's PTY-attached tmux
+# client registers no usable terminal size, so a pane shell never runs
+# interactively and the hook never fires (discriminator 2026-06-30). SKIP here;
+# a real terminal runs the full proof + enforces it.
+. "$REPO_ROOT/scripts/tests/lib/interactive_pty_probe.sh"
+ipty_interactive_terminal_ok "$TMUX_BIN" || { echo "SKIP 43: headless: no functional interactive terminal (PTY-attached tmux client registers no usable size); an interactive pane shell + PROMPT_COMMAND hook cannot run (needs a real terminal) — §11.4.3"; exit 77; }
+
 # Sandbox HOME so the pane's shell sources OUR rc files (which we control)
 # rather than the operator's actual rc — the operator's .zshrc may or
 # may not have the install snippet at any given moment (setup.sh's

@@ -43,6 +43,13 @@ BIN="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 [ -x "$BIN" ] || BIN=$(command -v tmux 2>/dev/null || true)
 [ -n "$BIN" ] || { echo "SKIP: 56 — no tmux binary (§11.4.3 topology)"; exit 0; }
 command -v python3 >/dev/null 2>&1 || { echo "SKIP: 56 — python3 unavailable (§11.4.3 topology)"; exit 0; }
+# §11.4.3 topology dispatch: a PTY-attached tmux client must register a usable
+# terminal size for injected SGR mouse drags to map to a pane. In a headless
+# container with no real controlling terminal the client registers no size, so
+# copy-mode never enters (discriminator 2026-06-30). SKIP-with-reason here; on a
+# real terminal the probe passes and the full proof runs + enforces.
+. "$SELF_DIR/lib/interactive_pty_probe.sh"
+ipty_mouse_topology_ok "$BIN" || { echo "SKIP: 56 — headless: PTY-attached tmux client registers no usable terminal size; injected SGR mouse drags cannot map to a pane (needs a real interactive terminal) — §11.4.3"; exit 0; }
 
 L="dragproof$$"
 SINK=$(mktemp)

@@ -96,6 +96,17 @@ case "$HOST_OS" in
     *) echo "SKIP 68: unsupported platform $HOST_OS — §11.4.3"; echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0 ;;
 esac
 
+# §11.4.3 topology dispatch: the lifecycle is PTY-driven and the create-time
+# password prompt reads from a controlling /dev/tty — both need a functional
+# interactive terminal. A headless container's PTY-attached tmux client registers
+# no usable terminal size, so the prompt never appears (discriminator 2026-06-30).
+# SKIP here; a real terminal runs the full lifecycle + enforces it.
+. "$SELF_DIR/lib/interactive_pty_probe.sh"
+if ! ipty_interactive_terminal_ok "$TMUX_BIN"; then
+    _skip "headless: no functional interactive terminal (PTY-attached tmux client registers no usable size); create-time /dev/tty password prompt cannot appear (needs a real terminal) — §11.4.3"
+    echo "── Test 68 summary: PASS=$PASS FAIL=$FAIL SKIP=$SKIP ──"; exit 0
+fi
+
 # ── Socket-length-safe private SCRATCH (mirror of test 60). tmux AF_UNIX
 #    sun_path is ~104 B; route via ${TMPDIR:-/tmp} but fall back to /tmp when
 #    the realpath + socket suffix would overflow (macOS /var/folders). ──────
