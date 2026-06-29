@@ -4,7 +4,7 @@
 #
 # Pipeline (each step gated on the previous):
 #   1. Verify container engine (podman or docker) + host libjemalloc.so visible
-#      (libjemalloc-dev recommended — install via `sudo bash scripts/install_deps.sh`)
+#      (libjemalloc-dev recommended — install via `bash scripts/install_deps.sh` as root)
 #   2. Containerized build (podman/docker, isolated cgroup, mem_limit=2g)
 #   3. Generate tmx wrapper (LD_PRELOAD=jemalloc + oom_score_adj=-500)
 #   4. Run verification gate (verify.sh — full 14-test suite)
@@ -21,8 +21,181 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# ${BASH_SOURCE[0]} resolves correctly whether setup.sh is EXECUTED
+# (`bash scripts/setup.sh`) or SOURCED in library mode (TMX_SETUP_LIB_ONLY=1,
+# used by scripts/tests/70_native_fallback_cc_link.sh) — `$0` would be the
+# sourcing shell's name when sourced, mis-resolving REPO_ROOT.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
 cd "$REPO_ROOT"
+
+# Consent for the native-build auto-install of a missing C toolchain (below).
+#   1     → auto-install WHEN ALREADY ROOT (explicit opt-in); never escalates
+#   0     → never auto-install (always the honest "re-run as root" message)
+#   auto  → auto-install when ALREADY root, else honest "re-run as root" message
+#           (NON-interactive, NEVER escalates privilege itself; operator mandate
+#           2026-06-29; no surprise mutation in CI / non-root shells;
+#           §11.4.101/§11.4.66)
+# The --install-deps flag (parsed below) forces 1.
+AUTO_INSTALL_DEPS="${TMX_AUTO_INSTALL_DEPS:-auto}"
+
+# ── native-build C-toolchain preflight (§11.4.6 honest + §11.4.81 + auto-install)
+# A host can have gcc/cc present yet be UNABLE to LINK an executable when the
+# C-runtime dev objects are missing (crt*.o / libc dev — no glibc-devel /
+# libc6-dev on Linux, no Xcode CLT on macOS). `./configure` would then die with
+# the CRYPTIC "C compiler cannot create executables", naming neither cause nor
+# fix. cc_can_link compiles+links a trivial program FIRST, and the native-build
+# entry (_native_build_preflight) fronts build_native.sh with it — so the
+# operator gets an HONEST, actionable outcome and, consent-gated, an AUTOMATIC
+# install of the missing toolchain via scripts/install_deps.sh instead of the
+# bare autoconf death. Forensic anchor: base ALT host, rootless-podman
+# /etc/subuid+subgid exhaustion → native fallback on a gcc-but-no-glibc-devel
+# host, 2026-06-29 (§11.4.6 / §11.4.123 / §11.4.138 operator-escape).
+CC_LINK_LOG=""
+
+_resolve_cc() {
+    if [ -n "${CC:-}" ]; then printf '%s' "$CC"; return 0; fi
+    for _c in cc gcc clang; do
+        command -v "$_c" >/dev/null 2>&1 && { printf '%s' "$_c"; return 0; }
+    done
+    return 1
+}
+
+# Returns 0 iff the resolved C compiler can compile AND LINK a trivial exe.
+# Honest boundary (§11.4.6): if the probe itself cannot run (no writable temp
+# dir under $TMPDIR) we say so EXPLICITLY and do NOT silently claim "can link".
+# We then proceed (return 0) — a host with no writable temp dir has bigger
+# problems the build will surface — but the printed note means it is never a
+# SILENT fail-open (code-review warning, 2026-06-29).
+cc_can_link() {
+    _cc="$(_resolve_cc)" || return 1
+    _td="$(mktemp -d "${TMPDIR:-/tmp}/tmx_ccprobe.XXXXXX" 2>/dev/null)" || {
+        echo "[setup] cc_can_link: no writable temp dir under ${TMPDIR:-/tmp} — link probe SKIPPED (NOT verified)." >&2
+        return 0
+    }
+    printf 'int main(void){return 0;}\n' > "$_td/t.c"
+    if "$_cc" "$_td/t.c" -o "$_td/t" >"$_td/log" 2>&1 && [ -x "$_td/t" ]; then
+        rm -rf "$_td"; return 0
+    fi
+    CC_LINK_LOG="$(cat "$_td/log" 2>/dev/null)"
+    rm -rf "$_td"; return 1
+}
+
+# The exact manual install command for this host (honest fallback, §11.4.6).
+_toolchain_manual_cmd() {
+    case "$(uname -s)" in
+        Darwin) echo "xcode-select --install   # Xcode Command Line Tools (clang + SDK libc/linker)" ;;
+        Linux)
+            _id=""
+            [ -r /etc/os-release ] && _id="$(. /etc/os-release 2>/dev/null; echo "${ID:-}")"
+            case "$_id" in
+                altlinux|alt) echo "bash scripts/install_deps.sh   (as root)   # ALT — installs gcc glibc-devel make libevent-devel libncursesw-devel autoconf automake pkg-config bison flex" ;;
+                debian|ubuntu|linuxmint|raspbian|pop|neon) echo "bash scripts/install_deps.sh   (as root)   # build-essential libevent-dev libncurses-dev autoconf automake pkg-config bison flex" ;;
+                fedora|rhel|centos|rocky|almalinux|amzn) echo "bash scripts/install_deps.sh   (as root)   # gcc glibc-devel make libevent-devel ncurses-devel autoconf automake pkgconf-pkg-config bison flex" ;;
+                *) echo "bash scripts/install_deps.sh   (as root)   # your distro's C compiler + libc dev + make + libevent/ncurses headers + autoconf/automake/pkg-config/bison/flex" ;;
+            esac
+            ;;
+        *) echo "install your platform's C toolchain (compiler + libc dev + linker) + build deps" ;;
+    esac
+}
+
+# Emit the honest, actionable diagnosis (§11.4.6) — replaces the cryptic death.
+_emit_toolchain_help() {
+    echo "" >&2
+    echo "[setup] ✗ NATIVE BUILD PREREQUISITE MISSING — the C compiler is present" >&2
+    echo "        but cannot LINK an executable (missing C-runtime dev objects:" >&2
+    echo "        crt*.o / libc dev — e.g. glibc-devel / libc6-dev, or no Xcode CLT)." >&2
+    echo "        Autoconf would otherwise abort with the cryptic:" >&2
+    echo "            configure: error: C compiler cannot create executables" >&2
+    if [ -n "${CC_LINK_LOG:-}" ]; then
+        echo "        compiler said:" >&2
+        printf '          %s\n' "$CC_LINK_LOG" | head -4 >&2
+    fi
+    echo "" >&2
+    echo "  Fix — install the build toolchain:" >&2
+    echo "      $(_toolchain_manual_cmd)" >&2
+    echo "  Then re-run: bash scripts/setup.sh" >&2
+    echo "  (or re-run with TMX_AUTO_INSTALL_DEPS=1 / --install-deps to auto-install)" >&2
+    echo "" >&2
+}
+
+# Privileged install possible? ONLY when ALREADY running as root. We NEVER
+# escalate privilege ourselves (operator mandate 2026-06-29: no privilege
+# escalation in automation scripts/tests). Non-root → no privileged install;
+# the honest "re-run as root" message is emitted instead.
+_can_elevate() {
+    [ "$(id -u)" = "0" ]
+}
+
+# Run install_deps.sh --toolchain-only — ONLY when ALREADY root. This NEVER
+# escalates privilege itself (operator mandate 2026-06-29). When not root it
+# returns 1 and the caller emits the honest "re-run as root" message via
+# _emit_toolchain_help — no escalation, no prompt, no human wait.
+_run_install_deps() {
+    _ids="$REPO_ROOT/scripts/install_deps.sh"
+    [ -f "$_ids" ] || { echo "[setup] ⚠ scripts/install_deps.sh missing — cannot auto-install" >&2; return 1; }
+    if [ "$(id -u)" = "0" ]; then
+        bash "$_ids" --toolchain-only
+    else
+        return 1
+    fi
+}
+
+# The native-build entry gate. Returns 0 when the toolchain can link (proceed);
+# non-zero (after emitting honest help) when it cannot and was not auto-fixed.
+# Composes §11.4.101 (safe reversible auto-decision) + §11.4.66 (interactive
+# consent) + §11.4.122-spirit (no surprise privileged mutation without consent).
+_native_build_preflight() {
+    if cc_can_link; then return 0; fi
+    echo "[setup] native build preflight: C compiler cannot link an executable." >&2
+
+    _consent="${AUTO_INSTALL_DEPS:-auto}"; _do_install=0
+    case "$_consent" in
+        1) _do_install=1 ;;
+        0) _do_install=0 ;;
+        *)
+            # DEFAULT (auto) — operator mandate 2026-06-29: setup solves deps
+            # automatically for all users, NON-INTERACTIVELY, with NO privilege
+            # escalation and NO prompt. When already root we auto-install;
+            # otherwise we emit the honest message (re-run as root) — we NEVER
+            # escalate privilege ourselves. install_deps.sh is install-only
+            # (§11.4.122) + idempotent
+            # + honest-on-failure; §11.4.101 reversible; §12 host-safety (a CI run
+            # never blocks on a password/consent prompt).
+            if [ "$(id -u)" = "0" ]; then
+                echo "[setup] auto-installing the missing build toolchain (set TMX_AUTO_INSTALL_DEPS=0 to opt out)…" >&2
+                _do_install=1
+            else
+                _do_install=0
+            fi
+            ;;
+    esac
+
+    if [ "$_do_install" = "1" ] && _can_elevate; then
+        echo "[setup] auto-installing build toolchain (scripts/install_deps.sh --toolchain-only)…" >&2
+        if _run_install_deps; then
+            if cc_can_link; then
+                echo "[setup] ✓ toolchain installed — C compiler can now link. Proceeding." >&2
+                return 0
+            fi
+            echo "[setup] ✗ toolchain install ran but the compiler STILL cannot link." >&2
+        else
+            echo "[setup] ✗ auto-install could not run (privilege / package-manager / script absent)." >&2
+        fi
+        _emit_toolchain_help
+        return 1
+    fi
+
+    [ "$_do_install" = "1" ] && echo "[setup] auto-install requested but not running as root — re-run as root to install." >&2
+    _emit_toolchain_help
+    return 1
+}
+
+# Library mode: the regression test (scripts/tests/70_native_fallback_cc_link.sh)
+# sources this file with TMX_SETUP_LIB_ONLY=1 to exercise cc_can_link /
+# _native_build_preflight in isolation, WITHOUT running the install pipeline.
+if [ "${TMX_SETUP_LIB_ONLY:-}" = "1" ]; then
+    return 0 2>/dev/null || exit 0
+fi
 
 # Augment PATH from npm's reported prefix so tests + codegraph_reindex.sh
 # resolve `codegraph` even when setup.sh is invoked from a non-interactive
@@ -45,6 +218,7 @@ while [ $# -gt 0 ]; do
         --rebuild)     MODE="rebuild" ;;
         --build-only)  MODE="build-only" ;;
         --verify-only) MODE="verify-only" ;;
+        --install-deps) AUTO_INSTALL_DEPS=1 ;;
         --help|-h)
             sed -n '1,/^# Usage/p' "$0" | sed 's/^# \?//'
             exit 0
@@ -329,6 +503,11 @@ case "$HOST_OS" in
     Darwin)
         TMUX_BIN_ABS="$REPO_ROOT/tmux/build-darwin/bin/tmux"
         if [ "$MODE" = "rebuild" ] || [ ! -x "$TMUX_BIN_ABS" ]; then
+            # §11.4.6/§11.4.81: refuse with an honest, actionable message (and
+            # consent-gated auto-install) if the C toolchain cannot LINK, instead
+            # of letting ./configure die with the cryptic "C compiler cannot
+            # create executables". On macOS the fix is Xcode CLT.
+            _native_build_preflight || exit 5
             bash scripts/build_native.sh
         else
             echo "  binary already present at $TMUX_BIN_ABS — use --rebuild to force"
@@ -363,12 +542,20 @@ case "$HOST_OS" in
                     echo "        exhaustion — fix with (as root):"
                     echo "          usermod --add-subuids 100000-165535 --add-subgids 100000-165535 \$USER"
                     echo "          podman system migrate"
-                    echo "        Native build needs: a C compiler + libevent-dev +"
-                    echo "        libncurses-dev (+ autoconf/automake/pkg-config/bison)."
+                    echo "        Native build needs a working C toolchain — the"
+                    echo "        preflight below verifies it can LINK (and can"
+                    echo "        auto-install it via scripts/install_deps.sh)."
                     echo ""
+                    # §11.4.6/§11.4.123/§11.4.138: front the native build with the
+                    # C-link preflight so a gcc-but-no-glibc-devel host gets an
+                    # honest, actionable message (+ consent-gated auto-install of
+                    # gcc/glibc-devel/make/libevent/ncursesw/… via install_deps.sh)
+                    # instead of the cryptic "C compiler cannot create executables".
+                    _native_build_preflight || exit 5
                     bash scripts/build_native.sh
                 fi
             else
+                _native_build_preflight || exit 5
                 bash scripts/build_native.sh
             fi
         else
@@ -386,7 +573,7 @@ esac
 # mangle a literal $ORIGIN in LDFLAGS, so the rpath is set with patchelf
 # AFTER the build (docs/research/local_deps_20260628 Angle 1).
 # patchelf is OPTIONAL belt-and-suspenders, NOT required: it makes the binary
-# self-contained when present. When patchelf is ABSENT (e.g. amber: no sudo),
+# self-contained when present. When patchelf is ABSENT (e.g. amber: unprivileged),
 # jemalloc is resolved by LD_LIBRARY_PATH=$JEMALLOC_LIBDIR (sourced from
 # .local-deps/<plat>/resolved.env) — exported by verify.sh + run_all.sh for the
 # RAW $TMUX_BIN gate/tests AND by the tmx wrapper (Step 3) for interactive use,
@@ -485,9 +672,10 @@ fi
 rm -f scripts/tmx-vm
 rm -f scripts/tmx-mac.template.bak 2>/dev/null || true
 
-# Step 3b — build oom_set helper binary (no sudo). Operator can later install
-# with `sudo bash scripts/build_oom_set.sh --install` to get full OOM
-# protection without the wrapper needing sudo per launch. See §8 of guide.
+# Step 3b — build oom_set helper binary (no privilege escalation). Operator can
+# later install with `bash scripts/build_oom_set.sh --install` (as root) to get
+# full OOM protection without the wrapper needing elevated privilege per launch.
+# See §8 of guide.
 echo ""
 echo "[setup] step 3b — building oom_set helper (Linux only; SKIP on Darwin)"
 if [ "$HOST_OS" = "Linux" ] && [ -f scripts/oom_set.c ] && [ -x scripts/build_oom_set.sh ]; then
@@ -496,7 +684,7 @@ if [ "$HOST_OS" = "Linux" ] && [ -f scripts/oom_set.c ] && [ -x scripts/build_oo
         echo "  ✓ /usr/local/bin/tmx-oom-set installed (cap_sys_resource+ep) — Test 08 will PASS"
     else
         echo "  ⓘ helper compiled but not installed system-wide. To enable Test 08 PASS:"
-        echo "       sudo bash scripts/build_oom_set.sh --install"
+        echo "       bash scripts/build_oom_set.sh --install   (as root)"
     fi
 fi
 

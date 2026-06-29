@@ -1,0 +1,23 @@
+=== STEP 6b — LIVE SESSION PROOF (zig-built tmux drives a real session) — 2026-06-29T11:49:02Z ===
+## kill any stale server
+## start detached session 'poc':
+## list-sessions:
+poc: 1 windows (created Mon Jun 29 14:49:02 2026)
+## send a command into the pane:
+## capture-pane output (user-visible terminal content):
+other process is trying to update Oh My Bash and remove
+"/home/milosvasic/.oh-my-bash/log/update.lock"
+02:49:03 milosvasic@nezha tmux ±|main ✗|→ echo ZIG_BUILT_TMUX_WORKS_$((6*7))
+ZIG_BUILT_TMUX_WORKS_42
+02:49:03 milosvasic@nezha tmux ±|main ✗|→
+## display-message server info (PID/version/socket):
+tmux 3.6a pid=2395 socket=/run/media/milosvasic/DATA4TB/Projects/tmux/.local-deps/poc-20260629/tmp/poc.sock session=poc
+## kill-server (cleanup):
+server killed cleanly
+
+=== STEP 6c — FORCE local-prefix libs (prove the zig-built deps are functional) ===
+## run tmux -V with LD_LIBRARY_PATH=$PREFIX/lib forcing local libevent/jemalloc:
+tmux 3.6a
+## ldd under forced local path (libevent_core/jemalloc MUST resolve to $PREFIX/lib):
+	/lib64/libjemalloc.so.2 (0x00007f2111800000)
+	libevent_core-2.1.so.7 => /run/media/milosvasic/DATA4TB/Projects/tmux/.local-deps/poc-20260629/prefix/lib/libevent_core-2.1.so.7 (0x00007f2111bf9000)

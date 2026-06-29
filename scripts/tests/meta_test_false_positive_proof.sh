@@ -1332,6 +1332,69 @@ else
     fi
 fi
 
+# ── M-CM-NO-SUDO-NO-INTERACTION: inject a `sudo` command into an in-scope
+#    automation script (setup.sh) → the verify.sh gate CM-NO-SUDO-NO-INTERACTION
+#    invariant (A) (ZERO sudo/su tokens in the install/build path) FAILs. §1.1
+#    paired mutation for the operator-mandate 2026-06-29 gate (DIRECT user
+#    authority: "There cannot be any use of su or sudo inside our project full
+#    automation scripts or test"). setup.sh is mutated transiently (backup →
+#    append a `sudo true` line → run verify.sh → assert the gate [FAIL] line →
+#    restore from backup, EXIT-trapped per §11.4.84 no-residue). The gate is a
+#    fail-fast Layer-1 gate so verify.sh exits AT the gate (before the runtime
+#    suite) — the CAUGHT path is fast. SKIPs cleanly until the gate has landed;
+#    the conductor runs the pair in the green post-merge tree.
+echo ""
+echo "--- MUTATION: M-CM-NO-SUDO-NO-INTERACTION (verify.sh gate; inject sudo into setup.sh) ---"
+NS_VERIFY="$REPO_ROOT/scripts/verify.sh"
+NS_SETUP="$REPO_ROOT/scripts/setup.sh"
+NS_GATE="CM-NO-SUDO-NO-INTERACTION"
+if [ ! -f "$NS_VERIFY" ] || ! grep -q "$NS_GATE" "$NS_VERIFY" 2>/dev/null; then
+    _skip "$NS_GATE: scripts/verify.sh absent or gate not present yet — conductor runs this after the gate lands"
+elif [ ! -f "$NS_SETUP" ]; then
+    _skip "$NS_GATE: scripts/setup.sh absent"
+elif grep -qE '\bsudo\b|\bsu[ -]' "$NS_SETUP" 2>/dev/null; then
+    _skip "$NS_GATE: scripts/setup.sh already carries a sudo/su token (pre-mandate tree) — nothing to inject cleanly; conductor runs this after the rewording lands"
+elif git -C "$REPO_ROOT" status --porcelain -- scripts/setup.sh 2>/dev/null | grep -qE '^( M| A|MM|AM|UU)'; then
+    _skip "$NS_GATE: scripts/setup.sh has uncommitted changes — refusing to mutate (§11.4.84 quiescence)"
+else
+    NS_BAK="$NS_SETUP.bak.nsni"
+    if ! cp -p "$NS_SETUP" "$NS_BAK" 2>/dev/null; then
+        _skip "$NS_GATE: backup of setup.sh failed"
+    else
+        _NSNI_BAK="$NS_BAK"; _NSNI_TGT="$NS_SETUP"
+        # EXIT-trapped restore guarantees no mutation residue even on error.
+        trap 'cp -p "$_NSNI_BAK" "$_NSNI_TGT" 2>/dev/null; rm -f "$_NSNI_BAK" 2>/dev/null' EXIT
+        # Inject a genuine sudo EXECUTION line (gate scans the whole file for the
+        # token; we never EXECUTE setup.sh during the mutation — only verify.sh
+        # greps it — so the injected line is harmless).
+        printf '\nsudo true   # M-CM-NO-SUDO-NO-INTERACTION injected privilege escalation\n' >> "$NS_SETUP"
+        if ! grep -qE '\bsudo\b' "$NS_SETUP" 2>/dev/null; then
+            _fail "$NS_GATE: mutation did not inject a sudo token into setup.sh"
+        else
+            ns_out="$(bash "$NS_VERIFY" 2>&1)" || true
+            if printf '%s\n' "$ns_out" | grep -q "\[FAIL\] $NS_GATE"; then
+                echo "  [evidence] $(printf '%s\n' "$ns_out" | grep "\[FAIL\] $NS_GATE" | head -1)"
+                _pass "$NS_GATE MUTATION CAUGHT — verify.sh reports [FAIL] $NS_GATE when setup.sh carries an injected sudo (operator mandate 2026-06-29)"
+            elif ! printf '%s\n' "$ns_out" | grep -q "$NS_GATE"; then
+                _skip "$NS_GATE: verify.sh exited before reaching the gate (an earlier gate FAILed in the current tree) — conductor runs this in a green post-merge tree"
+            else
+                echo "  >>> verify.sh gate lines: $(printf '%s\n' "$ns_out" | grep "$NS_GATE" | tr '\n' ';')"
+                _fail "$NS_GATE MUTATION ESCAPED — gate did not [FAIL] despite an injected sudo in setup.sh"
+            fi
+        fi
+        # Manual restore + disarm trap (§11.4.84 — leave no residue).
+        cp -p "$_NSNI_BAK" "$_NSNI_TGT" 2>/dev/null || true
+        rm -f "$_NSNI_BAK" 2>/dev/null || true
+        trap - EXIT
+        # Restore-direction proof: setup.sh is sudo/su-token-free again.
+        if ! grep -qE '\bsudo\b|\bsu[ -]' "$NS_SETUP" 2>/dev/null; then
+            _pass "$NS_GATE FEATURE RESTORED — setup.sh is sudo/su-token-free again after revert"
+        else
+            _fail "$NS_GATE — setup.sh still carries a sudo/su token after revert"
+        fi
+    fi
+fi
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════

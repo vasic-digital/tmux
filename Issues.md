@@ -96,14 +96,99 @@ document that native-macOS validation is `setup.sh`-only and run_all.sh is the
 containerized path. Captured-evidence requirement: a clean native-macOS run_all GREEN
 after the fix.
 
+### A50 GO-TOOLCHAIN-OBTAIN-001 — obtain Go toolchain locally for the tmx-state + workable-items Go build — `OPEN`
+
+**TMX-ID:** TMX-057
+**Status:** `OPEN`
+**Type:** Task
+**Severity:** MEDIUM
+
+On hosts lacking a system Go toolchain (e.g. `amber`), the `scripts/tmx-state/` and
+`cmd/workable-items/` Go binaries cannot be (re)built — blocking per-session cwd
+persistence AND the §11.4.93 workable-items SSoT tooling. **Fix direction:** extend the
+existing §11.4.77 local-deps mechanism (`obtain_local_deps.sh`, which already
+sha256-obtains libevent 2.1.12 + ncurses 6.5 into git-ignored `.local-deps/`) to
+resolve-or-obtain a pinned Go toolchain into `.local-deps/`, consumed by the Go build
+steps via `GOROOT`/`PATH`. **Acceptance:** on a host with no system `go`, a clean
+`go build ./cmd/workable-items` succeeds against the obtained local toolchain (exit 0;
+control without it → `go: command not found`).
+
+### A51 NATIVE-BUILD-CC-LINK-MSG-001 — native-build fallback surfaced a cryptic compiler error instead of an honest, actionable message — `INVESTIGATED`
+
+**TMX-ID:** TMX-061
+**Status:** `Ready for testing`
+**Type:** Bug
+**Severity:** HIGH
+
+On a base ALT host where `gcc` is present but cannot link (glibc-devel missing), the `setup.sh` native-build fallback surfaced the raw cryptic autotools error "C compiler cannot create executables" instead of an honest, actionable message — a §11.4.138 operator-escape the green suite missed. FIXED this session: `setup.sh` gains `cc_can_link` + `_native_build_preflight` emitting an honest diagnostic and auto-installing the missing toolchain when running as root, guarded by `scripts/tests/70` (RED→GREEN) with a bluff-audit at `docs/research/native_fallback_cc_link_bluff_audit/`. Acceptance: `RED_MODE=1` reproduces the cryptic failure on the broken artifact, `RED_MODE=0` is GREEN, and the paired meta-mutation is CAUGHT — verified post-commit on a clean tree (test 70 currently PASS=16/0/0; pending commit + post-commit meta-validation).
+
+### A52 NO-SUDO-NO-INTERACTION-001 — no sudo/su execution and no user-interaction in any automation script or test — `INVESTIGATED`
+
+**TMX-ID:** TMX-062
+**Status:** `Ready for testing`
+**Type:** Task
+**Severity:** HIGH
+
+Operator mandate 2026-06-29: no automation script or test may execute `sudo`/`su` or require human interaction. DONE this session — removed the single `sudo` execution, made install root-only, and reworded advice so `setup.sh` + `install_deps.sh` + `install.sh` contain 0 `sudo`/`su` tokens; added the `verify.sh` gate `CM-NO-SUDO-NO-INTERACTION` with paired meta-mutation `M-CM-NO-SUDO-NO-INTERACTION` (CAUGHT) and test 70 case C10. Acceptance: 0 `sudo`/`su` tokens AND 0 human-wait points across the in-scope files, and the gate FAILs when a `sudo` token is injected — pending commit + post-commit meta-validation on a clean tree.
+
+### A53 ROOT-FREE-LOCAL-BUILD-001 — fully-autonomous root-free local build (obtain all build deps locally; no root/sudo/interaction) — `PARTIAL`
+
+**TMX-ID:** TMX-063
+**Status:** `In progress`
+**Type:** Feature
+**Severity:** HIGH
+
+Operator mandate 2026-06-29: `bash scripts/setup.sh` must build AND install tmux with NO root, NO sudo, and NO interaction by obtaining every mandatory build dependency locally. Research-backed plan (`docs/research/root_free_c_toolchain_20260629/`): obtain a Zig `zig cc` C toolchain into `.local-deps` (kind=toolchain, like the Go-toolchain obtain) and build tmux from the 3.6a release tarball to avoid autotools/system-cc requirements. Status In progress — research complete and a proof-of-concept live-build spike is running; implementation is pending the PoC verdict. Acceptance: a live root-free build on a real host with the system toolchain neutered produces a tmux 3.6a binary that runs, with captured evidence and N=3 deterministic reproduction — no bluff.
+
+### A54 NO-SUDO-PROJECTWIDE-FOLLOWUP-001 — convert print-only sudo/setcap hints outside the install path and extend the no-sudo gate project-wide — `OPEN`
+
+**TMX-ID:** TMX-064
+**Status:** `OPEN`
+**Type:** Task
+**Severity:** MEDIUM
+
+Follow-up to TMX-062: convert the remaining print-only `sudo`/`setcap` hints OUTSIDE the install path (`scripts/build_oom_set.sh`, `scripts/test_vm.sh`, `scripts/tests/08_oom_score_adj.sh`, and the `scripts/oom_set.c` comment) to "(as root)" phrasing, and extend the no-sudo gate project-wide so it detects `sudo`/`su` EXECUTION rather than mere mention. Status Queued. Acceptance: project-wide 0 `sudo`/`su` execution paths, and the gate is scoped to flag execution only — no false positives on legitimate "(as root)" documentation strings.
+
 ---
 
 ## B. Anti-bluff completeness across the existing test surface
 
-(none open at this time — B3 P5-M20/P5-M21 escapes CLOSED in v1.0.16
+(Prior B-items closed: B3 P5-M20/P5-M21 escapes CLOSED in v1.0.16
 [tests 49/50 + meta-test retarget], state-verified 2026-05-29 with
-`MUTATIONS CAUGHT 45 / ESCAPED 0`, and migrated to `Fixed.md` §B3;
-B1 CHAL-COVER-001, B2 TEST-AUDIT-001 also landed in `Fixed.md`.)
+`MUTATIONS CAUGHT 45 / ESCAPED 0`, migrated to `Fixed.md` §B3 as TMX-054;
+B1 CHAL-COVER-001, B2 TEST-AUDIT-001 also in `Fixed.md`. New open work below.)
+
+### B50 TEST-COVERAGE-G1-G5-001 — close test-coverage gaps G1-G5 for the v1.0.30 cross-platform install hardening — `OPEN`
+
+**TMX-ID:** TMX-059
+**Status:** `OPEN`
+**Type:** Task
+**Severity:** MEDIUM
+
+v1.0.30 added native-build fallback (`setup.sh`), `build_native.sh` local-deps wiring
+(`-I`/`-L` + `PKG_CONFIG_PATH`), `obtain_local_deps.sh` libevent/ncurses obtain, and the
+escaped-colon session-color fix; the CHANGELOG tracks "test-coverage gaps G1-G5" but they
+are NOT yet enumerated distinctly nor each covered by an anti-bluff test + paired §1.1
+mutation. **Fix direction:** first enumerate G1-G5 precisely, then add four-layer coverage
+(§11.4.4(b)) for each. **Acceptance:** each of G1-G5 has a named runtime test with captured
+evidence PLUS a paired meta-test mutation that FAILs when its guard is stripped.
+
+### B51 DB-FIXEDMD-SSOT-DRIFT-001 — reconcile DB↔Fixed.md SSoT drift (Fixed.md A46-A49 absent from the items table) — `OPEN`
+
+**TMX-ID:** TMX-060
+**Status:** `OPEN`
+**Type:** Task
+**Severity:** MEDIUM
+
+The §11.4.93 workable-items DB is missing four RESOLVED `Fixed.md` entries — A46 (libtinfo
+version warning), A47 (test-harness timing races), A48 (distribution orchestrator binary),
+A49 (test 17 scrollback load flake). A full `md-to-db` over `Fixed.md` reports
+`inserted=4 updated=1 allocated=4`, proving the items table never captured them (the
+CHANGELOG names this "DB↔Fixed.md SSoT drift" as a tracked follow-up). **Fix direction:**
+reconcile carefully — confirm none are reworded duplicates of an existing id before
+allocating, identify the `updated=1` item, then sync so `validate` + `diff` stay clean.
+**Acceptance:** `md-to-db` over the full corpus reports `inserted=0 updated=0` (idempotent)
+and `validate` is 0-findings.
 
 ---
 
@@ -135,7 +220,22 @@ an induced-disk-full run shows SKIP-with-reason, not FAIL.
 
 ## E. Documentation / Continuation drift
 
-(none open at this time; CONTINUATION.md §3 entries that resolve land in `Fixed.md` per Constitution §5 / §12.10.)
+(CONTINUATION.md §3 entries that resolve land in `Fixed.md` per Constitution §5 / §12.10. New open work below.)
+
+### E50 INSTALL-DOC-PODMAN-HTTPS-001 — document the rootless-Podman subuid fix and the curl-installer HTTPS-rewrite edge — `OPEN`
+
+**TMX-ID:** TMX-058
+**Status:** `OPEN`
+**Type:** Task
+**Severity:** LOW
+
+v1.0.30 shipped a native-build fallback when rootless Podman exhausts `/etc/subuid` +
+`/etc/subgid` (`lchown … invalid argument`) and a `curl` one-liner installer, but the
+operator-facing repair guidance lives only in the CHANGELOG. **Fix direction:** document the
+`usermod --add-subuids/--add-subgids` + `podman system migrate` repair recipe AND the
+install HTTPS-rewrite edge in `docs/guides` + `docs/scripts` so an end user hitting either
+can self-recover. **Acceptance:** a docs page (synced HTML/PDF per §11.4.65) reproduces the
+repair steps, verified against the v1.0.30 `setup.sh` fallback path.
 
 ---
 

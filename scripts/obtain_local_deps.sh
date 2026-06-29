@@ -36,7 +36,7 @@
 #   FORCE_OBTAIN=1 bash scripts/obtain_local_deps.sh   # skip host detection,
 #                                                       # always obtain locally
 #   LOCAL_DEPS_ROOT=/path bash scripts/obtain_local_deps.sh  # override root
-#   DEPS="jemalloc libevent ncurses" bash scripts/obtain_local_deps.sh  # all
+#   DEPS="jemalloc libevent ncurses go" bash scripts/obtain_local_deps.sh  # all
 #
 # Inputs (env, all optional):
 #   FORCE_OBTAIN     1 → skip host detection, obtain into the local prefix.
@@ -214,6 +214,33 @@ dep_field() {
         ncurses:configure_args)  printf '%s' "--with-shared --without-debug --without-ada --without-cxx-binding --without-tests --without-manpages --enable-widec --enable-pc-files --with-pkg-config-libdir=@PREFIX@/lib/pkgconfig --disable-stripping" ;;
         ncurses:build_targets)   printf '%s' "" ;;
         ncurses:install_targets) printf '%s' "install" ;;
+
+        # go — the tmx-state build toolchain (kind=toolchain, §11.4.77). FACT:
+        # tmx-state is PURE Go (scripts/tmx-state/go.mod declares `go 1.21` with
+        # ZERO `require`; no `import "C"`/cgo/sqlite) → building with
+        # CGO_ENABLED=0 needs NO C compiler — the Go toolchain ALONE suffices.
+        # RESOLVED-first by ABSOLUTE path (resolve_go, §11.4.111); OBTAINED as a
+        # PREBUILT official tarball (obtain_via_prebuilt) — NOT ./configure+make,
+        # so kind=toolchain dispatches differently from runtime/build deps.
+        # Per-platform url+sha256 keyed by the Go platform tuple (4 official
+        # variants linux/darwin × amd64/arm64, §11.4.81); any other arch →
+        # EC_UNSUPPORTED (honest, never a fake build). Checksums copied verbatim
+        # from the authoritative https://go.dev/dl/?mode=json on 2026-06-29
+        # (§11.4.99 latest-source — DO NOT invent). go.mod minimum = go 1.21.
+        go:version)              printf '%s' "1.25.11" ;;
+        go:kind)                 printf '%s' "toolchain" ;;
+        go:envprefix)            printf '%s' "GO" ;;
+        go:min_major)            printf '%s' "1" ;;
+        go:min_minor)            printf '%s' "21" ;;
+        go:url_linux_amd64)      printf '%s' "https://go.dev/dl/go1.25.11.linux-amd64.tar.gz" ;;
+        go:url_linux_arm64)      printf '%s' "https://go.dev/dl/go1.25.11.linux-arm64.tar.gz" ;;
+        go:url_darwin_amd64)     printf '%s' "https://go.dev/dl/go1.25.11.darwin-amd64.tar.gz" ;;
+        go:url_darwin_arm64)     printf '%s' "https://go.dev/dl/go1.25.11.darwin-arm64.tar.gz" ;;
+        go:sha256_linux_amd64)   printf '%s' "34f14304e856893f4ba30c2cacfe93906e9de7915c5f6aaaf3a81cdccd7ba30b" ;;
+        go:sha256_linux_arm64)   printf '%s' "c30bf9e156a54ea4e31fbbbf31a712b32734b58cc9a22426fa5ee632d0885124" ;;
+        go:sha256_darwin_amd64)  printf '%s' "26d0ee4071de42b5c332337db9fdd234072877697c547e46e85efb0f59507c66" ;;
+        go:sha256_darwin_arm64)  printf '%s' "cd8d4920e7930d55da1a5a57ba43a64b1305f71cdf2ca3c76cd8c549272b1680" ;;
+        go:container_extract)    printf '%s' "no" ;;
         *) return 1 ;;
     esac
 }
@@ -526,6 +553,155 @@ obtain_via_container() {
     return 0
 }
 
+# ── Go toolchain (kind=toolchain) helpers ──────────────────────────────────
+# Derive the Go platform tuple (goos_goarch) from uname; print it or return 1
+# for an unsupported OS/arch (§11.4.6 honest boundary — the registry pins only
+# the 4 official linux/darwin × amd64/arm64 variants; anything else is
+# EC_UNSUPPORTED, never a fake build).
+_go_plat() {
+    local goos goarch
+    case "$HOST_OS" in
+        Linux)  goos="linux" ;;
+        Darwin) goos="darwin" ;;
+        *) return 1 ;;
+    esac
+    case "$HOST_ARCH" in
+        x86_64|amd64)  goarch="amd64" ;;
+        aarch64|arm64) goarch="arm64" ;;
+        *) return 1 ;;
+    esac
+    printf '%s_%s' "$goos" "$goarch"
+}
+
+# Run `<gobin> version`, parse `go version goX.Y[.Z]… …`, and verify it is a
+# real Go binary >= the registry minimum (go:min_major / go:min_minor). On
+# success print the parsed version (X.Y[.Z]) and return 0; else return 1.
+# `go version` is self-contained (figures GOROOT from the binary path), so no
+# GOROOT env is needed here.
+_go_version_ok() {
+    local gobin="$1" raw ver major minor min_major min_minor
+    [ -n "$gobin" ] && [ -x "$gobin" ] || return 1
+    raw="$("$gobin" version 2>/dev/null)" || return 1
+    ver="$(printf '%s\n' "$raw" | awk '{print $3}' | sed 's/^go//')"
+    major="$(printf '%s\n' "$ver" | awk -F. '{print $1}')"
+    minor="$(printf '%s\n' "$ver" | awk -F. '{print $2}')"
+    [ -n "$major" ] && [ -n "$minor" ] || return 1
+    case "$major" in *[!0-9]*|'') return 1 ;; esac
+    case "$minor" in *[!0-9]*|'') return 1 ;; esac
+    min_major="$(dep_field go min_major 2>/dev/null || echo 1)"
+    min_minor="$(dep_field go min_minor 2>/dev/null || echo 21)"
+    if [ "$major" -lt "$min_major" ] || { [ "$major" -eq "$min_major" ] && [ "$minor" -lt "$min_minor" ]; }; then
+        return 1
+    fi
+    printf '%s' "$ver"
+    return 0
+}
+
+# RESOLVE an already-present suitable Go (>= min) by ABSOLUTE path first
+# (§11.4.111), bare-name PATH lookup last. On success print
+# "GO_BIN|GOROOT|version|source" and return 0; else return 1. GOROOT comes from
+# the toolchain itself (`go env GOROOT`) — authoritative, never guessed.
+resolve_go() {
+    local cand gobin ver goroot src
+    for cand in \
+        /usr/local/go/bin/go /usr/lib/go/bin/go /usr/lib/golang/bin/go \
+        /opt/go/bin/go /opt/homebrew/bin/go /opt/homebrew/opt/go/bin/go \
+        /usr/local/bin/go /usr/bin/go \
+        go; do
+        gobin=""
+        case "$cand" in
+            /*) [ -x "$cand" ] && gobin="$cand" ;;
+            *)  command -v "$cand" >/dev/null 2>&1 && gobin="$(command -v "$cand")" ;;
+        esac
+        [ -n "$gobin" ] || continue
+        ver="$(_go_version_ok "$gobin")" || continue
+        goroot="$("$gobin" env GOROOT 2>/dev/null || true)"
+        [ -n "$goroot" ] || goroot="$(cd "$(dirname "$gobin")/.." 2>/dev/null && pwd)"
+        case "$gobin" in
+            /opt/homebrew/*|/usr/local/Cellar/*|/usr/local/opt/*) src="host-brew" ;;
+            *) src="host-system" ;;
+        esac
+        printf '%s|%s|%s|%s' "$gobin" "$goroot" "$ver" "$src"
+        return 0
+    done
+    return 1
+}
+
+# OBTAIN the Go toolchain as a PREBUILT official tarball into $LOCAL_PREFIX/go
+# (NO ./configure+make — Go ships prebuilt). Needs a downloader + sha256 tool +
+# tar + network. Idempotent: reuse an already-extracted toolchain that runs
+# >= min. Returns EC_* on failure (never a fake success). On success the
+# toolchain is at $LOCAL_PREFIX/go/bin/go (the tarball top-level dir is `go/`).
+obtain_via_prebuilt() {
+    local dep="$1"
+    _LAST_OBTAIN_METHOD="prebuilt"
+    local goplat url want_sha tar dl_sha goroot gobin
+    goplat="$(_go_plat)" || {
+        _err "$dep: unsupported platform ${HOST_OS}/${HOST_ARCH} for prebuilt toolchain (4 official variants only)"
+        return $EC_UNSUPPORTED
+    }
+    url="$(dep_field "$dep" "url_$goplat" 2>/dev/null || true)"
+    want_sha="$(dep_field "$dep" "sha256_$goplat" 2>/dev/null || true)"
+    if [ -z "$url" ] || [ -z "$want_sha" ]; then
+        _err "$dep: no url/sha256 registered for platform '$goplat'"
+        return $EC_UNSUPPORTED
+    fi
+
+    goroot="$LOCAL_PREFIX/go"
+    gobin="$goroot/bin/go"
+    # Idempotent reuse of an already-extracted, runnable toolchain.
+    if [ -x "$gobin" ] && _go_version_ok "$gobin" >/dev/null 2>&1; then
+        _info "$dep: local toolchain already present at $gobin — reuse"
+        return 0
+    fi
+
+    mkdir -p "$TARBALL_CACHE"
+    tar="$TARBALL_CACHE/$(basename "$url")"
+    # Reuse a cached tarball iff its sha256 already matches (network-frugal).
+    if [ -f "$tar" ]; then
+        dl_sha="$(_sha256_of "$tar" || true)"
+        [ "$dl_sha" = "$want_sha" ] || rm -f "$tar"
+    fi
+    if [ ! -f "$tar" ]; then
+        _info "$dep: downloading $url"
+        if ! _download "$url" "$tar"; then
+            rm -f "$tar" 2>/dev/null || true
+            _err "$dep: download failed (network unreachable?)"
+            return $EC_NETWORK
+        fi
+    fi
+    dl_sha="$(_sha256_of "$tar" || true)"
+    if [ -z "$dl_sha" ]; then
+        _err "$dep: no sha256 tool to verify $tar"
+        return $EC_NO_TOOLCHAIN
+    fi
+    if [ "$dl_sha" != "$want_sha" ]; then
+        _err "$dep: sha256 MISMATCH — want $want_sha got $dl_sha"
+        rm -f "$tar" 2>/dev/null || true
+        return $EC_SHA
+    fi
+    _info "$dep: sha256 verified ($want_sha)"
+
+    rm -rf "$goroot"
+    mkdir -p "$LOCAL_PREFIX"
+    # The official tarball's top-level dir is `go/` → extracts to $LOCAL_PREFIX/go.
+    if ! tar xf "$tar" -C "$LOCAL_PREFIX" 2>/dev/null; then
+        _err "$dep: extract failed"
+        return $EC_NETWORK
+    fi
+    if [ ! -x "$gobin" ]; then
+        _err "$dep: extract produced no executable $gobin"
+        return $EC_NO_TOOLCHAIN
+    fi
+    # Anti-bluff (§11.4.5): run the obtained toolchain once as proof it executes
+    # AND is >= min — never claim an obtained toolchain that does not run.
+    if ! _go_version_ok "$gobin" >/dev/null 2>&1; then
+        _err "$dep: obtained toolchain at $gobin does not run or is too old"
+        return $EC_NO_TOOLCHAIN
+    fi
+    return 0
+}
+
 obtain_dep() {
     local dep="$1"
     # Idempotent reuse.
@@ -607,6 +783,46 @@ for dep in $DEPS; do
     so=""
     src=""
     incdir=""
+
+    # ── kind=toolchain (Go): a self-contained resolve+obtain+emit path. A
+    #    toolchain has NO shared library, so the resolve_existing / _local_lib_present
+    #    / obtain_dep machinery (which hunts for a .so) does not apply. RESOLVE an
+    #    already-present Go by absolute path (§11.4.111); else OBTAIN the prebuilt
+    #    official tarball (§11.4.77). Emit GO_BIN / GOROOT / GO_SOURCE, then
+    #    `continue` so the runtime/build emission below is bypassed cleanly.
+    if [ "$kind" = "toolchain" ]; then
+        tc_bin=""; tc_root=""; tc_ver=""; tc_src=""; tc_out=""; tc_rest=""
+        if [ "$FORCE_OBTAIN" != "1" ]; then
+            if tc_out="$(resolve_go 2>/dev/null)"; then
+                tc_bin="${tc_out%%|*}"; tc_rest="${tc_out#*|}"
+                tc_root="${tc_rest%%|*}"; tc_rest="${tc_rest#*|}"
+                tc_ver="${tc_rest%%|*}"; tc_src="${tc_rest##*|}"
+                _info "RESOLVED $dep → $tc_bin (go $tc_ver, GOROOT=$tc_root, $tc_src)"
+            fi
+        else
+            _info "$dep: FORCE_OBTAIN=1 — skipping host detection"
+        fi
+        if [ -z "$tc_bin" ]; then
+            if obtain_via_prebuilt "$dep"; then
+                tc_root="$LOCAL_PREFIX/go"
+                tc_bin="$tc_root/bin/go"
+                tc_src="local-toolchain"
+                tc_ver="$(_go_version_ok "$tc_bin" 2>/dev/null || echo unknown)"
+                _info "OBTAINED $dep → $tc_bin (go $tc_ver, GOROOT=$tc_root, $tc_src)"
+            else
+                rc=$?
+                _err "OBTAIN FAILED for $dep (rc=$rc) — NOT faking success"
+                overall_rc=$rc
+                continue
+            fi
+        fi
+        {
+            printf '%s_BIN=%s\n'    "$ep" "$tc_bin"
+            printf 'GOROOT=%s\n'    "$tc_root"
+            printf '%s_SOURCE=%s\n' "$ep" "$tc_src"
+        } >> "$RESOLVED_ENV.tmp"
+        continue
+    fi
 
     if [ "$FORCE_OBTAIN" != "1" ]; then
         if so="$(resolve_existing "$dep" 2>/dev/null)"; then

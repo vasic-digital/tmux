@@ -638,6 +638,76 @@ _check_CM_LOCAL_DEPS_MECHANISM() {
     return "$rc"
 }
 
+# ── CM-NO-SUDO-NO-INTERACTION (operator mandate 2026-06-29) ──────────────────
+# "There cannot be any use of su or sudo inside our project full automation
+# scripts or test and no user interaction!" — DIRECT user authority, 2026-06-29.
+# This gate mechanically forbids, at pre-build time:
+#   (A) sudo/su EXECUTION-or-advice tokens in the install/build automation path
+#       (scripts/setup.sh + scripts/install_deps.sh + scripts/install.sh). Those
+#       three files were reworded 2026-06-29 to ZERO sudo/su tokens (the real
+#       escalation `sudo bash install_deps.sh` was removed; root-only install,
+#       honest "re-run as root" message otherwise), so ANY occurrence — exec OR
+#       printed advice — is a regression a bare token-census catches with no
+#       false positive.
+#   (B) human-waiting prompts (`read … </dev/tty` / `read -p`) in ANY automation
+#       script or test under scripts/. EXCLUDED BY DESIGN (NOT automation):
+#         • scripts/tmx + scripts/tmx.template — the INTERACTIVE end-user wrapper
+#           (its `read PASSWORD </dev/tty` is the operator's own tool).
+#         • scripts/tests/lib/pty_harness.sh + scripts/tests/68_session_lifecycle.sh
+#           — PTY-DRIVEN automation: the harness INJECTS input programmatically
+#           down a pty, it never waits on a live human.
+# Runtime/on-test half (Layer 3): scripts/tests/70_native_fallback_cc_link.sh C10.
+# Paired §1.1 mutation: scripts/tests/meta_test_false_positive_proof.sh injects a
+# `sudo` line into an in-scope script → this gate [FAIL]s (MUTATION CAUGHT).
+# Scope note (§11.4.6): print-only, genuinely-root, ORTHOGONAL-capability sudo
+# advice elsewhere (build_oom_set.sh `setcap`, test_vm.sh podman-ssh provisioning,
+# tests/08 OOM hint) is NOT what the operator hit and is left for a tracked
+# follow-up audit — scoping here to the install/build path keeps the gate
+# false-positive-free.
+# §11.4.67: this function is POSIX `sh -n` clean (no process substitution / [[ ]]).
+_check_CM_NO_SUDO_NO_INTERACTION() {
+    local g="CM-NO-SUDO-NO-INTERACTION"
+    local rc=0
+    local f hits rel
+
+    # (A) install/build path: ZERO sudo/su EXECUTION-or-advice tokens.
+    for f in scripts/setup.sh scripts/install_deps.sh scripts/install.sh; do
+        [ -f "$REPO_ROOT/$f" ] || continue
+        hits="$(grep -nE '\bsudo\b|\bsu[ -]' "$REPO_ROOT/$f" 2>/dev/null || true)"
+        if [ -n "$hits" ]; then
+            printf '[FAIL] %s sudo/su token in install/build automation %s:\n' "$g" "$f"
+            printf '%s\n' "$hits" | sed 's/^/         /'
+            rc=1
+        fi
+    done
+
+    # (B) no human-waiting prompt in automation scripts/tests (excludes below).
+    #     Filter out comment lines (^NN:<ws>#) and echo/printf lines so the
+    #     gate's OWN documentation + format strings (and similar literal
+    #     mentions elsewhere) are not mistaken for an actual blocking read
+    #     command (§11.4.6 — match the COMMAND, not the mention). A real
+    #     human-wait `read … </dev/tty` / `read -p` is a bare command line,
+    #     never a comment and never inside an echo/printf string.
+    local excl=" scripts/tmx scripts/tmx.template scripts/tests/lib/pty_harness.sh scripts/tests/68_session_lifecycle.sh "
+    for f in $(find "$REPO_ROOT/scripts" -type f -name '*.sh' 2>/dev/null | sort); do
+        rel="${f#$REPO_ROOT/}"
+        case "$excl" in *" $rel "*) continue ;; esac
+        hits="$(grep -nE 'read[[:space:]][^|;&]*</dev/tty|read[[:space:]]+-p' "$f" 2>/dev/null \
+                | grep -vE '^[0-9]+:[[:space:]]*#' \
+                | grep -vE '(printf|echo)' || true)"
+        if [ -n "$hits" ]; then
+            printf '[FAIL] %s human-waiting prompt (read </dev/tty | read -p) in %s:\n' "$g" "$rel"
+            printf '%s\n' "$hits" | sed 's/^/         /'
+            rc=1
+        fi
+    done
+
+    if [ "$rc" -eq 0 ]; then
+        printf '[PASS] %s (install/build path sudo/su-free; no human-waiting prompts in automation scripts/tests — interactive wrapper + PTY harness + test 68 excluded by design)\n' "$g"
+    fi
+    return "$rc"
+}
+
 # Run the new gates. Aggregate failure into V109_FAIL — Layer 1 must
 # stay fail-fast, so any FAIL aborts before the runtime suite (binary is
 # NOT operator-safe with broken P1-P4 artefacts).
@@ -675,6 +745,24 @@ if [ "$LOCALDEPS_FAIL" -ne 0 ]; then
     exit 1
 fi
 echo "  ✓ Layer-1 CM-LOCAL-DEPS-MECHANISM gate GREEN"
+
+# ── Layer-1 — CM-NO-SUDO-NO-INTERACTION (operator mandate 2026-06-29) ──
+# Self-contained run block (own FAIL var + accurate message) for the
+# no-privilege-escalation + no-human-interaction invariant in the
+# install/build automation path + all automation scripts/tests.
+echo ""
+echo "  Layer-1 static gate — CM-NO-SUDO-NO-INTERACTION (no sudo/su EXECUTION + no human-wait in automation)..."
+NOSUDO_FAIL=0
+_check_CM_NO_SUDO_NO_INTERACTION || NOSUDO_FAIL=1
+if [ "$NOSUDO_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: CM-NO-SUDO-NO-INTERACTION FAILed. An automation script/test escalates"
+    echo "     privilege (sudo/su) or waits for human input (read </dev/tty | read -p)."
+    echo "     Operator mandate 2026-06-29: NO sudo/su and NO human interaction in"
+    echo "     full-automation scripts or tests. setup.sh will REFUSE to PATH-export."
+    exit 1
+fi
+echo "  ✓ Layer-1 CM-NO-SUDO-NO-INTERACTION gate GREEN"
 
 # Run the full test suite
 echo ""

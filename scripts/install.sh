@@ -46,9 +46,9 @@
 # Side-effects:
 #   - Creates / updates $TMX_INSTALL_DIR (git clone or git pull; idempotent).
 #   - Delegates host-config writes (~/.tmux.conf + rc snippet) to setup.sh.
-#   - Does NOT sudo. Does NOT auto-install build deps under a pipe (§12). If a
-#     C toolchain / container engine is missing, setup.sh exits non-zero with
-#     guidance and this installer surfaces it.
+#   - Does NOT escalate privilege. Does NOT auto-install build deps under a
+#     pipe (§12). If a C toolchain / container engine is missing, setup.sh
+#     exits non-zero with guidance and this installer surfaces it.
 #   - REFUSES to clobber a non-empty directory that is not our repo (§9.2).
 #   - Reads no secrets, prints no secrets, never reads from stdin (§11.4.10,
 #     curl|bash safe).
@@ -245,7 +245,7 @@ setup_rc=0
 ( cd "$TMX_INSTALL_DIR" && bash scripts/setup.sh ) || setup_rc=$?
 if [ "$setup_rc" -ne 0 ]; then
     _die "scripts/setup.sh exited $setup_rc — build/verify/install did NOT complete.
-        Common causes: missing build deps (Linux: sudo bash scripts/install_deps.sh;
+        Common causes: missing build deps (Linux: run scripts/install_deps.sh as root;
         macOS: brew install podman/jemalloc), or a verification RED (§11.4: we do
         NOT expose unverified binaries). See the setup output above. NOT faking green." "$setup_rc"
 fi

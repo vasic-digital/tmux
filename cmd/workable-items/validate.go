@@ -104,7 +104,12 @@ func Validate(db *DB) ([]Finding, error) {
 			})
 		}
 		// §11.4.33 closure vocabulary.
-		if isClosureStatus(it.Status) {
+		// §11.4.90: Obsolete is a terminal status ORTHOGONAL to Type — an
+		// Obsolete item keeps its Type but its closure status is always
+		// "Obsolete (→ Fixed.md)" regardless of Bug/Feature/Task. The
+		// type-aware-closure check therefore does NOT apply to Obsolete
+		// (mirrors close.go's `if statusValue != StatusObsolete` exemption).
+		if isClosureStatus(it.Status) && it.Status != StatusObsolete {
 			want := closureStatusForType(it.Type)
 			if it.Status != want {
 				findings = append(findings, Finding{

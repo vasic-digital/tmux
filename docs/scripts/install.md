@@ -1,6 +1,6 @@
 # install.sh
 
-**Revision:** 1
+**Revision:** 2
 **Last modified:** 2026-06-29T00:00:00Z
 **Authority:** vasic-digital tmux project
 **Maintainer:** milosvasic
@@ -104,6 +104,14 @@ submodules over HTTPS.
   to a private submodule. The installer surfaces the submodule failure honestly
   (the `constitution/` presence check warns rather than faking green, §11.4.6);
   provide an SSH key or an HTTPS credential/token for the private repo.
+- **SSH-keyed user needs a PRIVATE submodule** → the default
+  `git@github.com:` → `https://github.com/` rewrite (the keyless-clone aid)
+  works *against* you here: it rewrites the submodule's SSH URL to an
+  **unauthenticated** HTTPS URL, so the private clone fails even though your SSH
+  key would have worked. Disable the rewrite so your key is used —
+  `TMX_INSTALL_NO_HTTPS_REWRITE=1` (or `--no-https-rewrite`). Public-submodule
+  keyless users must NOT set this. See
+  [`../guides/troubleshooting.md`](../guides/troubleshooting.md) §4.
 - **Build deps missing / verification RED** → `setup.sh` exits non-zero and the
   installer surfaces it (never PATH-exports an unverified binary, §11.4).
 - **Validation suite FAILs** → the installer prints the SUMMARY and exits
