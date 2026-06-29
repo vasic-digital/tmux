@@ -2914,3 +2914,52 @@ unknown statuses (§11.4.6 — no silent default). Guarded by
 `cmd/workable-items/set_status_test.go` (6 cases). **Acceptance:** the command sets a
 non-terminal status with an audit row and rejects terminal/unknown values —
 `go test ./cmd/workable-items` GREEN; pending conductor verification + close.
+
+### A54 NO-SUDO-PROJECTWIDE-FOLLOWUP-001 — convert print-only sudo/setcap hints outside the install path and extend the no-sudo gate project-wide — `RESOLVED`
+
+**TMX-ID:** TMX-064
+**Status:** Completed (→ Fixed.md)
+**Type:** Task
+**Severity:** MEDIUM
+
+Follow-up to TMX-062: convert the remaining print-only `sudo`/`setcap` hints OUTSIDE the install path (`scripts/build_oom_set.sh`, `scripts/test_vm.sh`, `scripts/tests/08_oom_score_adj.sh`, and the `scripts/oom_set.c` comment) to "(as root)" phrasing, and extend the no-sudo gate project-wide so it detects `sudo`/`su` EXECUTION rather than mere mention. Status Queued. Acceptance: project-wide 0 `sudo`/`su` execution paths, and the gate is scoped to flag execution only — no false positives on legitimate "(as root)" documentation strings.
+
+### B51 DB-FIXEDMD-SSOT-DRIFT-001 — reconcile DB↔Fixed.md SSoT drift (Fixed.md A46-A49 absent from the items table) — `RESOLVED`
+
+**TMX-ID:** TMX-060
+**Status:** Completed (→ Fixed.md)
+**Type:** Task
+**Severity:** MEDIUM
+
+The §11.4.93 workable-items DB is missing four RESOLVED `Fixed.md` entries — A46 (libtinfo
+version warning), A47 (test-harness timing races), A48 (distribution orchestrator binary),
+A49 (test 17 scrollback load flake). A full `md-to-db` over `Fixed.md` reports
+`inserted=4 updated=1 allocated=4`, proving the items table never captured them (the
+CHANGELOG names this "DB↔Fixed.md SSoT drift" as a tracked follow-up). **Fix direction:**
+reconcile carefully — confirm none are reworded duplicates of an existing id before
+allocating, identify the `updated=1` item, then sync so `validate` + `diff` stay clean.
+**Acceptance:** `md-to-db` over the full corpus reports `inserted=0 updated=0` (idempotent)
+and `validate` is 0-findings.
+**Reconcile (2026-06-29, this session):** ran `sync md-to-db` over the full corpus — the
+four entries ingested as TMX-067 (A49 → Completed), TMX-068 (A48 → Implemented), TMX-069
+(A46 → Fixed) and TMX-070 (A47 → Fixed); the `updated=1` item was TMX-045 ("Per-host-topology
+dispatch probe") whose stored `raw_body` was stale (2140→7648 chars) and was refreshed from
+the current `Fixed.md` — no other field changed, so it is not a reworded duplicate. The run
+also re-captured the stale `document_sources[Fixed]` so a future `db-to-md` no longer
+regresses `Fixed.md`. A second `md-to-db` reports `inserted=0 updated=0` (idempotent) and
+`validate` is 0-findings — pending conductor verification + close.
+
+### E50 INSTALL-DOC-PODMAN-HTTPS-001 — document the rootless-Podman subuid fix and the curl-installer HTTPS-rewrite edge — `RESOLVED`
+
+**TMX-ID:** TMX-058
+**Status:** Completed (→ Fixed.md)
+**Type:** Task
+**Severity:** LOW
+
+v1.0.30 shipped a native-build fallback when rootless Podman exhausts `/etc/subuid` +
+`/etc/subgid` (`lchown … invalid argument`) and a `curl` one-liner installer, but the
+operator-facing repair guidance lives only in the CHANGELOG. **Fix direction:** document the
+`usermod --add-subuids/--add-subgids` + `podman system migrate` repair recipe AND the
+install HTTPS-rewrite edge in `docs/guides` + `docs/scripts` so an end user hitting either
+can self-recover. **Acceptance:** a docs page (synced HTML/PDF per §11.4.65) reproduces the
+repair steps, verified against the v1.0.30 `setup.sh` fallback path.
