@@ -327,7 +327,31 @@ case "$HOST_OS" in
         TMUX_BIN_ABS="$REPO_ROOT/tmux/build/bin/tmux"
         if [ "$MODE" = "rebuild" ] || [ ! -x "$TMUX_BIN_ABS" ]; then
             if [ -n "${ENGINE:-}" ]; then
-                bash scripts/build_containerized.sh
+                # Prefer the hermetic containerized build, but FALL BACK to a
+                # native build when the container build fails for a reason
+                # unrelated to our code — e.g. rootless Podman with exhausted
+                # /etc/subuid+/etc/subgid ranges cannot unpack the base image
+                # ("lchown /etc/gshadow: invalid argument"; fixing the ID ranges
+                # needs root + `podman system migrate`), or no network to pull
+                # the base image. The native path produces the SAME binary
+                # directly on the host (forensic anchor: base ALT host, rootless
+                # podman subgid exhaustion, 2026-06-29; §11.4.101 reversible
+                # decision — native is the safe fallback when the host already
+                # has the build prerequisites). If BOTH fail, surface both and
+                # exit non-zero (never a silent green).
+                if ! bash scripts/build_containerized.sh; then
+                    echo ""
+                    echo "[setup] ⚠ containerized build failed (see output above) —"
+                    echo "        falling back to a NATIVE host build (§11.4.101)."
+                    echo "        Common cause: rootless podman /etc/subuid+/etc/subgid"
+                    echo "        exhaustion — fix with (as root):"
+                    echo "          usermod --add-subuids 100000-165535 --add-subgids 100000-165535 \$USER"
+                    echo "          podman system migrate"
+                    echo "        Native build needs: a C compiler + libevent-dev +"
+                    echo "        libncurses-dev (+ autoconf/automake/pkg-config/bison)."
+                    echo ""
+                    bash scripts/build_native.sh
+                fi
             else
                 bash scripts/build_native.sh
             fi
