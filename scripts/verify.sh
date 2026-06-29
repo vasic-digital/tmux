@@ -632,8 +632,39 @@ _check_CM_LOCAL_DEPS_MECHANISM() {
         printf '[FAIL] %s (v) scripts/tmx.template lacks the __JEMALLOC_SO__ placeholder setup.sh substitutes (resolved-jemalloc wiring gutted)\n' "$g"; rc=1
     fi
 
+    # (vi) setup.sh obtains libevent + ncurses out-of-the-box (the v1.0.30
+    #      build-dep addition — TMX-059 GAP B). The obtain invocation's DEPS list
+    #      MUST include BOTH so a minimal host with no libevent-dev /
+    #      libncurses-dev gets them resolved-or-obtained during setup; a
+    #      jemalloc-only invocation (the pre-v1.0.30 shape) is the defect. The
+    #      RUNTIME half is scripts/tests/72_libevent_ncurses_obtain.sh.
+    #      setup.sh carries TWO obtain invocations — an early cc-only toolchain
+    #      pre-obtain (`DEPS=cc …`) AND the main one — so we require that AT LEAST
+    #      ONE `DEPS=… obtain_local_deps.sh` line lists BOTH libevent AND ncurses
+    #      (chained greps keep only a line bearing both), not merely the first.
+    local ld_line
+    ld_line="$(grep -E 'DEPS=.*obtain_local_deps\.sh' "$REPO_ROOT/scripts/setup.sh" 2>/dev/null \
+               | grep 'libevent' | grep 'ncurses' | head -1 || true)"
+    if [ -z "$ld_line" ]; then
+        printf '[FAIL] %s (vi) setup.sh has no `DEPS=… obtain_local_deps.sh` invocation listing BOTH libevent AND ncurses (build-dep obtain not wired out-of-the-box — GAP B)\n' "$g"; rc=1
+    fi
+
+    # (vii) obtain_local_deps.sh registers libevent + ncurses as kind=build AND
+    #       emits their INCDIR wiring (%s_INCDIR=%s), so build_native.sh can wire
+    #       -I/-L + PKG_CONFIG_PATH for tmux's ./configure. The runtime half is
+    #       test 72 (obtain) + test 73 (build_native consumption). A jemalloc-only
+    #       (runtime-kind-only) mechanism lacks these → this invariant FAILs.
+    if [ -f "$s" ]; then
+        grep -qE 'libevent:kind\)[[:space:]]*printf[^"]*"build"' "$s" 2>/dev/null \
+          || { printf '[FAIL] %s (vii) obtain_local_deps.sh does not register libevent as a kind=build dependency\n' "$g"; rc=1; }
+        grep -qE 'ncurses:kind\)[[:space:]]*printf[^"]*"build"' "$s" 2>/dev/null \
+          || { printf '[FAIL] %s (vii) obtain_local_deps.sh does not register ncurses as a kind=build dependency\n' "$g"; rc=1; }
+        grep -q '%s_INCDIR=%s' "$s" 2>/dev/null \
+          || { printf '[FAIL] %s (vii) obtain_local_deps.sh emits no build-dep INCDIR wiring (%%s_INCDIR=%%s) — libevent/ncurses headers not exported\n' "$g"; rc=1; }
+    fi
+
     if [ "$rc" -eq 0 ]; then
-        printf '[PASS] %s (obtaining script + .gitignore + regen manifest + setup wiring + wrapper consume all present)\n' "$g"
+        printf '[PASS] %s (obtaining script + .gitignore + regen manifest + setup wiring + wrapper consume + libevent/ncurses build-dep obtain [vi/vii] all present)\n' "$g"
     fi
     return "$rc"
 }
