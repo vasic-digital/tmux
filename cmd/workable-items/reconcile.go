@@ -43,15 +43,38 @@ type itemBlockRange struct {
 	rewritten string // the block rewritten with the item's CURRENT status
 }
 
-// isBlockBoundaryLine reports whether line ends the current item's block — any
-// Markdown heading (`# `..`###### `, including a no-period `### ` block) or a
-// `---` horizontal rule. A boundary line is scaffolding that belongs to neither
-// the preceding nor a moved item, so it is preserved in place.
-func isBlockBoundaryLine(line string) bool {
-	if anyHeadingRE.MatchString(line) {
-		return true
+// isStructuralHeading reports whether line is a level-1..3 Markdown heading
+// (`# `, `## `, `### ` — including a no-period `### ` block). Those head a new
+// item / section / top-level region and so END the current item's block. A
+// level-4..6 sub-heading (`#### `+) is interior body content and does NOT end
+// the block — that distinction is the D1 fix (§11.4.142): the pre-fix boundary
+// matched ANY heading (`#{1,6} `), so a closed item whose verbatim body
+// legitimately contained a `#### ` sub-heading was SPLIT on migration.
+func isStructuralHeading(line string) bool {
+	n := 0
+	for n < len(line) && line[n] == '#' {
+		n++
 	}
-	return strings.TrimSpace(line) == "---"
+	return n >= 1 && n <= 3 && n < len(line) && (line[n] == ' ' || line[n] == '\t')
+}
+
+// isSeparatorTerminator reports whether the `---` at index i is a true
+// section/item separator — the kind that ends the current item's block — rather
+// than an INTERIOR thematic break inside the item's own body. A `---` is a
+// separator only when the next non-blank line is a level-1..3 structural heading
+// (the following item/section) or EOF; a `---` followed by more body content (a
+// paragraph or a `#### ` sub-heading) is interior and must NOT end the block.
+// This is the second half of the D1 fix: the pre-fix boundary ended the block at
+// the FIRST `---`, so a body legitimately containing an interior `---` had its
+// trailing portion orphaned in the source file (silent §11.4.108 corruption).
+func isSeparatorTerminator(lines []string, i int) bool {
+	for j := i + 1; j < len(lines); j++ {
+		if strings.TrimSpace(lines[j]) == "" {
+			continue // skip blank lines between the `---` and the next element.
+		}
+		return isStructuralHeading(lines[j])
+	}
+	return true // EOF after the `---` → it terminates the trailing block.
 }
 
 // headingHintForStatus returns the trailing `\`<hint>\“ heading marker for a
@@ -118,10 +141,17 @@ func findMovedBlocks(srcLines []string, byID map[string]*Item, srcLoc string) []
 		if start < 0 {
 			continue // malformed (TMX-ID with no enclosing heading) — leave.
 		}
-		// Block end: first boundary line after the TMX-ID line.
+		// Block end: the first STRUCTURAL boundary after the TMX-ID line — the
+		// next level-1..3 heading (next item / section / top) OR a `---` that is
+		// a true section/item separator OR EOF. Interior `---` thematic breaks and
+		// `#### `+ sub-headings inside the item's own body do NOT end the block
+		// (D1, §11.4.142): a closed item whose verbatim body legitimately
+		// contained either was previously SPLIT, orphaning its trailing portion
+		// in the source file.
 		end := len(srcLines)
 		for b := i + 1; b < len(srcLines); b++ {
-			if isBlockBoundaryLine(srcLines[b]) {
+			if isStructuralHeading(srcLines[b]) ||
+				(strings.TrimSpace(srcLines[b]) == "---" && isSeparatorTerminator(srcLines, b)) {
 				end = b
 				break
 			}
@@ -173,6 +203,21 @@ func removeRanges(srcLines []string, moves []itemBlockRange) []string {
 	return kept
 }
 
+// joinKept rejoins the kept lines of a reconciled blob, restoring the source's
+// single trailing newline. strings.Split(src, "\n") parks the file's trailing
+// newline in a final "" sentinel element; when the LAST moved block runs to EOF,
+// removeRanges drops that sentinel, so a plain strings.Join would silently eat
+// the file's trailing newline (D2, §11.4.142). When blocks ARE appended back,
+// appendBlocksToDoc re-adds the newline; joinKept restores it on the
+// nothing-appended path.
+func joinKept(kept []string, src string) string {
+	joined := strings.Join(kept, "\n")
+	if joined != "" && strings.HasSuffix(src, "\n") && !strings.HasSuffix(joined, "\n") {
+		joined += "\n"
+	}
+	return joined
+}
+
 // reconcileLocations is the structured-authoritative reconciliation of the two
 // verbatim document blobs. It moves any block whose structured location
 // disagrees with the file it currently sits in (Issues↔Fixed), preserving the
@@ -205,7 +250,7 @@ func reconcileLocations(issuesSrc, fixedSrc string, byID map[string]*Item) (newI
 		toIssuesBlocks = append(toIssuesBlocks, mv.rewritten)
 	}
 
-	newIssues = appendBlocksToDoc(strings.Join(issuesKept, "\n"), toIssuesBlocks)
-	newFixed = appendBlocksToDoc(strings.Join(fixedKept, "\n"), toFixedBlocks)
+	newIssues = appendBlocksToDoc(joinKept(issuesKept, issuesSrc), toIssuesBlocks)
+	newFixed = appendBlocksToDoc(joinKept(fixedKept, fixedSrc), toFixedBlocks)
 	return newIssues, newFixed, moved
 }
