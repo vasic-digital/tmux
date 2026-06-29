@@ -1,7 +1,7 @@
 // parser_test.go — §11.4.15/§11.4.21 status-extraction tests for the
 // Markdown → Item parser.
 //
-// Forensic anchor: Issues.md F1 (ATM-050) carries `**Status:** Operator-blocked`
+// Forensic anchor: Issues.md F1 (TMX-050) carries `**Status:** Operator-blocked`
 // in the MD, but the parser's structured `status` extraction captured `Queued`
 // instead — the statusLineRE non-greedy capture truncated the hyphenated value
 // `Operator-blocked` at its first hyphen, yielding the unrecognised token

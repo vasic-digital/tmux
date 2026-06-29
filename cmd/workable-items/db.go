@@ -105,8 +105,10 @@ func (d *DB) MetaSet(key, value string) error {
 	return err
 }
 
-// NextATMID returns the next available ATM-NNN identifier and bumps the
-// counter atomically. Format: ATM-NNN with zero-padding ≥3 digits.
+// NextATMID returns the next available ticket identifier and bumps the
+// counter atomically. Format: TicketPrefix + zero-padded ordinal ≥3 digits
+// (e.g. TMX-NNN). The meta key `next_atm_id` is the universal schema name
+// (§11.4.28) and holds a bare integer — unaffected by the value prefix.
 func (d *DB) NextATMID() (string, error) {
 	tx, err := d.conn.Begin()
 	if err != nil {
@@ -123,7 +125,7 @@ func (d *DB) NextATMID() (string, error) {
 	if err != nil || n < 1 {
 		n = 1
 	}
-	atm := fmt.Sprintf("ATM-%03d", n)
+	atm := fmt.Sprintf(TicketPrefix+"%03d", n)
 	if _, err := tx.Exec(
 		"UPDATE meta SET value = ?, last_modified = datetime('now') WHERE key = 'next_atm_id'",
 		strconv.Itoa(n+1)); err != nil {

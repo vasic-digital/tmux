@@ -196,7 +196,7 @@ case "$HOST_OS" in
         # Resolve brew by ABSOLUTE path (§11.4.111) — `command -v brew` FAILS
         # under a non-interactive SSH PATH that lacks /opt/homebrew/bin, which
         # made this Step-1 gate hard-`exit 3` BEFORE Step-1b's resolver ever ran
-        # (forensic: mistborn.local clean-target validation, 2026-06-28; ATM-064
+        # (forensic: mistborn.local clean-target validation, 2026-06-28; TMX-064
         # follow-up). Check the canonical Homebrew install locations first, then
         # PATH as a last resort; then prepend brew's bin to PATH so brew + its
         # installed tools resolve for the rest of this run (non-interactive

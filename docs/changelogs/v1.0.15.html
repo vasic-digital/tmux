@@ -91,7 +91,6 @@
       color: #606060;
     }
     code {
-      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -155,6 +154,7 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
+    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
     div.columns{display: flex; gap: min(4vw, 1.5em);}
     div.column{flex: auto; overflow-x: auto;}
@@ -344,8 +344,8 @@ Mistborn arm64 + nezha x86_64 works without toolchain dance</li>
 <li>10 unit + round-trip tests pass 30/30 (3 iters per §11.4.50
 deterministic-consistency)</li>
 <li>Initial DB seeded from live <code>Issues.md</code> (1 item) +
-<code>Fixed.md</code> (44 items) → 45 ATM-NNN allocations
-(ATM-001..ATM-045)</li>
+<code>Fixed.md</code> (44 items) → 45 TMX-NNN allocations
+(TMX-001..TMX-045)</li>
 <li>DB TRACKED in git per §11.4.95 explicit carve-out from §11.4.30</li>
 </ul>
 <h3 id="docx-export-pwu-d">DOCX export (PWU-D)</h3>

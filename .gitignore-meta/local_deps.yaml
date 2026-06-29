@@ -7,7 +7,7 @@
 # building/running/testing the project to declare HOW it is regenerated so a
 # fresh clone can produce it without operator guesswork.
 #
-# Forensic anchor — ATM-064 (local-dependency obtaining mechanism):
+# Forensic anchor — TMX-064 (local-dependency obtaining mechanism):
 #   amber  has NO host jemalloc AND no sudo → a container-built binary with
 #          DT_NEEDED libjemalloc.so.2 cannot start without the lib obtained
 #          locally; mistborn HAS jemalloc via Homebrew but `command -v brew`

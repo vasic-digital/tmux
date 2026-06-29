@@ -14,7 +14,7 @@
 //	workable-items diff             [--db PATH] [--issues PATH] [--fixed PATH]
 //	workable-items validate         [--db PATH] [--schema-only]
 //	workable-items add              --type Bug|Feature|Task --severity ... --title ... --description ... [--category A..E]
-//	workable-items close            ATM-NNN --status fixed|implemented|completed|obsolete --evidence PATH
+//	workable-items close            TMX-NNN --status fixed|implemented|completed|obsolete --evidence PATH
 //	                                [--by AI|User] [--on YYYY-MM-DD] [--reason ...]
 //	                                [--superseding-item ...] [--triple-check-evidence PATH]
 //	workable-items report           [--type ...] [--status ...] [--obsolete-audit]
@@ -79,14 +79,14 @@ Usage:
   workable-items validate         [--db PATH] [--schema-only]
   workable-items add              --type Bug|Feature|Task --severity HIGH|MEDIUM|LOW
                                   --title "..." --description "..." [--category A..E]
-  workable-items close            ATM-NNN --status fixed|implemented|completed|obsolete
+  workable-items close            TMX-NNN --status fixed|implemented|completed|obsolete
                                   --evidence PATH [--by AI|User] [--on YYYY-MM-DD]
                                   [--reason ...] [--superseding-item ...]
                                   [--triple-check-evidence PATH]
   workable-items report           [--type ...] [--status ...] [--obsolete-audit]
   workable-items --version
 
-Composes with §11.4.93 / §11.4.95 (DB tracked in git) / §11.4.54 (ATM-NNN).
+Composes with §11.4.93 / §11.4.95 (DB tracked in git) / §11.4.54 (TMX-NNN).
 `)
 }
 
@@ -227,7 +227,7 @@ func runAdd(args []string) {
 
 func runClose(args []string) {
 	if len(args) < 1 || strings.HasPrefix(args[0], "--") {
-		fmt.Fprintln(os.Stderr, "usage: workable-items close ATM-NNN --status ... --evidence ...")
+		fmt.Fprintln(os.Stderr, "usage: workable-items close TMX-NNN --status ... --evidence ...")
 		os.Exit(2)
 	}
 	atmID := args[0]
@@ -239,7 +239,7 @@ func runClose(args []string) {
 	by := fs.String("by", "AI", "AI|User (§11.4.34 attribution)")
 	onDate := fs.String("on", "", "YYYY-MM-DD (defaults to today)")
 	reason := fs.String("reason", "", "closure reason (closed-set value for obsolete)")
-	supersedingItem := fs.String("superseding-item", "", "§11.4.90 superseding §-letter or ATM-NNN")
+	supersedingItem := fs.String("superseding-item", "", "§11.4.90 superseding §-letter or TMX-NNN")
 	tripleCheck := fs.String("triple-check-evidence", "", "§11.4.90 triple-check evidence path")
 	_ = fs.Parse(rest)
 

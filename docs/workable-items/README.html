@@ -91,7 +91,6 @@
       color: #606060;
     }
     code {
-      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -155,6 +154,7 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
+    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
     div.columns{display: flex; gap: min(4vw, 1.5em);}
     div.column{flex: auto; overflow-x: auto;}
@@ -292,7 +292,7 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Sync DB → regenerated Markdown (writes under docs/workable-items/regen/)</span></span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> sync db-to-md</span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Sync Markdown → DB (re-parse Issues.md + Fixed.md, allocate ATM-NNNs)</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Sync Markdown → DB (re-parse Issues.md + Fixed.md, allocate TMX-NNNs)</span></span>
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> sync md-to-db</span>
 <span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Add a new item</span></span>
@@ -303,7 +303,7 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="
 <span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">--category</span> A</span>
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Close an item with evidence (§11.4.5 + §11.4.69)</span></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> close ATM-042 <span class="dt">\</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="ex">./cmd/workable-items/workable-items</span> close TMX-042 <span class="dt">\</span></span>
 <span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">--status</span> fixed <span class="dt">\</span></span>
 <span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">--evidence</span> qa-results/runs/2026-05-28T17-00-00Z/test_44.log <span class="dt">\</span></span>
 <span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">--by</span> AI <span class="at">--on</span> 2026-05-28</span></code></pre></div>
@@ -367,7 +367,7 @@ demand)</td>
 <tr>
 <td><code>sync md-to-db</code></td>
 <td>Parse <code>Issues.md</code> + <code>Fixed.md</code>, upsert rows in
-the DB, allocate ATM-NNN IDs for new items. Idempotent: a second
+the DB, allocate TMX-NNN IDs for new items. Idempotent: a second
 invocation with no Markdown changes allocates 0 new IDs.</td>
 </tr>
 <tr>
@@ -391,7 +391,7 @@ findings.</td>
 </tr>
 <tr>
 <td><code>add</code></td>
-<td>Append a new item. ATM-NNN allocated monotonically. Required:
+<td>Append a new item. TMX-NNN allocated monotonically. Required:
 <code>--type</code>, <code>--severity</code>, <code>--title</code>,
 <code>--description</code>.</td>
 </tr>

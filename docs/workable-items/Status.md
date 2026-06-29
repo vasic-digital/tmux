@@ -23,7 +23,7 @@ is tracked as a follow-up cycle.
 | `OpenDB` + WAL mode + `PRAGMA wal_checkpoint(TRUNCATE)` on Close | PASS | `TestOpenDB_AppliesSchema` |
 | Subcommand router (`sync md-to-db`, `sync db-to-md`, `diff`, `validate`, `add`, `close`, `report`) | PASS | `workable-items --help` lists every subcommand |
 | Markdown parser — recognises `### <CAT><N>. <title> — \`<STATUS>\`` headings | PASS | `TestRoundTrip_Issues_GoldenCorpus` |
-| `**Status:**` / `**Type:**` / `**Severity:**` / `**ATM-ID:**` body-field extraction | PASS | `TestRoundTrip_Idempotent` (second sync allocates 0 new ATM-NNN) |
+| `**Status:**` / `**Type:**` / `**Severity:**` / `**TMX-ID:**` body-field extraction | PASS | `TestRoundTrip_Idempotent` (second sync allocates 0 new TMX-NNN) |
 | Generator — re-emits `### <CAT><N>. <title> — \`<HINT>\`` byte-stable for golden corpus | PASS | `TestRoundTrip_Issues_GoldenCorpus`, `TestRoundTrip_Fixed_GoldenCorpus` |
 | Idempotent re-sync (second `md-to-db` allocates 0 new IDs) | PASS | `TestRoundTrip_Idempotent` |
 | §11.4.91 description clarity floor enforced | PASS | `TestValidate_DetectsShortDescription` |
@@ -56,7 +56,7 @@ is tracked as a follow-up cycle.
 ## Composition
 
 §11.4.93 (SQLite-SSoT mandate) · §11.4.95 (DB tracked in git) ·
-§11.4.54 (ATM-NNN identifier) · §11.4.33 (type-aware closure) ·
+§11.4.54 (TMX-NNN identifier) · §11.4.33 (type-aware closure) ·
 §11.4.91 (clarity floor) · §11.4.50 (`-count=3` deterministic
 re-run) · §11.4.69 (`ab_pass_with_evidence` semantics applied to
 `close` evidence-path) · §11.4.74 (project-local extension because

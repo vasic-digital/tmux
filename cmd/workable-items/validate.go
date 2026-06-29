@@ -5,7 +5,7 @@
 //   §11.4.16 — every type from closed-set.
 //   §11.4.21 — Operator-blocked items have operator_block_details row.
 //   §11.4.33 — type-aware closure vocabulary alignment.
-//   §11.4.54 — ATM-NNN sequence monotonic with no gaps, unique.
+//   §11.4.54 — TMX-NNN sequence monotonic with no gaps, unique.
 //   §11.4.90 — Obsolete items have obsolete_details row.
 //   §11.4.91 — description ≥ 40 chars OR ≥ 6 words.
 //
@@ -43,7 +43,7 @@ func Validate(db *DB) ([]Finding, error) {
 		return nil, err
 	}
 
-	// §11.4.54 — collect ATM-NNN ordinals + check monotonic/unique.
+	// §11.4.54 — collect TMX-NNN ordinals + check monotonic/unique.
 	seenATM := map[int]string{}
 	ordinals := []int{}
 	for _, it := range items {
@@ -51,14 +51,14 @@ func Validate(db *DB) ([]Finding, error) {
 		if ord <= 0 {
 			findings = append(findings, Finding{
 				Section: "§11.4.54", ATMID: it.ATMID,
-				Detail: "ATM-NNN id does not parse as positive integer ordinal",
+				Detail: TicketPrefix + "NNN id does not parse as positive integer ordinal",
 			})
 			continue
 		}
 		if prev, dup := seenATM[ord]; dup {
 			findings = append(findings, Finding{
 				Section: "§11.4.54", ATMID: it.ATMID,
-				Detail: fmt.Sprintf("ATM-%d duplicates ATM-id of %s", ord, prev),
+				Detail: fmt.Sprintf(TicketPrefix+"%d duplicates id of %s", ord, prev),
 			})
 		}
 		seenATM[ord] = it.ATMID
@@ -72,7 +72,7 @@ func Validate(db *DB) ([]Finding, error) {
 			if o != expected {
 				findings = append(findings, Finding{
 					Section: "§11.4.54",
-					Detail:  fmt.Sprintf("ATM sequence gap: expected ATM-%03d, found ATM-%03d", expected, o),
+					Detail:  fmt.Sprintf("ticket sequence gap: expected "+TicketPrefix+"%03d, found "+TicketPrefix+"%03d", expected, o),
 				})
 				expected = o
 			}
@@ -145,15 +145,15 @@ func Validate(db *DB) ([]Finding, error) {
 	return findings, nil
 }
 
-// atmOrdinal extracts the integer ordinal from an ATM-NNN id.
+// atmOrdinal extracts the integer ordinal from a TMX-NNN id.
 func atmOrdinal(atmID string) int {
-	if !strings.HasPrefix(atmID, "ATM-") {
+	if !strings.HasPrefix(atmID, TicketPrefix) {
 		return -1
 	}
-	n, err := strconv.Atoi(strings.TrimLeft(atmID[4:], "0"))
+	n, err := strconv.Atoi(strings.TrimLeft(atmID[len(TicketPrefix):], "0"))
 	if err != nil {
-		// Handle the degenerate "ATM-000" case which trims to "".
-		if strings.TrimLeft(atmID[4:], "0") == "" {
+		// Handle the degenerate "TMX-000" case which trims to "".
+		if strings.TrimLeft(atmID[len(TicketPrefix):], "0") == "" {
 			return 0
 		}
 		return -1

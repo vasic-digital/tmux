@@ -1,4 +1,4 @@
-// add.go — allocate a new ATM-NNN, insert a new item, write 'Opened' history.
+// add.go — allocate a new TMX-NNN, insert a new item, write 'Opened' history.
 
 package main
 

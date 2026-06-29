@@ -692,7 +692,7 @@ parallel; PWU-E (commit + deploy) is the closing sequential PWU.
   report). 11 Go sources + embedded schema (drift-check-cited from
   constitution `6828ff2`) + 10 tests passing 30/30 (3 iters per
   §11.4.50). Pure-Go `modernc.org/sqlite` (no CGO). Initial DB at
-  `docs/workable_items.db` seeded with 45 items (ATM-001..ATM-045)
+  `docs/workable_items.db` seeded with 45 items (TMX-001..TMX-045)
   from live Issues.md + Fixed.md. TRACKED in git per §11.4.95.
   Honest gaps logged: (a) legacy items default to Type=Task (no
   Type lines pre-§11.4.16); (b) live-corpus round-trip not byte-

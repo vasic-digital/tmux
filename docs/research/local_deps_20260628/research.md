@@ -1,15 +1,15 @@
-# Deep multi-angle research — local-dependency obtaining mechanism (ATM-064)
+# Deep multi-angle research — local-dependency obtaining mechanism (TMX-064)
 
 **Revision:** 1
 **Last modified:** 2026-06-28T00:00:00Z
 **Authority:** §11.4.150 (deep multi-angle research before closure), §11.4.8, §11.4.99 (latest-source cited)
-**Scope:** ATM-064 — git-ignored per-host local-dependency layer + cross-platform obtaining
+**Scope:** TMX-064 — git-ignored per-host local-dependency layer + cross-platform obtaining
 script (`scripts/obtain_local_deps.sh`); first consumer = jemalloc (amber has no host jemalloc
 + no sudo; mistborn has it via brew but brew is off the non-interactive SSH PATH).
 
 ## Why this research (§11.4.150)
 
-Before closing ATM-064 (and the ATM-063 jemalloc gap it subsumes), confirm — from authoritative
+Before closing TMX-064 (and the TMX-063 jemalloc gap it subsumes), confirm — from authoritative
 sources, ≥2 distinct angles — that (i) the chosen approach (obtain `libjemalloc.so.2` as a
 git-ignored local dep + make the binary/wrapper find it) is correct and standard, and (ii) there
 is no *bigger problem* we are unaware of. The hard project invariant (FACT-confirmed this cycle):

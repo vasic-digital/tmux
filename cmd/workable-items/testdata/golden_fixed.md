@@ -1,12 +1,12 @@
 # vasic-digital tmux — Closed Items Tracker
 
 > §11.4.93 SQLite-SSoT generated. Closures land here via
-> `workable-items close ATM-NNN --status fixed|implemented|completed|obsolete`.
+> `workable-items close TMX-NNN --status fixed|implemented|completed|obsolete`.
 
 ## Items
 
 ### A3. SQLite-SSoT scaffold finalised + binary built + tests green — `Completed`
-**ATM-ID:** ATM-003
+**TMX-ID:** TMX-003
 **Type:** Task
 **Status:** `Completed (→ Fixed.md)`
 **Severity:** HIGH

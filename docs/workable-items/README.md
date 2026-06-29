@@ -56,7 +56,7 @@ go build ./cmd/workable-items
 # Sync DB → regenerated Markdown (writes under docs/workable-items/regen/)
 ./cmd/workable-items/workable-items sync db-to-md
 
-# Sync Markdown → DB (re-parse Issues.md + Fixed.md, allocate ATM-NNNs)
+# Sync Markdown → DB (re-parse Issues.md + Fixed.md, allocate TMX-NNNs)
 ./cmd/workable-items/workable-items sync md-to-db
 
 # Add a new item
@@ -67,7 +67,7 @@ go build ./cmd/workable-items
   --category A
 
 # Close an item with evidence (§11.4.5 + §11.4.69)
-./cmd/workable-items/workable-items close ATM-042 \
+./cmd/workable-items/workable-items close TMX-042 \
   --status fixed \
   --evidence qa-results/runs/2026-05-28T17-00-00Z/test_44.log \
   --by AI --on 2026-05-28
@@ -95,11 +95,11 @@ Run `workable-items --help` for the full subcommand reference.
 
 | Subcommand | Purpose |
 |---|---|
-| `sync md-to-db` | Parse `Issues.md` + `Fixed.md`, upsert rows in the DB, allocate ATM-NNN IDs for new items. Idempotent: a second invocation with no Markdown changes allocates 0 new IDs. |
+| `sync md-to-db` | Parse `Issues.md` + `Fixed.md`, upsert rows in the DB, allocate TMX-NNN IDs for new items. Idempotent: a second invocation with no Markdown changes allocates 0 new IDs. |
 | `sync db-to-md` | Render the DB back to Markdown under `--out-dir`. Byte-identical to source for the golden testdata corpus; lossy for live free-form bodies (see §6). |
 | `diff` | Open a temp DB, sync `Issues.md` + `Fixed.md` into it, compare against the live DB. Exits 1 on drift unless `--allow-drift`. |
 | `validate` | Walk the DB and report violations: §11.4.33 type-aware closure vocabulary, §11.4.91 description-clarity floor (≥40 chars or ≥6 words), §11.4.5 + §11.4.69 evidence-required for closed items. Exits 1 if any findings. |
-| `add` | Append a new item. ATM-NNN allocated monotonically. Required: `--type`, `--severity`, `--title`, `--description`. |
+| `add` | Append a new item. TMX-NNN allocated monotonically. Required: `--type`, `--severity`, `--title`, `--description`. |
 | `close` | Mark an item closed. Required: `--status fixed\|implemented\|completed\|obsolete`, `--evidence PATH`. Per §11.4.90, `obsolete` additionally requires `--superseding-item` and `--triple-check-evidence`. |
 | `report` | List items, optionally filtered by `--type`, `--status`, or `--obsolete-audit`. |
 

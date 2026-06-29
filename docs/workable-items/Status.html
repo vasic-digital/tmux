@@ -91,7 +91,6 @@
       color: #606060;
     }
     code {
-      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -155,6 +154,7 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
+    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
     div.columns{display: flex; gap: min(4vw, 1.5em);}
     div.column{flex: auto; overflow-x: auto;}
@@ -232,11 +232,11 @@ headings</td>
 </tr>
 <tr>
 <td><code>**Status:**</code> / <code>**Type:**</code> /
-<code>**Severity:**</code> / <code>**ATM-ID:**</code> body-field
+<code>**Severity:**</code> / <code>**TMX-ID:**</code> body-field
 extraction</td>
 <td>PASS</td>
 <td><code>TestRoundTrip_Idempotent</code> (second sync allocates 0 new
-ATM-NNN)</td>
+TMX-NNN)</td>
 </tr>
 <tr>
 <td>Generator — re-emits
@@ -306,7 +306,7 @@ PWU-E (main context owns scripts/* edits).</li>
 </ul>
 <h2 id="composition">Composition</h2>
 <p>§11.4.93 (SQLite-SSoT mandate) · §11.4.95 (DB tracked in git) ·
-§11.4.54 (ATM-NNN identifier) · §11.4.33 (type-aware closure) · §11.4.91
+§11.4.54 (TMX-NNN identifier) · §11.4.33 (type-aware closure) · §11.4.91
 (clarity floor) · §11.4.50 (<code>-count=3</code> deterministic re-run)
 · §11.4.69 (<code>ab_pass_with_evidence</code> semantics applied to
 <code>close</code> evidence-path) · §11.4.74 (project-local extension

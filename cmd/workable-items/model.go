@@ -54,6 +54,22 @@ const (
 	LocationFixed  = "Fixed"
 )
 
+// Workable-item ticket identifier (§11.4.54 stable id) — project-specific
+// instantiation per §11.4.35. The VALUE prefix is `TMX-` (vasic-digital/tmux);
+// the body field label is `TMX-ID`. Every literal that emits or matches a
+// ticket id is routed through these two consts (the §11.4.1 fix-at-source
+// seam) so the prefix is defined in exactly one place.
+//
+// NOTE (§11.4.28): the DB COLUMN name `atm_id` + meta key `next_atm_id` are
+// the UNIVERSAL constitution-synced schema and are deliberately NOT renamed —
+// only the stored VALUES carry the `TMX-` prefix. The internal Go symbol names
+// (ATMID, atmOrdinal, NextATMID, atmIDLineRE, atmIDOrdinal) are likewise kept
+// (cosmetic; zero data/user impact).
+const (
+	TicketPrefix = "TMX-"   // ticket id value prefix
+	TicketLabel  = "TMX-ID" // the **<label>:** body field
+)
+
 // Item represents a single workable-items row.
 type Item struct {
 	ATMID           string
@@ -81,7 +97,7 @@ type Item struct {
 	// H3 heading and the next H3 heading, preserved EXACTLY so db→md can
 	// re-emit it byte-identical. Includes any leading blank lines, embedded
 	// blockquotes, code fences, and structured prefix lines (Type/Status/
-	// Severity/ATM-ID) — those are still parsed into the Item structured
+	// Severity/TMX-ID) — those are still parsed into the Item structured
 	// fields for DB indexing/querying, but the raw_body is the source of
 	// truth for regeneration. Empty for items created via `workable-items
 	// add` (no source body yet); the generator falls back to structured

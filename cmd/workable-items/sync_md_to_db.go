@@ -1,7 +1,7 @@
 // sync_md_to_db.go — Issues.md + Fixed.md → SQLite DB.
 //
 // Idempotent: re-running over an unchanged corpus produces no DB mutations.
-// New items are allocated ATM-NNN ids from the meta.next_atm_id counter;
+// New items are allocated TMX-NNN ids from the meta.next_atm_id counter;
 // existing items rebind by heading_hash so wording reflows preserve identity.
 
 package main
@@ -95,17 +95,17 @@ func SyncMDToDBOpts(db *DB, issuesPath, fixedPath string, opts SyncMDToDBOptions
 		desc := deriveDescription(it.Title, pi.Item.Body)
 		it.Description = desc
 
-		// Allocate ATM-NNN if no existing row. Existing-row lookup checks:
+		// Allocate TMX-NNN if no existing row. Existing-row lookup checks:
 		//   1. heading_hash binding (preferred — survives wording reflows)
-		//   2. explicit "**ATM-ID:** ATM-NNN" in the parsed body (round-trip
+		//   2. explicit "**TMX-ID:** TMX-NNN" in the parsed body (round-trip
 		//      fixture stability — second-sync of generated output must NOT
-		//      allocate a fresh ATM-NNN for a previously-seeded row).
+		//      allocate a fresh TMX-NNN for a previously-seeded row).
 		existing, err := lookupByHeadingHash(db, it.HeadingHash)
 		if err != nil {
 			return nil, fmt.Errorf("lookup heading_hash: %w", err)
 		}
 		if existing == "" && pi.ExplicitATM != "" {
-			// Check whether the explicit ATM-NNN already exists in DB.
+			// Check whether the explicit TMX-NNN already exists in DB.
 			if priorByATM, _ := db.GetItem(pi.ExplicitATM); priorByATM != nil {
 				existing = pi.ExplicitATM
 			}
@@ -177,7 +177,7 @@ func SyncMDToDBOpts(db *DB, issuesPath, fixedPath string, opts SyncMDToDBOptions
 	return res, nil
 }
 
-// bumpNextATM ensures meta.next_atm_id is at least one past the given ATM-NNN.
+// bumpNextATM ensures meta.next_atm_id is at least one past the given TMX-NNN.
 func bumpNextATM(db *DB, atm string) error {
 	ord := atmOrdinal(atm)
 	if ord < 1 {

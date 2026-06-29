@@ -49,7 +49,7 @@ var trailingStatusRE = regexp.MustCompile(`\s+(?:—|--|-)\s*` + "`" + `([^` + "
 // `Operator-blocked` (§11.4.21). The earlier alternation listed a lone `-`,
 // which (with the non-greedy `+?`) truncated `Operator-blocked` at its first
 // hyphen, yielding the unrecognised token `Operator` that defaulted to
-// `Queued` (Issues.md F1 / ATM-050 forensic case). Requiring whitespace around
+// `Queued` (Issues.md F1 / TMX-050 forensic case). Requiring whitespace around
 // the single-hyphen separator preserves the "value — trailing note" form while
 // keeping intra-word hyphens intact.
 var statusLineRE = regexp.MustCompile(`^\*\*Status:\*\*\s*` + "`?" + `([^` + "`" + `\n]+?)` + "`?" + `\s*(?:—|--|\s-\s|\.|$)`)
@@ -60,15 +60,16 @@ var typeLineRE = regexp.MustCompile(`^\*\*Type:\*\*\s*` + "`?" + `(Bug|Feature|T
 // severityLineRE matches "**Severity:** HIGH" or similar.
 var severityLineRE = regexp.MustCompile(`^\*\*Severity:\*\*\s*` + "`?" + `([A-Za-z0-9\-_]+)` + "`?")
 
-// atmIDLineRE matches "**ATM-ID:** ATM-NNN" when present in regenerated output;
+// atmIDLineRE matches "**TMX-ID:** TMX-NNN" when present in regenerated output;
 // during md-to-db we re-bind to the persisted ID rather than allocating a new one.
-var atmIDLineRE = regexp.MustCompile(`^\*\*ATM-ID:\*\*\s*(ATM-\d+)\s*$`)
+// Built from the §11.4.54 TicketLabel/TicketPrefix consts (§11.4.1 fix-at-source).
+var atmIDLineRE = regexp.MustCompile(`^\*\*` + regexp.QuoteMeta(TicketLabel) + `:\*\*\s*(` + regexp.QuoteMeta(TicketPrefix) + `\d+)\s*$`)
 
 // ParsedItem is the in-memory form before persistence.
 type ParsedItem struct {
 	Item        *Item
 	RawHeading  string // the original "### A36. ..." line, preserved for round-trip.
-	ExplicitATM string // if the body carried "**ATM-ID:** ATM-NNN", store it here.
+	ExplicitATM string // if the body carried "**TMX-ID:** TMX-NNN", store it here.
 }
 
 // ParseFile parses an Issues.md or Fixed.md and returns the slice of items.

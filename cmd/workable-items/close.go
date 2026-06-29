@@ -28,7 +28,7 @@ type CloseItemParams struct {
 // CloseItem applies the terminal state transition.
 func CloseItem(db *DB, p CloseItemParams) (*Item, error) {
 	if p.ATMID == "" {
-		return nil, fmt.Errorf("ATM-NNN argument is required")
+		return nil, fmt.Errorf("TMX-NNN argument is required")
 	}
 	if p.Evidence == "" {
 		return nil, fmt.Errorf("--evidence path is required (§11.4.5 + §11.4.69)")

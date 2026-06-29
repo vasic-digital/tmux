@@ -43,7 +43,7 @@ func TestNextATMID_Monotonic(t *testing.T) {
 		}
 		ids = append(ids, id)
 	}
-	want := []string{"ATM-001", "ATM-002", "ATM-003", "ATM-004", "ATM-005"}
+	want := []string{"TMX-001", "TMX-002", "TMX-003", "TMX-004", "TMX-005"}
 	for i, id := range ids {
 		if id != want[i] {
 			t.Errorf("ids[%d]: got %q, want %q", i, id, want[i])
@@ -60,7 +60,7 @@ func TestUpsertItem_Idempotent(t *testing.T) {
 	defer db.Close()
 
 	it := &Item{
-		ATMID:           "ATM-001",
+		ATMID:           "TMX-001",
 		Type:            TypeBug,
 		Status:          StatusQueued,
 		Severity:        "HIGH",
@@ -93,7 +93,7 @@ func TestValidate_DetectsShortDescription(t *testing.T) {
 	defer db.Close()
 
 	it := &Item{
-		ATMID: "ATM-001", Type: TypeBug, Status: StatusQueued,
+		ATMID: "TMX-001", Type: TypeBug, Status: StatusQueued,
 		Title: "x", Description: "short", CurrentLocation: LocationIssues,
 		Category: "A", CodeOrdinal: 1,
 		HeadingHash: computeHeadingHash("A", "A1", "x"),
@@ -126,7 +126,7 @@ func TestValidate_DetectsTypeAwareClosureMismatch(t *testing.T) {
 
 	// Feature closed with "Fixed" (Bug closure word) → §11.4.33 violation.
 	it := &Item{
-		ATMID: "ATM-001", Type: TypeFeature, Status: StatusFixed,
+		ATMID: "TMX-001", Type: TypeFeature, Status: StatusFixed,
 		Title: "Some feature", Description: "A description longer than forty characters for §11.4.91.",
 		CurrentLocation: LocationFixed,
 		Category:        "A", CodeOrdinal: 1,
@@ -171,8 +171,8 @@ func TestAddItem_AllocatesATMAndOpensHistory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("add: %v", err)
 	}
-	if it.ATMID != "ATM-001" {
-		t.Errorf("ATM-ID: got %q want ATM-001", it.ATMID)
+	if it.ATMID != "TMX-001" {
+		t.Errorf("TMX-ID: got %q want TMX-001", it.ATMID)
 	}
 	hist, err := db.HistoryFor(it.ATMID)
 	if err != nil {
@@ -201,7 +201,7 @@ func TestOpenDB_MigratesRawBodyColumn(t *testing.T) {
 		}
 		// Insert a row.
 		it := &Item{
-			ATMID:           "ATM-001",
+			ATMID:           "TMX-001",
 			Type:            TypeTask,
 			Status:          StatusQueued,
 			Title:           "Migrate row",
@@ -231,7 +231,7 @@ func TestOpenDB_MigratesRawBodyColumn(t *testing.T) {
 	}
 	defer db.Close()
 
-	it, err := db.GetItem("ATM-001")
+	it, err := db.GetItem("TMX-001")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -250,7 +250,7 @@ func TestOpenDB_MigratesRawBodyColumn(t *testing.T) {
 	if err := db.UpsertItem(it); err != nil {
 		t.Fatalf("write after migration: %v", err)
 	}
-	got, err := db.GetItem("ATM-001")
+	got, err := db.GetItem("TMX-001")
 	if err != nil {
 		t.Fatalf("re-get: %v", err)
 	}

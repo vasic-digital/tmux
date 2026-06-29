@@ -11,7 +11,7 @@ instead of two free-form Markdown files. The database file lives at
 `docs/workable_items.db` and IS checked into git (it is the source of
 truth, not a temporary artefact). Forty-five existing items
 (1 open + 44 closed) were imported on first run with zero data loss
-and stable, never-changing `ATM-NNN` identifiers.
+and stable, never-changing `TMX-NNN` identifiers.
 
 **What's still pending.** Two operator-visible follow-ups remain:
 (1) the existing closed items are tagged `Type=Task` by default and
@@ -23,7 +23,7 @@ work units.
 **What you can do today.** Add a new item with
 `./cmd/workable-items/workable-items add --type Bug --title "..."
 --description "..." --severity HIGH`. Close one with
-`./cmd/workable-items/workable-items close ATM-007 --status fixed
+`./cmd/workable-items/workable-items close TMX-007 --status fixed
 --evidence /path/to/proof.log`. Audit the whole tracker with
 `./cmd/workable-items/workable-items validate`.
 
@@ -47,7 +47,7 @@ code_ordinal=3 row.
 | Test | Section enforced |
 |---|---|
 | `TestOpenDB_AppliesSchema` | schema bootstrap |
-| `TestNextATMID_Monotonic` | §11.4.54 monotonic ATM-NNN |
+| `TestNextATMID_Monotonic` | §11.4.54 monotonic TMX-NNN |
 | `TestUpsertItem_Idempotent` | DB-layer idempotency |
 | `TestValidate_DetectsShortDescription` | §11.4.91 clarity floor |
 | `TestValidate_DetectsTypeAwareClosureMismatch` | §11.4.33 closure vocab |
@@ -55,12 +55,12 @@ code_ordinal=3 row.
 | `TestCloseItem_RequiresEvidence` | §11.4.5 + §11.4.69 evidence-required |
 | `TestRoundTrip_Issues_GoldenCorpus` | §11.4.93 byte-identical round-trip (Issues) |
 | `TestRoundTrip_Fixed_GoldenCorpus` | §11.4.93 byte-identical round-trip (Fixed) |
-| `TestRoundTrip_Idempotent` | second-sync allocates 0 new ATM-NNN |
+| `TestRoundTrip_Idempotent` | second-sync allocates 0 new TMX-NNN |
 
 **Initial real-corpus stats.** `45` items in `items` table; 1 row at
-`current_location='Issues'` (ATM-001 = B3 in Issues.md), 44 rows at
-`current_location='Fixed'` (ATM-002..ATM-045 = A1..A36 Fixed.md). On
-seed the binary allocated ATM-NNN sequentially in source-order and
+`current_location='Issues'` (TMX-001 = B3 in Issues.md), 44 rows at
+`current_location='Fixed'` (TMX-002..TMX-045 = A1..A36 Fixed.md). On
+seed the binary allocated TMX-NNN sequentially in source-order and
 wrote 45 `item_history.event_type='Opened'` rows with
 `by='AI', reason='initial md-to-db sync'`.
 
@@ -75,7 +75,7 @@ equivalence is met for the **golden testdata corpus only** (per
 §11.4.93 phase-6 migration plan).
 
 **Composes with.** §11.4.93 (SSoT mandate) · §11.4.95 (tracked DB) ·
-§11.4.54 (ATM-NNN) · §11.4.33 (closure vocab) · §11.4.91 (clarity) ·
+§11.4.54 (TMX-NNN) · §11.4.33 (closure vocab) · §11.4.91 (clarity) ·
 §11.4.50 (`-count=3`) · §11.4.69 (evidence-required) · §11.4.74
 (project-local extension per no-modify-constitution rule).
 

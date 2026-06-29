@@ -165,4 +165,4 @@ M24/A2/D2 in parallel streams per §11.4.103.)
 
 **Fix direction:** strengthen test 26 to assert ALL FOUR surfaces (`status-style`, `pane-active-border-style`, `clock-mode-colour`, `window-status-current-style`) so the M24 mutation (removing any 3) reliably FAILs it — mirroring the all-4-surfaces assertion already proven in test 63 T3 for the per-session path. (This also closes the symmetry gap: the per-session path has a 4-surface guard; the hostname path should too.)
 
-**Out of scope:** the per-session-color feature (ATM-051). Tracked separately so the color release is not blocked by an unrelated pre-existing test-gap.
+**Out of scope:** the per-session-color feature (TMX-051). Tracked separately so the color release is not blocked by an unrelated pre-existing test-gap.

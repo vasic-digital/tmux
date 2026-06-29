@@ -882,7 +882,7 @@ DOCX)! We MUST NEVER forget the flow: workable item → SQLite database
   per §11.4.50 deterministic-consistency). Uses pure-Go
   `modernc.org/sqlite` (no CGO; cross-compile works on Mistborn
   arm64 + nezha x86_64). Initial DB seeded from live Issues.md +
-  Fixed.md = 45 items (ATM-001..ATM-045) at `docs/workable_items.db`
+  Fixed.md = 45 items (TMX-001..TMX-045) at `docs/workable_items.db`
   — TRACKED in git per §11.4.95.
   - **Honest gaps logged per §11.4.6:** (1) legacy items default to
     Type=Task (no `**Type:**` lines in current Issues/Fixed); (2)

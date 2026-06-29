@@ -9,7 +9,7 @@
 ### Category A
 
 ### A1. Tooling harness for round-trip testing needs golden corpus — `OPEN`
-**ATM-ID:** ATM-001
+**TMX-ID:** TMX-001
 **Type:** Task
 **Status:** `Queued`
 **Severity:** MEDIUM
@@ -19,7 +19,7 @@ Establish a deterministic golden fixture corpus that exercises the md-to-db and 
 ### Category B
 
 ### B1. Parser must handle backticks inside titles without confusion — `OPEN`
-**ATM-ID:** ATM-002
+**TMX-ID:** TMX-002
 **Type:** Bug
 **Status:** `Queued`
 **Severity:** HIGH

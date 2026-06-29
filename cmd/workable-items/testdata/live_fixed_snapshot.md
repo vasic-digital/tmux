@@ -155,13 +155,13 @@ sources + embedded schema + 10 unit + round-trip tests:
 - **Layer 2 (runtime):** `go test ./cmd/workable-items/... -count=3`
   → 30 PASS / 0 FAIL / 0 SKIP (10 tests × 3 iterations for
   §11.4.50 deterministic-consistency). Tests cover schema
-  application, ATM-NNN monotonic allocation, idempotent upsert,
+  application, TMX-NNN monotonic allocation, idempotent upsert,
   §11.4.91 short-description detection, §11.4.33 type-aware
   closure mismatch detection, add+close history events, golden-
   corpus round-trip equivalence.
 - **Initial DB population:** `workable-items sync md-to-db`
   parsed live `Issues.md` (1 item) + `Fixed.md` (44 items) →
-  45 inserted, 45 ATM-NNN allocated (ATM-001..ATM-045),
+  45 inserted, 45 TMX-NNN allocated (TMX-001..TMX-045),
   45 `item_history.Opened` events. DB size 104 KiB, tracked.
 - **Layer 3 (Challenge, future):** `CME-WORKABLE-ITEMS-001` —
   deferred to a follow-up cycle when the HelixQA bank

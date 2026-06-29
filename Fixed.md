@@ -136,7 +136,7 @@
 
 **Type:** Bug
 **Closure cycle:** fix shipped in v1.0.20/v1.0.22 (setup.sh wrapper regeneration); operator-confirmed resolved 2026-06-13; regression guard landed 2026-06-13.
-**Reported:** operator, 2026-06-13 — "Open the terminal and for terminal session choose HelixCode. It will crash the whole terminal!" Reproduced across iTerm2, Terminal.app, a Linux terminal, AND WezTerm (all emulators). Migrated from Issues.md F1 (ATM-050).
+**Reported:** operator, 2026-06-13 — "Open the terminal and for terminal session choose HelixCode. It will crash the whole terminal!" Reproduced across iTerm2, Terminal.app, a Linux terminal, AND WezTerm (all emulators). Migrated from Issues.md F1 (TMX-050).
 **Closure source (§11.4.34):** By **User** (operator manual testing); On 2026-06-13; Reason: `manual-testing-detected` (operator confirmed "works now"); Evidence: operator confirmation + the reproduced root cause below.
 
 **Root cause (REPRODUCED — no guessing per §11.4.6/§11.4.123).** The installed/generated wrapper `scripts/tmx` carried `TMUX_BIN="/Users/milosvasic/Projects/tmux/tmux/build-darwin/bin/tmux"` — a **non-existent path** from a PRIOR checkout location (the live checkout is `/Volumes/T7/Projects/tmux`). The operator shell-init runs the operator path `exec sh -c 'tmx attach -t HelixCode 2>/dev/null || exec tmx new -s HelixCode'`; `tmx new` reaches `exec "$TMUX_BIN" …` (`scripts/tmx.template` lines 396/430) on the MISSING binary → `exec` fails (`tmx: line 396: …/tmux: No such file or directory`, exit 127) → the operator's LOGIN SHELL (which had `exec`'d into the wrapper chain) DIES → the terminal window closes = "crashes the whole terminal." Emulator-independent (it is the shell dying), matching the all-emulators report. Captured proof: a real-PTY drive of the operator path through a bad-`TMUX_BIN` wrapper yields `PTY EOF — controlling shell DIED`, child exit 127, with the `No such file or directory` error at lines 396 AND 430.
@@ -478,13 +478,13 @@ sources + embedded schema + 10 unit + round-trip tests:
 - **Layer 2 (runtime):** `go test ./cmd/workable-items/... -count=3`
   → 30 PASS / 0 FAIL / 0 SKIP (10 tests × 3 iterations for
   §11.4.50 deterministic-consistency). Tests cover schema
-  application, ATM-NNN monotonic allocation, idempotent upsert,
+  application, TMX-NNN monotonic allocation, idempotent upsert,
   §11.4.91 short-description detection, §11.4.33 type-aware
   closure mismatch detection, add+close history events, golden-
   corpus round-trip equivalence.
 - **Initial DB population:** `workable-items sync md-to-db`
   parsed live `Issues.md` (1 item) + `Fixed.md` (44 items) →
-  45 inserted, 45 ATM-NNN allocated (ATM-001..ATM-045),
+  45 inserted, 45 TMX-NNN allocated (TMX-001..TMX-045),
   45 `item_history.Opened` events. DB size 104 KiB, tracked.
 - **Layer 3 (Challenge, future):** `CME-WORKABLE-ITEMS-001` —
   deferred to a follow-up cycle when the HelixQA bank
@@ -2804,7 +2804,7 @@ M22 paired mutations.
 
 ---
 
-### ATM-051 — Per-session color via `name:color[:ignored]`
+### TMX-051 — Per-session color via `name:color[:ignored]`
 
 **Status:** Implemented (→ Fixed.md)
 **Type:** Feature

@@ -16,7 +16,7 @@
 //	## Items
 //
 //	### <CAT><N>. <title> — `<STATUS>`
-//	**ATM-ID:** ATM-NNN
+//	**TMX-ID:** TMX-NNN
 //	**Type:** <Type>
 //	**Status:** `<status>`
 //	**Severity:** <severity>
@@ -138,7 +138,7 @@ func writeFixedMD(path string, items []*Item) error {
 	var sb strings.Builder
 	sb.WriteString("# vasic-digital tmux — Closed Items Tracker\n\n")
 	sb.WriteString("> §11.4.93 SQLite-SSoT generated. Closures land here via\n")
-	sb.WriteString("> `workable-items close ATM-NNN --status fixed|implemented|completed|obsolete`.\n\n")
+	sb.WriteString("> `workable-items close " + TicketPrefix + "NNN --status fixed|implemented|completed|obsolete`.\n\n")
 	sb.WriteString("## Items\n\n")
 
 	if len(items) == 0 {
@@ -173,7 +173,7 @@ func writeItemBlock(sb *strings.Builder, it *Item) {
 	sb.WriteString("\n")
 
 	// PWU-Q3 (§11.4.93 phase-6): when raw_body is non-empty, re-emit it
-	// VERBATIM. The structured Type/Status/Severity/ATM-ID prefix lines
+	// VERBATIM. The structured Type/Status/Severity/TMX-ID prefix lines
 	// are NOT prepended because they are already inside raw_body (the
 	// parser captured everything between the heading and the next heading
 	// without stripping). This is what makes the round-trip byte-identical
@@ -186,7 +186,7 @@ func writeItemBlock(sb *strings.Builder, it *Item) {
 
 	// Fallback path for items created via `workable-items add` (no source
 	// body yet) — emit the structured prefix-block + description.
-	sb.WriteString(fmt.Sprintf("**ATM-ID:** %s\n", it.ATMID))
+	sb.WriteString(fmt.Sprintf("**"+TicketLabel+":** %s\n", it.ATMID))
 	sb.WriteString(fmt.Sprintf("**Type:** %s\n", it.Type))
 	sb.WriteString(fmt.Sprintf("**Status:** `%s`\n", it.Status))
 	if it.Severity != "" {
@@ -197,12 +197,12 @@ func writeItemBlock(sb *strings.Builder, it *Item) {
 	sb.WriteString("\n\n")
 }
 
-// atmIDOrdinal extracts the numeric suffix of an ATM-NNN id and re-renders as
-// an ordinal (so ATM-007 → "7"). Used in legacy-style headings.
+// atmIDOrdinal extracts the numeric suffix of a TMX-NNN id and re-renders as
+// an ordinal (so TMX-007 → "7"). Used in legacy-style headings.
 func atmIDOrdinal(atmID string) string {
-	if strings.HasPrefix(atmID, "ATM-") {
-		// Strip "ATM-" and lstrip zeros.
-		s := strings.TrimLeft(atmID[4:], "0")
+	if strings.HasPrefix(atmID, TicketPrefix) {
+		// Strip the ticket prefix and lstrip zeros.
+		s := strings.TrimLeft(atmID[len(TicketPrefix):], "0")
 		if s == "" {
 			s = "0"
 		}

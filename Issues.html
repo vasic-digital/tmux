@@ -91,7 +91,6 @@
       color: #606060;
     }
     code {
-      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -155,6 +154,7 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
+    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
     div.columns{display: flex; gap: min(4vw, 1.5em);}
     div.column{flex: auto; overflow-x: auto;}
@@ -284,8 +284,9 @@ evidence</li>
 id="a2-runall-native-resolve-001--standalone-run_allsh-mis-resolves-the-binary-on-native-macos">A2
 RUNALL-NATIVE-RESOLVE-001 — standalone run_all.sh mis-resolves the
 binary on native macOS</h3>
-<p><strong>Status:</strong> Queued <strong>Type:</strong> Task</p>
-<p><code>scripts/tests/run_all.sh</code> hardcodes
+<p><strong>Status:</strong> Fixed (→ Fixed.md) <strong>Type:</strong>
+Task</p>
+<p>CLOSED v1.0.27. <code>scripts/tests/run_all.sh</code> hardcodes
 <code>TMUX_BIN=tmux/build/bin/tmux</code> (the
 <code>build_containerized.sh</code> output path) and is the
 containerized-build validator. On native macOS the authoritative
@@ -322,9 +323,10 @@ topology dispatch gaps</h2>
 id="d2-tmpdir-hardcode-001--tests-hardcoding-tmp-false-fail-under-host-disk-pressure">D2
 TMPDIR-HARDCODE-001 — tests hardcoding /tmp false-FAIL under host
 disk-pressure</h3>
-<p><strong>Status:</strong> Queued <strong>Type:</strong> Task</p>
-<p>Several tests create scratch under a hardcoded <code>/tmp</code>
-(e.g. <code>27_state_persistence.sh</code> target
+<p><strong>Status:</strong> Fixed (→ Fixed.md) <strong>Type:</strong>
+Task</p>
+<p>CLOSED v1.0.27. Several tests create scratch under a hardcoded
+<code>/tmp</code> (e.g. <code>27_state_persistence.sh</code> target
 <code>tmx-test-18-target-*</code>). When the host root volume is full
 (observed 2026-06-16 on macOS, <code>/</code> at &lt;200 MiB during the
 operator's away-window), the <code>cd</code>/mkdir into
@@ -356,24 +358,23 @@ closes] + 4-layer regression guard [test 60 + verify gate
 <code>CM-TMX-WRAPPER-TMUXBIN-VALID</code> + meta
 <code>M-WRAPPER-TMUXBIN</code>]).</p>
 <hr />
-<p><strong>Last reviewed:</strong> 2026-06-17 (v1.0.25 RELEASED; A49
-test-17 flake closed to <code>Fixed.md</code>. Two minor Queued
-robustness Tasks added from the v1.0.25 cycle: A2
-RUNALL-NATIVE-RESOLVE-001 [run_all.sh containerized-path vs native-macOS
-binary resolution] + D2 TMPDIR-HARDCODE-001 [tests hardcoding /tmp
-false-FAIL under host disk-pressure → should SKIP-with-reason / use
-$TMPDIR]. Both are environment/tooling robustness gaps, NOT product
-defects — the tmux product + all feature tests pass normally on both
-hosts.)</p>
+<p><strong>Last reviewed:</strong> 2026-06-19 (v1.0.27 WIP burn-down.
+§11.4.138 operator-escape A51 [name:color prompt rejection] FIXED —
+shell-init + SSH-dispatcher char-set now allows <code>:</code> and
+<code>#</code>, max-length 64→80; test 65 operator-escape guard
+PASS=6/6. M24/A2/D2 in parallel streams per §11.4.103.)</p>
 <hr />
 <h3
 id="m24-escape-001--meta-test-m24-hostname-4-surface-color-escapes-test-26-misses-a-3-set-line-removal">M24-ESCAPE-001
 — meta-test M24 (hostname 4-surface color) escapes: test 26 misses a
 3-set-line removal</h3>
-<p><strong>Status:</strong> OPEN <strong>Type:</strong> Bug
-<strong>Severity:</strong> Minor (test-coverage gap, no user-facing
-break — hostname color still applies via the surviving set-lines; but
-the paired-mutation guarantee is incomplete)</p>
+<p><strong>Status:</strong> Fixed (→ Fixed.md) <strong>Type:</strong>
+Bug <strong>Severity:</strong> Minor (test-coverage gap, no user-facing
+break — closed v1.0.27: <code>count=1</code> removed from M24 regex →
+strips from BOTH <code>_apply_color</code> and
+<code>_apply_host_color</code>, test 26 now FAILs on the mutation →
+CAUGHT) <strong>Closure:</strong> meta-test 37 CAUGHT / 0 ESCAPED (was
+34 CAUGHT / 3 ESCAPED pre-fix)</p>
 <p><strong>What:</strong> The §1.1 paired-mutation <code>M24</code> in
 <code>scripts/tests/meta_test_false_positive_proof.sh</code> removes
 three of the four <code>tmux set -g …</code> lines in
@@ -397,7 +398,7 @@ already proven in test 63 T3 for the per-session path. (This also closes
 the symmetry gap: the per-session path has a 4-surface guard; the
 hostname path should too.)</p>
 <p><strong>Out of scope:</strong> the per-session-color feature
-(ATM-051). Tracked separately so the color release is not blocked by an
+(TMX-051). Tracked separately so the color release is not blocked by an
 unrelated pre-existing test-gap.</p>
 </body>
 </html>

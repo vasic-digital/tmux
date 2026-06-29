@@ -1,6 +1,6 @@
 // operator_block_test.go — §11.4.21 operator_block_details population tests.
 //
-// Forensic anchor: Issues.md F1 (ATM-050) carries `**Status:** Operator-blocked`
+// Forensic anchor: Issues.md F1 (TMX-050) carries `**Status:** Operator-blocked`
 // AND a canonical `**Operator-Block-Details:**` block (WHAT / WHY / UNBLOCK
 // CONDITION / WHO). The parser stored the status correctly but NEVER populated
 // the operator_block_details table, so `workable-items validate` reported a

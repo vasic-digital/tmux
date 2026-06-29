@@ -91,7 +91,6 @@
       color: #606060;
     }
     code {
-      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -155,6 +154,7 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
+    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
     div.columns{display: flex; gap: min(4vw, 1.5em);}
     div.column{flex: auto; overflow-x: auto;}
@@ -184,7 +184,7 @@ trackers as one SQLite database instead of two free-form Markdown files.
 The database file lives at <code>docs/workable_items.db</code> and IS
 checked into git (it is the source of truth, not a temporary artefact).
 Forty-five existing items (1 open + 44 closed) were imported on first
-run with zero data loss and stable, never-changing <code>ATM-NNN</code>
+run with zero data loss and stable, never-changing <code>TMX-NNN</code>
 identifiers.</p>
 <p><strong>What's still pending.</strong> Two operator-visible
 follow-ups remain: (1) the existing closed items are tagged
@@ -195,7 +195,7 @@ the DB before each commit. Both are tracked as separate work units.</p>
 <p><strong>What you can do today.</strong> Add a new item with
 <code>./cmd/workable-items/workable-items add --type Bug --title "..." --description "..." --severity HIGH</code>.
 Close one with
-<code>./cmd/workable-items/workable-items close ATM-007 --status fixed --evidence /path/to/proof.log</code>.
+<code>./cmd/workable-items/workable-items close TMX-007 --status fixed --evidence /path/to/proof.log</code>.
 Audit the whole tracker with
 <code>./cmd/workable-items/workable-items validate</code>.</p>
 <h2 id="page-2--for-software-engineers">Page 2 — For software
@@ -230,7 +230,7 @@ at <code>-count=3</code>:</p>
 </tr>
 <tr>
 <td><code>TestNextATMID_Monotonic</code></td>
-<td>§11.4.54 monotonic ATM-NNN</td>
+<td>§11.4.54 monotonic TMX-NNN</td>
 </tr>
 <tr>
 <td><code>TestUpsertItem_Idempotent</code></td>
@@ -262,15 +262,15 @@ at <code>-count=3</code>:</p>
 </tr>
 <tr>
 <td><code>TestRoundTrip_Idempotent</code></td>
-<td>second-sync allocates 0 new ATM-NNN</td>
+<td>second-sync allocates 0 new TMX-NNN</td>
 </tr>
 </tbody>
 </table>
 <p><strong>Initial real-corpus stats.</strong> <code>45</code> items in
 <code>items</code> table; 1 row at
-<code>current_location='Issues'</code> (ATM-001 = B3 in Issues.md), 44
-rows at <code>current_location='Fixed'</code> (ATM-002..ATM-045 =
-A1..A36 Fixed.md). On seed the binary allocated ATM-NNN sequentially in
+<code>current_location='Issues'</code> (TMX-001 = B3 in Issues.md), 44
+rows at <code>current_location='Fixed'</code> (TMX-002..TMX-045 =
+A1..A36 Fixed.md). On seed the binary allocated TMX-NNN sequentially in
 source-order and wrote 45 <code>item_history.event_type='Opened'</code>
 rows with <code>by='AI', reason='initial md-to-db sync'</code>.</p>
 <p><strong>Honest §11.4.6 gaps.</strong> (a) 45 legacy items default to
@@ -284,7 +284,7 @@ fences) cannot be losslessly reconstructed from the flat
 is met for the <strong>golden testdata corpus only</strong> (per
 §11.4.93 phase-6 migration plan).</p>
 <p><strong>Composes with.</strong> §11.4.93 (SSoT mandate) · §11.4.95
-(tracked DB) · §11.4.54 (ATM-NNN) · §11.4.33 (closure vocab) · §11.4.91
+(tracked DB) · §11.4.54 (TMX-NNN) · §11.4.33 (closure vocab) · §11.4.91
 (clarity) · §11.4.50 (<code>-count=3</code>) · §11.4.69
 (evidence-required) · §11.4.74 (project-local extension per
 no-modify-constitution rule).</p>
