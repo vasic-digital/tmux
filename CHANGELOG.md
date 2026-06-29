@@ -6,6 +6,36 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.30] — 2026-06-29
+
+**Workable-item key prefix corrected ATM- → TMX- (this project, not ATMOSphere). Cross-platform install hardening: curl one-liner installer, libevent/ncurses local-dependency obtain, native-build fallback for rootless-Podman hosts, and an escaped-colon session-color fix.**
+
+### Changed
+
+- **Workable-item ticket key migrated `ATM-` → `TMX-` everywhere (§11.4.54 / §11.4.35).** This project was migrated from ATMOSphere and wrongly inherited ATMOSphere's `ATM-` key prefix; the correct key for this project is `TMX-`. Migrated across the Go workable-items tooling (added `const TicketPrefix="TMX-"` / `TicketLabel="TMX-ID"`, routed all literals through them — fix-at-source §11.4.1), the tracked SQLite DB values (`items.atm_id` + child-table refs via a focused value-only `REPLACE` migration with a §9.2 backup — never a renumbering rebuild, per §11.4.54), golden testdata, and all trackers (Issues/Fixed/CONTINUATION/CHANGELOG + docs/workable-items + exports). The Go symbol `ATMID`, the DB column name `atm_id`, and the universal `schema.sql` are intentionally kept (constitution-synced schema, §11.4.28 — values migrated, schema not forked). Legitimate `ATMOSphere` origin-history references are preserved (the rename targets the hyphenated `ATM-` token only). 56 items → TMX-001..TMX-056. §11.4.93 byte-identical round-trip + validation (0 findings) stay GREEN; DB `foreign_key_check` + `integrity_check` clean.
+
+### Added
+
+- **curl-obtainable installer (`scripts/install.sh`).** `curl -fsSL .../scripts/install.sh | bash` → clone-recursive (+ submodules) → `setup.sh` (build + verify + gated PATH export) → `run_all.sh` → confirm the `.bashrc`/`.zshrc` snippet + `tmx` resolvability. §9.2 refuse-to-clobber a foreign directory; idempotent re-run (update mode); rc-detection by file-existence; env overrides (`TMX_INSTALL_DIR`/`TMX_REPO_URL`/`TMX_INSTALL_BRANCH`/`TMX_INSTALL_NO_SETUP`). README one-liner + `docs/scripts/install.md`. Test 69 PASS=9/0/0 (real offline recursive-clone proof).
+- **libevent + ncurses local-dependency obtain (completes the §11.4.77 local-deps mechanism).** `obtain_local_deps.sh` now resolves-or-obtains libevent 2.1.12 + ncurses 6.5 (sha256-verified from authoritative sources) into git-ignored `.local-deps/`, so a forced native build works on a minimal host lacking the `-dev` packages. `build_native.sh` consumes them via `-I/-L` + `PKG_CONFIG_PATH`. Acid-test: a real `tmux ./configure` finds the obtained local libevent (exit 0; control without it → `libevent not found`).
+- **Native-build fallback for rootless-Podman hosts (`setup.sh`).** When the containerized build fails (e.g. rootless Podman `/etc/subuid`+`/etc/subgid` exhaustion → `lchown /etc/gshadow: invalid argument`), setup falls back to a native host build (§11.4.101) and emits the `usermod --add-subuids/--add-subgids` + `podman system migrate` repair hint. Both builds failing surfaces both errors + exits non-zero (no silent green). Success path unchanged.
+
+### Fixed
+
+- **Escaped-colon session names lost their color on Linux (`scripts/tmx.template`).** The Linux dispatch passed the RAW `-s` value to tmux while the socket label / has-session check / color application keyed off the SANITISED name → `tmx new -s 'name\:x:color'` created a mis-named session, has-session failed, and the color was never applied (status-style stayed tmux-default green). Now passes `$NAME` to `-s` (parity with the already-correct Darwin path). Test 63 → PASS=8/0/0.
+
+### Verification
+
+- nezha (Linux x86_64): TMX-001 GATE A go test GREEN; GATE B validate 0-findings + zero-ATM-keys (non-export) + ATMOSphere keep-list intact + DB foreign_key_check/integrity_check clean; test 63 8/0/0, test 67 5/0/0, test 69 9/0/0.
+- v1.0.30 readiness audit: GO — no release blocker.
+- libevent obtain acid-test: real `tmux ./configure` exit 0 against the obtained local libevent (control: exit 1).
+
+Non-blocking follow-ups tracked: TMX-068 (obtain Go for amber → tmx-state build), TMX-070 (document the rootless-podman subuid fix + install HTTPS-rewrite edge), DB↔Fixed.md SSoT drift (pre-existing, orthogonal), test-coverage gaps G1–G5.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+
+---
+
 ## [v1.0.29] — 2026-06-28
 
 **Full session lifecycle (name:color + password + cwd + detach/rejoin + recycle + delete-reset) proven working with real live tmux sessions. Cross-platform local-dependency mechanism. Six cross-platform defects found and fixed via §11.4.108 clean-target host validation.**
