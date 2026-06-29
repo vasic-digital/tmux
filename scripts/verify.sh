@@ -652,7 +652,7 @@ _check_CM_LOCAL_DEPS_MECHANISM() {
 # -ljemalloc (local-build jemalloc with a dev symlink + the zig wrapper rejects
 # -l:NAME, regression caught 2026-06-30) and the macOS line (brew dev .dylib,
 # -search_paths_first) keeps bare too — both OUT of scope. Runtime/anti-bluff
-# half: scripts/tests/72_jemalloc_link_soname.sh
+# half: scripts/tests/75_jemalloc_link_soname.sh
 # + the paired meta-test mutation M-CM-JEMALLOC-LINK-BY-SONAME (reverts
 # ${JEM_LINK}→-ljemalloc → forces this gate FAIL).
 _check_CM_JEMALLOC_LINK_BY_SONAME() {

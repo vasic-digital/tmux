@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 72_jemalloc_link_soname.sh
+# 75_jemalloc_link_soname.sh
 # ─────────────────────────────────────────────────────────────────────────────
 # Purpose:    §11.4.115 RED-baseline + standing regression guard for the
 #             jemalloc LINK token emitted by scripts/build_native.sh on the
@@ -39,11 +39,11 @@
 #       `${JEM_LINK}` reverted to bare `-ljemalloc` makes the GREEN assertion
 #       FAIL → MUTATION CAUGHT (the guard has teeth).
 #
-# Usage:      bash scripts/tests/72_jemalloc_link_soname.sh
-#             RED_MODE=1 bash scripts/tests/72_jemalloc_link_soname.sh   # reproduce
+# Usage:      bash scripts/tests/75_jemalloc_link_soname.sh
+#             RED_MODE=1 bash scripts/tests/75_jemalloc_link_soname.sh   # reproduce
 # Inputs:     RED_MODE (default 1 per §11.4.115). Honours $TMPDIR.
 # Outputs:    EVIDENCE / PASS / FAIL / SKIP lines + summary (run_all-classified).
-# Side-effects: builds a stub shared lib + conftests under ${TMPDIR:-/tmp}/tmx72.$$
+# Side-effects: builds a stub shared lib + conftests under ${TMPDIR:-/tmp}/tmx75.$$
 #             (trap-cleaned, §11.4.14). HOST-SAFE: never touches the real toolchain
 #             or .local-deps tree (§12).
 # Dependencies: scripts/build_native.sh (under test); a real C compiler for C1
@@ -62,26 +62,26 @@ REPO_ROOT="$(cd "$SELF_DIR/../.." && pwd)"
 BN="$REPO_ROOT/scripts/build_native.sh"
 
 PASS=0; FAIL=0; SKIP=0
-_pass() { echo "PASS 72: $*"; PASS=$((PASS + 1)); }
-_fail() { echo "FAIL 72: $*"; FAIL=$((FAIL + 1)); }
-_skip() { echo "SKIP 72: $*"; SKIP=$((SKIP + 1)); }
-_ev()   { echo "EVIDENCE 72: $*"; }
+_pass() { echo "PASS 75: $*"; PASS=$((PASS + 1)); }
+_fail() { echo "FAIL 75: $*"; FAIL=$((FAIL + 1)); }
+_skip() { echo "SKIP 75: $*"; SKIP=$((SKIP + 1)); }
+_ev()   { echo "EVIDENCE 75: $*"; }
 
 SCRATCH_BASE="${TMPDIR:-/tmp}"; SCRATCH_BASE="${SCRATCH_BASE%/}"
-WORK="$SCRATCH_BASE/tmx72.$$"
+WORK="$SCRATCH_BASE/tmx75.$$"
 EVID_DIR="$REPO_ROOT/qa-results/loop-20260630/jemalloc-link-soname"
 _cleanup() { rm -rf "$WORK" 2>/dev/null || true; }
 trap _cleanup EXIT
 if ! mkdir -p "$WORK" 2>/dev/null || [ ! -w "$WORK" ]; then
-    echo "SKIP 72: scratch root $WORK not writable (disk full / RO) — §11.4.3"
-    echo "── summary 72: PASS=0 FAIL=0 SKIP=1 ──"; exit 0
+    echo "SKIP 75: scratch root $WORK not writable (disk full / RO) — §11.4.3"
+    echo "── summary 75: PASS=0 FAIL=0 SKIP=1 ──"; exit 0
 fi
 mkdir -p "$EVID_DIR" 2>/dev/null || true
 
-[ -f "$BN" ] || { echo "FAIL 72: scripts/build_native.sh absent"; exit 1; }
+[ -f "$BN" ] || { echo "FAIL 75: scripts/build_native.sh absent"; exit 1; }
 
 echo "════════════════════════════════════════════════════════════════"
-echo "  test 72 — jemalloc link-by-SONAME (§11.4.111) (RED_MODE=$RED_MODE)"
+echo "  test 75 — jemalloc link-by-SONAME (§11.4.111) (RED_MODE=$RED_MODE)"
 echo "════════════════════════════════════════════════════════════════"
 
 # ── source helpers: the GNU (Linux) jemalloc-link lines carry the GNU-only
@@ -101,7 +101,7 @@ elif [ -z "$REAL_CC" ]; then
     _skip "C1 no C compiler on host — cannot exercise the link principle (§11.4.3)"
 else
     JLIB="$WORK/jlib"; mkdir -p "$JLIB"
-    printf 'int __tmx72_stub;\n' > "$WORK/stub.c"
+    printf 'int __tmx75_stub;\n' > "$WORK/stub.c"
     if "$REAL_CC" -shared -fPIC -o "$JLIB/libjemalloc.so.2" "$WORK/stub.c" >/dev/null 2>&1; then
         # NO libjemalloc.so dev symlink is created — runtime-only, the host condition.
         printf 'int main(void){return 0;}\n' > "$WORK/conftest.c"
@@ -185,7 +185,7 @@ else
 fi
 
 echo "════════════════════════════════════════════════════════════════"
-echo "  test 72 SUMMARY: PASS=$PASS FAIL=$FAIL SKIP=$SKIP (RED_MODE=$RED_MODE)"
+echo "  test 75 SUMMARY: PASS=$PASS FAIL=$FAIL SKIP=$SKIP (RED_MODE=$RED_MODE)"
 echo "════════════════════════════════════════════════════════════════"
 [ "$FAIL" -gt 0 ] && exit 1
 exit 0
