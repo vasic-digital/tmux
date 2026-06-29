@@ -172,6 +172,18 @@ case "$HOST_OS" in
         # against the resolved local libjemalloc). For a host-system jemalloc
         # (default path) JEM_* stay empty ⇒ behaviour unchanged (no regression).
         JEM_CPPFLAGS=""; JEM_LDFLAGS=""
+        # ── local-prefix BUILD deps (libevent + ncurses) (§11.4.77) ─────────
+        # A minimal host with a compiler but NO libevent-dev / libncurses-dev
+        # (e.g. nezha: /usr/include/event2/event.h absent) source-builds them
+        # locally via obtain_local_deps.sh. When LIBEVENT_SOURCE/NCURSES_SOURCE
+        # report a NON-host provenance (local-build / local-deps), wire the
+        # local prefix's include + lib dirs into the build AND export
+        # PKG_CONFIG_PATH=<prefix>/lib/pkgconfig so tmux's `./configure`
+        # pkg-config check finds the local libevent/ncursesw .pc files (the
+        # source build installs them there). Host-system / host-brew / absent
+        # ⇒ these stay EMPTY ⇒ default behaviour unchanged (no regression).
+        LE_CPPFLAGS=""; LE_LDFLAGS=""; NC_CPPFLAGS=""; NC_LDFLAGS=""
+        LOCAL_PKGCONFIG=""; _NEED_LOCAL_PC=0
         _RENV="$REPO_ROOT/.local-deps/${HOST_OS}_${HOST_ARCH}/resolved.env"
         if [ -f "$_RENV" ]; then
             # shellcheck disable=SC1090
@@ -184,13 +196,37 @@ case "$HOST_OS" in
                     [ -n "${JEMALLOC_LIBDIR:-}" ] && JEM_LDFLAGS="-L${JEMALLOC_LIBDIR}"
                     ;;
             esac
+            case "${LIBEVENT_SOURCE:-}" in
+                host-system|host-brew|host-probe-fallback|"") : ;;
+                *)
+                    [ -n "${LIBEVENT_INCDIR:-}" ] && LE_CPPFLAGS="-I${LIBEVENT_INCDIR}"
+                    [ -n "${LIBEVENT_LIBDIR:-}" ] && LE_LDFLAGS="-L${LIBEVENT_LIBDIR}"
+                    _NEED_LOCAL_PC=1
+                    ;;
+            esac
+            case "${NCURSES_SOURCE:-}" in
+                host-system|host-brew|host-probe-fallback|"") : ;;
+                *)
+                    [ -n "${NCURSES_INCDIR:-}" ] && NC_CPPFLAGS="-I${NCURSES_INCDIR}"
+                    [ -n "${NCURSES_LIBDIR:-}" ] && NC_LDFLAGS="-L${NCURSES_LIBDIR}"
+                    _NEED_LOCAL_PC=1
+                    ;;
+            esac
+            # Only prepend the local pkgconfig dir when a local-built build dep
+            # is actually in play — avoids a stale local .pc shadowing a
+            # host-system resolution on a host that needed neither.
+            if [ "$_NEED_LOCAL_PC" = "1" ] && [ -n "${LOCAL_DEPS_PREFIX:-}" ] \
+               && [ -d "${LOCAL_DEPS_PREFIX}/lib/pkgconfig" ]; then
+                LOCAL_PKGCONFIG="${LOCAL_DEPS_PREFIX}/lib/pkgconfig"
+            fi
         fi
 
         CFLAGS="-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2 \
                 -Wno-unused-parameter -Wno-deprecated-declarations \
-                ${JEM_CPPFLAGS} ${CPPFLAGS:-} ${CFLAGS:-}"
-        # -L MUST precede -ljemalloc for the linker to find the local prefix.
-        LDFLAGS="-Wl,-z,relro,-z,now ${JEM_LDFLAGS} \
+                ${JEM_CPPFLAGS} ${LE_CPPFLAGS} ${NC_CPPFLAGS} ${CPPFLAGS:-} ${CFLAGS:-}"
+        # -L MUST precede -ljemalloc / the libevent+ncurses link for the linker
+        # to find the local prefix before any system copy.
+        LDFLAGS="-Wl,-z,relro,-z,now ${JEM_LDFLAGS} ${LE_LDFLAGS} ${NC_LDFLAGS} \
                  -Wl,--no-as-needed -ljemalloc -Wl,--as-needed ${LDFLAGS:-}"
 
         cd "$REPO_ROOT/tmux"
@@ -203,6 +239,7 @@ case "$HOST_OS" in
 
         echo "[build_native] configuring..."
         CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" \
+        PKG_CONFIG_PATH="${LOCAL_PKGCONFIG:+${LOCAL_PKGCONFIG}:}${PKG_CONFIG_PATH:-}" \
             ./configure --prefix="$BUILD_DIR" --disable-debug 2>&1 | tail -10
 
         make -j"$(nproc)" 2>&1 | tail -5

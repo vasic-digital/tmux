@@ -438,8 +438,29 @@ case "$SUBCMD" in
                 fi
                 SAW_NEW=0
                 SAW_C=0
+                # §11.4.111 by-stable-name: the value following `-s` is the RAW
+                # "name[:color[:ignored]]" / escaped-colon token. tmux derives
+                # its actual session name from whatever we pass to `-s`, while
+                # the socket label, the has-session check below, the color
+                # application, and the state record all key off the SANITISED
+                # $NAME. Passing the raw value through (the prior bug) made
+                # tmux name the session from the raw string — tmux maps ':'→'_'
+                # and KEEPS a literal backslash, so `t63w6\:x:cyan` became
+                # session `t63w6\_x_cyan`, which the sanitised NAME `t63w6_x`
+                # neither equals nor prefix-matches → has-session FAILS → the
+                # color step never runs (the §102 escaped-colon defect). Simple
+                # cases (`t63w1:red` → tmux `t63w1_red`) only "passed" because
+                # NAME prefix-matched. Rewrite the `-s` value to $NAME so tmux's
+                # session name == the wrapper's NAME exactly (Darwin already
+                # passes -s "$NAME"; this brings Linux into parity).
+                _prev=""
                 for a in "$@"; do
-                    case "$a" in -L) continue ;; esac
+                    case "$a" in -L) _prev="$a"; continue ;; esac
+                    if [ "$_prev" = "-s" ]; then
+                        NEW_ARGS+=("$NAME")
+                        _prev="$a"
+                        continue
+                    fi
                     NEW_ARGS+=("$a")
                     case "$a" in
                         new|new-session|start-server)
@@ -454,6 +475,7 @@ case "$SUBCMD" in
                             ;;
                         -c) SAW_C=1 ;;
                     esac
+                    _prev="$a"
                 done
                 # §11.4 cwd restore (Linux): if `new` was passed but no
                 # explicit `-c <path>`, inject `-c $START_DIR` so the

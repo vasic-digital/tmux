@@ -264,20 +264,36 @@ esac
 # runtime) + Step 3 wrapper LD_PRELOAD/LD_LIBRARY_PATH (LD_PRELOAD ignores
 # rpath → MUST be the absolute path; docs/research/local_deps_20260628).
 echo ""
-echo "[setup] step 1b — obtain/resolve local dependencies (jemalloc)"
+echo "[setup] step 1b — obtain/resolve local dependencies (jemalloc + libevent + ncurses)"
 JEMALLOC_SO=""
 JEMALLOC_LIBDIR=""
 JEMALLOC_SOURCE=""
 LOCAL_DEPS_PREFIX=""
 RESOLVED_ENV="$REPO_ROOT/.local-deps/$(uname -s)_$(uname -m)/resolved.env"
 obtain_rc=0
-bash scripts/obtain_local_deps.sh || obtain_rc=$?
+# Obtain ALL THREE: jemalloc (runtime, preloaded) + libevent + ncurses (the
+# tmux BUILD deps the NATIVE-build fallback needs on a minimal host without
+# libevent-dev / libncurses-dev). obtain_local_deps.sh RESOLVES each by
+# absolute path when the host already has it (cheap, no build) and only
+# OBTAINS (source build) the genuinely-missing ones — so passing all three is
+# safe + cheap on a full host and load-bearing on a minimal one. build_native.sh
+# (Linux branch) sources resolved.env to add -I/-L + PKG_CONFIG_PATH for the
+# local libevent/ncurses; the container build needs none of this (the image
+# carries them) so the extra resolves are harmless there.
+DEPS="jemalloc libevent ncurses" bash scripts/obtain_local_deps.sh || obtain_rc=$?
 if [ "$obtain_rc" -ne 0 ]; then
     echo "  ⚠ obtain_local_deps.sh exited $obtain_rc (typed error 10-14, see output above) — NOT faking success (§11.4)"
 fi
 if [ -f "$RESOLVED_ENV" ]; then
     # shellcheck disable=SC1090
     . "$RESOLVED_ENV"
+fi
+# Surface the build-dep resolution (consumed by build_native.sh, not setup).
+if [ -n "${LIBEVENT_SOURCE:-}" ]; then
+    echo "  ✓ libevent: ${LIBEVENT_LIBDIR:-?} (inc: ${LIBEVENT_INCDIR:-?}, source: ${LIBEVENT_SOURCE:-?})"
+fi
+if [ -n "${NCURSES_SOURCE:-}" ]; then
+    echo "  ✓ ncurses: ${NCURSES_LIBDIR:-?} (inc: ${NCURSES_INCDIR:-?}, source: ${NCURSES_SOURCE:-?})"
 fi
 # Canonicalise: prefer the resolved ABSOLUTE path; fall back to the Step 1
 # host probe ($JEMALLOC) so the wrapper still preloads on hosts where the

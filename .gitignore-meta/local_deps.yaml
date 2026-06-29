@@ -39,21 +39,56 @@ platforms:
 # sync when adding a dep there (the script is the source of truth).
 deps:
   - name: jemalloc
+    kind: runtime          # preloaded shared lib; resolved.env emits JEMALLOC_SO/_LIBDIR/_SOURCE
     version: "5.3.0"
     url: "https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2"
     sha256: "2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa"
     linux_lib: libjemalloc.so.2
     macos_libs: "libjemalloc.2.dylib libjemalloc.dylib"
+    container_extract: yes  # the docker/Dockerfile image carries libjemalloc-dev (compiler-less Linux fallback)
     why: "core hardening allocator; loaded via the tmx wrapper's LD_PRELOAD and linked DT_NEEDED into the binary (test 61 T3 invariant — STAYS DYNAMIC)"
+
+  - name: libevent
+    kind: build            # tmux BUILD dep; resolved.env emits LIBEVENT_LIBDIR/_INCDIR/_SOURCE
+    version: "2.1.12-stable"
+    url: "https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz"
+    sha256: "92e6de1be9ec176428fd2367677e61ceffc2ee1cb119035037a27d346b0403bb"   # verified by authoritative download (github.com/libevent releases) + Fossies/Debian/Buildroot, 2026-06-29
+    header: event2/event.h
+    linux_lib: "libevent-2.1.so.7 libevent.so"      # soname from Makefile.am VERSION_INFO=7:1:0
+    macos_libs: "libevent-2.1.7.dylib libevent.dylib"
+    container_extract: no   # source-only build dep (no container recipe)
+    configure_args: "--disable-openssl --disable-debug-mode --disable-static --enable-shared --disable-samples --disable-libevent-regress"
+    why: "tmux event loop; a forced NATIVE build on a host without libevent-dev links against this local copy (build_native.sh adds -I/-L + PKG_CONFIG_PATH). Installs libevent.pc into <prefix>/lib/pkgconfig so tmux's configure pkg-config check finds it."
+
+  - name: ncurses
+    kind: build            # tmux BUILD dep; resolved.env emits NCURSES_LIBDIR/_INCDIR/_SOURCE
+    version: "6.5"
+    url: "https://ftp.gnu.org/gnu/ncurses/ncurses-6.5.tar.gz"
+    sha256: "136d91bc269a9a5785e5f9e980bc76ab57428f604ce3e5a5a90cebc767971cc6"   # verified by authoritative download (ftp.gnu.org/gnu/ncurses) + Fossies/Debian, 2026-06-29
+    header: "ncurses.h ncursesw/curses.h"   # system install exposes ncurses.h; local widec build → include/ncursesw/curses.h
+    linux_lib: "libncursesw.so.6 libncursesw.so"
+    macos_libs: "libncursesw.6.dylib libncursesw.dylib"
+    container_extract: no   # source-only build dep (no container recipe)
+    configure_args: "--with-shared --without-debug --without-ada --without-cxx-binding --without-tests --without-manpages --enable-widec --enable-pc-files --with-pkg-config-libdir=@PREFIX@/lib/pkgconfig --disable-stripping"
+    why: "tmux terminal library (widec); a forced NATIVE build on a host without libncurses-dev links against this local copy. Installs ncursesw.pc into <prefix>/lib/pkgconfig (@PREFIX@ substituted at build time) so tmux's configure resolves it via `pkg-config ncursesw`."
 
 notes: |
   scripts/obtain_local_deps.sh RESOLVES an already-present dependency by
   ABSOLUTE path (pkg-config / ldconfig / absolute brew / common lib dirs)
   or OBTAINS it git-ignored into .local-deps/<plat>/lib when missing
   (source build with a pinned + sha256-verified tarball, or — Linux, no
-  compiler — extract from the docker/Dockerfile build image). It writes a
-  sourceable .local-deps/<plat>/resolved.env exporting:
-      LOCAL_DEPS_PREFIX, JEMALLOC_SO (ABSOLUTE), JEMALLOC_LIBDIR, JEMALLOC_SOURCE
+  compiler — extract from the docker/Dockerfile build image; build deps are
+  source-only, no container recipe). It writes a sourceable
+  .local-deps/<plat>/resolved.env exporting:
+      LOCAL_DEPS_PREFIX
+      runtime dep (jemalloc): JEMALLOC_SO (ABSOLUTE), JEMALLOC_LIBDIR, JEMALLOC_SOURCE
+      build deps (libevent/ncurses): LIBEVENT_LIBDIR, LIBEVENT_INCDIR, LIBEVENT_SOURCE,
+                                     NCURSES_LIBDIR, NCURSES_INCDIR, NCURSES_SOURCE
+  Build deps are source-built WITH their pkg-config .pc files into
+  <prefix>/lib/pkgconfig; scripts/build_native.sh (Linux) sources resolved.env
+  to add -I<INCDIR> -L<LIBDIR> + PKG_CONFIG_PATH=<prefix>/lib/pkgconfig so
+  tmux's ./configure finds the local libevent/ncursesw. setup.sh step 1b passes
+  DEPS="jemalloc libevent ncurses".
 
   Regeneration is idempotent: a present + valid local library is reused, not
   rebuilt. Force a fresh local build with FORCE_OBTAIN=1; override the root

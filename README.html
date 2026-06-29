@@ -286,20 +286,102 @@ positive runtime evidence (cgroup interface readbacks,
 layer-4 paired-mutation harness that proves the gates aren't themselves
 bluffs. SKIPs document precondition gates (CAP_SYS_RESOURCE, libjemalloc
 presence, destructive-test opt-in) explicitly. No PASS-bluffs.</p>
+<h2 id="install-one-liner">Install (one-liner)</h2>
+<p>Obtain and run the installer in a single <code>curl</code> command,
+like any modern CLI:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://raw.githubusercontent.com/vasic-digital/tmux/main/scripts/install.sh <span class="kw">|</span> <span class="fu">bash</span></span></code></pre></div>
+<p>That one command <strong>clones the whole project (with all
+submodules, fully recursive) → builds + verifies
+(<code>scripts/setup.sh</code>) → runs the full validation suite
+(<code>scripts/tests/run_all.sh</code>) → wires <code>tmx</code> onto
+your PATH</strong>. It installs into <code>$HOME/tmux</code> by default
+(the project name, lowercase snake_case per the constitution naming
+convention). When it finishes, <code>source ~/.bashrc</code> (or
+<code>~/.zshrc</code>) — or open a new terminal — and run
+<code>tmx new -s &lt;name&gt;</code>.</p>
+<p>It is honest by construction (§11.4 anti-bluff): any failure in
+clone, build, verification, or tests makes the installer <strong>exit
+non-zero</strong> — it never PATH-exports an unverified binary, and it
+<strong>refuses to clobber</strong> a non-empty directory that is not
+our checkout (§9.2). It runs <strong>no <code>sudo</code></strong> under
+the pipe.</p>
+<p><strong>Prerequisites:</strong> <code>git</code> (required), plus
+either a <strong>C toolchain</strong> (compiler +
+<code>libevent-dev</code> + <code>libncurses-dev</code>)
+<strong>or</strong> a <strong>container engine</strong> (podman/docker)
+for the build — <code>setup.sh</code> picks the right path and surfaces
+missing deps honestly. On Linux, install build deps once with
+<code>sudo bash scripts/install_deps.sh</code>. Missing runtime deps
+(jemalloc) are obtained git-ignored into <code>.local-deps/</code>
+automatically (§11.4.77).</p>
+<p><strong>Options</strong> (env var OR flag — flag wins; pass flags
+under the pipe with <code>bash -s -- …</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Env var</th>
+<th>Flag</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TMX_INSTALL_DIR</code></td>
+<td><code>--dir DIR</code></td>
+<td><code>$HOME/tmux</code></td>
+<td>install root</td>
+</tr>
+<tr>
+<td><code>TMX_REPO_URL</code></td>
+<td><code>--repo URL</code></td>
+<td><code>https://github.com/vasic-digital/tmux.git</code></td>
+<td>clone source (HTTPS so keyless users can clone)</td>
+</tr>
+<tr>
+<td><code>TMX_INSTALL_BRANCH</code></td>
+<td><code>--branch B</code></td>
+<td><code>main</code></td>
+<td>branch to clone / track</td>
+</tr>
+<tr>
+<td><code>TMX_INSTALL_NO_SETUP=1</code></td>
+<td><code>--clone-only</code></td>
+<td>(off)</td>
+<td>clone + submodules only (no build / no host writes)</td>
+</tr>
+</tbody>
+</table>
+<p>Re-running the installer over an existing checkout
+<strong>updates</strong> it (<code>git pull --ff-only</code> + recursive
+submodule update) — idempotent.</p>
+<p><strong>File exports the installer wires (what ends up on your
+host):</strong> the PATH+session snippet is appended to whichever shell
+rc your host uses — <strong><code>~/.bashrc</code></strong> and/or
+<strong><code>~/.zshrc</code></strong> (and <code>~/.bash_profile</code>
+/ <code>~/.profile</code> for bash login shells);
+<strong><code>~/.tmux.conf</code></strong> is installed (any
+pre-existing non-ours config is backed up to
+<code>~/.tmux.conf.pre-vasic-digital</code>); and the generated
+<strong><code>scripts/tmx</code></strong> wrapper is prepended onto PATH
+so <code>tmx</code> resolves to this verified build while the system
+<code>tmux</code> stays reachable side-by-side. Full reference: <a
+href="docs/scripts/install.md"><code>docs/scripts/install.md</code></a>.</p>
 <h2 id="quick-install-one-command">Quick install (one command)</h2>
 <p><strong>Linux host:</strong></p>
-<div class="sourceCode" id="cb1"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> bash scripts/install_deps.sh    <span class="co"># one-time host build deps</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh                 <span class="co"># build + verify + install (no sudo)</span></span></code></pre></div>
-<p><strong>macOS host (Apple Silicon or Intel):</strong></p>
 <div class="sourceCode" id="cb2"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install podman                   <span class="co"># one-time: container runtime</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> machine init <span class="kw">&amp;&amp;</span> <span class="ex">podman</span> machine start</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh                 <span class="co"># build + VM-verify + install bridge</span></span></code></pre></div>
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> bash scripts/install_deps.sh    <span class="co"># one-time host build deps</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh                 <span class="co"># build + verify + install (no sudo)</span></span></code></pre></div>
+<p><strong>macOS host (Apple Silicon or Intel):</strong></p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install podman                   <span class="co"># one-time: container runtime</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> machine init <span class="kw">&amp;&amp;</span> <span class="ex">podman</span> machine start</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh                 <span class="co"># build + VM-verify + install bridge</span></span></code></pre></div>
 <p>After <code>setup.sh</code> reports GREEN: open a new shell, or
 source the rc for your shell (<code>source ~/.bashrc</code> or
 <code>source ~/.zshrc</code>). Then <code>tmx new|attach|ls|kill</code>

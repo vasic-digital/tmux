@@ -14,6 +14,14 @@
 #     - mistborn: HAS jemalloc via Homebrew, but `command -v brew` FAILS
 #                under a non-interactive SSH PATH (the exit-3 root cause),
 #                so setup never resolves it.
+#   Beyond the runtime allocator, this script also obtains the tmux BUILD
+#   dependencies a forced NATIVE build needs on a minimal host — libevent and
+#   ncurses (widec) — so setup.sh's native-build fallback links even where the
+#   host lacks libevent-dev / libncurses-dev (e.g. nezha has NO libevent:
+#   /usr/include/event2/event.h absent). Build deps are source-built into the
+#   local prefix WITH their pkg-config .pc files; build_native.sh adds
+#   -I/-L + PKG_CONFIG_PATH so tmux's ./configure finds the local copies.
+#
 #   This script (a) RESOLVES an already-present dependency by ABSOLUTE path
 #   (§11.4.111 — never ambient `command -v`/PATH for the dependency), and
 #   (b) OBTAINS it git-ignored into .local-deps/ when genuinely missing,
@@ -28,18 +36,22 @@
 #   FORCE_OBTAIN=1 bash scripts/obtain_local_deps.sh   # skip host detection,
 #                                                       # always obtain locally
 #   LOCAL_DEPS_ROOT=/path bash scripts/obtain_local_deps.sh  # override root
-#   DEPS="jemalloc" bash scripts/obtain_local_deps.sh  # subset of deps
+#   DEPS="jemalloc libevent ncurses" bash scripts/obtain_local_deps.sh  # all
 #
 # Inputs (env, all optional):
 #   FORCE_OBTAIN     1 → skip host detection, obtain into the local prefix.
 #   LOCAL_DEPS_ROOT  override the git-ignored root (default <repo>/.local-deps).
-#   DEPS             space-separated dep names (default: jemalloc).
+#   DEPS             space-separated dep names. Default "jemalloc" (backward
+#                    compatible); setup.sh passes "jemalloc libevent ncurses"
+#                    so the native-build fallback has its build deps ready.
 #   OBTAIN_METHOD    auto|source|container (Linux obtain method; default auto).
 #
 # Outputs:
 #   .local-deps/<uname-s>_<uname-m>/lib/<libname>     the obtained library
 #   .local-deps/<uname-s>_<uname-m>/resolved.env      KEY=VALUE sourceable
-#       (e.g. JEMALLOC_SO=…, JEMALLOC_LIBDIR=…, JEMALLOC_SOURCE=…)
+#       runtime dep (jemalloc): JEMALLOC_SO=…, JEMALLOC_LIBDIR=…, JEMALLOC_SOURCE=…
+#       build deps (libevent/ncurses): LIBEVENT_LIBDIR/_INCDIR/_SOURCE,
+#       NCURSES_LIBDIR/_INCDIR/_SOURCE
 #   "RESOLVED <dep> …" / "OBTAINED <dep> …" lines on stdout.
 #
 # Side-effects:
@@ -135,6 +147,18 @@ _sha256_of() {
 
 # ── declarative dependency registry (bash-3.2 safe: case, no assoc arrays) ──
 # Add a new dependency by adding case branches here + a resolve/obtain note.
+#
+# Per-dep `kind` (§11.4.6):
+#   runtime — a shared library the wrapper PRELOADS (jemalloc): resolved.env
+#             emits <PREFIX>_SO (ABSOLUTE), <PREFIX>_LIBDIR, <PREFIX>_SOURCE.
+#   build   — a BUILD dependency tmux's `./configure` links against (libevent,
+#             ncurses): resolved.env emits <PREFIX>_LIBDIR, <PREFIX>_INCDIR,
+#             <PREFIX>_SOURCE; build_native.sh adds -I/-L + PKG_CONFIG_PATH.
+# `configure_args` may contain the literal token @PREFIX@ — obtain_via_source
+# substitutes it with the resolved $LOCAL_PREFIX (used by ncurses for its
+# pkg-config .pc install dir). `build_targets` empty ⇒ the default `all`.
+# `container_extract` = yes only for deps the docker/Dockerfile image carries
+# (jemalloc); build deps are source-only (no container recipe — honest fail).
 dep_field() {
     case "$1:$2" in
         jemalloc:version)        printf '%s' "5.3.0" ;;
@@ -145,6 +169,51 @@ dep_field() {
         jemalloc:pkgconfig)      printf '%s' "jemalloc" ;;
         jemalloc:brew)           printf '%s' "jemalloc" ;;
         jemalloc:envprefix)      printf '%s' "JEMALLOC" ;;
+        jemalloc:kind)           printf '%s' "runtime" ;;
+        jemalloc:container_extract) printf '%s' "yes" ;;
+        jemalloc:configure_args) printf '%s' "--disable-debug" ;;
+        jemalloc:build_targets)  printf '%s' "build_lib_shared" ;;
+        jemalloc:install_targets) printf '%s' "install_lib_shared install_include" ;;
+
+        # libevent — tmux's event loop. Source-built shared (no OpenSSL, no
+        # static, no samples/regress) into the local prefix; installs
+        # libevent.pc into <prefix>/lib/pkgconfig (autotools default) so tmux's
+        # configure pkg-config check finds it. soname libevent-2.1.so.7
+        # (Makefile.am VERSION_INFO=7:1:0 → current-age = 7-0 = 7).
+        libevent:version)        printf '%s' "2.1.12-stable" ;;
+        libevent:url)            printf '%s' "https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz" ;;
+        libevent:sha256)         printf '%s' "92e6de1be9ec176428fd2367677e61ceffc2ee1cb119035037a27d346b0403bb" ;;
+        libevent:linux_lib)      printf '%s' "libevent-2.1.so.7 libevent.so" ;;
+        libevent:macos_libs)     printf '%s' "libevent-2.1.7.dylib libevent.dylib" ;;
+        libevent:pkgconfig)      printf '%s' "libevent" ;;
+        libevent:brew)           printf '%s' "libevent" ;;
+        libevent:envprefix)      printf '%s' "LIBEVENT" ;;
+        libevent:kind)           printf '%s' "build" ;;
+        libevent:header)         printf '%s' "event2/event.h" ;;
+        libevent:container_extract) printf '%s' "no" ;;
+        libevent:configure_args) printf '%s' "--disable-openssl --disable-debug-mode --disable-static --enable-shared --disable-samples --disable-libevent-regress" ;;
+        libevent:build_targets)  printf '%s' "" ;;
+        libevent:install_targets) printf '%s' "install" ;;
+
+        # ncurses (widec) — tmux's terminal library. Source-built shared widec
+        # into the local prefix WITH .pc files (--enable-pc-files +
+        # --with-pkg-config-libdir=@PREFIX@/lib/pkgconfig → ncursesw.pc, which
+        # tmux's configure resolves via `pkg-config ncursesw`). soname
+        # libncursesw.so.6.
+        ncurses:version)         printf '%s' "6.5" ;;
+        ncurses:url)             printf '%s' "https://ftp.gnu.org/gnu/ncurses/ncurses-6.5.tar.gz" ;;
+        ncurses:sha256)          printf '%s' "136d91bc269a9a5785e5f9e980bc76ab57428f604ce3e5a5a90cebc767971cc6" ;;
+        ncurses:linux_lib)       printf '%s' "libncursesw.so.6 libncursesw.so" ;;
+        ncurses:macos_libs)      printf '%s' "libncursesw.6.dylib libncursesw.dylib" ;;
+        ncurses:pkgconfig)       printf '%s' "ncursesw" ;;
+        ncurses:brew)            printf '%s' "ncurses" ;;
+        ncurses:envprefix)       printf '%s' "NCURSES" ;;
+        ncurses:kind)            printf '%s' "build" ;;
+        ncurses:header)          printf '%s' "ncurses.h ncursesw/curses.h" ;;
+        ncurses:container_extract) printf '%s' "no" ;;
+        ncurses:configure_args)  printf '%s' "--with-shared --without-debug --without-ada --without-cxx-binding --without-tests --without-manpages --enable-widec --enable-pc-files --with-pkg-config-libdir=@PREFIX@/lib/pkgconfig --disable-stripping" ;;
+        ncurses:build_targets)   printf '%s' "" ;;
+        ncurses:install_targets) printf '%s' "install" ;;
         *) return 1 ;;
     esac
 }
@@ -229,6 +298,64 @@ resolve_existing() {
     return 1
 }
 
+# ── RESOLVE the include dir for a BUILD dependency (libevent/ncurses) ───────
+# tmux's configure needs the dev HEADER, not just the shared library — a host
+# with the runtime .so but no header cannot link. Print the absolute include
+# directory that contains the dep's signature header (dep_field <dep> header),
+# or return 1. Used only for kind=build deps.
+#
+# `mode` (§11.4.6 — consistent provenance, never mixed): the header MUST come
+# from the SAME tier as the resolved library, else build_native.sh mis-labels
+# the dep. mode=host → pkg-config includedir + common host dirs ONLY (never
+# .local-deps — a host runtime .so must NOT be paired with a previously-OBTAINED
+# local header, which would falsely label the dep host-system while the host
+# lacks a usable build copy). mode=local → ONLY the .local-deps include dir.
+# `header` may be a space-separated candidate list (ncurses widec installs its
+# signature header at include/ncursesw/curses.h locally vs include/ncurses.h on
+# a system install — try each).
+_resolve_incdir() {
+    local dep="$1" mode="${2:-host}" hdrs hdr pc pcbin incdir dirs d
+    hdrs="$(dep_field "$dep" header 2>/dev/null || true)"
+    [ -n "$hdrs" ] || return 1
+
+    if [ "$mode" = "local" ]; then
+        # Header must live in the local prefix beside the local-built lib.
+        for hdr in $hdrs; do
+            [ -e "$INCDIR/$hdr" ] && { printf '%s\n' "$INCDIR"; return 0; }
+        done
+        return 1
+    fi
+
+    # mode=host: HOST include locations only (NEVER .local-deps).
+    # (1) pkg-config --variable=includedir (absolute candidate only).
+    pc="$(dep_field "$dep" pkgconfig 2>/dev/null || true)"
+    if [ -n "$pc" ]; then
+        pcbin="$(_first_exe /usr/bin/pkg-config /usr/local/bin/pkg-config /opt/homebrew/bin/pkg-config /bin/pkg-config || true)"
+        if [ -n "$pcbin" ] && "$pcbin" --exists "$pc" >/dev/null 2>&1; then
+            incdir="$("$pcbin" --variable=includedir "$pc" 2>/dev/null || true)"
+            if [ -n "$incdir" ]; then
+                for hdr in $hdrs; do
+                    [ -e "$incdir/$hdr" ] && { printf '%s\n' "$incdir"; return 0; }
+                done
+            fi
+        fi
+    fi
+
+    # (2) common HOST include directories.
+    if [ "$HOST_OS" = "Darwin" ]; then
+        dirs="/opt/homebrew/include /usr/local/include /opt/homebrew/opt/$dep/include /usr/local/opt/$dep/include"
+    else
+        dirs="/usr/include /usr/local/include /usr/include/$HOST_ARCH-linux-gnu"
+    fi
+    for d in $dirs; do
+        for hdr in $hdrs; do
+            [ -e "$d/$hdr" ] && { printf '%s\n' "$d"; return 0; }
+        done
+    done
+
+    return 1
+}
+
 # ── OBTAIN: build/extract <dep> into $LIBDIR (git-ignored) ─────────────────
 # Idempotent: if a valid local library already exists, returns 0 (reuse).
 _local_lib_present() {
@@ -307,14 +434,29 @@ obtain_via_source() {
         return $EC_NETWORK
     fi
 
-    _info "$dep: configuring + building shared library into $LOCAL_PREFIX"
+    # Per-dep configure args + make targets come from the registry
+    # (jemalloc keeps its fast build_lib_shared/install_lib_shared path;
+    # libevent/ncurses use the standard `all` + `install`). @PREFIX@ in
+    # configure_args is replaced with the resolved local prefix (ncurses
+    # pkg-config .pc install dir). Build output is tee'd to a persistent
+    # per-dep log so a failure is debuggable (§11.4.6/§11.4.69 — never
+    # silently swallowed), mirroring the container_extract.log pattern.
+    local cfg_args build_tgt inst_tgt blog
+    cfg_args="$(dep_field "$dep" configure_args 2>/dev/null || true)"
+    build_tgt="$(dep_field "$dep" build_targets 2>/dev/null || true)"
+    inst_tgt="$(dep_field "$dep" install_targets 2>/dev/null || true)"
+    [ -n "$inst_tgt" ] || inst_tgt="install"
+    cfg_args="${cfg_args//@PREFIX@/$LOCAL_PREFIX}"
+    blog="$LOCAL_PREFIX/build_${dep}.log"
+    : > "$blog" 2>/dev/null || true
+    _info "$dep: configuring + building into $LOCAL_PREFIX (log: $blog)"
     (
         cd "$srcdir"
-        ./configure --prefix="$LOCAL_PREFIX" --disable-debug >/dev/null 2>&1
-        # build_lib_shared keeps the build to the shared library only (fast).
-        "$mk" -j"$( (command -v nproc >/dev/null 2>&1 && nproc) || echo 2)" build_lib_shared >/dev/null 2>&1
-        "$mk" install_lib_shared install_include >/dev/null 2>&1
-    ) || { _err "$dep: source build failed"; return $EC_NO_TOOLCHAIN; }
+        # cfg_args/build_tgt/inst_tgt are intentional word lists — unquoted.
+        ./configure --prefix="$LOCAL_PREFIX" $cfg_args >>"$blog" 2>&1
+        "$mk" -j"$( (command -v nproc >/dev/null 2>&1 && nproc) || echo 2)" $build_tgt >>"$blog" 2>&1
+        "$mk" $inst_tgt >>"$blog" 2>&1
+    ) || { _err "$dep: source build failed — see $blog"; return $EC_NO_TOOLCHAIN; }
 
     rm -rf "$work"
     if _local_lib_present "$dep" >/dev/null; then
@@ -407,16 +549,36 @@ obtain_dep() {
             return $EC_NO_TOOLCHAIN
             ;;
         Linux)
+            # Container extract only applies to deps the build image carries
+            # (jemalloc). Build deps (libevent/ncurses) are source-only — when
+            # a compiler-less Linux host cannot source-build them there is NO
+            # container recipe, so we fail honestly (EC_NO_TOOLCHAIN), never a
+            # misleading image build that cannot produce the lib.
+            local ce; ce="$(dep_field "$dep" container_extract 2>/dev/null || echo no)"
             case "$OBTAIN_METHOD" in
                 source)    obtain_via_source "$dep"; return $? ;;
-                container) obtain_via_container "$dep"; return $? ;;
+                container)
+                    if [ "$ce" = "yes" ]; then obtain_via_container "$dep"; return $?; fi
+                    _err "$dep: OBTAIN_METHOD=container but no container-extract recipe (source-only build dep)"
+                    return $EC_UNSUPPORTED
+                    ;;
                 *)
-                    # auto: source if a compiler exists, else container.
+                    # auto: source if a compiler exists, else container (when
+                    # the dep has a container recipe).
+                    local src_rc=0
                     if _first_exe /usr/bin/cc /usr/bin/gcc /usr/bin/clang cc gcc clang >/dev/null 2>&1; then
                         obtain_via_source "$dep" && return 0
-                        _warn "$dep: source build failed — trying container extract"
+                        src_rc=$?
+                        _warn "$dep: source build failed (rc=$src_rc)"
                     fi
-                    obtain_via_container "$dep"; return $?
+                    if [ "$ce" = "yes" ]; then
+                        _warn "$dep: trying container extract"
+                        obtain_via_container "$dep"; return $?
+                    fi
+                    # No container recipe: surface the source failure honestly
+                    # (or no-toolchain when no compiler was present at all).
+                    if [ "$src_rc" -ne 0 ]; then return $src_rc; fi
+                    return $EC_NO_TOOLCHAIN
                     ;;
             esac
             ;;
@@ -441,19 +603,45 @@ for dep in $DEPS; do
         continue
     fi
     ep="$(dep_field "$dep" envprefix)"
+    kind="$(dep_field "$dep" kind 2>/dev/null || echo runtime)"
     so=""
     src=""
+    incdir=""
 
     if [ "$FORCE_OBTAIN" != "1" ]; then
         if so="$(resolve_existing "$dep" 2>/dev/null)"; then
-            # Where did it come from? (Best-effort label by location.)
-            case "$so" in
-                "$LIBDIR"/*)          src="local-deps" ;;
-                /opt/homebrew/*|/usr/local/Cellar/*|/usr/local/opt/*) src="host-brew" ;;
-                /lib64/*|/usr/lib*/*|/lib/*) src="host-system" ;;
-                *)                    src="host" ;;
-            esac
-            _info "RESOLVED $dep → $so ($src)"
+            # Build dependencies (libevent/ncurses) are usable by tmux's
+            # configure ONLY when BOTH the shared library AND its dev header
+            # are present — a runtime-only host (the .so but no header) cannot
+            # link. Require the header too; if absent, fall through to OBTAIN
+            # locally (§11.4.6 — never claim host-resolved when the header
+            # tmux needs is missing).
+            if [ "$kind" = "build" ]; then
+                # The header MUST come from the SAME tier as the resolved lib
+                # (§11.4.6 — no mixed host-lib + local-header provenance, which
+                # would falsely label the dep host-system while the host lacks
+                # a buildable copy). Pick the mode by where the lib resolved.
+                case "$so" in
+                    "$LIBDIR"/*) _incmode="local" ;;
+                    *)           _incmode="host" ;;
+                esac
+                if incdir="$(_resolve_incdir "$dep" "$_incmode" 2>/dev/null)"; then
+                    : # lib + matching-tier header present — genuine resolution
+                else
+                    _info "$dep: $_incmode lib present but matching dev header ($(dep_field "$dep" header 2>/dev/null)) absent — OBTAINING locally"
+                    so=""
+                fi
+            fi
+            if [ -n "$so" ]; then
+                # Where did it come from? (Best-effort label by location.)
+                case "$so" in
+                    "$LIBDIR"/*)          src="local-deps" ;;
+                    /opt/homebrew/*|/usr/local/Cellar/*|/usr/local/opt/*) src="host-brew" ;;
+                    /lib64/*|/usr/lib*/*|/lib/*) src="host-system" ;;
+                    *)                    src="host" ;;
+                esac
+                _info "RESOLVED $dep → $so ($src${incdir:+, headers: $incdir})"
+            fi
         fi
     else
         _info "$dep: FORCE_OBTAIN=1 — skipping host detection"
@@ -472,7 +660,10 @@ for dep in $DEPS; do
             else
                 src="local-build"
             fi
-            _info "OBTAINED $dep → $so ($src)"
+            # Source-built build deps install their headers into the local
+            # prefix's include dir (configure --prefix=$LOCAL_PREFIX).
+            [ "$kind" = "build" ] && incdir="$INCDIR"
+            _info "OBTAINED $dep → $so ($src${incdir:+, headers: $incdir})"
         else
             rc=$?
             _err "OBTAIN FAILED for $dep (rc=$rc) — NOT faking success"
@@ -483,9 +674,19 @@ for dep in $DEPS; do
 
     libdir="$(dirname "$so")"
     {
-        printf '%s_SO=%s\n'     "$ep" "$so"
-        printf '%s_LIBDIR=%s\n' "$ep" "$libdir"
-        printf '%s_SOURCE=%s\n' "$ep" "$src"
+        if [ "$kind" = "build" ]; then
+            # Build dependency (libevent/ncurses): tmux's configure consumes
+            # the lib dir + include dir (+ the .pc under $libdir/pkgconfig).
+            printf '%s_LIBDIR=%s\n' "$ep" "$libdir"
+            printf '%s_INCDIR=%s\n' "$ep" "$incdir"
+            printf '%s_SOURCE=%s\n' "$ep" "$src"
+        else
+            # Runtime dependency (jemalloc): preloaded by the wrapper — the
+            # ABSOLUTE .so path is load-bearing (LD_PRELOAD ignores rpath).
+            printf '%s_SO=%s\n'     "$ep" "$so"
+            printf '%s_LIBDIR=%s\n' "$ep" "$libdir"
+            printf '%s_SOURCE=%s\n' "$ep" "$src"
+        fi
     } >> "$RESOLVED_ENV.tmp"
 done
 

@@ -29,6 +29,55 @@ A reproducible, hardened build of [`tmux`](https://github.com/tmux/tmux) with bu
 
 **The 18 verification tests are why this matters**: a typical "build tmux from source" guide assumes the build worked. This project ships a hard wall — `bash scripts/setup.sh` will refuse to PATH-export the binary unless functional tests pass with positive runtime evidence (cgroup interface readbacks, `/proc` files, real session output), backed by a §11.4.4 layer-4 paired-mutation harness that proves the gates aren't themselves bluffs. SKIPs document precondition gates (CAP_SYS_RESOURCE, libjemalloc presence, destructive-test opt-in) explicitly. No PASS-bluffs.
 
+## Install (one-liner)
+
+Obtain and run the installer in a single `curl` command, like any modern CLI:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vasic-digital/tmux/main/scripts/install.sh | bash
+```
+
+That one command **clones the whole project (with all submodules, fully
+recursive) → builds + verifies (`scripts/setup.sh`) → runs the full validation
+suite (`scripts/tests/run_all.sh`) → wires `tmx` onto your PATH**. It installs
+into `$HOME/tmux` by default (the project name, lowercase snake_case per the
+constitution naming convention). When it finishes, `source ~/.bashrc` (or
+`~/.zshrc`) — or open a new terminal — and run `tmx new -s <name>`.
+
+It is honest by construction (§11.4 anti-bluff): any failure in clone, build,
+verification, or tests makes the installer **exit non-zero** — it never
+PATH-exports an unverified binary, and it **refuses to clobber** a non-empty
+directory that is not our checkout (§9.2). It runs **no `sudo`** under the pipe.
+
+**Prerequisites:** `git` (required), plus either a **C toolchain** (compiler +
+`libevent-dev` + `libncurses-dev`) **or** a **container engine** (podman/docker)
+for the build — `setup.sh` picks the right path and surfaces missing deps
+honestly. On Linux, install build deps once with `sudo bash scripts/install_deps.sh`.
+Missing runtime deps (jemalloc) are obtained git-ignored into `.local-deps/`
+automatically (§11.4.77).
+
+**Options** (env var OR flag — flag wins; pass flags under the pipe with
+`bash -s -- …`):
+
+| Env var | Flag | Default | Meaning |
+|---|---|---|---|
+| `TMX_INSTALL_DIR` | `--dir DIR` | `$HOME/tmux` | install root |
+| `TMX_REPO_URL` | `--repo URL` | `https://github.com/vasic-digital/tmux.git` | clone source (HTTPS so keyless users can clone) |
+| `TMX_INSTALL_BRANCH` | `--branch B` | `main` | branch to clone / track |
+| `TMX_INSTALL_NO_SETUP=1` | `--clone-only` | (off) | clone + submodules only (no build / no host writes) |
+
+Re-running the installer over an existing checkout **updates** it
+(`git pull --ff-only` + recursive submodule update) — idempotent.
+
+**File exports the installer wires (what ends up on your host):** the
+PATH+session snippet is appended to whichever shell rc your host uses —
+**`~/.bashrc`** and/or **`~/.zshrc`** (and `~/.bash_profile` / `~/.profile` for
+bash login shells); **`~/.tmux.conf`** is installed (any pre-existing non-ours
+config is backed up to `~/.tmux.conf.pre-vasic-digital`); and the generated
+**`scripts/tmx`** wrapper is prepended onto PATH so `tmx` resolves to this
+verified build while the system `tmux` stays reachable side-by-side. Full
+reference: [`docs/scripts/install.md`](docs/scripts/install.md).
+
 ## Quick install (one command)
 
 **Linux host:**
