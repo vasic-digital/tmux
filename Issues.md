@@ -113,33 +113,6 @@ steps via `GOROOT`/`PATH`. **Acceptance:** on a host with no system `go`, a clea
 `go build ./cmd/workable-items` succeeds against the obtained local toolchain (exit 0;
 control without it → `go: command not found`).
 
-### A51 NATIVE-BUILD-CC-LINK-MSG-001 — native-build fallback surfaced a cryptic compiler error instead of an honest, actionable message — `INVESTIGATED`
-
-**TMX-ID:** TMX-061
-**Status:** `Ready for testing`
-**Type:** Bug
-**Severity:** HIGH
-
-On a base ALT host where `gcc` is present but cannot link (glibc-devel missing), the `setup.sh` native-build fallback surfaced the raw cryptic autotools error "C compiler cannot create executables" instead of an honest, actionable message — a §11.4.138 operator-escape the green suite missed. FIXED this session: `setup.sh` gains `cc_can_link` + `_native_build_preflight` emitting an honest diagnostic and auto-installing the missing toolchain when running as root, guarded by `scripts/tests/70` (RED→GREEN) with a bluff-audit at `docs/research/native_fallback_cc_link_bluff_audit/`. Acceptance: `RED_MODE=1` reproduces the cryptic failure on the broken artifact, `RED_MODE=0` is GREEN, and the paired meta-mutation is CAUGHT — verified post-commit on a clean tree (test 70 currently PASS=16/0/0; pending commit + post-commit meta-validation).
-
-### A52 NO-SUDO-NO-INTERACTION-001 — no sudo/su execution and no user-interaction in any automation script or test — `INVESTIGATED`
-
-**TMX-ID:** TMX-062
-**Status:** `Ready for testing`
-**Type:** Task
-**Severity:** HIGH
-
-Operator mandate 2026-06-29: no automation script or test may execute `sudo`/`su` or require human interaction. DONE this session — removed the single `sudo` execution, made install root-only, and reworded advice so `setup.sh` + `install_deps.sh` + `install.sh` contain 0 `sudo`/`su` tokens; added the `verify.sh` gate `CM-NO-SUDO-NO-INTERACTION` with paired meta-mutation `M-CM-NO-SUDO-NO-INTERACTION` (CAUGHT) and test 70 case C10. Acceptance: 0 `sudo`/`su` tokens AND 0 human-wait points across the in-scope files, and the gate FAILs when a `sudo` token is injected — pending commit + post-commit meta-validation on a clean tree.
-
-### A53 ROOT-FREE-LOCAL-BUILD-001 — fully-autonomous root-free local build (obtain all build deps locally; no root/sudo/interaction) — `PARTIAL`
-
-**TMX-ID:** TMX-063
-**Status:** `In progress`
-**Type:** Feature
-**Severity:** HIGH
-
-Operator mandate 2026-06-29: `bash scripts/setup.sh` must build AND install tmux with NO root, NO sudo, and NO interaction by obtaining every mandatory build dependency locally. Research-backed plan (`docs/research/root_free_c_toolchain_20260629/`): obtain a Zig `zig cc` C toolchain into `.local-deps` (kind=toolchain, like the Go-toolchain obtain) and build tmux from the 3.6a release tarball to avoid autotools/system-cc requirements. Status In progress — research complete and a proof-of-concept live-build spike is running; implementation is pending the PoC verdict. Acceptance: a live root-free build on a real host with the system toolchain neutered produces a tmux 3.6a binary that runs, with captured evidence and N=3 deterministic reproduction — no bluff.
-
 ### A54 NO-SUDO-PROJECTWIDE-FOLLOWUP-001 — convert print-only sudo/setcap hints outside the install path and extend the no-sudo gate project-wide — `OPEN`
 
 **TMX-ID:** TMX-064
@@ -197,44 +170,6 @@ the current `Fixed.md` — no other field changed, so it is not a reworded dupli
 also re-captured the stale `document_sources[Fixed]` so a future `db-to-md` no longer
 regresses `Fixed.md`. A second `md-to-db` reports `inserted=0 updated=0` (idempotent) and
 `validate` is 0-findings — pending conductor verification + close.
-
-### B52 WI-PARSER-GREEDY-BIND-001 — workable-items md-parser absorbs a following no-period block's TMX-ID → UNIQUE-constraint failure — `INVESTIGATED`
-
-**TMX-ID:** TMX-065
-**Status:** `Ready for testing`
-**Type:** Bug
-**Severity:** HIGH
-
-`cmd/workable-items/parser.go` greedily extended a period-style heading's (`### A54. …`,
-which matches `headingRE`) 24-line structured-metadata window across any FOLLOWING no-period
-`### ` block, mis-binding that block's `**TMX-ID:**` / `**Type:**` / `**Status:**` to the
-period item — so `sync md-to-db` aborted with `UNIQUE constraint failed: items.atm_id`
-(forced a §9.2 DB restore this session). FIXED this session: the parser now closes the
-structured-metadata window at the first subsequent Markdown heading of ANY level
-(`anyHeadingRE`), so a following block's metadata can never be absorbed by a preceding
-period item. Guarded by `cmd/workable-items/parser_greedybind_test.go` RED→GREEN
-(parser-level absorption test + end-to-end UNIQUE-collision regression). **Acceptance:** a
-period heading never absorbs a following block's TMX-ID/Type and `md-to-db` raises no UNIQUE
-error — `go test ./cmd/workable-items` GREEN; pending conductor verification + close.
-
-### B53 WI-SET-STATUS-COMMAND-001 — workable-items had no command to set a non-terminal status (manual sqlite3 UPDATE required) — `INVESTIGATED`
-
-**TMX-ID:** TMX-066
-**Status:** `Ready for testing`
-**Type:** Bug
-**Severity:** MEDIUM
-
-`workable-items add` only ever creates a `Queued` item and `close` only ever assigns a
-TERMINAL closure status, so moving an item to a non-terminal §11.4.15/§11.4.21 status
-(`In progress` / `Ready for testing` / `In testing` / `Reopened` / `Operator-blocked`)
-required a hand-written `sqlite3 UPDATE` that bypassed the §11.4.34 audit trail and the
-§11.4.93 SSoT discipline. FIXED this session: new `workable-items set-status TMX-NNN
---status <non-terminal> [--by AI|User] [--reason …]` writes the status + `last_modified` +
-an audited `Updated` `item_history` row, rejects terminal statuses (pointing to `close`) and
-unknown statuses (§11.4.6 — no silent default). Guarded by
-`cmd/workable-items/set_status_test.go` (6 cases). **Acceptance:** the command sets a
-non-terminal status with an audit row and rejects terminal/unknown values —
-`go test ./cmd/workable-items` GREEN; pending conductor verification + close.
 
 ---
 

@@ -658,15 +658,21 @@ _check_CM_LOCAL_DEPS_MECHANISM() {
 #           — PTY-DRIVEN automation: the harness INJECTS input programmatically
 #           down a pty, it never waits on a live human.
 #   (C) PROJECT-WIDE sudo/su EXECUTION detector across EVERY automation script +
-#       test under scripts/ (same exclusions as (B)). Unlike (A)'s zero-token
-#       census, (C) forbids a sudo/su command actually EXECUTED (command
-#       position) while ALLOWING print-only advice — comments, echo/printf
-#       strings, and the legitimate "(as root) setcap …" guidance the OOM helper
-#       (build_oom_set.sh / oom_set.c / tests/08) + the VM provisioning hint
-#       (test_vm.sh) now print (reworded 2026-06-29 to drop every literal sudo/su
-#       token; the genuine setcap install still needs root, stated honestly).
-#       Command position = sudo/su right after line-start, ; & | (covers && and
-#       ||), or a space-delimited then/do/else keyword. sudo must be followed by
+#       test in the WHOLE parent repo (TMX-064, 2026-06-29) — not only scripts/.
+#       Covers every `*.sh` under scripts/ PLUS the other parent-repo automation
+#       (commit_all.sh, docker/, Upstreams/, docs/qa/); the tmux/constitution/
+#       Containers submodules (governed by their own gates) and the git-ignored
+#       .local-deps/qa-results/out/build/dist/node_modules trees are PRUNED, so
+#       vendored + obtained + captured-evidence content is out of scope. Same
+#       per-file exclusions as (B). Unlike (A)'s zero-token census, (C) forbids a
+#       sudo/su command actually EXECUTED (command position) while ALLOWING
+#       print-only advice — comments, echo/printf strings, and the legitimate
+#       "(as root) setcap …" guidance the OOM helper (build_oom_set.sh /
+#       oom_set.c / tests/08) + the VM provisioning hint (test_vm.sh) now print
+#       (reworded 2026-06-29 to drop every literal sudo/su token; the genuine
+#       setcap install still needs root, stated honestly). Command position =
+#       sudo/su right after line-start, ; & | (covers && and ||), or a
+#       space-delimited then/do/else keyword. sudo must be followed by
 #       whitespace, and su by whitespace or a dash.
 # Runtime/on-test half (Layer 3): scripts/tests/70_native_fallback_cc_link.sh C10.
 # Paired §1.1 mutation: scripts/tests/meta_test_false_positive_proof.sh injects a
@@ -723,8 +729,22 @@ _check_CM_NO_SUDO_NO_INTERACTION() {
     # (C) PROJECT-WIDE sudo/su EXECUTION detector. Command-position match,
     #     comment + echo/printf lines stripped first so print-only advice
     #     (incl. "(as root) setcap …") PASSes; only an executed sudo/su FAILs.
+    #     Scope = the WHOLE parent repo (TMX-064), enumerated via `find` and NOT
+    #     `git ls-files`: the paired §1.1 meta-mutation injects an UNTRACKED probe
+    #     under scripts/tests/, which a tracked-only listing would silently miss
+    #     (a §11.4.69 fail-open) — `find` catches it. Submodules + git-ignored
+    #     trees are PRUNED by -path. The repo root basename is itself "tmux", so
+    #     the submodule MUST be pruned by -path "$REPO_ROOT/tmux" (a `-name tmux`
+    #     prune would kill the whole tree, root included).
     local exec_re='(^|[;&|]|[[:space:]](then|do|else)[[:space:]])[[:space:]]*(sudo[[:space:]]|su[[:space:]-])'
-    for f in $(find "$REPO_ROOT/scripts" -type f -name '*.sh' 2>/dev/null | sort); do
+    for f in $(find "$REPO_ROOT" \
+                    -name .git -prune \
+                    -o -type d \( -path "$REPO_ROOT/tmux" -o -path "$REPO_ROOT/constitution" \
+                                  -o -path "$REPO_ROOT/Containers" -o -path "$REPO_ROOT/.local-deps" \
+                                  -o -path "$REPO_ROOT/qa-results" -o -path "$REPO_ROOT/out" \
+                                  -o -path "$REPO_ROOT/build" -o -path "$REPO_ROOT/dist" \
+                                  -o -path "$REPO_ROOT/node_modules" \) -prune \
+                    -o -type f -name '*.sh' -print 2>/dev/null | sort); do
         rel="${f#$REPO_ROOT/}"
         case "$excl" in *" $rel "*) continue ;; esac
         hits="$(grep -nE "$exec_re" "$f" 2>/dev/null \
@@ -738,7 +758,7 @@ _check_CM_NO_SUDO_NO_INTERACTION() {
     done
 
     if [ "$rc" -eq 0 ]; then
-        printf '[PASS] %s (install/build path sudo/su-free; NO sudo/su EXECUTION in any automation script/test; no human-waiting prompts — interactive wrapper + PTY harness + test 68 excluded by design)\n' "$g"
+        printf '[PASS] %s (install/build path sudo/su-free; NO sudo/su EXECUTION in any automation script/test PROJECT-WIDE — whole repo, submodules + git-ignored trees pruned; no human-waiting prompts — interactive wrapper + PTY harness + test 68 excluded by design)\n' "$g"
     fi
     return "$rc"
 }

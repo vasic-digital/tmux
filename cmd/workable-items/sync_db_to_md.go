@@ -48,20 +48,57 @@ func SyncDBToMD(db *DB, outDir string) error {
 		return fmt.Errorf("mkdir %s: %w", outDir, err)
 	}
 
-	// PWU-Q3 (§11.4.93 phase-6): byte-identical live-corpus round-trip.
-	// When document_sources holds a captured verbatim source for the
-	// location, replay it directly. This guarantees byte-identical
-	// output for the md→db→md cycle on free-form-body items where the
-	// per-item raw_body alone cannot capture preamble + section
-	// separators + trailer. Items written via `add`/`close` since the
-	// last md→db will NOT appear in this replay — the operator MUST
-	// re-run md→db to capture the latest source, OR fall back to the
-	// structured generator by leaving document_sources empty.
-	if src, err := db.GetDocumentSource(LocationIssues); err == nil && src != "" {
-		if err := os.WriteFile(filepath.Join(outDir, "Issues.md"), []byte(src), 0o644); err != nil {
-			return fmt.Errorf("write Issues.md (verbatim): %w", err)
+	// PWU-Q3 (§11.4.93 phase-6) + TMX-060 (§11.4.108 structured-authoritative):
+	// When document_sources holds a captured verbatim source we replay it, but
+	// FIRST reconcile it against the structured items so the regeneration is
+	// AUTHORITATIVE FROM THE STRUCTURED items. A block whose item's structured
+	// current_location disagrees with the file it sits in (e.g. an item just
+	// `close`d → current_location=Fixed but still sitting in the Issues blob) is
+	// MOVED to the correct file — its rich operator-authored body is preserved
+	// verbatim (that body lives ONLY in the blob; items.raw_body is empty for
+	// add-created items), and only the heading status-hint + the `**Status:**`
+	// line are rewritten to the current status. When NOTHING drifted (every
+	// md→db-then-db→md round-trip with no intervening close), zero blocks move
+	// and both blobs pass through BYTE-IDENTICAL (§11.4.93 preserved).
+	issuesSrc, _ := db.GetDocumentSource(LocationIssues)
+	fixedSrc, _ := db.GetDocumentSource(LocationFixed)
+
+	if issuesSrc != "" || fixedSrc != "" {
+		byID, err := buildItemIndex(db)
+		if err != nil {
+			return err
+		}
+		newIssues, newFixed, _ := reconcileLocations(issuesSrc, fixedSrc, byID)
+
+		if issuesSrc != "" {
+			if err := os.WriteFile(filepath.Join(outDir, "Issues.md"), []byte(newIssues), 0o644); err != nil {
+				return fmt.Errorf("write Issues.md (reconciled): %w", err)
+			}
+		} else {
+			issuesItems, err := db.ItemsByLocation(LocationIssues)
+			if err != nil {
+				return err
+			}
+			if err := writeIssuesMD(filepath.Join(outDir, "Issues.md"), issuesItems); err != nil {
+				return err
+			}
+		}
+
+		if fixedSrc != "" {
+			if err := os.WriteFile(filepath.Join(outDir, "Fixed.md"), []byte(newFixed), 0o644); err != nil {
+				return fmt.Errorf("write Fixed.md (reconciled): %w", err)
+			}
+		} else {
+			fixedItems, err := db.ItemsByLocation(LocationFixed)
+			if err != nil {
+				return err
+			}
+			if err := writeFixedMD(filepath.Join(outDir, "Fixed.md"), fixedItems); err != nil {
+				return err
+			}
 		}
 	} else {
+		// Both blobs empty — fully structural generation from the items table.
 		issuesItems, err := db.ItemsByLocation(LocationIssues)
 		if err != nil {
 			return err
@@ -69,12 +106,6 @@ func SyncDBToMD(db *DB, outDir string) error {
 		if err := writeIssuesMD(filepath.Join(outDir, "Issues.md"), issuesItems); err != nil {
 			return err
 		}
-	}
-	if src, err := db.GetDocumentSource(LocationFixed); err == nil && src != "" {
-		if err := os.WriteFile(filepath.Join(outDir, "Fixed.md"), []byte(src), 0o644); err != nil {
-			return fmt.Errorf("write Fixed.md (verbatim): %w", err)
-		}
-	} else {
 		fixedItems, err := db.ItemsByLocation(LocationFixed)
 		if err != nil {
 			return err
