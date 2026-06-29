@@ -324,25 +324,6 @@ host with no system <code>go</code>, a clean
 <code>go build ./cmd/workable-items</code> succeeds against the obtained
 local toolchain (exit 0; control without it →
 <code>go: command not found</code>).</p>
-<h3
-id="a54-no-sudo-projectwide-followup-001--convert-print-only-sudosetcap-hints-outside-the-install-path-and-extend-the-no-sudo-gate-project-wide--open">A54
-NO-SUDO-PROJECTWIDE-FOLLOWUP-001 — convert print-only sudo/setcap hints
-outside the install path and extend the no-sudo gate project-wide —
-<code>OPEN</code></h3>
-<p><strong>TMX-ID:</strong> TMX-064 <strong>Status:</strong>
-<code>OPEN</code> <strong>Type:</strong> Task <strong>Severity:</strong>
-MEDIUM</p>
-<p>Follow-up to TMX-062: convert the remaining print-only
-<code>sudo</code>/<code>setcap</code> hints OUTSIDE the install path
-(<code>scripts/build_oom_set.sh</code>, <code>scripts/test_vm.sh</code>,
-<code>scripts/tests/08_oom_score_adj.sh</code>, and the
-<code>scripts/oom_set.c</code> comment) to "(as root)" phrasing, and
-extend the no-sudo gate project-wide so it detects
-<code>sudo</code>/<code>su</code> EXECUTION rather than mere mention.
-Status Queued. Acceptance: project-wide 0
-<code>sudo</code>/<code>su</code> execution paths, and the gate is
-scoped to flag execution only — no false positives on legitimate "(as
-root)" documentation strings.</p>
 <hr />
 <h2 id="b-anti-bluff-completeness-across-the-existing-test-surface">B.
 Anti-bluff completeness across the existing test surface</h2>
@@ -369,39 +350,6 @@ direction:</strong> first enumerate G1-G5 precisely, then add four-layer
 coverage (§11.4.4(b)) for each. <strong>Acceptance:</strong> each of
 G1-G5 has a named runtime test with captured evidence PLUS a paired
 meta-test mutation that FAILs when its guard is stripped.</p>
-<h3
-id="b51-db-fixedmd-ssot-drift-001--reconcile-dbfixedmd-ssot-drift-fixedmd-a46-a49-absent-from-the-items-table--investigated">B51
-DB-FIXEDMD-SSOT-DRIFT-001 — reconcile DB↔︎Fixed.md SSoT drift (Fixed.md
-A46-A49 absent from the items table) — <code>INVESTIGATED</code></h3>
-<p><strong>TMX-ID:</strong> TMX-060 <strong>Status:</strong>
-<code>Ready for testing</code> <strong>Type:</strong> Task
-<strong>Severity:</strong> MEDIUM</p>
-<p>The §11.4.93 workable-items DB is missing four RESOLVED
-<code>Fixed.md</code> entries — A46 (libtinfo version warning), A47
-(test-harness timing races), A48 (distribution orchestrator binary), A49
-(test 17 scrollback load flake). A full <code>md-to-db</code> over
-<code>Fixed.md</code> reports
-<code>inserted=4 updated=1 allocated=4</code>, proving the items table
-never captured them (the CHANGELOG names this "DB↔︎Fixed.md SSoT drift"
-as a tracked follow-up). <strong>Fix direction:</strong> reconcile
-carefully — confirm none are reworded duplicates of an existing id
-before allocating, identify the <code>updated=1</code> item, then sync
-so <code>validate</code> + <code>diff</code> stay clean.
-<strong>Acceptance:</strong> <code>md-to-db</code> over the full corpus
-reports <code>inserted=0 updated=0</code> (idempotent) and
-<code>validate</code> is 0-findings. <strong>Reconcile (2026-06-29, this
-session):</strong> ran <code>sync md-to-db</code> over the full corpus —
-the four entries ingested as TMX-067 (A49 → Completed), TMX-068 (A48 →
-Implemented), TMX-069 (A46 → Fixed) and TMX-070 (A47 → Fixed); the
-<code>updated=1</code> item was TMX-045 ("Per-host-topology dispatch
-probe") whose stored <code>raw_body</code> was stale (2140→7648 chars)
-and was refreshed from the current <code>Fixed.md</code> — no other
-field changed, so it is not a reworded duplicate. The run also
-re-captured the stale <code>document_sources[Fixed]</code> so a future
-<code>db-to-md</code> no longer regresses <code>Fixed.md</code>. A
-second <code>md-to-db</code> reports <code>inserted=0 updated=0</code>
-(idempotent) and <code>validate</code> is 0-findings — pending conductor
-verification + close.</p>
 <hr />
 <h2 id="c-per-session-containerization-features-pending-evidence">C.
 Per-session containerization features pending evidence</h2>
@@ -438,25 +386,6 @@ Continuation drift</h2>
 <p>(CONTINUATION.md §3 entries that resolve land in
 <code>Fixed.md</code> per Constitution §5 / §12.10. New open work
 below.)</p>
-<h3
-id="e50-install-doc-podman-https-001--document-the-rootless-podman-subuid-fix-and-the-curl-installer-https-rewrite-edge--open">E50
-INSTALL-DOC-PODMAN-HTTPS-001 — document the rootless-Podman subuid fix
-and the curl-installer HTTPS-rewrite edge — <code>OPEN</code></h3>
-<p><strong>TMX-ID:</strong> TMX-058 <strong>Status:</strong>
-<code>OPEN</code> <strong>Type:</strong> Task <strong>Severity:</strong>
-LOW</p>
-<p>v1.0.30 shipped a native-build fallback when rootless Podman exhausts
-<code>/etc/subuid</code> + <code>/etc/subgid</code>
-(<code>lchown … invalid argument</code>) and a <code>curl</code>
-one-liner installer, but the operator-facing repair guidance lives only
-in the CHANGELOG. <strong>Fix direction:</strong> document the
-<code>usermod --add-subuids/--add-subgids</code> +
-<code>podman system migrate</code> repair recipe AND the install
-HTTPS-rewrite edge in <code>docs/guides</code> +
-<code>docs/scripts</code> so an end user hitting either can
-self-recover. <strong>Acceptance:</strong> a docs page (synced HTML/PDF
-per §11.4.65) reproduces the repair steps, verified against the v1.0.30
-<code>setup.sh</code> fallback path.</p>
 <hr />
 <h2 id="f-runtime-crash--operator-gated-reproduction">F. Runtime crash —
 operator-gated reproduction</h2>
