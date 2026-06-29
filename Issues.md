@@ -96,23 +96,6 @@ document that native-macOS validation is `setup.sh`-only and run_all.sh is the
 containerized path. Captured-evidence requirement: a clean native-macOS run_all GREEN
 after the fix.
 
-### A50 GO-TOOLCHAIN-OBTAIN-001 — obtain Go toolchain locally for the tmx-state + workable-items Go build — `OPEN`
-
-**TMX-ID:** TMX-057
-**Status:** `OPEN`
-**Type:** Task
-**Severity:** MEDIUM
-
-On hosts lacking a system Go toolchain (e.g. `amber`), the `scripts/tmx-state/` and
-`cmd/workable-items/` Go binaries cannot be (re)built — blocking per-session cwd
-persistence AND the §11.4.93 workable-items SSoT tooling. **Fix direction:** extend the
-existing §11.4.77 local-deps mechanism (`obtain_local_deps.sh`, which already
-sha256-obtains libevent 2.1.12 + ncurses 6.5 into git-ignored `.local-deps/`) to
-resolve-or-obtain a pinned Go toolchain into `.local-deps/`, consumed by the Go build
-steps via `GOROOT`/`PATH`. **Acceptance:** on a host with no system `go`, a clean
-`go build ./cmd/workable-items` succeeds against the obtained local toolchain (exit 0;
-control without it → `go: command not found`).
-
 ---
 
 ## B. Anti-bluff completeness across the existing test surface
@@ -121,21 +104,6 @@ control without it → `go: command not found`).
 [tests 49/50 + meta-test retarget], state-verified 2026-05-29 with
 `MUTATIONS CAUGHT 45 / ESCAPED 0`, migrated to `Fixed.md` §B3 as TMX-054;
 B1 CHAL-COVER-001, B2 TEST-AUDIT-001 also in `Fixed.md`. New open work below.)
-
-### B50 TEST-COVERAGE-G1-G5-001 — close test-coverage gaps G1-G5 for the v1.0.30 cross-platform install hardening — `OPEN`
-
-**TMX-ID:** TMX-059
-**Status:** `OPEN`
-**Type:** Task
-**Severity:** MEDIUM
-
-v1.0.30 added native-build fallback (`setup.sh`), `build_native.sh` local-deps wiring
-(`-I`/`-L` + `PKG_CONFIG_PATH`), `obtain_local_deps.sh` libevent/ncurses obtain, and the
-escaped-colon session-color fix; the CHANGELOG tracks "test-coverage gaps G1-G5" but they
-are NOT yet enumerated distinctly nor each covered by an anti-bluff test + paired §1.1
-mutation. **Fix direction:** first enumerate G1-G5 precisely, then add four-layer coverage
-(§11.4.4(b)) for each. **Acceptance:** each of G1-G5 has a named runtime test with captured
-evidence PLUS a paired meta-test mutation that FAILs when its guard is stripped.
 
 ---
 

@@ -2915,6 +2915,23 @@ unknown statuses (§11.4.6 — no silent default). Guarded by
 non-terminal status with an audit row and rejects terminal/unknown values —
 `go test ./cmd/workable-items` GREEN; pending conductor verification + close.
 
+### A50 GO-TOOLCHAIN-OBTAIN-001 — obtain Go toolchain locally for the tmx-state + workable-items Go build — `RESOLVED`
+
+**TMX-ID:** TMX-057
+**Status:** Completed (→ Fixed.md)
+**Type:** Task
+**Severity:** MEDIUM
+
+On hosts lacking a system Go toolchain (e.g. `amber`), the `scripts/tmx-state/` and
+`cmd/workable-items/` Go binaries cannot be (re)built — blocking per-session cwd
+persistence AND the §11.4.93 workable-items SSoT tooling. **Fix direction:** extend the
+existing §11.4.77 local-deps mechanism (`obtain_local_deps.sh`, which already
+sha256-obtains libevent 2.1.12 + ncurses 6.5 into git-ignored `.local-deps/`) to
+resolve-or-obtain a pinned Go toolchain into `.local-deps/`, consumed by the Go build
+steps via `GOROOT`/`PATH`. **Acceptance:** on a host with no system `go`, a clean
+`go build ./cmd/workable-items` succeeds against the obtained local toolchain (exit 0;
+control without it → `go: command not found`).
+
 ### A54 NO-SUDO-PROJECTWIDE-FOLLOWUP-001 — convert print-only sudo/setcap hints outside the install path and extend the no-sudo gate project-wide — `RESOLVED`
 
 **TMX-ID:** TMX-064
@@ -2923,6 +2940,21 @@ non-terminal status with an audit row and rejects terminal/unknown values —
 **Severity:** MEDIUM
 
 Follow-up to TMX-062: convert the remaining print-only `sudo`/`setcap` hints OUTSIDE the install path (`scripts/build_oom_set.sh`, `scripts/test_vm.sh`, `scripts/tests/08_oom_score_adj.sh`, and the `scripts/oom_set.c` comment) to "(as root)" phrasing, and extend the no-sudo gate project-wide so it detects `sudo`/`su` EXECUTION rather than mere mention. Status Queued. Acceptance: project-wide 0 `sudo`/`su` execution paths, and the gate is scoped to flag execution only — no false positives on legitimate "(as root)" documentation strings.
+
+### B50 TEST-COVERAGE-G1-G5-001 — close test-coverage gaps G1-G5 for the v1.0.30 cross-platform install hardening — `RESOLVED`
+
+**TMX-ID:** TMX-059
+**Status:** Completed (→ Fixed.md)
+**Type:** Task
+**Severity:** MEDIUM
+
+v1.0.30 added native-build fallback (`setup.sh`), `build_native.sh` local-deps wiring
+(`-I`/`-L` + `PKG_CONFIG_PATH`), `obtain_local_deps.sh` libevent/ncurses obtain, and the
+escaped-colon session-color fix; the CHANGELOG tracks "test-coverage gaps G1-G5" but they
+are NOT yet enumerated distinctly nor each covered by an anti-bluff test + paired §1.1
+mutation. **Fix direction:** first enumerate G1-G5 precisely, then add four-layer coverage
+(§11.4.4(b)) for each. **Acceptance:** each of G1-G5 has a named runtime test with captured
+evidence PLUS a paired meta-test mutation that FAILs when its guard is stripped.
 
 ### B51 DB-FIXEDMD-SSOT-DRIFT-001 — reconcile DB↔Fixed.md SSoT drift (Fixed.md A46-A49 absent from the items table) — `RESOLVED`
 
