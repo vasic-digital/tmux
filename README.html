@@ -368,6 +368,11 @@ pre-existing non-ours config is backed up to
 so <code>tmx</code> resolves to this verified build while the system
 <code>tmux</code> stays reachable side-by-side. Full reference: <a
 href="docs/scripts/install.md"><code>docs/scripts/install.md</code></a>.</p>
+<p><strong>Hit a snag?</strong> Rootless-Podman subuid/subgid
+exhaustion, the containerized-vs-native build choice, and the SSH-keyed
+private-submodule HTTPS-rewrite edge
+(<code>TMX_INSTALL_NO_HTTPS_REWRITE=1</code>) are covered in <a
+href="docs/guides/troubleshooting.md"><code>docs/guides/troubleshooting.md</code></a>.</p>
 <h2 id="quick-install-one-command">Quick install (one command)</h2>
 <p><strong>Linux host:</strong></p>
 <div class="sourceCode" id="cb2"><pre
@@ -650,6 +655,14 @@ href="docs/codegraph/README.md"><code>docs/codegraph/README.md</code></a>
 href="docs/scripts/obtain_local_deps.md"><code>docs/scripts/obtain_local_deps.md</code></a>
 — per-host obtain-or-resolve mechanism for git-ignored deps
 (jemalloc)</td>
+</tr>
+<tr>
+<td>Build &amp; install troubleshooting</td>
+<td><a
+href="docs/guides/troubleshooting.md"><code>docs/guides/troubleshooting.md</code></a>
+— rootless-Podman subuid fix, containerized-vs-native build,
+private-submodule HTTPS-rewrite edge, <code>.local-deps/</code>
+obtain</td>
 </tr>
 <tr>
 <td>Architecture plans</td>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1
+id="tmx-063--production-root-free-zig-build-captured-evidence">TMX-063 —
+PRODUCTION root-free zig build: captured evidence</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-29T16:30:00Z <strong>Authority:</strong> vasic-digital tmux — QA
+evidence trail (§11.4.83) <strong>Scope:</strong> the PROVEN PoC
+(verdict A) wired into the production scripts —
+<code>scripts/obtain_local_deps.sh</code> +
+<code>scripts/build_native.sh</code> + <code>scripts/setup.sh</code>
+build tmux 3.6a with NO root, NO sudo/su, NO interaction, even when the
+host has NO working C toolchain (obtained zig 0.16.0 <code>cc</code>
+toolchain).</p>
+<h2 id="verdict">Verdict</h2>
+<p><strong>WORKS via the unmodified project scripts.</strong> On a real
+host (nezha, Linux x86_64) the REAL
+<code>scripts/obtain_local_deps.sh</code> +
+<code>scripts/build_native.sh</code>, run inside a neutered env (no
+cc/gcc/clang/ld/as/ar/autoconf/automake/bison/ pkg-config reachable),
+obtained the zig toolchain, source-built libevent + ncurses + jemalloc
+with it, and built tmux 3.6a from the 3.6a RELEASE tarball —
+<code>tmux -V</code> == <code>tmux 3.6a</code>, a live session ran, N=3
+builds were identical, and the §1.1 mutation was caught. NORMAL-host
+build path unchanged (no regression). RED→GREEN polarity proven.</p>
+<h2 id="test-results-scriptstests71_root_free_zig_buildsh">Test results
+(scripts/tests/71_root_free_zig_build.sh)</h2>
+<ul>
+<li><code>RED_MODE=1</code> (reproduce the defect on the broken
+artifact): <strong>PASS=5 FAIL=0 SKIP=0</strong> — see
+<code>test71_RED_full.log</code>. C3 proves the neutered build WITHOUT
+the zig obtain FAILS at the can't-link step (defect present).</li>
+<li><code>RED_MODE=0</code> (standing GREEN guard): <strong>PASS=12
+FAIL=0 SKIP=0</strong> — see <code>test71_GREEN_full.log</code>.</li>
+<li>Sibling regression
+<code>scripts/tests/70_native_fallback_cc_link.sh</code>:
+<strong>PASS=16 FAIL=0 SKIP=0</strong> (my setup.sh edits introduce no
+regression).</li>
+</ul>
+<h2 id="captured-proofs">Captured proofs</h2>
+<table>
+<thead>
+<tr>
+<th>Proof</th>
+<th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C1 NORMAL-host no-regression — cc resolved HOST (CC_KIND=host)</td>
+<td><code>C1_normal_host_resolved.env</code></td>
+</tr>
+<tr>
+<td>C2 neuter validity — host toolchain unreachable</td>
+<td><code>C2_neuter_proof.log</code></td>
+</tr>
+<tr>
+<td>C4/C4b GREEN — CC_KIND=zig (local-toolchain) drove the build; all
+deps local-build</td>
+<td><code>GREEN_resolved.env</code></td>
+</tr>
+<tr>
+<td>C5 tmux -V == tmux 3.6a (user-visible) + ELF</td>
+<td><code>GREEN_tmux_runtime_proof.log</code></td>
+</tr>
+<tr>
+<td>C6 live session — marker captured from a real pane</td>
+<td><code>GREEN_tmux_live_session.log</code></td>
+</tr>
+<tr>
+<td>C7 residual #2 — DT_NEEDED = LOCAL <code>libncursesw.so.6</code>
+(not host libtinfo+libncurses); RUNPATH=local</td>
+<td><code>GREEN_readelf_needed.log</code></td>
+</tr>
+<tr>
+<td>C8 §11.4.50 determinism — N=3 identical <code>tmux 3.6a</code></td>
+<td><code>GREEN_determinism_n3.log</code></td>
+</tr>
+<tr>
+<td>C3 RED — neutered build with no toolchain fails to link</td>
+<td><code>RED_no_toolchain_build_fail.log</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="residuals-fixed">Residuals fixed</h2>
+<ol type="1">
+<li><strong>obtain_via_source bypassed the obtained zig</strong> —
+fixed: <code>obtain_via_source</code> now consumes
+<code>RESOLVED_CC_KIND=zig</code> (CC = the flag-filter wrapper, wrapper
+dir prepended to PATH so ar/ranlib/objcopy/ld resolve to zig), and
+resolve_cc resolves the host compiler by LINK-CAPABILITY (a host cc that
+cannot link falls through to OBTAIN). <code>MAKE</code> is pinned to the
+absolute path so config.status
+<ul>
+<li>recursive <code>$(MAKE)</code> work on a bare/neutered PATH.</li>
+</ul></li>
+<li><strong>ncurses host-preference</strong> — fixed:
+<code>_ncurses_compat_symlinks</code> creates
+<code>libtinfo.so</code>/<code>libtinfo.so.6</code>/<code>libncurses.so</code>/<code>libncurses.so.6</code>
+→ the local widec <code>libncursesw.so.6</code> (which bundles
+<code>setupterm</code>), so tmux's
+<code>AC_SEARCH_LIBS(setupterm,[tinfo terminfo ncurses ncursesw])</code>
+links the LOCAL copy first (<code>-L&lt;local&gt;</code> precedes
+/lib64). Proven by <code>GREEN_readelf_needed.log</code> showing
+DT_NEEDED <code>libncursesw.so.6</code>, not the host
+<code>libtinfo.so.6</code>+<code>libncurses.so.6</code>.</li>
+</ol>
+<h2 id="proven-payload">Proven payload</h2>
+<ul>
+<li>zig 0.16.0 x86_64-linux, sha256
+<code>70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00</code>
+(byte-verified pin == index.json shasum, cross-checked live). Other 3
+tuples' shasums are fetched + parsed from
+<code>https://ziglang.org/download/index.json</code> at obtain time
+(never hardcoded unverified).</li>
+<li>tmux 3.6a release tarball sha256
+<code>b6d8d9c76585db8ef5fa00d4931902fa4b8cbe8166f528f44fc403961a3f3759</code>.</li>
+</ul>
+<h2 id="host-safety-12--114133">Host safety (§12 / §11.4.133)</h2>
+<p>NO sudo/su, NO root, NO host-toolchain mutation, NO interaction. The
+test runs the build into a scratch <code>LOCAL_DEPS_ROOT</code> +
+scratch <code>TMX_BUILD_DIR</code> (new env overrides in
+build_native.sh) so it NEVER clobbers the operator's
+<code>tmux/build</code> or <code>.local-deps</code>.
+CM-NO-SUDO-NO-INTERACTION + CM-LOCAL-DEPS-MECHANISM gates re-verified
+clean against the current tree.</p>
+<h2 id="sources-verified-2026-06-29">Sources verified 2026-06-29</h2>
+<ul>
+<li>zig downloads + index.json shasum schema: <a
+href="https://ziglang.org/download/index.json">https://ziglang.org/download/index.json</a></li>
+<li>ncurses 6.5 tarball (sha-verified): <a
+href="https://invisible-island.net/archives/ncurses/ncurses-6.5.tar.gz">https://invisible-island.net/archives/ncurses/ncurses-6.5.tar.gz</a></li>
+<li>tmux 3.6a release tarball: <a
+href="https://github.com/tmux/tmux/releases/download/3.6a/tmux-3.6a.tar.gz">https://github.com/tmux/tmux/releases/download/3.6a/tmux-3.6a.tar.gz</a></li>
+<li>Full research artefact:
+<code>docs/research/root_free_c_toolchain_20260629/README.md</code></li>
+</ul>
+</body>
+</html>

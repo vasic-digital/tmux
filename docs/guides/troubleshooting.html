@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>troubleshooting</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1 id="tmux-build--install--troubleshooting">tmux build &amp; install —
+Troubleshooting</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-29T00:00:00Z <strong>Authority:</strong> vasic-digital tmux
+project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
+Operator troubleshooting for the build &amp; install pipeline —
+rootless-Podman subuid/subgid exhaustion, the containerized-vs-native
+build paths, native-build C-toolchain failures
+(<code>C compiler cannot create executables</code>), the
+<code>install.sh</code> HTTPS-rewrite / private-submodule edge, and the
+git-ignored <code>.local-deps/</code> obtain mechanism (§11.4.77).</p>
+<hr />
+<h2 id="1-overview">1. Overview</h2>
+<p><code>bash scripts/setup.sh</code> (and the <code>curl | bash</code>
+installer that delegates to it) prefers a <strong>hermetic containerized
+build</strong> on Linux, with a <strong>native host build</strong> as an
+automatic fallback. Most install snags fall into four classes, each
+covered below:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Symptom</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Containerized build dies at image unpack with
+<code>lchown … invalid argument; potentially insufficient UIDs or GIDs available in user namespace</code></td>
+<td><a href="#2-rootless-podman-subuidsubgid-exhaustion">§2
+Rootless-Podman subuid/subgid exhaustion</a></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Native build dies at
+<code>configure: error: C compiler cannot create executables</code> (gcc
+present but cannot link)</td>
+<td><a
+href="#native-build-fails-c-compiler-cannot-create-executables">§3 →
+Native build fails: C compiler cannot create executables</a></td>
+</tr>
+<tr>
+<td>3</td>
+<td>"Which build path ran, and what does each need?"</td>
+<td><a href="#3-containerized-vs-native-build">§3 Containerized vs
+native build</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>A <strong>private</strong> submodule clone fails for an SSH-keyed
+user</td>
+<td><a href="#4-installsh-https-rewrite--private-submodule-edge">§4
+install.sh HTTPS-rewrite / private-submodule edge</a></td>
+</tr>
+<tr>
+<td>5</td>
+<td>"Where do libevent / ncurses / jemalloc come from, and how do I
+force a fresh copy?"</td>
+<td><a href="#5-local-dependencies-local-deps">§5 Local dependencies
+(.local-deps/)</a></td>
+</tr>
+</tbody>
+</table>
+<p>All four are <strong>real, already-shipped behaviour</strong> — none
+of the flags or commands below are invented; cross-references to the
+source script lines are given so you can verify each in place.</p>
+<hr />
+<h2 id="2-rootless-podman-subuidsubgid-exhaustion">2. Rootless-Podman
+subuid/subgid exhaustion</h2>
+<h3 id="symptom">Symptom</h3>
+<p>On a host running <strong>rootless Podman</strong>, the containerized
+build (<code>scripts/build_containerized.sh</code>, invoked by
+<code>setup.sh</code> step 2) fails while unpacking the base image, with
+an error like:</p>
+<pre><code>Error: ... lchown /etc/gshadow: invalid argument
+       ... potentially insufficient UIDs or GIDs available in user namespace</code></pre>
+<h3 id="root-cause">Root cause</h3>
+<p>Rootless Podman maps the container's user IDs into a range of
+<strong>subordinate UIDs/GIDs</strong> assigned to your host user in
+<code>/etc/subuid</code> and <code>/etc/subgid</code>. Unpacking a full
+base image needs tens of thousands of distinct IDs (it
+<code>chown</code>s files to many UIDs/GIDs inside the namespace). When
+your user's range is <strong>missing or too small</strong>, the unpack
+cannot <code>lchown</code> files such as <code>/etc/gshadow</code> and
+fails with the error above. This is an environment/host-ID problem, not
+a defect in the tmux build — the forensic anchor was a base-ALT host
+whose default user had no usable subuid/subgid range
+(<code>scripts/setup.sh:347-357</code>).</p>
+<h3 id="fix-requires-root-one-time">Fix (requires root, one-time)</h3>
+<p>Grant your user a 65,536-ID subordinate range and let Podman
+re-establish the namespace, then re-run setup:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># As root (or via sudo). Replace &quot;$USER&quot; with the build user if you run this for someone else.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> usermod <span class="at">--add-subuids</span> 100000-165535 <span class="at">--add-subgids</span> 100000-165535 <span class="st">&quot;</span><span class="va">$USER</span><span class="st">&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Stop the user&#39;s containers + kill its pause process so the new ranges take effect.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> system migrate</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Re-run the build (rootless, no sudo).</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh <span class="at">--rebuild</span></span></code></pre></div>
+<p><code>setup.sh</code> itself prints this exact <code>usermod</code> +
+<code>podman system migrate</code> remedy when the containerized build
+fails (<code>scripts/setup.sh:362-367</code>).</p>
+<h3 id="verify-the-fix">Verify the fix</h3>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Your user now has a subordinate range in BOTH files (USERNAME:START:COUNT):</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="st">&quot;^</span><span class="va">$(</span><span class="fu">id</span> <span class="at">-un</span><span class="va">)</span><span class="st">:&quot;</span> /etc/subuid /etc/subgid</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   you:100000:65536        (the COUNT — 65536 — must be large enough)</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># A trivial rootless run no longer errors on the namespace map:</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> unshare cat /proc/self/uid_map</span></code></pre></div>
+<p>If <code>grep</code> shows no line for your user (or a tiny count),
+the range was never added — re-run the <code>usermod</code> step. The
+65,536-ID range is the size the Podman rootless documentation recommends
+(see <a href="#6-sources-verified-2026-06-29">§6 Sources
+verified</a>).</p>
+<h3 id="dont-want-to-touch-root">Don't want to touch root?</h3>
+<p>You don't have to. If the host already has a C toolchain,
+<code>setup.sh</code> <strong>automatically falls back to the native
+build</strong> when the container build fails (see <a
+href="#3-containerized-vs-native-build">§3</a>) — so a subuid problem
+need not block you at all.</p>
+<hr />
+<h2 id="3-containerized-vs-native-build">3. Containerized vs native
+build</h2>
+<p>The project produces the <strong>same</strong> tmux binary two ways.
+<code>setup.sh</code> chooses automatically; understanding both helps
+when one path is unavailable.</p>
+<h3 id="containerized-hermetic--the-default-on-linux">Containerized
+(hermetic) — the default on Linux</h3>
+<ul>
+<li>Driver: <code>scripts/build_containerized.sh</code>, run by
+<code>setup.sh</code> step 2 when a container engine (podman or docker)
+is detected.</li>
+<li>Builds inside an isolated container cgroup (host insulated, §12.9)
+with <code>--network none</code>; the build dependencies (libevent /
+ncurses / jemalloc) live <strong>inside the image</strong>, so the host
+needs no <code>-dev</code> packages.</li>
+<li>Needs: a working <strong>podman or docker</strong> (rootless Podman
+needs the subuid ranges from <a
+href="#2-rootless-podman-subuidsubgid-exhaustion">§2</a>).</li>
+</ul>
+<h3 id="native-host--the-fallback">Native (host) — the fallback</h3>
+<ul>
+<li>Driver: <code>scripts/build_native.sh</code>.</li>
+<li><code>setup.sh</code> runs it when <strong>no container engine is
+present</strong>, OR when the containerized build <strong>fails</strong>
+for a host reason (e.g. the subuid exhaustion above, or no network to
+pull the base image) — the fallback is automatic and prints why it
+triggered (<code>scripts/setup.sh:346-372</code>, §11.4.101 reversible
+decision).</li>
+<li>Needs on the host: a <strong>C compiler</strong> +
+<strong>libevent</strong> + <strong>ncurses (widec)</strong> development
+headers, plus <code>autoconf</code> / <code>automake</code> /
+<code>pkg-config</code> / <code>bison</code>.
+<ul>
+<li>On Linux you can install these once with
+<code>sudo bash scripts/install_deps.sh</code> (provides
+<code>libevent-dev</code> + <code>libncurses-dev</code> + the
+autotools), or</li>
+<li>rely on the git-ignored <code>.local-deps/</code> obtain mechanism,
+which builds local copies of libevent + ncurses when the host lacks the
+<code>-dev</code> packages (see <a
+href="#5-local-dependencies-local-deps">§5</a>). On a minimal host (e.g.
+one with no <code>libevent-dev</code> at all) this is what lets the
+native fallback link successfully.</li>
+</ul></li>
+</ul>
+<p>Both paths produce a tmux binary that the verification gate
+(<code>scripts/verify.sh</code>) must pass before <code>tmx</code> is
+exported to your PATH — neither path bypasses the §11.4 GREEN gate.</p>
+<h3 id="native-build-fails-c-compiler-cannot-create-executables">Native
+build fails: <code>C compiler cannot create executables</code></h3>
+<h4 id="symptom-1">Symptom</h4>
+<p>The native build aborts at the very start of tmux's
+<code>./configure</code> probe (driven by
+<code>scripts/build_native.sh</code>) with:</p>
+<pre><code>configure: error: C compiler cannot create executables
+See `config.log&#39; for more details</code></pre>
+<p><code>gcc</code> (or <code>clang</code>) is on your <code>PATH</code>
+— <code>gcc --version</code> prints a version — yet
+<code>configure</code>'s first compile-<strong>and-link</strong> probe
+still fails. (<code>setup.sh</code> surfaces this dependency need —
+<code>scripts/setup.sh:235,366</code>; this section is the fuller,
+by-hand version.)</p>
+<h4 id="root-cause-1">Root cause</h4>
+<p><strong>FACT</strong> (verified on an <strong>ALT Linux 11</strong>
+host — the operator's target distro, same as the dev host — with
+<code>rpm -qf /usr/lib64/crt1.o</code> → <code>glibc-devel</code>): on
+ALT Linux the "C compiler cannot create executables" error means
+<strong><code>glibc-devel</code> is not installed</strong> — it supplies
+the C-library startup objects (<code>/usr/lib64/crt1.o</code>,
+<code>crti.o</code>, <code>crtn.o</code>) the linker needs, so
+<code>gcc</code> compiles but cannot link. The same class applies on
+every distro: a C <em>compiler</em> binary alone cannot link an
+executable — it also needs the C-library development objects + the
+<code>ld</code> linker (<code>binutils</code>). The package that
+supplies them is <strong><code>glibc-devel</code></strong> on ALT /
+Fedora / RHEL, and <strong><code>libc6-dev</code></strong> on
+Debian/Ubuntu (pulled by the <code>build-essential</code> meta-package);
+on macOS the <strong>Xcode Command Line Tools</strong> provide
+<code>clang</code> + the macOS SDK + the linker. See <a
+href="#6-sources-verified-2026-06-29">§6 Sources verified</a>.</p>
+<h4
+id="fix-per-os--11481-cross-platform-alt-linux-is-the-primary-target">Fix
+(per OS — §11.4.81 cross-platform; ALT Linux is the primary target)</h4>
+<p><code>scripts/setup.sh</code> surfaces these build dependencies, and
+the project's <code>scripts/install_deps.sh</code> installs them
+automatically when run with the privilege to do so — it detects the host
+package manager (apt-rpm / apt-get / dnf / pacman / zypper / apk /
+Homebrew) and installs the C toolchain + libevent + ncurses + jemalloc +
+autotools (<code>scripts/install_deps.sh:55-117</code>):</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># One-shot, all distros. ALT Linux uses root (no sudo); macOS uses Homebrew, no root.</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/install_deps.sh        <span class="co"># run as root on Linux</span></span></code></pre></div>
+<p>The per-distro commands below are the <strong>by-hand
+fallback</strong> for when the automatic install cannot run — no root
+privilege, or an unrecognised distro.</p>
+<p><strong>ALT Linux 11 (apt-rpm) — the operator's target host; run as
+root (ALT uses root, not <code>sudo</code>).</strong> All package names
+verified present in the apt-rpm cache on an ALT 11 host:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ALT Linux (apt-rpm) — PRIMARY.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># libncursesw-devel Depends: libncurses-devel, so apt-rpm pulls the widec</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ncurses header + libncursesw.so + ncursesw.pc automatically.</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">apt-get</span> install <span class="at">-y</span> gcc glibc-devel make libevent-devel libncursesw-devel <span class="dt">\</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>                   autoconf automake pkg-config bison flex</span></code></pre></div>
+<p>Additional variants:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Debian / Ubuntu (apt / dpkg):</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt-get install <span class="at">-y</span> build-essential libevent-dev libncurses-dev <span class="dt">\</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                        autoconf automake pkg-config bison</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Fedora / RHEL / CentOS (dnf):</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf groupinstall <span class="at">-y</span> <span class="st">&quot;Development Tools&quot;</span> <span class="dt">\</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">&amp;&amp;</span> <span class="fu">sudo</span> dnf install <span class="at">-y</span> libevent-devel ncurses-devel <span class="dt">\</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>                         autoconf automake pkgconf-pkg-config bison</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co"># macOS (installs clang + the macOS SDK + ld):</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="ex">xcode-select</span> <span class="at">--install</span></span></code></pre></div>
+<h4 id="verify-the-fix-1">Verify the fix</h4>
+<p>Prove the toolchain can now compile <strong>and link</strong> a
+trivial executable before re-running setup:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&#39;int main(){return 0;}&#39;</span> <span class="kw">|</span> <span class="fu">gcc</span> <span class="at">-x</span> c <span class="at">-o</span> /tmp/cc-test <span class="at">-</span> <span class="kw">&amp;&amp;</span> <span class="bu">echo</span> <span class="st">&quot;C toolchain OK&quot;</span></span></code></pre></div>
+<p><code>C toolchain OK</code> means <code>configure</code> will get
+past the probe — re-run <code>bash scripts/setup.sh</code>. On macOS
+substitute <code>clang</code> for <code>gcc</code> (the Command Line
+Tools alias <code>gcc</code> to <code>clang</code>, so the same line
+also works). If linking still fails, open <code>config.log</code> in the
+build directory — autoconf records the exact missing object / linker
+error there.</p>
+<hr />
+<h2 id="4-installsh-https-rewrite--private-submodule-edge">4. install.sh
+HTTPS-rewrite / private-submodule edge</h2>
+<h3 id="background">Background</h3>
+<p>The <code>curl | bash</code> installer clones over <strong>HTTPS by
+default</strong> so a fresh user <strong>without SSH keys</strong> can
+still fetch the project and its <strong>public</strong> github
+submodules. Because the submodules pin SSH URLs in
+<code>.gitmodules</code>, the installer applies a git
+<code>insteadOf</code> rewrite by default —
+<code>url.https://github.com/.insteadOf=git@github.com:</code> — so a
+keyless user's recursive clone resolves those public submodules over
+HTTPS (<code>scripts/install.sh:142-152</code>).</p>
+<h3 id="the-edge">The edge</h3>
+<p>If you <strong>do</strong> have SSH keys configured
+<strong>and</strong> need a <strong>private</strong> submodule, the
+default HTTPS rewrite works against you: it rewrites the submodule's
+<code>git@github.com:</code> SSH URL to
+<code>https://github.com/…</code>, which then attempts an
+<strong>unauthenticated</strong> HTTPS fetch (no credential) and the
+private clone fails. The honest boundary is documented in the script
+itself: the HTTPS rewrite does <strong>not</strong> grant access to
+private submodules (<code>scripts/install.sh:144-146</code>).</p>
+<h3 id="recovery">Recovery</h3>
+<p>Disable the rewrite so your SSH key is used for the private
+submodule. Either:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Env var (works under the curl|bash pipe):</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="va">TMX_INSTALL_NO_HTTPS_REWRITE</span><span class="op">=</span>1 <span class="dt">\</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">curl</span> <span class="at">-fsSL</span> https://raw.githubusercontent.com/vasic-digital/tmux/main/scripts/install.sh <span class="kw">|</span> <span class="fu">bash</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># …or the equivalent flag when running a downloaded copy:</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> install.sh <span class="at">--no-https-rewrite</span></span></code></pre></div>
+<p>With the rewrite disabled, the submodules clone via their pinned
+<code>git@github.com:</code> SSH URLs and your key authenticates the
+private fetch (<code>scripts/install.sh:34,82,92,150-151</code>).
+Public-submodule keyless users should <strong>not</strong> set this —
+they need the default rewrite.</p>
+<p>See also the "Private submodule with no access" / "Edge cases" notes
+in <a
+href="../scripts/install.md"><code>../scripts/install.md</code></a>.</p>
+<hr />
+<h2 id="5-local-dependencies-local-deps">5. Local dependencies
+(<code>.local-deps/</code>)</h2>
+<h3 id="what-it-does">What it does</h3>
+<p><code>scripts/obtain_local_deps.sh</code> provides the project's
+build/runtime dependencies <strong>git-ignored, per host</strong>
+(§11.4.77), so a fresh clone works out-of-the-box even on a minimal
+host. <code>setup.sh</code> step 1b invokes it for three deps:</p>
+<ul>
+<li><strong>jemalloc</strong> — the runtime hardening allocator
+(preloaded by the <code>tmx</code> wrapper); a container-built binary's
+<code>DT_NEEDED libjemalloc.so.2</code> must resolve at runtime.</li>
+<li><strong>libevent</strong> + <strong>ncurses (widec)</strong> — the
+tmux <strong>build</strong> dependencies the <strong>native</strong>
+fallback (<a href="#3-containerized-vs-native-build">§3</a>) needs when
+the host lacks <code>libevent-dev</code> /
+<code>libncurses-dev</code>.</li>
+</ul>
+<p>For each dep the script first <strong>resolves</strong> an
+already-present copy by absolute path (§11.4.111 — never ambient
+<code>PATH</code>), and only <strong>obtains</strong> (source-builds or
+extracts) a local copy when the dep is genuinely missing. A present,
+valid local copy is reused, not rebuilt (idempotent).</p>
+<h3 id="where-it-lands">Where it lands</h3>
+<pre><code>.local-deps/&lt;uname-s&gt;_&lt;uname-m&gt;/lib/&lt;libname&gt;     the obtained library
+.local-deps/&lt;uname-s&gt;_&lt;uname-m&gt;/resolved.env      sourceable KEY=VALUE paths</code></pre>
+<p><code>resolved.env</code> exposes the resolved paths —
+<code>JEMALLOC_SO</code> / <code>JEMALLOC_LIBDIR</code>,
+<code>LIBEVENT_LIBDIR</code> / <code>LIBEVENT_INCDIR</code>,
+<code>NCURSES_LIBDIR</code> / <code>NCURSES_INCDIR</code> (each with a
+<code>*_SOURCE</code> provenance tag). <code>build_native.sh</code>,
+<code>verify.sh</code>, <code>run_all.sh</code>, and the
+<code>tmx</code> wrapper all consume it
+(<code>scripts/obtain_local_deps.sh:49-55</code>).</p>
+<h3 id="force-a-fresh-local-copy">Force a fresh local copy</h3>
+<p>To skip host detection and always source-build the deps into the
+local prefix (useful when a host copy is broken, or to reproduce the
+minimal-host path):</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Force-obtain all three locally (skips host resolution):</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="va">FORCE_OBTAIN</span><span class="op">=</span>1 <span class="va">DEPS</span><span class="op">=</span><span class="st">&quot;jemalloc libevent ncurses&quot;</span> <span class="fu">bash</span> scripts/obtain_local_deps.sh</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Override the git-ignored root if you need it elsewhere:</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="va">LOCAL_DEPS_ROOT</span><span class="op">=</span>/some/path <span class="va">FORCE_OBTAIN</span><span class="op">=</span>1 <span class="fu">bash</span> scripts/obtain_local_deps.sh</span></code></pre></div>
+<p><code>FORCE_OBTAIN=1</code>, <code>DEPS=…</code>,
+<code>LOCAL_DEPS_ROOT=…</code>, and
+<code>OBTAIN_METHOD=auto|source|container</code> are the real env inputs
+(<code>scripts/obtain_local_deps.sh:34-47</code>). The obtain step needs
+a C compiler + make + curl/wget + tar + a sha256 tool for the source
+method; on Linux it can also use the container image as a fallback
+obtain method. No <code>sudo</code> is run.</p>
+<p>Full reference: <a
+href="../scripts/obtain_local_deps.md"><code>../scripts/obtain_local_deps.md</code></a>.</p>
+<hr />
+<h2 id="6-sources-verified-2026-06-29">6. Sources verified
+2026-06-29</h2>
+<ul>
+<li><strong>Rootless Podman subuid/subgid +
+<code>usermod --add-subuids/--add-subgids</code> +
+<code>podman system migrate</code></strong> — Podman <em>Basic Setup and
+Use of Podman in a Rootless environment</em> tutorial: <a
+href="https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md">https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md</a>
+(fetched 2026-06-29). It documents the exact
+<code>usermod --add-subuids 100000-165535 --add-subgids 100000-165535 &lt;user&gt;</code>
+command (a 65,536-ID range) and the requirement to run <a
+href="https://github.com/containers/podman/blob/main/docs/source/markdown/podman-system-migrate.1.md"><code>podman system migrate</code></a>
+after changing <code>/etc/subuid</code> / <code>/etc/subgid</code> so
+the new namespace mappings take effect.</li>
+<li><strong><code>/etc/subuid</code> / <code>/etc/subgid</code> file
+format</strong> (<code>USERNAME:UID:COUNT</code>) — the same Podman
+tutorial; offline-authoritative man pages <code>man 5 subuid</code> /
+<code>man 5 subgid</code> and <code>man 8 usermod</code> (the
+<code>--add-subuids</code> / <code>--add-subgids</code> options)
+corroborate the syntax. <code>man podman-system-migrate</code> is the
+offline authority for the migrate step.</li>
+<li><strong>Podman troubleshooting —
+<code>rootless setup user: invalid argument</code> (Section 10)</strong>
+— Podman <em>Troubleshooting</em> guide: <a
+href="https://github.com/containers/podman/blob/main/troubleshooting.md">https://github.com/containers/podman/blob/main/troubleshooting.md</a>
+(fetched 2026-06-29). Re-confirms the <code>/etc/subuid</code> +
+<code>/etc/subgid</code> <code>USERNAME:UID:RANGE</code> format
+(<code>johndoe:100000:65536</code>), the
+<code>usermod --add-subuids … --add-subgids …</code> alternative, the
+requirement that each user's range be <strong>unique /
+non-overlapping</strong>, that the range must <strong>cover all UIDs the
+container requires</strong>, and that <code>podman system migrate</code>
+stops the containers + kills the pause process so the new mapping takes
+effect. (The <code>lchown /etc/gshadow: invalid argument</code> unpack
+failure is this exhaustion class — a <code>chown</code> inside the
+namespace hitting the end of an undersized/absent range.)</li>
+<li><strong>Native build
+<code>C compiler cannot create executables</code> → ALT
+<code>glibc-devel</code> (primary), Debian
+<code>build-essential</code>/<code>libc6-dev</code> (variant)</strong> —
+the ALT Linux package names were verified directly on an <strong>ALT
+Linux 11</strong> host (the operator's target distro), NOT guessed
+(§11.4.6): <code>rpm -qf /usr/lib64/crt1.o</code> →
+<code>glibc-devel-2.40.0.224.573a-alt1</code> (proves
+<code>glibc-devel</code> supplies the startup objects whose absence
+yields the error); <code>apt-cache depends libncursesw-devel</code> →
+<code>Depends: libncurses-devel</code> (proves the single
+<code>libncursesw-devel</code> pulls the widec ncurses header +
+<code>libncursesw.so</code> + <code>ncursesw.pc</code> automatically —
+<code>pkg-config --libs ncursesw</code> →
+<code>-lncursesw -ltinfo</code>); and <code>apt-cache show</code>
+resolves all eleven packages
+(<code>gcc glibc-devel make libevent-devel libncursesw-devel autoconf automake pkg-config bison flex</code>)
+in the apt-rpm cache. The project's own
+<code>scripts/install_deps.sh</code> (the per-distro dependency list,
+lines 36-80) is the secondary project source. The cross-distro root
+cause (a present <code>gcc</code> cannot link without the C-library
+startup objects
+<code>Scrt1.o</code>/<code>crti.o</code>/<code>crtn.o</code>
+<ul>
+<li><code>ld</code> from <code>binutils</code> — <code>libc6-dev</code>
+on Debian, pulled by <code>build-essential</code>) is corroborated by
+the community consensus on this exact autoconf error (<a
+href="https://www.linuxquestions.org/questions/slackware-14/configure-error-c-compiler-cannot-create-executables-4175698040/">https://www.linuxquestions.org/questions/slackware-14/configure-error-c-compiler-cannot-create-executables-4175698040/</a>,
+<a
+href="https://forums.linuxmint.com/viewtopic.php?t=346339">https://forums.linuxmint.com/viewtopic.php?t=346339</a>,
+fetched 2026-06-29) and the offline-authoritative
+<code>apt show build-essential</code> / <code>man gcc</code>. The Fedora
+<code>"Development Tools"</code> group and macOS
+<code>xcode-select --install</code> are the standard, long-stable
+foundational toolchain bootstraps for those platforms.</li>
+</ul></li>
+<li><strong>The build-pipeline behaviours</strong>
+(containerized-vs-native fallback,
+<code>TMX_INSTALL_NO_HTTPS_REWRITE</code>, <code>.local-deps/</code>
+obtain) are verified against the shipped sources
+<code>scripts/setup.sh</code>, <code>scripts/install.sh</code>,
+<code>scripts/install_deps.sh</code>,
+<code>scripts/build_native.sh</code>, and
+<code>scripts/obtain_local_deps.sh</code> at tag
+<code>tmux-1.0.30</code> (line references inline above).</li>
+</ul>
+</body>
+</html>

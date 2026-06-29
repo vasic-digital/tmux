@@ -243,13 +243,122 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project's anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v1031--2026-06-29">[v1.0.31] — 2026-06-29</h2>
+<p><strong>Fully-autonomous ROOT-FREE build + 4-host install/retest
+hardening. A live install+retest on all four hosts (nezha, amber,
+thinker, mistborn) caught six findings — every one a test-harness /
+build-orchestration robustness issue, NOT a product defect (tmx builds,
+sessions, and the root-free build work on every host) — all fixed and
+re-verified GREEN on all four hosts: Linux x86_64 ×3 (including a host
+with no system jemalloc) and macOS arm64.</strong></p>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>Root-free, sudo-free, interaction-free build path.</strong>
+<code>obtain_local_deps.sh</code> obtains a prebuilt Zig <code>cc</code>
+toolchain (clang+lld+libc+crt, sha256-verified) into git-ignored
+<code>.local-deps/</code>, and <code>build_native.sh</code> builds tmux
+from the 3.6a release tarball with it — so <code>setup.sh</code>
+produces a working <code>tmx</code> even on a host with no C toolchain,
+no root, no sudo, and no interactive prompts. Proven on nezha (test 71
+<code>12/0</code>). Enforced by the new
+<code>CM-NO-SUDO-NO-INTERACTION</code> verify gate (rejects any
+<code>sudo</code>/<code>su</code> command execution and any interactive
+prompt anywhere in the automation/test scripts).</li>
+</ul>
+<h3 id="fixed">Fixed</h3>
+<ul>
+<li><strong>test 68 (session lifecycle) — §11.4.1 harness
+FAIL-bluff.</strong> <code>pty_harness.sh</code> +
+<code>68_session_lifecycle.sh</code> accepted <code>TERM=dumb</code>
+over non-interactive SSH, so the tmux client never attached and the
+lifecycle test failed while the product worked. Now rejects
+<code>dumb</code>/non-cursor-addressable TERM via a
+<code>tput -T &lt;cand&gt; clear</code> probe and falls through to a
+usable terminal; + macOS <code>/tmp</code>→<code>/private/tmp</code>
+dir-canonical fix. RED→GREEN N=3 (78/0 under forced
+<code>TERM=dumb</code>).</li>
+<li><strong>test 71 — unbounded download hang.</strong> The Zig download
+had no timeout, so a throttled mirror hung the test ~8h. Now bounded
+(<code>curl --max-time</code> / <code>--speed-limit</code>) → fails fast
+(exit 28 in 30s) → honest SKIP when the mirror is throttled; the normal
+path is unaffected (12/0).</li>
+<li><strong>amber build-orchestration (native host-cc path on a
+constrained host).</strong> (a) <code>build_native.sh</code> exports
+<code>LD_LIBRARY_PATH</code> around <code>./configure</code> so the
+autoconf run-test can load the obtained local jemalloc (was EXIT 77
+"cannot run C compiled programs"); (b) <code>setup.sh</code>'s
+containerized-success check applies <code>resolved.env</code>
+<code>LD_LIBRARY_PATH</code> so a working containerized build is no
+longer false-failed into a needless native fallback; (c) the native
+build obtains a LOCAL static <code>libtinfo.a</code> (local ncurses
+<code>--with-termlib</code>, or a host <code>libtinfo.a</code> fallback)
+so the binary links no dynamic <code>-ltinfo</code> →
+<code>CM-NO-DYNAMIC-LIBTINFO</code> gate + test 61 pass (readelf: 0
+<code>libtinfo</code> <code>DT_NEEDED</code>); (d) <code>setup.sh</code>
+auto-obtains the Go toolchain → <code>CM-TMX-STATE-GO-PRESENT</code>
+gate pass.</li>
+<li><strong>macOS self-containment.</strong>
+<code>install_deps.sh</code> honors
+<code>INSTALL_DEPS_FORCE_DISTRO</code> before OS-detection (test 70
+C4/C5); <code>run_all.sh</code> adds the brew <code>gnubin</code> PATH
+(GNU <code>timeout</code>) and re-execs under bash ≥ 4 (tests
+30/39/49/57) — a no-op on Linux.</li>
+</ul>
+<h3 id="changed">Changed</h3>
+<ul>
+<li><strong>test 70 C8/G1 + C10 reconciled (§11.4.120)</strong> to
+assert the new <code>_cb_ok</code> containerized-fallback wiring (teeth
+proven by the paired §1.1 mutation — neither fake-passed nor
+reverted).</li>
+</ul>
+<h3
+id="verified--all-4-hosts-green-on-this-release-captured-evidence-under-qa-resultsloop-20260629-no-bluff">Verified
+— all 4 hosts GREEN on this release (captured evidence under
+<code>qa-results/loop-20260629/</code>, no bluff)</h3>
+<table>
+<thead>
+<tr>
+<th>Host</th>
+<th>OS</th>
+<th><code>run_all</code></th>
+<th><code>tmx</code> → tmux 3.6a</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nezha</td>
+<td>Linux x86_64</td>
+<td>PASS=58 FAIL=0 SKIP=12 (root-free test 71 <code>12/0</code>)</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>amber</td>
+<td>Linux x86_64 (no system jemalloc)</td>
+<td>PASS=50 FAIL=0 SKIP=20</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>thinker</td>
+<td>Linux x86_64</td>
+<td>PASS=50 FAIL=0 SKIP=20</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>mistborn</td>
+<td>macOS arm64</td>
+<td>PASS=61 FAIL=0 SKIP=9</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<hr />
 <h2 id="v1030--2026-06-29">[v1.0.30] — 2026-06-29</h2>
 <p><strong>Workable-item key prefix corrected ATM- → TMX- (this project,
 not ATMOSphere). Cross-platform install hardening: curl one-liner
 installer, libevent/ncurses local-dependency obtain, native-build
 fallback for rootless-Podman hosts, and an escaped-colon session-color
 fix.</strong></p>
-<h3 id="changed">Changed</h3>
+<h3 id="changed-1">Changed</h3>
 <ul>
 <li><strong>Workable-item ticket key migrated <code>ATM-</code> →
 <code>TMX-</code> everywhere (§11.4.54 / §11.4.35).</strong> This
@@ -273,7 +382,7 @@ hyphenated <code>ATM-</code> token only). 56 items → TMX-001..TMX-056.
 DB <code>foreign_key_check</code> + <code>integrity_check</code>
 clean.</li>
 </ul>
-<h3 id="added">Added</h3>
+<h3 id="added-1">Added</h3>
 <ul>
 <li><strong>curl-obtainable installer
 (<code>scripts/install.sh</code>).</strong>
@@ -306,7 +415,7 @@ falls back to a native host build (§11.4.101) and emits the
 surfaces both errors + exits non-zero (no silent green). Success path
 unchanged.</li>
 </ul>
-<h3 id="fixed">Fixed</h3>
+<h3 id="fixed-1">Fixed</h3>
 <ul>
 <li><strong>Escaped-colon session names lost their color on Linux
 (<code>scripts/tmx.template</code>).</strong> The Linux dispatch passed
@@ -341,7 +450,7 @@ detach/rejoin + recycle + delete-reset) proven working with real live
 tmux sessions. Cross-platform local-dependency mechanism. Six
 cross-platform defects found and fixed via §11.4.108 clean-target host
 validation.</strong></p>
-<h3 id="added-1">Added</h3>
+<h3 id="added-2">Added</h3>
 <ul>
 <li><strong><code>tmx delete -t NAME</code> (clause 7 —
 delete-to-reset).</strong> Kills the session + clears persisted state
@@ -393,7 +502,7 @@ the tmux error instead of silently <code>exec attach</code>-ing onto a
 dead server. (<code>scripts/tmx.template</code>,
 <code>scripts/tests/lib/pty_harness.sh</code>)</li>
 </ul>
-<h3 id="fixed-1">Fixed</h3>
+<h3 id="fixed-2">Fixed</h3>
 <ul>
 <li><strong>test 17 T4.2 scrollback retention reconciled to race-free
 <code>#{history_size}</code>.</strong> v1.0.27 had regressed T4.2 to a
@@ -440,7 +549,7 @@ href="mailto:noreply@anthropic.com">noreply@anthropic.com</a></p>
 <p><strong>Per-session password protection — any session can be
 optionally password-gated. Passwords stored as SHA-256 hashes, verified
 on attach.</strong></p>
-<h3 id="added-2">Added</h3>
+<h3 id="added-3">Added</h3>
 <ul>
 <li><strong>Per-session password protection
 (<code>tmx new -s NAME</code> prompts for optional password).</strong>
@@ -486,7 +595,7 @@ feature is opt-in only.</li>
 <p><strong>Anti-bluff completeness burn-down: M24 test-coverage gap
 closed, A2 run_all OS-aware, D2 /tmp scratch-SKIP, A51 operator-escape
 name:color prompt rejection fixed.</strong></p>
-<h3 id="fixed-2">Fixed</h3>
+<h3 id="fixed-3">Fixed</h3>
 <ul>
 <li><strong>A51 — <code>tmx-shell-init</code> prompt rejects
 <code>:</code> in session names (operator-escape, §11.4.138).</strong>
@@ -522,7 +631,7 @@ the 80-char max-length bump per name:color feature (§11.4.120).</li>
 the first operator-chosen per-session color. Every session was
 previously the single hostname-derived color; now each session can carry
 its own validated, persisted color.</strong></p>
-<h3 id="added-3">Added</h3>
+<h3 id="added-4">Added</h3>
 <ul>
 <li><strong>Per-session color
 (<code>name:color[:ignored]</code>)</strong> — an operator can choose an
@@ -550,7 +659,7 @@ default-green. <code>tmx-state-bin</code> gains <code>set-color</code> /
 Linux + macOS; the macOS bridge forwards the <code>-s</code> value
 verbatim, the VM-side wrapper parses.</li>
 </ul>
-<h3 id="changed-1">Changed</h3>
+<h3 id="changed-2">Changed</h3>
 <ul>
 <li><code>tmx-state-bin</code> <code>v1.0.9</code> → <code>v1.1.0</code>
 (additive: <code>Session.Color</code>, <code>set-color</code>/
@@ -598,7 +707,7 @@ submodule to its latest upstream (<code>1d408cb</code>), fix host-level
 codegraph version skew, and clean dead test-socket cruft — per the
 operator mandate "we MUST ALWAYS target the latest versions of all our
 submodules." No tmux product-surface change.</strong></p>
-<h3 id="changed-2">Changed</h3>
+<h3 id="changed-3">Changed</h3>
 <ul>
 <li><strong>HelixConstitution submodule advanced <code>3f4d690</code> →
 <code>1d408cb</code></strong> (+67 upstream commits, new universal
@@ -689,7 +798,7 @@ for our testing needs." The tmux product surface (the hardened tmux 3.6a
 binary + <code>tmx</code> wrapper) is <strong>unchanged</strong> from
 v1.0.23; this release adds testing tooling + extends + hardens the
 consumed Containers library.</p>
-<h3 id="added-4">Added</h3>
+<h3 id="added-5">Added</h3>
 <ul>
 <li><strong><code>scripts/tmx-orchestrator/</code></strong> — a Go
 consumer of the decoupled <code>digital.vasic.containers</code>
@@ -801,7 +910,7 @@ command. This release links terminfo <strong>statically</strong> so the
 warning is structurally impossible on any distribution, and fixes three
 test-harness timing races discovered while re-validating the full suite
 on real Linux hardware.</p>
-<h3 id="fixed-3">Fixed</h3>
+<h3 id="fixed-4">Fixed</h3>
 <ul>
 <li><strong>libtinfo cross-distro warning eliminated (cross-distro
 portability, §11.4.81).</strong>
@@ -837,7 +946,7 @@ raced it. Now polls the kernel ring for the OOM line up to a generous
 timeout (assertion unchanged). PASS 5/5 deterministic on nezha with real
 OOM-kill evidence.</li>
 </ul>
-<h3 id="added-5">Added</h3>
+<h3 id="added-6">Added</h3>
 <ul>
 <li><strong><code>scripts/tests/61_no_libtinfo_version_warning.sh</code></strong>
 — cross-platform regression guard (§11.4.81): T1 (both OSes) the binary
@@ -927,7 +1036,7 @@ containerized Linux under macOS using Apple's native
 <code>container</code> runtime (1.0.0), so a developer on Apple Silicon
 can build the Linux ELF tmux binary inside a real Linux VM and run the
 project's own test suite against it with one command.</p>
-<h3 id="added-6">Added</h3>
+<h3 id="added-7">Added</h3>
 <ul>
 <li><strong>Containers-submodule backend (extended, not reimplemented —
 §11.4.76).</strong> The Apple <code>container</code> 1.0.0 runtime was
@@ -1047,7 +1156,7 @@ added ever-more tmux mouse bindings yet the operator still could not
 reliably select/copy — the signal that the <em>architecture</em>, not
 the bindings, was wrong (systematic-debugging: 3+ fixes failed →
 question the architecture).</p>
-<h3 id="fixed-4">Fixed</h3>
+<h3 id="fixed-5">Fixed</h3>
 <ul>
 <li><strong>Root cause (proven at the wire level, no guessing per
 §11.4.6).</strong> With <code>set -g mouse on</code>, on attach tmux
@@ -1123,7 +1232,7 @@ works).</strong></p>
 it gets a completely new value"; then "Open new terminal -&gt; Test
 -&gt; ls -&gt; cannot select/copy". Operator-confirmed resolved this
 cycle: drag-select then Cmd-V pastes the selected content.</p>
-<h3 id="fixed-5">Fixed</h3>
+<h3 id="fixed-6">Fixed</h3>
 <ul>
 <li><strong><code>prefix P</code> paste binding (POSIX-clean
 rewrite).</strong> The old binding
@@ -1198,7 +1307,7 @@ interactive-guard (<code>case $- in *i*) ;; *) return ;;</code>), so a
 NON-interactive invocation (ssh-batch / CI) never gets
 <code>codegraph</code> on PATH and the tests fail spuriously while real
 interactive agent usage works.</p>
-<h3 id="fixed-6">Fixed</h3>
+<h3 id="fixed-7">Fixed</h3>
 <ul>
 <li><strong><code>scripts/tests/run_all.sh</code></strong> +
 <strong><code>scripts/tests/meta_test_false_positive_proof.sh</code></strong>
@@ -1563,7 +1672,7 @@ workable item in our Issues doc and all relevant docs around it (with
 them all being exported in all expected file types — PDF, HTML, DOCX)!
 We MUST NEVER forget the flow: workable item → SQLite database → all
 docs we have related to workable items!"</p>
-<h3 id="fixed-7">Fixed</h3>
+<h3 id="fixed-8">Fixed</h3>
 <ul>
 <li><p><strong>A37 — Multi-line copy + PASTE-INTO + alt-screen TUI
 mouse-drag override</strong> (Fixed.md A37): v1.0.14 proved single-line
@@ -1679,7 +1788,7 @@ and to the terminal window and current tmux (tmx) session! Using mouse
 or keyboard MUST WORK properly!!! Scrolling the content / history MUST
 NOT be broken or anything else! ... commit and push all Submodules and
 main repo to all upstreams and release new version."</p>
-<h3 id="fixed-8">Fixed</h3>
+<h3 id="fixed-9">Fixed</h3>
 <ul>
 <li><p><strong>A35 — Clipboard copy-OUT had no physical-proof
 coverage.</strong> The bindings have existed in
@@ -1797,7 +1906,7 @@ correctly retrieves the cwd and passes <code>-c $START_DIR</code> to
 <code>tmux new-session</code>. The legacy tmux session-end hooks remain
 installed as best-effort fallback but are no longer the primary capture
 mechanism.</p>
-<h3 id="added-7">Added</h3>
+<h3 id="added-8">Added</h3>
 <ul>
 <li><strong><code>scripts/tests/43_e2e_cwd_persist_real_shell.sh</code></strong>
 — end-to-end test that reproduces the EXACT operator scenario from the
@@ -1807,7 +1916,7 @@ exits the shell, re-spawns the session, asserts
 <code>pane_current_path</code> is the recalled target. 15/15 PASS, 3/3
 deterministic iterations.</li>
 </ul>
-<h3 id="changed-3">Changed</h3>
+<h3 id="changed-4">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx-shell-init.sh.template</code></strong> —
 the <code>$TMUX</code>-set branch no longer bails immediately. It now
@@ -1833,7 +1942,7 @@ bug. <code>.zprofile</code> not touched (zsh always sources
 <code>_do_uninstall</code></strong> — also strips the snippet from
 <code>~/.bash_profile</code> and <code>~/.profile</code>.</li>
 </ul>
-<h3 id="fixed-9">Fixed</h3>
+<h3 id="fixed-10">Fixed</h3>
 <ul>
 <li>The user-reported bug: exit a tmx session → reopen with the same
 name → cwd is NOT restored. Now: exit → reopen → cwd is restored on the
@@ -1927,7 +2036,7 @@ audit (2026-05-22): "if any missing details are not in docs please fill
 any gaps we have and release new version". Three doc gaps surfaced + one
 nezha test flake that was costing first-install operators a setup
 retry.</p>
-<h3 id="added-8">Added</h3>
+<h3 id="added-9">Added</h3>
 <ul>
 <li><strong>Manual §7a (Uninstall, v1.0.11+)</strong> —
 <code>docs/manual/tmx-shell-integration.md</code> now documents the
@@ -1936,7 +2045,7 @@ invocation, <code>--purge-state</code> flag, automatic clean-slate
 behaviour baked into <code>setup.sh</code> step 0, and verification
 commands operators can run to confirm uninstall worked.</li>
 </ul>
-<h3 id="changed-4">Changed</h3>
+<h3 id="changed-5">Changed</h3>
 <ul>
 <li><strong><code>README.md</code> install-mode table</strong> —
 "Removable via <code>bash scripts/setup.sh --uninstall</code>" updated
@@ -1961,7 +2070,7 @@ reporting a defect that's not in OUR code. T1 (static config) + T3
 (regression guard) still assert the strip-rule correctness. Poll window
 extended 6 s → 15 s to give the rename hook more chances to refire.</li>
 </ul>
-<h3 id="fixed-10">Fixed</h3>
+<h3 id="fixed-11">Fixed</h3>
 <ul>
 <li>nezha-Linux first-install setup.sh exiting RED on test 16 even
 though the .exe-strip rule itself works correctly. Eliminates the "run
@@ -2011,7 +2120,7 @@ tmux session being created!".</p>
 <p>This release: (a) generates the file, (b) ships a proper uninstall
 entry point, (c) makes setup self-cleaning, (d) adds a regression test
 that would have caught the original bug.</p>
-<h3 id="added-9">Added</h3>
+<h3 id="added-10">Added</h3>
 <ul>
 <li><strong><code>scripts/setup.sh</code> step 3a</strong> — generates
 <code>scripts/tmx-shell-init.sh</code> from
@@ -2048,7 +2157,7 @@ setup-verify).</li>
 <li><strong><code>docs/scripts/uninstall.md</code></strong> — §11.4.18
 companion doc for the uninstall script.</li>
 </ul>
-<h3 id="changed-5">Changed</h3>
+<h3 id="changed-6">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx-shell-init.sh.template</code></strong> —
 header typo fixed (<code>twork-tmux</code> →
@@ -2066,7 +2175,7 @@ helper</strong> — explicit <code>return 0</code> so <code>set -e</code>
 does not kill the script when quiet mode short-circuits the
 <code>[ -z "$quiet" ]</code> test.</li>
 </ul>
-<h3 id="fixed-11">Fixed</h3>
+<h3 id="fixed-12">Fixed</h3>
 <ul>
 <li>Operator opens new terminal → no prompt fires → no session created
 (the user-visible bug). Root cause: missing on-disk file. Step 3a now
@@ -2172,7 +2281,7 @@ fixed-sleep timing window that flaked under load; tests 31 and 35 used
 bare <code>tmx</code> and assumed it was on PATH which fails on hosts
 where setup is RED. All six fixed, all 41 tests now GREEN on both macOS
 and nezha-Linux.</p>
-<h3 id="added-10">Added</h3>
+<h3 id="added-11">Added</h3>
 <ul>
 <li><strong><code>scripts/setup.sh</code> step 3d</strong> — Go-build
 <code>scripts/tmx-state-bin</code> for the HOST OS on every setup.
@@ -2181,7 +2290,7 @@ and nezha-Linux.</p>
 documented regeneration mechanism. Fixes the cross-platform binary
 shipping bug introduced in v1.0.9.</li>
 </ul>
-<h3 id="changed-6">Changed</h3>
+<h3 id="changed-7">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx.template</code></strong> —
 <code>-c $START_DIR</code> now injected whenever the wrapper sees the
@@ -2219,7 +2328,7 @@ MUST NOT be versioned.</li>
 <code>.gitignore-meta/.regenerated/</code>, and <code>.claude/</code>
 added per §11.4.30 + §11.4.77.</li>
 </ul>
-<h3 id="fixed-12">Fixed</h3>
+<h3 id="fixed-13">Fixed</h3>
 <ul>
 <li>v1.0.9 cwd restore on Linux when <code>tmx new -s NAME -d</code> was
 used (the most common detached-spawn case). Previously the recall
@@ -2289,7 +2398,7 @@ and blocked non-TTY shells; an SSH dispatcher
 session with the right cwd; and the existing <code>tmx</code> wrapper
 gains tmux hooks that record cwd on detach + a
 <code>-c &lt;recalled-pwd&gt;</code> on <code>tmx new</code>.</p>
-<h3 id="added-11">Added</h3>
+<h3 id="added-12">Added</h3>
 <ul>
 <li><strong><code>scripts/tmx-state/</code> (Go module)</strong> —
 <code>tmx-state</code> binary with subcommands
@@ -2376,7 +2485,7 @@ during P2/P3)</li>
 rows linking to the v1.0.9 docs.</li>
 </ul></li>
 </ul>
-<h3 id="changed-7">Changed</h3>
+<h3 id="changed-8">Changed</h3>
 <ul>
 <li><strong><code>scripts/bashrc_snippet.template</code></strong> — now
 sources <code>tmx-shell-init.sh</code> in addition to setting PATH; the
@@ -2398,7 +2507,7 @@ passes <code>-c &lt;recalled-pwd&gt;</code> to
 <code>tmx-state record &lt;name&gt; #{pane_current_path}</code> on
 <code>client-detached</code> and <code>session-closed</code>.</li>
 </ul>
-<h3 id="fixed-13">Fixed</h3>
+<h3 id="fixed-14">Fixed</h3>
 <p>(none specific to v1.0.9 — every entry is an additive feature;
 existing defects continue to be tracked in <code>Issues.md</code> /
 <code>Fixed.md</code>).</p>
@@ -2480,7 +2589,7 @@ entry).</li>
 UI surfaces (active pane border + clock + selected-window highlight),
 not just the bottom status bar. NEW test 26 + M24 paired mutation.
 Darwin quintuple-fresh GREEN.</strong></p>
-<h3 id="fixed-14">Fixed</h3>
+<h3 id="fixed-15">Fixed</h3>
 <ul>
 <li><p><strong>Operator-reported (2026-05-21):</strong> "flying animated
 top decoration"</p>
@@ -2511,7 +2620,7 @@ recoloured — they default to yellow not green, and yellow provides the
 most accessible contrast against any palette-derived
 background.</p></li>
 </ul>
-<h3 id="added-12">Added</h3>
+<h3 id="added-13">Added</h3>
 <ul>
 <li><p><strong>NEW test 26
 (<code>26_ui_color_uniformity.sh</code>)</strong> — spawns an
@@ -2576,7 +2685,7 @@ divergent commits.</p>
 palette rebalance + Node-22 LTS pin for CodeGraph. Quintuple-verified on
 both macOS (Darwin arm64) and Linux (ALT 11 / kernel 6.12 / systemd 258)
 before tag.</strong></p>
-<h3 id="fixed-15">Fixed</h3>
+<h3 id="fixed-16">Fixed</h3>
 <ul>
 <li><p><strong>Test 09 T4.2 — cgroup-containment invariant rewrite
 (rounds 1-5, Nezha-driven).</strong> Pre-v1.0.7 the test polled
@@ -2631,7 +2740,7 @@ Palette rebalanced across the hue spectrum: red / orange / yellow /
 green / teal / blue / purple / pink / magenta / brown / cyan / lime — no
 two consecutive entries within RGB Euclidean distance 80.</p></li>
 </ul>
-<h3 id="added-13">Added</h3>
+<h3 id="added-14">Added</h3>
 <ul>
 <li><p><strong>NEW test 25
 (<code>25_hostname_color_perceptual_distance.sh</code>)</strong> — three
@@ -2980,7 +3089,7 @@ anti-bluff covenant propagated verbatim to every consumer governance
 file, audit follow-up fixes (M4/M5 portability + <code>tmx kill</code>
 shorthand), docs reorganised under context subdirectories per the
 constitution rule.</strong></p>
-<h3 id="added-14">Added</h3>
+<h3 id="added-15">Added</h3>
 <ul>
 <li><p><strong>A18 — CodeGraph integration (§11.4.78).</strong>
 Installed <code>@colbymchenry/codegraph</code> v0.6.8 globally (npm
@@ -3027,7 +3136,7 @@ cycle.</p></li>
 §11.4.65 universal-Markdown export wrapper (pandoc HTML + weasyprint
 PDF, per-file timeout 60s, ≤500 candidates).</p></li>
 </ul>
-<h3 id="fixed-16">Fixed</h3>
+<h3 id="fixed-17">Fixed</h3>
 <ul>
 <li><p><strong>A20 — M4/M5 paired mutations honest topology dispatch
 (AUDIT-1).</strong> Pre-fix: raw GNU <code>sed -i</code> silently
@@ -3141,7 +3250,7 @@ harness is wired).</li>
 <p><strong>tmux scrolling fixed for the Claude Code TUI and mobile
 (Termux); governance refactored to inherit from the HelixConstitution
 submodule.</strong></p>
-<h3 id="fixed-17">Fixed</h3>
+<h3 id="fixed-18">Fixed</h3>
 <ul>
 <li><strong>A16 — Scrolling terminal output up/down did not work,
 especially in the Claude Code TUI.</strong> Two root causes: (1) the
@@ -3166,7 +3275,7 @@ escape sequences reach the application;</li>
 termux-clipboard-set, detected at copy time) plus OSC-52.</li>
 </ul></li>
 </ul>
-<h3 id="added-15">Added</h3>
+<h3 id="added-16">Added</h3>
 <ul>
 <li><strong>A17 — HelixConstitution governance submodule + verified
 inheritance.</strong> The universal engineering rules (anti-bluff
@@ -3225,7 +3334,7 @@ same profile as v1.0.0).</li>
 <h2 id="v102--2026-05-16">[v1.0.2] — 2026-05-16</h2>
 <p><strong>Cosmetic: window-name strips <code>.exe</code> suffix from
 <code>pane_current_command</code>.</strong></p>
-<h3 id="fixed-18">Fixed</h3>
+<h3 id="fixed-19">Fixed</h3>
 <ul>
 <li><strong>A15 — Bottom-left status-bar showed <code>claude.exe</code>
 instead of <code>claude</code></strong> (operator-reported, 2026-05-16).

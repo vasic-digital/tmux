@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<h1
+id="root-free-local-c-build-toolchain-obtain--deep-research-114150">Root-free
+local C build-toolchain obtain — deep research (§11.4.150)</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-06-29T00:00:00Z <strong>Authority:</strong> vasic-digital tmux
+project — RESEARCH ARTEFACT (no source edited) <strong>Mandate:</strong>
+Operator (2026-06-29): "All mandatory dependencies MUST BE available on
+local level and obtained for project to build and install fully
+autonomously"</p>
+<ul>
+<li>HARD constraint: NO sudo/su, NO user interaction in automation.
+<strong>Scope:</strong> obtaining a C BUILD TOOLCHAIN (compiler + linker
++ libc headers + crt objects) AND the autotools tmux's
+<code>./configure</code> needs, all LOCAL + ROOT-FREE, on linux x86_64 +
+linux arm64 + macOS — closing the gap left by the already-shipped
+<code>scripts/obtain_local_deps.sh</code> (which obtains
+libevent/ncurses/jemalloc + the Go toolchain locally, but assumes a
+working host C toolchain).</li>
+</ul>
+<hr />
+<h2 id="0-executive-summary--recommendation">0. Executive summary /
+RECOMMENDATION</h2>
+<p><strong>Two cooperating changes close the gap, both root-free +
+non-interactive:</strong></p>
+<ol type="1">
+<li><p><strong>C toolchain → <code>zig cc</code></strong> obtained as a
+single prebuilt <code>.tar.xz</code> (<code>kind=toolchain</code>,
+mirroring the existing Go entry). Zig bundles clang + <code>lld</code>
+linker + glibc/musl headers + crt objects, is fully relocatable, needs
+no root, and one project obtains it for ALL four targets (linux
+x86_64/aarch64, macOS x86_64/aarch64). It is used as
+<code>CC="&lt;zig&gt; cc"</code> to build <strong>libevent, ncurses,
+jemalloc AND tmux</strong> — because on a bare host the existing source
+builds of those deps ALSO fail (host <code>cc</code> cannot link), so
+the toolchain obtain must run FIRST and feed every downstream source
+build.</p></li>
+<li><p><strong>Autotools gap → AVOID it</strong> by building tmux from
+the official <strong>3.6a RELEASE tarball</strong> (which ships a
+pre-generated <code>configure</code> + <code>aclocal.m4</code> +
+<code>Makefile.in</code> + <code>cmd-parse.c</code>), NOT from the
+git-submodule working tree (which tracks only <code>configure.ac</code>
++ <code>autogen.sh</code> → would force
+autoconf/automake/aclocal/autoreconf/bison/pkg.m4). With the release
+tarball:</p>
+<ul>
+<li>autoconf/automake/aclocal/autoreconf/m4/perl → <strong>NOT
+needed</strong>;</li>
+<li>bison/byacc/yacc → <strong>NOT needed</strong> (set
+<code>YACC=true</code>; <code>cmd-parse.c</code> is pre-generated so the
+no-op is never invoked — proven below);</li>
+<li>pkg-config → <strong>NOT strictly needed</strong> (tmux
+<code>configure</code> has <code>AC_SEARCH_LIBS</code> fallbacks for
+both mandatory deps; we pass <code>-I/-L</code> for the local
+libevent/ncurses, and keep <code>PKG_CONFIG_PATH</code>
+opportunistically).</li>
+</ul></li>
+</ol>
+<p><strong>Residual host assumptions after both changes</strong> (far
+more commonly present than the missing <code>glibc-devel</code> that
+triggers the whole problem): <code>make</code>, <code>tar</code>,
+<code>xz</code>, <code>curl</code>|<code>wget</code>,
+<code>sha256sum</code>|<code>shasum</code>,
+<code>awk</code>/<code>sed</code>/<code>sh</code>. These are honest
+boundaries — see §6. <code>make</code> is the only non-trivial residual;
+it is in the base of essentially every Linux install and is a separate,
+smaller follow-on if a truly make-less host ever appears.</p>
+<p><strong>macOS:</strong> keep the existing Xcode-CLT + Homebrew path
+as PRIMARY (CLT is present on virtually every Mac that already ran
+<code>git</code>/<code>curl</code>); document <code>zig cc</code> as a
+CLT-less fallback flagged <strong>UNCONFIRMED</strong> (could not be
+live-tested from this Linux host) per §11.4.81 honest-boundary.</p>
+<hr />
+<h2 id="1-repo-evidence--the-autotools-verdict-captured-facts">1. Repo
+evidence — the autotools verdict (captured FACTS)</h2>
+<h3 id="11-the-submodule-tracks-no-generated-configure">1.1 The
+submodule tracks NO generated <code>configure</code></h3>
+<pre><code>$ git submodule status tmux
+ cc117b5048f77a4842820f8ebbe3a86e5c077224 tmux (3.6a)
+$ git -C tmux ls-files configure configure.ac autogen.sh Makefile.in
+autogen.sh
+configure.ac           # &lt;-- only these two are TRACKED</code></pre>
+<p>The <code>tmux/configure</code>, <code>tmux/Makefile.in</code>,
+<code>tmux/etc/{missing,install-sh, config.guess,...}</code> present in
+THIS working tree were generated locally (mtime 2026-05-21) by a prior
+<code>autogen.sh</code> run. <strong>A fresh
+<code>git submodule update</code> checks out ONLY the tracked files → NO
+<code>configure</code> exists</strong> →
+<code>build_native.sh:233</code>
+(<code>if [ ! -f configure ]; then sh autogen.sh; fi</code>) runs
+<code>autogen.sh</code>.</p>
+<h3 id="12-autogensh-requires-the-full-autotools-generator-stack">1.2
+<code>autogen.sh</code> requires the full autotools generator stack</h3>
+<pre><code>$ cat tmux/autogen.sh
+aclocal || die &quot;aclocal failed&quot;
+automake --add-missing --force-missing --copy --foreign || die &quot;automake failed&quot;
+autoreconf || die &quot;autoreconf failed&quot;</code></pre>
+<p>This is the operator's failing log
+(<code>configure.ac:8: installing 'etc/missing'</code> is
+<code>automake --add-missing</code>). It needs <strong>aclocal +
+automake + autoreconf + autoconf + m4 + perl</strong>, AND because
+<code>configure.ac</code> uses <code>PKG_CHECK_MODULES</code> (below),
+aclocal needs <strong><code>pkg.m4</code></strong> (shipped by
+pkg-config/pkgconf), AND
+<code>AC_PROG_YACC</code>/<code>cmd-parse.y</code> means the regenerated
+build needs <strong>bison/yacc</strong>.</p>
+<h3 id="13-configureac-tool-requirements">1.3 <code>configure.ac</code>
+tool requirements</h3>
+<pre><code>3:  AC_INIT([tmux], 3.6a)
+8:  AM_INIT_AUTOMAKE([foreign subdir-objects])
+45: AC_PROG_CC
+50: AC_PROG_INSTALL
+51: AC_PROG_YACC
+52: PKG_PROG_PKG_CONFIG
+226/238/281/293/306: PKG_CHECK_MODULES(...)   # libevent + ncurses (mandatory)
+273-276: AC_CHECK_PROG(found_yacc,$YACC,...); AC_MSG_ERROR(&quot;yacc not found&quot;)</code></pre>
+<h3
+id="14-the-release-tarball-ships-the-generated-files-decisive--live-verified">1.4
+The RELEASE tarball ships the generated files (DECISIVE —
+live-verified)</h3>
+<pre><code>$ curl -fsSL .../releases/download/3.6a/tmux-3.6a.tar.gz   # 750698 bytes
+$ sha256sum tmux-3.6a.tar.gz
+b6d8d9c76585db8ef5fa00d4931902fa4b8cbe8166f528f44fc403961a3f3759  tmux-3.6a.tar.gz
+$ tar tzf tmux-3.6a.tar.gz | grep -E &#39;(configure|aclocal.m4|Makefile.in|cmd-parse.c)$&#39;
+tmux-3.6a/configure
+tmux-3.6a/aclocal.m4
+tmux-3.6a/Makefile.in
+tmux-3.6a/cmd-parse.c        # &lt;-- the yacc OUTPUT ships pre-generated</code></pre>
+<p><strong>Building from this tarball eliminates the entire autotools
+GENERATOR stack.</strong></p>
+<h3
+id="15-yacc-is-bypassable-with-yacctrue-live-verified-in-the-generated-configure">1.5
+<code>yacc</code> is bypassable with <code>YACC=true</code>
+(live-verified in the generated configure)</h3>
+<p>The generated <code>configure</code> from the release tarball:</p>
+<pre><code>4578: for ac_prog in &#39;bison -y&#39; byacc        # search list
+4588:   ac_cv_prog_YACC=&quot;$YACC&quot; # Let the user override the test  &lt;-- KEY
+4619: test -n &quot;$YACC&quot; || YACC=&quot;yacc&quot;          # default if unset
+6081:   as_fn_error $? &quot;\&quot;yacc not found\&quot;&quot;    # hard error if $YACC missing</code></pre>
+<p><code>export YACC=true</code> (or <code>/usr/bin/true</code>) →
+configure accepts it (override path, line 4588), the
+<code>AC_CHECK_PROG(found_yacc,$YACC,...)</code> finds <code>true</code>
+→ no error. Because <code>cmd-parse.c</code> ships newer-or-equal to
+<code>cmd-parse.y</code> in the dist tarball (and we
+<code>touch cmd-parse.c</code> after extract for safety), make NEVER
+runs the <code>.y.c</code> rule → the <code>true</code> no-op is never
+invoked. <strong>No bison/byacc/yacc needed.</strong></p>
+<h3 id="16-pkg-config-is-not-strictly-required-live-verified">1.6
+pkg-config is NOT strictly required (live-verified)</h3>
+<p>Both mandatory deps fall back to <code>AC_SEARCH_LIBS</code> when
+pkg-config / the <code>.pc</code> is absent (4th macro arg =
+<code>found_*=no</code>, so <code>PKG_CHECK_MODULES</code> does NOT
+hard-error):</p>
+<pre><code>configure.ac libevent: PKG_CHECK_MODULES(LIBEVENT_CORE,libevent_core&gt;=2,...,found_libevent=no)
+                       → PKG_CHECK_MODULES(LIBEVENT,libevent&gt;=2,...,found_libevent=no)
+                       → AC_SEARCH_LIBS(event_init,[event_core event event-1.4])
+                       → AC_CHECK_HEADER(event2/event.h)
+configure.ac ncurses:  PKG_CHECK_MODULES(LIBTINFO/LIBNCURSES/LIBNCURSESW,...,found_ncurses=no)
+                       → AC_SEARCH_LIBS(setupterm,[tinfo terminfo ncurses ncursesw])
+                       → AC_CHECK_HEADER(ncurses.h)
+generated configure:   line 5956 &quot;checking for library containing event_init&quot;  ✓ present</code></pre>
+<p>So passing <code>CPPFLAGS=-I&lt;local-incdir&gt;</code> +
+<code>LDFLAGS=-L&lt;local-libdir&gt;</code> for the local
+libevent/ncurses is sufficient even with NO pkg-config binary. (When
+pkg-config IS present + <code>PKG_CONFIG_PATH</code> points at the local
+<code>.pc</code> dir — as <code>build_native.sh</code> already arranges
+— the pkg-config path is used, which is cleaner; both work.)</p>
+<h3 id="17-host-capability-for-the-tarxz-zig-tarball-this-host">1.7 Host
+capability for the <code>.tar.xz</code> zig tarball (this host)</h3>
+<pre><code>$ xz --version  → xz (XZ Utils) 5.4.7      $ tar --version → tar (GNU tar) 1.35</code></pre>
+<p>GNU tar shells out to <code>xz</code> for <code>.tar.xz</code>.
+Present here; flagged as a residual host assumption in §6 (zig publishes
+ONLY <code>.tar.xz</code> for these platforms).</p>
+<hr />
+<h2 id="2-angle-1--zig-cc-as-the-root-free-c-toolchain-recommended">2.
+Angle 1 — <code>zig cc</code> as the root-free C toolchain
+(RECOMMENDED)</h2>
+<h3 id="21-what-zig-provides">2.1 What zig provides</h3>
+<p><code>zig cc</code> is a clang-based drop-in C/C++ compiler. The
+single prebuilt tarball bundles: clang frontend + <code>lld</code>
+linker + glibc headers/stubs (multiple versions) + musl + crt objects +
+libc++. It is fully relocatable (extract anywhere, run
+<code>&lt;dir&gt;/zig</code>), needs <strong>no root</strong>,
+<strong>no install step</strong>, <strong>no system libc-dev</strong>
+(it carries its own). Andrew Kelley's reference article documents it as
+a "powerful drop-in replacement for gcc/clang", ~45 MiB, all
+architectures, glibc + musl + Windows.</p>
+<h3
+id="22-exact-version--download-urls-latest-stable--0160-released-2026-04-13">2.2
+Exact version + download URLs (latest STABLE = 0.16.0, released
+2026-04-13)</h3>
+<p>From <code>https://ziglang.org/download/index.json</code> (fetched
+2026-06-29). URL pattern:
+<code>https://ziglang.org/download/&lt;ver&gt;/zig-&lt;arch&gt;-&lt;os&gt;-&lt;ver&gt;.tar.xz</code>
+— note zig's tuple order is <code>&lt;arch&gt;-&lt;os&gt;</code> and
+arch names are <code>x86_64</code>/<code>aarch64</code> (DIFFERENT from
+Go's <code>linux-amd64</code>).</p>
+<table>
+<thead>
+<tr>
+<th>platform (uname)</th>
+<th>zig tuple</th>
+<th>URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linux x86_64</td>
+<td><code>x86_64-linux</code></td>
+<td><code>https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz</code></td>
+</tr>
+<tr>
+<td>Linux aarch64</td>
+<td><code>aarch64-linux</code></td>
+<td><code>https://ziglang.org/download/0.16.0/zig-aarch64-linux-0.16.0.tar.xz</code></td>
+</tr>
+<tr>
+<td>macOS x86_64</td>
+<td><code>x86_64-macos</code></td>
+<td><code>https://ziglang.org/download/0.16.0/zig-x86_64-macos-0.16.0.tar.xz</code></td>
+</tr>
+<tr>
+<td>macOS aarch64</td>
+<td><code>aarch64-macos</code></td>
+<td><code>https://ziglang.org/download/0.16.0/zig-aarch64-macos-0.16.0.tar.xz</code></td>
+</tr>
+</tbody>
+</table>
+<h3
+id="23-checksums--where-they-are-authoritatively-published-do-not-invent">2.3
+Checksums — WHERE they are authoritatively published (do NOT
+invent)</h3>
+<p>Authoritative source:
+<strong><code>https://ziglang.org/download/index.json</code></strong> —
+each platform entry is
+<code>{ "tarball": "...", "shasum": "&lt;sha256&gt;", "size": &lt;bytes&gt; }</code>
+under the version key (<code>"0.16.0"</code>). Additionally every
+tarball has a <code>.minisig</code> (append <code>.minisig</code> to the
+URL), verifiable against the ZSF minisign public key
+<code>RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U</code>.</p>
+<p><strong>sha256 values as reported by index.json on 2026-06-29 (MUST
+be re-confirmed by the implementer fetching index.json — these were read
+via a summarising fetch, so treat as provisional until the obtain script
+re-verifies against index.json/.minisig per §11.4.6):</strong></p>
+<table>
+<thead>
+<tr>
+<th>platform</th>
+<th>size (bytes)</th>
+<th>shasum (PROVISIONAL — re-verify)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>x86_64-linux</td>
+<td>55478392</td>
+<td><code>70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00</code></td>
+</tr>
+<tr>
+<td>aarch64-linux</td>
+<td>51211944</td>
+<td><code>ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17</code></td>
+</tr>
+<tr>
+<td>x86_64-macos</td>
+<td>57396836</td>
+<td><code>0387557ed1877bc6a2e1802c8391953baddba76081876301c522f52977b52ba7</code></td>
+</tr>
+<tr>
+<td>aarch64-macos</td>
+<td>52238004</td>
+<td><code>b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489</code></td>
+</tr>
+</tbody>
+</table>
+<p>Design note: prefer making the obtain mechanism <strong>fetch
+<code>index.json</code> for the pinned version, parse
+<code>shasum</code> per platform, and verify the download against
+it</strong> (belt: also verify <code>.minisig</code>), rather than
+hardcoding — this removes the transcription-risk above and matches zig's
+official "always validate the minisign signature" guidance. Hardcoding
+(Go-entry style) is acceptable only if the values are re-confirmed by
+downloading index.json at commit time.</p>
+<h3 id="24-how-to-invoke-the-critical-correctness-detail">2.4 How to
+invoke (the critical correctness detail)</h3>
+<ul>
+<li>Use <code>CC="&lt;zigdir&gt;/zig cc"</code> — the <code>cc</code>
+SUBCOMMAND, quoted as two words. <code>CC=zig</code> ALONE FAILS
+autotools: configure's executable-suffix probe passes
+<code>-o conftest ...</code> and zig reports
+<code>unknown command: -o</code> (ziglang/zig#12413). The
+<code>cc</code> subcommand makes zig parse flags clang-style. (The issue
+thread does not itself demonstrate the <code>'zig cc'</code> fix; the
+working <code>CC='zig cc ...'</code> invocation is documented in the
+cross-compile write-ups cited in §6 and MUST be live-confirmed per
+§5.)</li>
+<li>Native build (binary runs on the SAME host): do NOT pass
+<code>-target</code> — let zig detect the host glibc. If
+portability-to-older-glibc is wanted, target an explicit floor, e.g.
+<code>-target x86_64-linux-gnu.2.28</code> (binary then needs host glibc
+≥ 2.28). Calibrate on the real host (§5).</li>
+</ul>
+<h3 id="25-known-pitfalls-must-be-carried-into-the-live-test">2.5 Known
+pitfalls (must be carried into the live test)</h3>
+<ul>
+<li><code>CC=zig</code> vs <code>CC='zig cc'</code> (above) — the #1
+autotools breakage.</li>
+<li><code>-D_FORTIFY_SOURCE=2</code> (in <code>build_native.sh</code>
+CFLAGS) needs glibc fortify headers + optimisation; with the
+<strong>glibc</strong> target zig supplies them, but clang may
+warn/redefine — verify no hard error. (With a musl target FORTIFY is a
+no-op.)</li>
+<li><code>-fstack-protector-strong</code>,
+<code>-Wl,-z,relro,-z,now</code>, <code>-Wl,--no-as-needed</code> — all
+supported by clang + <code>lld</code>; verify in the real link.</li>
+<li>ncurses' own build (most complex of the deps) uses
+<code>awk</code>-generated sources + builds <code>tic</code>; zig-cc
+compatibility MUST be live-confirmed.</li>
+<li>Extracted size is large (~200+ MB; tarball ~55 MB) — one-time disk
+cost in <code>.local-deps/</code>.</li>
+</ul>
+<hr />
+<h2 id="3-angle-2--alternatives-evaluated-not-recommended-why">3. Angle
+2 — alternatives (evaluated, NOT recommended; why)</h2>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>root-free?</th>
+<th>single verifiable DL?</th>
+<th>cross-platform?</th>
+<th>verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Bootlin toolchains</strong>
+(<code>toolchains.bootlin.com</code>)</td>
+<td>yes</td>
+<td>yes (per-arch tarball + a <code>relocate-sdk.sh</code> step)</td>
+<td>Linux only (x86_64/aarch64/…); <strong>no macOS</strong></td>
+<td>Workable for Linux but per-arch tarballs + a relocate step +
+glibc-version is whatever they built (binary needs ≥ that glibc). Zig is
+simpler (one tarball, all arches, explicit glibc-version
+targeting).</td>
+</tr>
+<tr>
+<td><strong>musl-cross-make / musl.cc prebuilts</strong></td>
+<td>yes</td>
+<td>prebuilt static musl toolchains</td>
+<td>Linux only</td>
+<td>A musl-static tmux runs on ANY Linux regardless of host glibc —
+attractive — but requires rebuilding libevent/ncurses/jemalloc against
+musl (feasible since we source-build them), and musl.cc has had
+availability gaps. Zig's bundled <code>-target ...-musl</code> gives the
+SAME benefit far more reliably. Keep musl as a zig <code>-target</code>
+OPTION, not a separate downloader.</td>
+</tr>
+<tr>
+<td><strong>conda/micromamba relocatable gcc</strong></td>
+<td>yes-ish</td>
+<td>needs micromamba bootstrap + env solve</td>
+<td>Linux + macOS</td>
+<td>Heavyweight bootstrap (downloader + solver + GB-scale env); conda's
+relocation is fragile. Overkill vs one zig tarball.</td>
+</tr>
+<tr>
+<td><strong>nixpkgs portable / nix single-user</strong></td>
+<td>needs <code>/nix</code> or proot</td>
+<td>no</td>
+<td>Linux + macOS</td>
+<td>Needs a writable <code>/nix</code> or <code>proot</code>/chroot; too
+invasive for "drop a tarball" autonomy.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>glibc-vs-musl note:</strong> for a binary that must RUN on
+the build host, the safest default is glibc matching the host (zig
+native target). musl-static is the better choice only if the SAME binary
+must travel across hosts with different glibc — out of scope for the
+per-host obtain model, but available as a zig <code>-target</code> flip
+if ever needed.</p>
+<p><strong>Conclusion:</strong> zig dominates on (one tarball, all 4
+targets, root-free, relocatable, glibc-version targeting, bundled libc +
+lld) — the others each lose on at least one of cross-platform /
+single-download / root-free / simplicity.</p>
+<hr />
+<h2 id="4-angle-3--the-autotools-verdict-needed-vs-avoidable">4. Angle 3
+— the autotools verdict (NEEDED vs AVOIDABLE)</h2>
+<table>
+<thead>
+<tr>
+<th>Build source</th>
+<th>autoconf/automake/m4/perl</th>
+<th>bison/yacc</th>
+<th>pkg.m4</th>
+<th>pkg-config (binary)</th>
+<th>C toolchain + make</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>git submodule working tree (no <code>configure</code>)</td>
+<td><strong>REQUIRED</strong> (autogen.sh)</td>
+<td><strong>REQUIRED</strong></td>
+<td><strong>REQUIRED</strong></td>
+<td>needed (or env-bypass)</td>
+<td>required</td>
+</tr>
+<tr>
+<td><strong>3.6a RELEASE tarball (recommended)</strong></td>
+<td><strong>NOT needed</strong></td>
+<td><strong>NOT needed</strong> (<code>YACC=true</code>)</td>
+<td>not needed</td>
+<td><strong>NOT needed</strong> (AC_SEARCH_LIBS)</td>
+<td>required</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verdict: AVOIDABLE.</strong> Build tmux from the
+sha256-pinned 3.6a release tarball
+(<code>b6d8d9c76585db8ef5fa00d4931902fa4b8cbe8166f528f44fc403961a3f3759</code>)
+and the entire autotools-GENERATOR stack disappears. This is consistent
+with how the project already obtains jemalloc/libevent/ncurses/Go as
+sha256-pinned tarballs. The pinned git submodule stays as the
+source-of-truth/provenance reference; the release tarball is the SAME
+3.6a source with generated files materialised.</p>
+<p>(libevent/ncurses/jemalloc release tarballs the project ALREADY
+downloads likewise ship pre-generated <code>configure</code> → they too
+need only <code>zig cc</code> + <code>make</code>, no autotools
+generators.)</p>
+<hr />
+<h2 id="5-angle-4--macos-path-11481-honest-boundary">5. Angle 4 — macOS
+path (§11.4.81 honest boundary)</h2>
+<ul>
+<li><strong>PRIMARY (keep as-is):</strong> Xcode Command Line Tools
+(CLT) <code>clang</code> + Homebrew deps, exactly as
+<code>build_native.sh</code> Darwin branch does today. CLT is present on
+effectively every Mac that has already used
+<code>git</code>/<code>curl</code> (both trigger the CLT prompt on first
+use), so the "fresh Mac" gap is narrow in practice. NOTE: a truly
+CLT-less Mac requires <code>xcode-select --install</code>, which is
+<strong>interactive</strong> → violates the no-interaction constraint →
+cannot be the autonomous path.</li>
+<li><strong>FALLBACK (document, flag UNCONFIRMED):</strong>
+<code>zig cc</code> is cross-platform and can target
+<code>*-macos</code>; it ships a <code>libSystem.tbd</code> stub so
+simple libc links work without the full SDK. Whether it links a COMPLETE
+tmux (ncurses/libevent + system libs) on a CLT-less Mac is
+<strong>UNCONFIRMED — not live-testable from this Linux host.</strong>
+Per §11.4.6 this MUST be proven on a real Mac before any claim; until
+then macOS autonomy rests on CLT being present.</li>
+</ul>
+<hr />
+<h2 id="6-angle-5--concrete-integration-design-the-change-set">6. Angle
+5 — concrete integration design (the change-set)</h2>
+<h3
+id="61-scriptsobtain_local_depssh--add-a-cc-zig-kindtoolchain-dep">6.1
+<code>scripts/obtain_local_deps.sh</code> — add a <code>cc</code> (zig)
+<code>kind=toolchain</code> dep</h3>
+<p>Mirror the existing <code>go</code> entry. New registry branches
+(illustrative):</p>
+<pre><code>cc:kind)            → toolchain
+cc:envprefix)       → CC
+cc:version)         → 0.16.0
+cc:url_x86_64_linux)   → https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+cc:url_aarch64_linux)  → .../zig-aarch64-linux-0.16.0.tar.xz
+cc:url_x86_64_darwin)  → .../zig-x86_64-macos-0.16.0.tar.xz
+cc:url_aarch64_darwin) → .../zig-aarch64-macos-0.16.0.tar.xz
+cc:sha256_* )       → per-platform (re-verify from index.json; or fetch+parse index.json at obtain time)
+cc:container_extract) → no</code></pre>
+<p>New helpers (paralleling <code>_go_plat</code> /
+<code>resolve_go</code> / <code>obtain_via_prebuilt</code>):</p>
+<ul>
+<li><code>_zig_plat()</code> — uname → zig tuple
+<code>x86_64-linux</code> / <code>aarch64-linux</code> /
+<code>x86_64-macos</code> / <code>aarch64-macos</code>; anything else →
+<code>EC_UNSUPPORTED</code> (§11.4.6 honest, §11.4.111 resolve-by-name
+not ordinal).</li>
+<li><code>resolve_cc()</code> — <strong>resolve-by-CAPABILITY, not mere
+presence</strong>: take the host
+<code>cc</code>/<code>gcc</code>/<code>clang</code> (absolute,
+§11.4.111) and <code>cc_can_link</code>-probe it (compile+link a trivial
+exe). ONLY a host compiler that LINKS counts as resolved (this is what
+makes "gcc present but cannot link" fall through to obtain). On success
+emit <code>CC_BIN=&lt;hostcc&gt;</code>, <code>CC_KIND=host</code>,
+<code>CC_SOURCE=host-system</code>.</li>
+<li><code>obtain_via_prebuilt_zig()</code> — download
+<code>.tar.xz</code>, verify sha256 (against the hardcoded pin AND/OR
+index.json), extract to <code>$LOCAL_PREFIX/zig/</code>, run
+<code>&lt;dir&gt;/zig version</code> as the anti-bluff proof it executes
+(§11.4.5), then smoke-test
+<code>echo 'int main(){return 0;}' | &lt;dir&gt;/zig cc -x c - -o /tmp/zt &amp;&amp; /tmp/zt</code>
+— i.e. PROVE the obtained toolchain can LINK before declaring success
+(never a fake PASS). Emit <code>CC_BIN=&lt;dir&gt;/zig</code>,
+<code>CC_KIND=zig</code>, <code>CC_SOURCE=local-toolchain</code>.</li>
+<li>In <code>main</code>, handle <code>kind=toolchain</code> for
+<code>cc</code> like <code>go</code>: RESOLVE-first
+(<code>resolve_cc</code>), else OBTAIN; write <code>CC_BIN</code> /
+<code>CC_KIND</code> / <code>CC_SOURCE</code> to
+<code>resolved.env</code>; <code>continue</code>.</li>
+</ul>
+<h3 id="62-obtain_via_source-must-consume-the-obtained-cc">6.2
+<code>obtain_via_source</code> MUST consume the obtained CC</h3>
+<p>Today <code>obtain_via_source</code> picks
+<code>cc="$(_first_exe ... cc gcc clang)"</code> — on a bare host that
+is the can't-link gcc, so libevent/ncurses/jemalloc source builds ALSO
+fail. Change it to prefer the resolved toolchain: if
+<code>CC_KIND=zig</code>, build each dep with
+<code>CC="&lt;CC_BIN&gt; cc"</code> (and <code>export CC</code> /
+<code>./configure CC="$CC"</code>). <strong>Order matters:</strong>
+obtain <code>cc</code> FIRST. <code>setup.sh</code> Step 1b becomes
+<code>DEPS="cc libevent ncurses jemalloc"</code> (cc leads) so the
+toolchain is ready before any source build runs.</p>
+<h3
+id="63-scriptsbuild_nativesh-linux-branch--consume-cc--build-from-the-release-tarball">6.3
+<code>scripts/build_native.sh</code> (Linux branch) — consume
+<code>CC</code> + build from the release tarball</h3>
+<ul>
+<li>Source <code>resolved.env</code> (already done at line 188) and,
+when <code>CC_KIND=zig</code>, <code>export CC="$CC_BIN cc"</code> (+
+<code>export YACC=true</code>).</li>
+<li><strong>Build source decision:</strong> if
+<code>tmux/configure</code> is absent AND no host autotools (the
+bare-host case), extract the sha256-pinned 3.6a release tarball into a
+build dir (e.g.
+<code>$REPO_ROOT/.local-deps/&lt;plat&gt;/tmux-src/</code>),
+<code>touch cmd-parse.c</code>, and run <code>./configure</code> THERE.
+Otherwise keep the existing submodule-working-tree path unchanged (zero
+regression on full hosts).</li>
+<li>libevent/ncurses wiring is ALREADY correct (lines 174–222 set
+<code>LE_CPPFLAGS/LE_LDFLAGS/NC_CPPFLAGS/NC_LDFLAGS</code> +
+<code>PKG_CONFIG_PATH</code> from <code>resolved.env</code>). With
+pkg-config absent these <code>-I/-L</code> flags drive the
+<code>AC_SEARCH_LIBS</code> fallback (§1.6); with pkg-config present,
+<code>PKG_CONFIG_PATH</code> is used — both work.</li>
+<li>Pass <code>CC</code> into configure:
+<code>CC="$CC" CFLAGS=... LDFLAGS=... ./configure ...</code>.</li>
+</ul>
+<h3
+id="64-scriptssetupsh--wire-the-toolchain-obtain-into-the-preflight">6.4
+<code>scripts/setup.sh</code> — wire the toolchain obtain into the
+preflight</h3>
+<p><code>setup.sh</code> already has <code>cc_can_link</code> +
+<code>_native_build_preflight</code> (lines 39–180) and the auto-install
+path (currently distro package manager → needs sudo). Add a ROOT-FREE
+branch: when <code>cc_can_link</code> fails, run the <code>cc</code>
+toolchain obtain (<code>DEPS=cc obtain_local_deps.sh</code>), re-probe
+with <code>CC="$CC_BIN cc"</code>, and proceed if that links — BEFORE
+falling back to the sudo <code>install_deps.sh</code> advice. This makes
+the existing "C compiler cannot create executables" path self-heal
+without root.</p>
+<h3
+id="65-four-layer-coverage-per-1144b-the-implementation-stream-owes">6.5
+Four-layer coverage (per §11.4.4(b)) the implementation stream owes</h3>
+<ul>
+<li>pre-build gate: registry has <code>cc</code> entry + per-platform
+url/sha + <code>EC_UNSUPPORTED</code> for other arches;
+<code>build_native</code> exports
+<code>CC</code>/<code>YACC</code>.</li>
+<li>runtime test: extend
+<code>scripts/tests/70_native_fallback_cc_link.sh</code> (already
+exercises the preflight in library mode) + add a
+<code>tests/NN_zig_toolchain.sh</code> that obtains zig, links a probe,
+and asserts <code>CC_KIND</code>/<code>CC_SOURCE</code>.</li>
+<li>§1.1 paired mutation: strip the <code>cc</code> registry branch /
+the <code>YACC=true</code> export → the bare-host build test FAILs.</li>
+<li>the §5 live test below is the user-visible proof.</li>
+</ul>
+<hr />
+<h2
+id="7-honest-risks--boundaries--what-must-be-live-tested-before-any-works-claim">7.
+HONEST risks / boundaries — what MUST be live-tested before any "works"
+claim</h2>
+<ol type="1">
+<li><strong><code>zig cc</code> builds tmux end-to-end</strong> —
+UNPROVEN here. Must live-run a full <code>zig cc</code> build of
+libevent + ncurses + jemalloc + tmux and RUN the resulting tmux
+(<code>tmux -V</code>, start a session). The §1.5/§1.6 bypasses are
+verified at the configure level; the COMPILE+LINK of all four with zig
+is not.</li>
+<li><strong><code>-D_FORTIFY_SOURCE=2</code> /
+<code>-fstack-protector-strong</code> / <code>-Wl,-z,relro,-z,now</code>
+under zig clang+lld</strong> — verify no hard error; adjust the glibc
+target floor if FORTIFY headers complain.</li>
+<li><strong>ncurses source build under zig cc</strong> — the most
+complex dep build; live-test.</li>
+<li><strong>zig sha256 values</strong> (§2.3) — PROVISIONAL; re-confirm
+against index.json (+ ideally <code>.minisig</code>) at commit time. Do
+NOT ship the table values unverified.</li>
+<li><strong><code>.tar.xz</code> extraction</strong> — depends on host
+<code>xz</code>; present here, but a truly xz-less host fails. Honest EC
++ message (do not fake).</li>
+<li><strong><code>make</code> residual</strong> — assumed present; if a
+make-less host appears it is a separate follow-on obtain (out of scope
+here).</li>
+<li><strong>macOS zig-cc fallback</strong> — UNCONFIRMED (§5); no claim
+until proven on a Mac.</li>
+<li><strong>glibc native-detection</strong> — verify the zig-native
+binary actually runs on the host (it should, since build host == run
+host); pin a glibc floor only if detection misbehaves.</li>
+</ol>
+<hr />
+<h2 id="8-test-plan--fully-autonomous-root-free-on-a-real-host">8. Test
+plan — fully-autonomous, root-free, on a REAL host</h2>
+<p>Goal: prove a bare-host build using ONLY the obtained toolchain +
+local libs. This ALT host HAS a working toolchain, so the test must
+<strong>NEUTER/hide the system toolchain</strong> to simulate the bare
+host (no sudo, no system mutation — use a sanitised <code>PATH</code> +
+redirected absolute lookups), then build + run.</p>
+<ol type="1">
+<li><strong>Baseline capture (anti-bluff):</strong> record
+<code>gcc -dumpmachine</code>, <code>gcc &lt;tiny.c&gt;</code> links OK,
+<code>tmux -V</code> of any existing build — proves the host IS capable,
+so a later success is attributable to the obtained toolchain, not the
+host.</li>
+<li><strong>Neuter the system toolchain</strong> in a subshell (no
+root): run the whole build under a sanitised environment where the
+system C toolchain is unreachable — e.g.
+<code>env -i HOME=$HOME PATH=&lt;dir-with-only-make/tar/xz/curl/sha256sum/sh&gt;</code>
+(a shim dir that DELIBERATELY omits
+gcc/cc/clang/autoconf/automake/bison/ pkg-config), plus point the
+absolute-path resolvers at non-existent paths. Verify inside the
+subshell: <code>command -v gcc</code> empty,
+<code>cc -o /tmp/x x.c</code> fails with the very "cannot create
+executables"-class error. (Captured = the proof the simulation is
+real.)</li>
+<li><strong>Run the obtain + build</strong> inside that neutered
+subshell:
+<code>FORCE_OBTAIN=1 DEPS="cc libevent ncurses jemalloc" bash scripts/obtain_local_deps.sh</code>
+then <code>bash scripts/build_native.sh</code>. Expect: zig obtained,
+<code>CC_KIND=zig</code>, libevent/ncurses/jemalloc source-built with
+zig cc, tmux configured from the release tarball
+(<code>YACC=true</code>, AC_SEARCH_LIBS path), compiled, linked.</li>
+<li><strong>User-visible proof (§11.4.5):</strong>
+<code>tmux/build/bin/tmux -V</code> prints <code>tmux 3.6a</code>; start
+a detached session, <code>send-keys</code>/<code>capture-pane</code>,
+confirm live output; <code>file tmux</code> shows a host-runnable ELF;
+<code>ldd tmux</code> resolves (or the jemalloc preload path works) —
+captured under <code>docs/qa/&lt;run-id&gt;/</code>.</li>
+<li><strong>Determinism (§11.4.50):</strong> repeat 3 the build N=3
+times → identical success + identical <code>tmux -V</code>.</li>
+<li><strong>Negative/regression guard (§11.4.115):</strong>
+<code>RED_MODE=1</code> = run the build in the neutered subshell WITHOUT
+the toolchain obtain → MUST fail at the can't-link step (proves the test
+exercises the real gap); <code>RED_MODE=0</code> = with the obtain →
+MUST pass. Same source, polarity switch.</li>
+<li><strong>Full-host regression:</strong> on the unmodified host
+(toolchain present), <code>setup.sh</code> must take the UNCHANGED host
+path (host cc resolves, no zig obtained) — proves zero regression for
+normal hosts.</li>
+</ol>
+<p>A "works" claim is earned ONLY after steps 3–6 produce captured
+evidence on a real host; until then every assertion in §2.4/§2.5/§7 is
+explicitly UNCONFIRMED.</p>
+<hr />
+<h2 id="sources-verified-2026-06-29">Sources verified 2026-06-29</h2>
+<ul>
+<li>Zig downloads (version, URL pattern, JSON index, minisign key): <a
+href="https://ziglang.org/download/">https://ziglang.org/download/</a> —
+fetched 2026-06-29 (latest stable 0.16.0, released 2026-04-13).</li>
+<li>Zig release JSON index (per-platform tarball/shasum/size schema): <a
+href="https://ziglang.org/download/index.json">https://ziglang.org/download/index.json</a>
+— fetched 2026-06-29.</li>
+<li>Zig signature/verification guidance + minisign public key: <a
+href="https://ziglang.org/download/">https://ziglang.org/download/</a>
+("validate the minisign signature for every tarball ... public key
+RWSGOq2NVecA2UPNdBUZykf1CCb147pkmdtYxgb3Ti+JO/wCYvhbAb/U").</li>
+<li><code>zig cc</code> as a drop-in gcc/clang replacement (mechanics,
+glibc targeting): <a
+href="https://andrewkelley.me/post/zig-cc-powerful-drop-in-replacement-gcc-clang.html">https://andrewkelley.me/post/zig-cc-powerful-drop-in-replacement-gcc-clang.html</a>
+— accessed 2026-06-29.</li>
+<li><code>zig cc</code> + autotools pitfall (CC=zig vs CC='zig cc',
+<code>-o</code> parse failure): <a
+href="https://github.com/ziglang/zig/issues/12413">https://github.com/ziglang/zig/issues/12413</a>
+— accessed 2026-06-29.</li>
+<li><code>zig cc</code> + autotools/glibc-version cross-build precedent
+(<code>./configure ... CC='zig cc --target=...' --host=...</code>): <a
+href="https://richiejp.com/zig-cross-compile-ltp-ltx-linux">https://richiejp.com/zig-cross-compile-ltp-ltx-linux</a>
+— accessed 2026-06-29.</li>
+<li>zig glibc version support / <code>-target ...-gnu.2.x</code>: <a
+href="https://github.com/ziglang/zig/blob/master/lib/libc/glibc/README.md">https://github.com/ziglang/zig/blob/master/lib/libc/glibc/README.md</a>
+<ul>
+<li><a
+href="https://ziglang.org/learn/overview/">https://ziglang.org/learn/overview/</a>
+— accessed 2026-06-29.</li>
+</ul></li>
+<li>tmux 3.6a release tarball (ships pre-generated
+configure/aclocal.m4/Makefile.in/ cmd-parse.c; sha256
+b6d8d9c76585db8ef5fa00d4931902fa4b8cbe8166f528f44fc403961a3f3759): <a
+href="https://github.com/tmux/tmux/releases/download/3.6a/tmux-3.6a.tar.gz">https://github.com/tmux/tmux/releases/download/3.6a/tmux-3.6a.tar.gz</a>
+— downloaded + inspected 2026-06-29.</li>
+<li>Bootlin prebuilt toolchains (alternative, Linux-only): <a
+href="https://toolchains.bootlin.com">https://toolchains.bootlin.com</a>
+— referenced 2026-06-29.</li>
+<li>cargo-zigbuild (corroborates <code>zig cc</code> glibc-version
+targeting in production): <a
+href="https://crates.io/crates/cargo-zigbuild">https://crates.io/crates/cargo-zigbuild</a>
+— referenced 2026-06-29.</li>
+</ul>
+<p>(Repo-internal FACTS captured live 2026-06-29:
+<code>git submodule status tmux</code>,
+<code>git -C tmux ls-files</code>, <code>tmux/configure.ac</code>,
+<code>tmux/autogen.sh</code>, the extracted release-tarball
+<code>configure</code> lines 4578/4588/4619/6081/5956,
+<code>xz</code>/<code>tar</code> versions,
+<code>scripts/obtain_local_deps.sh</code>,
+<code>scripts/build_native.sh</code>,
+<code>scripts/setup.sh</code>.)</p>
+</body>
+</html>
