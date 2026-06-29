@@ -40,7 +40,7 @@ HAVE_HELPER=0
 if [ "$(id -u)" != "0" ] && [ "$HAVE_HELPER" -eq 0 ]; then
     echo "SKIP: oom_score_adj=-500 requires either (a) root, or (b) the setcap-enabled"
     echo "      $OOM_HELPER helper. Currently running as UID $(id -u) and helper is not installed."
-    echo "      To enable Test 08 PASS:  sudo bash scripts/build_oom_set.sh --install"
+    echo "      To enable Test 08 PASS:  (as root) bash scripts/build_oom_set.sh --install"
     echo "      See docs/guides/TMUX_OPTIMIZED_BUILD.md §8 for full options."
     exit 0
 fi

@@ -60,6 +60,8 @@ func main() {
 		runAdd(os.Args[2:])
 	case "close":
 		runClose(os.Args[2:])
+	case "set-status":
+		runSetStatus(os.Args[2:])
 	case "report":
 		runReport(os.Args[2:])
 	default:
@@ -83,6 +85,9 @@ Usage:
                                   --evidence PATH [--by AI|User] [--on YYYY-MM-DD]
                                   [--reason ...] [--superseding-item ...]
                                   [--triple-check-evidence PATH]
+  workable-items set-status       TMX-NNN --status queued|in-progress|ready-for-testing|
+                                  in-testing|reopened|operator-blocked
+                                  [--by AI|User] [--on YYYY-MM-DD] [--reason ...]
   workable-items report           [--type ...] [--status ...] [--obsolete-audit]
   workable-items --version
 
@@ -265,6 +270,42 @@ func runClose(args []string) {
 		os.Exit(1)
 	}
 	fmt.Printf("closed %s → %s (location: %s)\n", it.ATMID, it.Status, it.CurrentLocation)
+}
+
+func runSetStatus(args []string) {
+	if len(args) < 1 || strings.HasPrefix(args[0], "--") {
+		fmt.Fprintln(os.Stderr, "usage: workable-items set-status TMX-NNN --status <non-terminal> [--by AI|User] [--reason ...]")
+		os.Exit(2)
+	}
+	atmID := args[0]
+	rest := args[1:]
+	fs := flag.NewFlagSet("set-status", flag.ExitOnError)
+	dbPath := fs.String("db", "docs/workable_items.db", "path to SQLite DB")
+	status := fs.String("status", "", "non-terminal status: queued|in-progress|ready-for-testing|in-testing|reopened|operator-blocked")
+	by := fs.String("by", "AI", "AI|User (§11.4.34 attribution)")
+	onDate := fs.String("on", "", "YYYY-MM-DD (defaults to today)")
+	reason := fs.String("reason", "", "why the status changed (audited in item_history)")
+	_ = fs.Parse(rest)
+
+	db, err := OpenDB(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "open db: %v\n", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	it, err := SetStatus(db, SetStatusParams{
+		ATMID:  atmID,
+		Status: *status,
+		By:     *by,
+		OnDate: *onDate,
+		Reason: *reason,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "set-status: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("set-status %s → %s (location: %s)\n", it.ATMID, it.Status, it.CurrentLocation)
 }
 
 func runReport(args []string) {

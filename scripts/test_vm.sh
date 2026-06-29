@@ -20,9 +20,9 @@
 # Prerequisites:
 #   - podman machine running (`podman machine list` shows "Currently up")
 #   - VM has libjemalloc + stress-ng + gcc + make installed (one-time setup
-#     via `sudo rpm-ostree install --apply-live jemalloc gcc make stress-ng`)
+#     via `(as root) rpm-ostree install --apply-live jemalloc gcc make stress-ng`)
 #   - OOM helper installed in VM (one-time:
-#     `podman machine ssh "sudo bash /Users/$USER/Projects/tmux/scripts/build_oom_set.sh --install"`)
+#     `podman machine ssh "(as root) bash /Users/$USER/Projects/tmux/scripts/build_oom_set.sh --install"`)
 
 set -euo pipefail
 
@@ -52,7 +52,7 @@ echo "[test_vm] regenerating $VM_REPO/scripts/tmx-vm with VM-native paths..."
 VM_JEMALLOC=$(podman machine ssh "ldconfig -p 2>/dev/null | awk '/libjemalloc\\.so\\.[0-9]/ {print \$NF; exit}'" 2>/dev/null | tr -d '\r' || true)
 if [ -z "$VM_JEMALLOC" ]; then
     echo "ERROR: libjemalloc.so.* not found in VM. One-time fix:"
-    echo "  podman machine ssh \"sudo rpm-ostree install --apply-live jemalloc\""
+    echo "  podman machine ssh \"(as root) rpm-ostree install --apply-live jemalloc\""
     exit 3
 fi
 echo "[test_vm] VM libjemalloc: $VM_JEMALLOC"

@@ -1,0 +1,4 @@
+=== TMX-063 root-free zig build — user-visible proof 2026-06-29T13:26:04Z ===
+binary: /tmp/.private/milosvasic/tmx71.422705/build/bin/tmux
+/tmp/.private/milosvasic/tmx71.422705/build/bin/tmux: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.0.0, with debug_info, not stripped
+tmux -V: tmux 3.6a

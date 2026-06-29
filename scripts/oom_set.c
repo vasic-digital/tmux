@@ -8,7 +8,7 @@
  *   bash scripts/build_oom_set.sh
  *
  * Permissions installed by build_oom_set.sh:
- *   sudo setcap cap_sys_resource+ep /usr/local/bin/tmx-oom-set
+ *   (as root) setcap cap_sys_resource+ep /usr/local/bin/tmx-oom-set
  *
  * Usage (called by tmx wrapper):
  *   tmx-oom-set <pid> <score>

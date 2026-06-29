@@ -1,0 +1,10 @@
+=== live-session proof ===
+marker: ZIG71_42
+--- capture-pane ---
+printf '%s\n' ZIG71_42
+oh-my-bash/check_for_upgrade: Failed to get a lock.  Please make sure that no
+other process is trying to update Oh My Bash and remove
+"/home/milosvasic/.oh-my-bash/log/update.lock"
+04:26:04 milosvasic@nezha tmux ±|main ✗|→ printf '%s\n' ZIG71_42
+ZIG71_42
+04:26:04 milosvasic@nezha tmux ±|main ✗|→

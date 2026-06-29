@@ -1,0 +1,9 @@
+=== readelf -d NEEDED (residual #2 local-link) ===
+ 0x0000000000000001 (NEEDED)             Shared library: [libjemalloc.so.2]
+ 0x0000000000000001 (NEEDED)             Shared library: [libncursesw.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libevent_core-2.1.so.7]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libresolv.so.2]
+--- RUNPATH/RPATH ---
+ 0x000000000000001d (RUNPATH)            Library runpath: [/tmp/.private/milosvasic/tmx71.422705/ld/Linux_x86_64/lib]

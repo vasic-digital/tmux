@@ -65,6 +65,18 @@ var severityLineRE = regexp.MustCompile(`^\*\*Severity:\*\*\s*` + "`?" + `([A-Za
 // Built from the §11.4.54 TicketLabel/TicketPrefix consts (§11.4.1 fix-at-source).
 var atmIDLineRE = regexp.MustCompile(`^\*\*` + regexp.QuoteMeta(TicketLabel) + `:\*\*\s*(` + regexp.QuoteMeta(TicketPrefix) + `\d+)\s*$`)
 
+// anyHeadingRE matches a Markdown heading of ANY level (`# ` … `###### `). It is
+// the §11.4.6 GREEDY-BIND guard (TMX-065): the structured-metadata prefix region
+// of an item ALWAYS sits immediately below the item's own heading and before any
+// subsequent heading. So the moment the parser sees ANOTHER heading inside a
+// current item's body — including a NO-PERIOD `### ` block that does not match
+// headingRE and is therefore not committed as its own item — the current item's
+// **TMX-ID:**/**Status:**/**Type:**/**Severity:** window MUST close. Without this
+// guard a period heading (`### A54. …`) absorbed a following no-period block's
+// `**TMX-ID:**`, mis-bound it, and produced a UNIQUE-constraint failure on
+// `sync md-to-db` (forced a §9.2 DB restore this session).
+var anyHeadingRE = regexp.MustCompile(`^#{1,6}\s`)
+
 // ParsedItem is the in-memory form before persistence.
 type ParsedItem struct {
 	Item        *Item
@@ -90,7 +102,8 @@ func ParseFile(path, location string) ([]*ParsedItem, error) {
 	type parseState struct {
 		current     *ParsedItem
 		bodyBuilder strings.Builder
-		lineIdx     int // count lines after heading; only inspect first 8 for Status/Type
+		lineIdx     int  // count lines after heading; only inspect first 8 for Status/Type
+		metaClosed  bool // §11.4.6 GREEDY-BIND guard: set once a subsequent heading is seen
 	}
 	state := &parseState{}
 
@@ -165,16 +178,29 @@ func ParseFile(path, location string) ([]*ParsedItem, error) {
 			}
 			state.current = &ParsedItem{Item: it, RawHeading: line}
 			state.lineIdx = 0
+			state.metaClosed = false
 			continue
 		}
 
 		if state.current != nil {
+			// §11.4.6 GREEDY-BIND guard (TMX-065): a subsequent Markdown heading
+			// of ANY level — most importantly a NO-PERIOD `### ` block that does
+			// not match headingRE and so is not committed as its own item — ends
+			// the current item's structured-metadata prefix region. Close the
+			// window so the following block's **TMX-ID:**/**Status:**/**Type:**/
+			// **Severity:** can never be mis-bound to the current (preceding)
+			// item. The line is still appended to the body verbatim for
+			// byte-identical round-trip (document_sources/raw_body unaffected).
+			if anyHeadingRE.MatchString(line) {
+				state.metaClosed = true
+			}
+
 			state.bodyBuilder.WriteString(line)
 			state.bodyBuilder.WriteByte('\n')
 			state.lineIdx++
 
 			// Within the first 8 non-blank lines, look for Status / Type / Severity.
-			if state.lineIdx <= 24 && strings.TrimSpace(line) != "" {
+			if !state.metaClosed && state.lineIdx <= 24 && strings.TrimSpace(line) != "" {
 				if sm := statusLineRE.FindStringSubmatch(line); sm != nil {
 					if s := mapHeadingHintToStatus(sm[1], location); s != "" {
 						state.current.Item.Status = s

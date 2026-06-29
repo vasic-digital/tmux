@@ -25,6 +25,14 @@ cd "$REPO_ROOT"
 HOST_OS="$(uname -s)"
 HOST_ARCH="$(uname -m)"
 
+# Local-deps root + build dir are env-overridable so an isolated harness
+# (scripts/tests/71_root_free_zig_build.sh) can run the REAL build into a
+# scratch tree WITHOUT clobbering the operator's installed tmux/build (§12
+# host-safety + §11.4.14). Default = the canonical in-repo locations (no
+# behaviour change for `bash scripts/setup.sh`). LOCAL_DEPS_ROOT matches
+# scripts/obtain_local_deps.sh so resolved.env + obtained deps line up.
+LOCAL_DEPS_ROOT="${LOCAL_DEPS_ROOT:-$REPO_ROOT/.local-deps}"
+
 case "$HOST_OS" in
     Darwin)
         # ── macOS native build via Homebrew deps ────────────────────────
@@ -55,7 +63,7 @@ case "$HOST_OS" in
         fi
 
         # Build dir per OS — Linux ELF stays at tmux/build, Mach-O at tmux/build-darwin.
-        BUILD_DIR="$REPO_ROOT/tmux/build-darwin"
+        BUILD_DIR="${TMX_BUILD_DIR:-$REPO_ROOT/tmux/build-darwin}"
         BIN_PATH="$BUILD_DIR/bin/tmux"
 
         # Use Homebrew's bison (Apple's bison is stuck at 2.x; tmux needs ≥3).
@@ -154,7 +162,7 @@ case "$HOST_OS" in
         # directly. Use this when the host already has libevent-dev +
         # libjemalloc-dev + build-essential installed. Otherwise prefer
         # build_containerized.sh for hermetic builds.
-        BUILD_DIR="$REPO_ROOT/tmux/build"
+        BUILD_DIR="${TMX_BUILD_DIR:-$REPO_ROOT/tmux/build}"
         BIN_PATH="$BUILD_DIR/bin/tmux"
 
         # ── local-dependency jemalloc wiring (§11.4.77 + I1 remediation) ────
@@ -184,7 +192,8 @@ case "$HOST_OS" in
         # ⇒ these stay EMPTY ⇒ default behaviour unchanged (no regression).
         LE_CPPFLAGS=""; LE_LDFLAGS=""; NC_CPPFLAGS=""; NC_LDFLAGS=""
         LOCAL_PKGCONFIG=""; _NEED_LOCAL_PC=0
-        _RENV="$REPO_ROOT/.local-deps/${HOST_OS}_${HOST_ARCH}/resolved.env"
+        CC_KIND=""; CC_WRAPPER_DIR=""
+        _RENV="$LOCAL_DEPS_ROOT/${HOST_OS}_${HOST_ARCH}/resolved.env"
         if [ -f "$_RENV" ]; then
             # shellcheck disable=SC1090
             . "$_RENV"
@@ -229,21 +238,91 @@ case "$HOST_OS" in
         LDFLAGS="-Wl,-z,relro,-z,now ${JEM_LDFLAGS} ${LE_LDFLAGS} ${NC_LDFLAGS} \
                  -Wl,--no-as-needed -ljemalloc -Wl,--as-needed ${LDFLAGS:-}"
 
-        cd "$REPO_ROOT/tmux"
-        if [ ! -f configure ]; then
-            sh autogen.sh 2>&1 | tail -3
-        fi
-        if [ -f Makefile ]; then
-            make clean 2>&1 | tail -2 || true
-        fi
+        if [ "${CC_KIND:-}" = "zig" ] && [ -n "${CC_WRAPPER_DIR:-}" ] && [ -x "${CC_WRAPPER_DIR}/cc" ]; then
+            # ── ROOT-FREE zig toolchain path (TMX-063) ───────────────────────
+            # The host has no working C toolchain → obtain_local_deps.sh obtained
+            # zig (CC_KIND=zig) + emitted the binutils/flag-filter wrappers, and
+            # source-built libevent/ncurses/jemalloc with it. Build tmux from the
+            # sha256-pinned 3.6a RELEASE tarball (ships pre-generated configure +
+            # cmd-parse.c → NO autotools generators, NO bison: YACC=true) so the
+            # WHOLE pipeline needs only zig + make. Proven end-to-end on this host
+            # 2026-06-29 (qa-results/loop-20260629/zig-impl/).
+            TMUX_REL_VER="3.6a"
+            TMUX_REL_URL="https://github.com/tmux/tmux/releases/download/3.6a/tmux-3.6a.tar.gz"
+            TMUX_REL_SHA="b6d8d9c76585db8ef5fa00d4931902fa4b8cbe8166f528f44fc403961a3f3759"
+            PFX="${LOCAL_DEPS_PREFIX:-$LOCAL_DEPS_ROOT/${HOST_OS}_${HOST_ARCH}}"
+            CACHE="$LOCAL_DEPS_ROOT/.tarballs"; mkdir -p "$CACHE"
+            SRCROOT="$PFX/tmux-src"
+            TARBALL="$CACHE/tmux-${TMUX_REL_VER}.tar.gz"
+            ZCC="${CC_WRAPPER_DIR}/cc"
+            MKBIN="$(command -v make 2>/dev/null || echo /usr/bin/make)"
 
-        echo "[build_native] configuring..."
-        CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" \
-        PKG_CONFIG_PATH="${LOCAL_PKGCONFIG:+${LOCAL_PKGCONFIG}:}${PKG_CONFIG_PATH:-}" \
-            ./configure --prefix="$BUILD_DIR" --disable-debug 2>&1 | tail -10
+            echo "[build_native] ROOT-FREE zig build: CC=$ZCC"
+            # download + sha256-verify the release tarball (network-frugal cache).
+            _shatool() { command -v sha256sum >/dev/null 2>&1 && { sha256sum "$1" | awk '{print $1}'; return; }; command -v shasum >/dev/null 2>&1 && shasum -a 256 "$1" | awk '{print $1}'; }
+            if [ -f "$TARBALL" ]; then [ "$(_shatool "$TARBALL")" = "$TMUX_REL_SHA" ] || rm -f "$TARBALL"; fi
+            if [ ! -f "$TARBALL" ]; then
+                echo "[build_native] downloading $TMUX_REL_URL"
+                if command -v curl >/dev/null 2>&1; then curl -fsSL -o "$TARBALL" "$TMUX_REL_URL"
+                elif command -v wget >/dev/null 2>&1; then wget -q -O "$TARBALL" "$TMUX_REL_URL"
+                else echo "[build_native] ✗ no curl/wget to fetch tmux release tarball"; exit 1; fi
+            fi
+            GOT_SHA="$(_shatool "$TARBALL")"
+            if [ "$GOT_SHA" != "$TMUX_REL_SHA" ]; then
+                echo "[build_native] ✗ tmux tarball sha256 MISMATCH — want $TMUX_REL_SHA got $GOT_SHA"
+                rm -f "$TARBALL"; exit 1
+            fi
+            echo "[build_native] tmux tarball sha256 verified ($TMUX_REL_SHA)"
 
-        make -j"$(nproc)" 2>&1 | tail -5
-        make install 2>&1 | tail -3
+            rm -rf "$SRCROOT"; mkdir -p "$SRCROOT"
+            tar xzf "$TARBALL" -C "$SRCROOT"
+            TMUX_SRC="$SRCROOT/tmux-${TMUX_REL_VER}"
+            [ -d "$TMUX_SRC" ] || { echo "[build_native] ✗ tmux source dir missing after extract"; exit 1; }
+            # cmd-parse.c ships pre-generated; touch it newer than cmd-parse.y so
+            # make never invokes the yacc rule (YACC=true is a never-called no-op).
+            touch "$TMUX_SRC/cmd-parse.c"
+
+            # zig-specific flags: ncursesw widec headers live at include/ncursesw/;
+            # --allow-shlib-undefined relaxes the configure link probe (host
+            # libtinfo references a private glibc symbol → otherwise a misleading
+            # forkpty failure). Hardened flags identical to the host build.
+            ZCFLAGS="-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2 \
+                     -Wno-unused-parameter -Wno-deprecated-declarations \
+                     -I$PFX/include -I$PFX/include/ncursesw"
+            ZLDFLAGS="-Wl,-z,relro,-z,now -L$PFX/lib -Wl,--allow-shlib-undefined"
+            [ -n "${JEMALLOC_LIBDIR:-}" ] && ZLDFLAGS="$ZLDFLAGS -L${JEMALLOC_LIBDIR}"
+            ZLDFLAGS="$ZLDFLAGS -Wl,--no-as-needed -ljemalloc -Wl,--as-needed"
+
+            echo "[build_native] configuring tmux $TMUX_REL_VER (zig, YACC=true, release tarball)..."
+            (
+                cd "$TMUX_SRC"
+                PATH="${CC_WRAPPER_DIR}:$PATH"; export PATH
+                export CC="$ZCC" YACC=true MAKE="$MKBIN"
+                CC="$ZCC" YACC=true MAKE="$MKBIN" \
+                CFLAGS="$ZCFLAGS" LDFLAGS="$ZLDFLAGS" \
+                PKG_CONFIG_PATH="${LOCAL_PKGCONFIG:+${LOCAL_PKGCONFIG}:}${PKG_CONFIG_PATH:-}" \
+                    ./configure --prefix="$BUILD_DIR" --disable-debug 2>&1 | tail -10
+                "$MKBIN" -j"$(nproc)" 2>&1 | tail -5
+                "$MKBIN" install 2>&1 | tail -3
+            ) || { echo "[build_native] ✗ zig tmux build FAILED"; exit 1; }
+        else
+            # ── existing host-toolchain submodule path (unchanged) ───────────
+            cd "$REPO_ROOT/tmux"
+            if [ ! -f configure ]; then
+                sh autogen.sh 2>&1 | tail -3
+            fi
+            if [ -f Makefile ]; then
+                make clean 2>&1 | tail -2 || true
+            fi
+
+            echo "[build_native] configuring..."
+            CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" \
+            PKG_CONFIG_PATH="${LOCAL_PKGCONFIG:+${LOCAL_PKGCONFIG}:}${PKG_CONFIG_PATH:-}" \
+                ./configure --prefix="$BUILD_DIR" --disable-debug 2>&1 | tail -10
+
+            make -j"$(nproc)" 2>&1 | tail -5
+            make install 2>&1 | tail -3
+        fi
 
         if [ ! -x "$BIN_PATH" ]; then
             echo "[build_native] ✗ BUILD FAILED — no $BIN_PATH"

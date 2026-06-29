@@ -42,8 +42,11 @@
 #   FORCE_OBTAIN     1 → skip host detection, obtain into the local prefix.
 #   LOCAL_DEPS_ROOT  override the git-ignored root (default <repo>/.local-deps).
 #   DEPS             space-separated dep names. Default "jemalloc" (backward
-#                    compatible); setup.sh passes "jemalloc libevent ncurses"
-#                    so the native-build fallback has its build deps ready.
+#                    compatible); setup.sh passes "cc jemalloc libevent ncurses"
+#                    so the native-build fallback has its ROOT-FREE C toolchain
+#                    (cc=zig, TMX-063) AND its build deps ready. `cc` MUST lead so
+#                    the obtained toolchain feeds the libevent/ncurses/jemalloc
+#                    source builds on a host with no working host compiler.
 #   OBTAIN_METHOD    auto|source|container (Linux obtain method; default auto).
 #
 # Outputs:
@@ -102,6 +105,15 @@ DEPS="${DEPS:-jemalloc}"
 # stays "auto" even when the container path runs, so it cannot be the label
 # source. Set by obtain_via_source ("source") / obtain_via_container ("container").
 _LAST_OBTAIN_METHOD=""
+
+# Resolved C toolchain (set when the `cc` kind=toolchain dep is processed in the
+# main loop). obtain_via_source consults these so libevent/ncurses/jemalloc are
+# source-built with the OBTAINED zig toolchain on a bare host (CC_KIND=zig), or
+# with the host compiler (CC_KIND=host) otherwise — closing residual #1 (the old
+# obtain_via_source used PATH's cc, bypassing the obtained zig). Empty until set.
+RESOLVED_CC_BIN=""
+RESOLVED_CC_KIND=""
+RESOLVED_CC_WRAPPER_DIR=""
 
 # Exit codes (typed errors — never fake success):
 #   0  ok            10 no obtain toolchain      11 network unreachable
@@ -241,6 +253,38 @@ dep_field() {
         go:sha256_darwin_amd64)  printf '%s' "26d0ee4071de42b5c332337db9fdd234072877697c547e46e85efb0f59507c66" ;;
         go:sha256_darwin_arm64)  printf '%s' "cd8d4920e7930d55da1a5a57ba43a64b1305f71cdf2ca3c76cd8c549272b1680" ;;
         go:container_extract)    printf '%s' "no" ;;
+
+        # cc — the ROOT-FREE C BUILD TOOLCHAIN (zig cc), kind=toolchain (TMX-063).
+        # FACT (proven on this host 2026-06-29, qa-results/loop-20260629/zig-impl/):
+        # a host can have NO working C toolchain (gcc absent, or present but cannot
+        # LINK — no glibc-devel/crt*.o) AND no root to install one. zig is a single
+        # relocatable .tar.xz bundling clang + lld + glibc/musl headers + crt
+        # objects → `CC="<zig> cc"` builds libevent/ncurses/jemalloc AND tmux with
+        # NO root, NO autotools generators, NO bison. RESOLVED-first by LINK
+        # CAPABILITY (resolve_cc — a host cc that cannot LINK does NOT count, so it
+        # falls through to OBTAIN); OBTAINED as the prebuilt tarball
+        # (obtain_via_prebuilt_cc) which SMOKE-TESTS `zig cc` links BEFORE claiming
+        # success (§11.4.5/§11.4.123 — never a fake PASS). Per-platform url keyed by
+        # the zig tuple <arch>-<os> (4 official variants linux/macos × x86_64/aarch64,
+        # §11.4.81); any other arch → EC_UNSUPPORTED (honest). The expected sha256 is
+        # fetched + parsed from the AUTHORITATIVE https://ziglang.org/download/index.json
+        # at obtain time (§11.4.6 — never download-without-verify); x86_64-linux ALSO
+        # carries a BYTE-VERIFIED pin cross-checked against index.json (supply-chain
+        # belt). The other 3 tuples are NOT hardcoded — index.json is the authority.
+        cc:version)              printf '%s' "0.16.0" ;;
+        cc:kind)                 printf '%s' "toolchain" ;;
+        cc:envprefix)            printf '%s' "CC" ;;
+        cc:index_json)           printf '%s' "https://ziglang.org/download/index.json" ;;
+        cc:url_x86_64-linux)     printf '%s' "https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz" ;;
+        cc:url_aarch64-linux)    printf '%s' "https://ziglang.org/download/0.16.0/zig-aarch64-linux-0.16.0.tar.xz" ;;
+        cc:url_x86_64-macos)     printf '%s' "https://ziglang.org/download/0.16.0/zig-x86_64-macos-0.16.0.tar.xz" ;;
+        cc:url_aarch64-macos)    printf '%s' "https://ziglang.org/download/0.16.0/zig-aarch64-macos-0.16.0.tar.xz" ;;
+        # BYTE-VERIFIED pin (PoC downloaded + sha256summed the real tarball,
+        # 2026-06-29) — equals index.json's x86_64-linux shasum (cross-checked
+        # live). The other 3 tuples deliberately carry NO pin (§11.4.6): their sha
+        # comes from index.json at obtain time, the single authoritative source.
+        cc:sha256_x86_64-linux)  printf '%s' "70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00" ;;
+        cc:container_extract)    printf '%s' "no" ;;
         *) return 1 ;;
     esac
 }
@@ -414,7 +458,20 @@ obtain_via_source() {
     url="$(dep_field "$dep" url)"
     want_sha="$(dep_field "$dep" sha256)"
 
-    cc="$(_first_exe /usr/bin/cc /usr/bin/gcc /usr/bin/clang cc gcc clang || true)"
+    # Residual #1 fix (TMX-063): prefer the OBTAINED zig toolchain when the host
+    # cc cannot link (RESOLVED_CC_KIND=zig, set when the `cc` dep was processed
+    # FIRST in the main loop). The zig `cc` flag-filter wrapper is CC; its dir is
+    # prepended to PATH inside the build so ncurses' ar/ranlib/objcopy/ld resolve
+    # to zig too. CC_KIND=host (or unset) → host compiler (unchanged behaviour).
+    local cc_extra_path=""
+    if [ "${RESOLVED_CC_KIND:-}" = "zig" ] && [ -n "${RESOLVED_CC_WRAPPER_DIR:-}" ] \
+       && [ -x "${RESOLVED_CC_WRAPPER_DIR}/cc" ]; then
+        cc="${RESOLVED_CC_WRAPPER_DIR}/cc"
+        cc_extra_path="${RESOLVED_CC_WRAPPER_DIR}"
+        _info "$dep: building with OBTAINED zig toolchain ($cc)"
+    else
+        cc="$(_first_exe /usr/bin/cc /usr/bin/gcc /usr/bin/clang cc gcc clang || true)"
+    fi
     mk="$(_first_exe /usr/bin/make /bin/make make || true)"
     if [ -z "$cc" ] || [ -z "$mk" ]; then
         _err "$dep: no C compiler/make for source build"
@@ -476,14 +533,27 @@ obtain_via_source() {
     cfg_args="${cfg_args//@PREFIX@/$LOCAL_PREFIX}"
     blog="$LOCAL_PREFIX/build_${dep}.log"
     : > "$blog" 2>/dev/null || true
-    _info "$dep: configuring + building into $LOCAL_PREFIX (log: $blog)"
+    _info "$dep: configuring + building into $LOCAL_PREFIX (log: $blog) with CC=$cc"
     (
         cd "$srcdir"
-        # cfg_args/build_tgt/inst_tgt are intentional word lists — unquoted.
-        ./configure --prefix="$LOCAL_PREFIX" $cfg_args >>"$blog" 2>&1
+        # Pin the resolved compiler explicitly (residual #1: configure no longer
+        # auto-detects PATH's cc); prepend the zig wrapper dir so ar/ranlib/ld
+        # resolve to zig on a bare host. cfg_args/build_tgt/inst_tgt are
+        # intentional word lists — unquoted.
+        [ -n "$cc_extra_path" ] && { PATH="$cc_extra_path:$PATH"; export PATH; }
+        export CC="$cc"
+        # Pin MAKE to the absolute path so config.status's depfiles bootstrap
+        # (${MAKE-make}) AND recursive $(MAKE) resolve it even when `make` is not
+        # on a sanitised PATH (bare-host / neutered-toolchain robustness).
+        export MAKE="$mk"
+        ./configure --prefix="$LOCAL_PREFIX" CC="$cc" MAKE="$mk" $cfg_args >>"$blog" 2>&1
         "$mk" -j"$( (command -v nproc >/dev/null 2>&1 && nproc) || echo 2)" $build_tgt >>"$blog" 2>&1
         "$mk" $inst_tgt >>"$blog" 2>&1
     ) || { _err "$dep: source build failed — see $blog"; return $EC_NO_TOOLCHAIN; }
+
+    # Residual #2: ensure the local ncurses copy wins tmux's AC_SEARCH_LIBS even
+    # on a host that has ncurses + no pkg-config (compat symlinks → local widec).
+    [ "$dep" = "ncurses" ] && _ncurses_compat_symlinks
 
     rm -rf "$work"
     if _local_lib_present "$dep" >/dev/null; then
@@ -702,6 +772,244 @@ obtain_via_prebuilt() {
     return 0
 }
 
+# ── zig C toolchain (kind=toolchain, cc) helpers (TMX-063) ─────────────────
+# Derive the zig platform tuple (<arch>-<os>) from uname; print it or return 1
+# for an unsupported OS/arch (§11.4.6 honest boundary; §11.4.111 resolve-by-name
+# not ordinal — the tuple is zig's own stable identifier). zig's tuple order is
+# <arch>-<os> with arch x86_64/aarch64 + os linux/macos.
+_zig_plat() {
+    local os arch
+    case "$HOST_OS" in
+        Linux)  os="linux" ;;
+        Darwin) os="macos" ;;
+        *) return 1 ;;
+    esac
+    case "$HOST_ARCH" in
+        x86_64|amd64)  arch="x86_64" ;;
+        aarch64|arm64) arch="aarch64" ;;
+        *) return 1 ;;
+    esac
+    printf '%s-%s' "$arch" "$os"
+}
+
+# Fetch the AUTHORITATIVE expected sha256 for zig <version>/<tuple> from
+# index.json (§11.4.6 — never download-without-verify, never invent a sha). The
+# tarball URL is unique per tuple so we match its line then read the following
+# "shasum" value; the parsed value MUST be a 64-hex string or we return 1
+# (parse failure / network unreachable → caller falls back to the byte-verified
+# pin where one exists, else refuses to download unverified).
+_zig_index_sha() {
+    local ver="$1" tuple="$2" idxurl url tmpf sha
+    idxurl="$(dep_field cc index_json 2>/dev/null || echo 'https://ziglang.org/download/index.json')"
+    url="https://ziglang.org/download/$ver/zig-$tuple-$ver.tar.xz"
+    tmpf="$(mktemp "${TMPDIR:-/tmp}/zigidx.XXXXXX" 2>/dev/null)" || return 1
+    if ! _download "$idxurl" "$tmpf"; then rm -f "$tmpf"; return 1; fi
+    sha="$(awk -v u="$url" 'index($0,u){f=1} f && index($0,"shasum"){gsub(/[",]/,"");print $2;exit}' "$tmpf")"
+    rm -f "$tmpf"
+    case "$sha" in *[!0-9a-f]*|'') return 1 ;; esac
+    [ "${#sha}" = "64" ] || return 1
+    printf '%s' "$sha"
+}
+
+# RESOLVE an already-present HOST C compiler that can actually LINK (resolve-by-
+# CAPABILITY, not mere presence — §11.4.111 absolute path first). A host cc that
+# exists but cannot link a trivial exe (no glibc-devel/crt*.o) does NOT count and
+# falls through to OBTAIN. On success print "CC_BIN|host|host-system"; else 1.
+resolve_cc() {
+    local cand cc tdir
+    for cand in \
+        /usr/bin/cc /usr/bin/gcc /usr/bin/clang \
+        /usr/local/bin/cc /usr/local/bin/gcc /usr/local/bin/clang \
+        /opt/homebrew/bin/cc /opt/homebrew/bin/clang \
+        cc gcc clang; do
+        cc=""
+        case "$cand" in
+            /*) [ -x "$cand" ] && cc="$cand" ;;
+            *)  command -v "$cand" >/dev/null 2>&1 && cc="$(command -v "$cand")" ;;
+        esac
+        [ -n "$cc" ] || continue
+        tdir="$(mktemp -d "${TMPDIR:-/tmp}/tmxcc.XXXXXX" 2>/dev/null)" || continue
+        printf 'int main(void){return 0;}\n' > "$tdir/t.c"
+        if "$cc" "$tdir/t.c" -o "$tdir/t" >/dev/null 2>&1 && [ -x "$tdir/t" ]; then
+            rm -rf "$tdir"
+            printf '%s|host|host-system' "$cc"
+            return 0
+        fi
+        rm -rf "$tdir"
+    done
+    return 1
+}
+
+# Emit the zig binutils + flag-filter wrappers into $LOCAL_PREFIX/zig-wrappers/
+# with the obtained zig's ABSOLUTE path baked in; print the wrapper dir. autotools
+# AC_PROG_LD needs a standalone `ld`; ncurses needs ar/ranlib; the `cc` wrapper
+# STRIPS the GNU-ld-only tokens (-stats, grouped -lc) ncurses 6.5 injects into
+# -Wl, groups that zig's linker-arg interceptor rejects (zig cc links libc by
+# default → a grouped -lc is redundant + safe to drop). Verbatim from the PoC
+# wrappers (qa-results/loop-20260629/zig-rootfree-poc/zigshim_wrappers/).
+_emit_zig_wrappers() {
+    local zig="$1" wd="$LOCAL_PREFIX/zig-wrappers" sub ld
+    mkdir -p "$wd"
+    # cc — flag-filter → `zig cc`. First line bakes the absolute zig path
+    # (unquoted heredoc); the body is a quoted heredoc (literal).
+    cat > "$wd/cc" <<EOF
+#!/bin/sh
+# zig-cc flag-filter wrapper (generated by obtain_local_deps.sh, §11.4.77).
+ZIG="$zig"
+EOF
+    cat >> "$wd/cc" <<'EOF'
+first=1
+for a in "$@"; do
+  case "$a" in
+    -Wl,*)
+      a=$(printf '%s' "$a" | sed -e 's/,-stats//g' -e 's/,-lc//g' -e 's/^-Wl,-stats,/-Wl,/' -e 's/^-Wl,-lc,/-Wl,/' -e 's/^-Wl,-stats$//' -e 's/^-Wl,-lc$//')
+      [ "$a" = "-Wl," ] && continue
+      [ -z "$a" ] && continue
+      ;;
+  esac
+  if [ "$first" -eq 1 ]; then set -- "$a"; first=0; else set -- "$@" "$a"; fi
+done
+exec "$ZIG" cc "$@"
+EOF
+    for sub in ar ranlib objcopy; do
+        cat > "$wd/$sub" <<EOF
+#!/bin/sh
+exec "$zig" $sub "\$@"
+EOF
+    done
+    for ld in ld ld.lld; do
+        cat > "$wd/$ld" <<EOF
+#!/bin/sh
+exec "$zig" ld.lld "\$@"
+EOF
+    done
+    chmod +x "$wd/cc" "$wd/ar" "$wd/ranlib" "$wd/objcopy" "$wd/ld" "$wd/ld.lld"
+    printf '%s' "$wd"
+}
+
+# OBTAIN the zig C toolchain as a PREBUILT official .tar.xz into $LOCAL_PREFIX/zig
+# (NO ./configure+make — zig ships prebuilt). Needs a downloader + sha256 tool +
+# tar + xz + network. Idempotent: reuse an already-extracted zig that runs.
+# Returns EC_* on failure (never a fake success).
+obtain_via_prebuilt_cc() {
+    local dep="$1"
+    _LAST_OBTAIN_METHOD="prebuilt"
+    local tuple ver url hard_sha idx_sha want_sha tar dl_sha zigroot zigbin pd
+    tuple="$(_zig_plat)" || {
+        _err "$dep: unsupported platform ${HOST_OS}/${HOST_ARCH} for prebuilt zig toolchain (4 official tuples only)"
+        return $EC_UNSUPPORTED
+    }
+    ver="$(dep_field "$dep" version)"
+    url="$(dep_field "$dep" "url_$tuple" 2>/dev/null || true)"
+    hard_sha="$(dep_field "$dep" "sha256_$tuple" 2>/dev/null || true)"
+    if [ -z "$url" ]; then
+        _err "$dep: no url registered for platform '$tuple'"
+        return $EC_UNSUPPORTED
+    fi
+
+    zigroot="$LOCAL_PREFIX/zig"
+    zigbin="$zigroot/zig"
+    if [ -x "$zigbin" ] && "$zigbin" version >/dev/null 2>&1; then
+        _info "$dep: local zig toolchain already present at $zigbin — reuse"
+        return 0
+    fi
+
+    # Resolve the AUTHORITATIVE expected sha256 (§11.4.6): index.json first; the
+    # byte-verified pin (x86_64-linux only) is BOTH a cross-check (anomaly ⇒
+    # refuse) AND the offline fallback. No verified sha ⇒ refuse to download.
+    idx_sha="$(_zig_index_sha "$ver" "$tuple" 2>/dev/null || true)"
+    if [ -n "$idx_sha" ]; then
+        if [ -n "$hard_sha" ] && [ "$idx_sha" != "$hard_sha" ]; then
+            _err "$dep: index.json sha ($idx_sha) != byte-verified pin ($hard_sha) for $tuple — supply-chain anomaly, REFUSING"
+            return $EC_SHA
+        fi
+        want_sha="$idx_sha"
+        _info "$dep: expected sha256 from index.json ($want_sha)"
+    elif [ -n "$hard_sha" ]; then
+        _warn "$dep: index.json unreachable — using BYTE-VERIFIED pin for $tuple"
+        want_sha="$hard_sha"
+    else
+        _err "$dep: cannot resolve a verified sha256 for $tuple (index.json unreachable + no pin) — REFUSING to download unverified (§11.4.6)"
+        return $EC_NETWORK
+    fi
+
+    mkdir -p "$TARBALL_CACHE"
+    tar="$TARBALL_CACHE/$(basename "$url")"
+    if [ -f "$tar" ]; then
+        dl_sha="$(_sha256_of "$tar" || true)"
+        [ "$dl_sha" = "$want_sha" ] || rm -f "$tar"
+    fi
+    if [ ! -f "$tar" ]; then
+        _info "$dep: downloading $url"
+        if ! _download "$url" "$tar"; then
+            rm -f "$tar" 2>/dev/null || true
+            _err "$dep: download failed (network unreachable?)"
+            return $EC_NETWORK
+        fi
+    fi
+    dl_sha="$(_sha256_of "$tar" || true)"
+    if [ -z "$dl_sha" ]; then
+        _err "$dep: no sha256 tool to verify $tar"
+        return $EC_NO_TOOLCHAIN
+    fi
+    if [ "$dl_sha" != "$want_sha" ]; then
+        _err "$dep: sha256 MISMATCH — want $want_sha got $dl_sha"
+        rm -f "$tar" 2>/dev/null || true
+        return $EC_SHA
+    fi
+    _info "$dep: sha256 verified ($want_sha)"
+
+    rm -rf "$zigroot"; mkdir -p "$zigroot"
+    # The .tar.xz top-level dir is zig-<tuple>-<ver>/ → strip it so the binary
+    # lands at $zigroot/zig. (Needs host `xz`; GNU tar shells out to it.)
+    if ! tar xf "$tar" -C "$zigroot" --strip-components=1 2>/dev/null; then
+        _err "$dep: extract failed (xz available? $(command -v xz >/dev/null 2>&1 && echo yes || echo NO))"
+        return $EC_NETWORK
+    fi
+    if [ ! -x "$zigbin" ]; then
+        _err "$dep: extract produced no executable $zigbin"
+        return $EC_NO_TOOLCHAIN
+    fi
+    # Anti-bluff (§11.4.5): prove it executes AND can LINK a trivial exe before
+    # declaring success (§11.4.123 — never a fake PASS; extract-OK ≠ links).
+    if ! "$zigbin" version >/dev/null 2>&1; then
+        _err "$dep: obtained zig at $zigbin does not run"
+        return $EC_NO_TOOLCHAIN
+    fi
+    pd="$LOCAL_PREFIX/.cc-probe"; rm -rf "$pd"; mkdir -p "$pd"
+    printf 'int main(void){return 0;}\n' > "$pd/t.c"
+    if ! "$zigbin" cc "$pd/t.c" -o "$pd/t" >/dev/null 2>&1 || [ ! -x "$pd/t" ] || ! "$pd/t" >/dev/null 2>&1; then
+        rm -rf "$pd"
+        _err "$dep: obtained zig cannot compile+link a trivial exe — REFUSING to claim success"
+        return $EC_NO_TOOLCHAIN
+    fi
+    rm -rf "$pd"
+    return 0
+}
+
+# ── ncurses local-link guarantee (residual #2) ─────────────────────────────
+# tmux's AC_SEARCH_LIBS(setupterm,[tinfo terminfo ncurses ncursesw]) tries
+# `-ltinfo`/`-lncurses` BEFORE `-lncursesw`, so on a host that HAS ncurses it
+# links the HOST copy even when -L<local> is present. With pkg-config absent
+# (bare host) the `pkg-config ncursesw` path that would otherwise win is
+# unavailable. Fix: create compat symlinks in the local libdir so the EARLIER
+# candidate names resolve to the LOCAL widec lib first (the non-termlib widec
+# build bundles setupterm INTO libncursesw, so libtinfo.so → libncursesw.so.6
+# satisfies `-ltinfo`); -L<local> precedes /lib64 so local wins, and the baked
+# SONAME (libncursesw.so.6) is what becomes DT_NEEDED. Additive + idempotent —
+# never touches host libs; harmless on the host-resolved path.
+_ncurses_compat_symlinks() {
+    local real n
+    real="$(cd "$LIBDIR" 2>/dev/null && ls -1 libncursesw.so.[0-9]* 2>/dev/null | head -1 || true)"
+    [ -n "$real" ] && [ -e "$LIBDIR/$real" ] || return 0
+    ( cd "$LIBDIR" 2>/dev/null || exit 0
+      for n in libtinfo.so libtinfo.so.6 libncurses.so libncurses.so.6; do
+          [ -e "$n" ] || ln -sf "$real" "$n"
+      done
+    )
+    return 0
+}
+
 obtain_dep() {
     local dep="$1"
     # Idempotent reuse.
@@ -790,6 +1098,50 @@ for dep in $DEPS; do
     #    already-present Go by absolute path (§11.4.111); else OBTAIN the prebuilt
     #    official tarball (§11.4.77). Emit GO_BIN / GOROOT / GO_SOURCE, then
     #    `continue` so the runtime/build emission below is bypassed cleanly.
+    # ── kind=toolchain (cc/zig): RESOLVE-by-link-capability first (resolve_cc),
+    #    else OBTAIN the prebuilt zig tarball (obtain_via_prebuilt_cc). Emits
+    #    CC_BIN/CC_KIND/CC_SOURCE (+ CC_WRAPPER_DIR/CC_CC when zig) and sets the
+    #    RESOLVED_CC_* globals so obtain_via_source uses the obtained toolchain
+    #    for the build deps below. Processed before libevent/ncurses/jemalloc
+    #    (setup.sh DEPS lists `cc` first), so the globals are ready in time.
+    if [ "$kind" = "toolchain" ] && [ "$dep" = "cc" ]; then
+        cc_bin=""; cc_kind=""; cc_src=""; cc_wrap=""; cc_out=""; cc_rest=""; cc_root=""
+        if [ "$FORCE_OBTAIN" != "1" ]; then
+            if cc_out="$(resolve_cc 2>/dev/null)"; then
+                cc_bin="${cc_out%%|*}"; cc_rest="${cc_out#*|}"
+                cc_kind="${cc_rest%%|*}"; cc_src="${cc_rest##*|}"
+                _info "RESOLVED $dep → $cc_bin ($cc_kind, $cc_src)"
+            fi
+        else
+            _info "$dep: FORCE_OBTAIN=1 — skipping host detection"
+        fi
+        if [ -z "$cc_bin" ]; then
+            if obtain_via_prebuilt_cc "$dep"; then
+                cc_root="$LOCAL_PREFIX/zig"
+                cc_bin="$cc_root/zig"
+                cc_kind="zig"
+                cc_src="local-toolchain"
+                cc_wrap="$(_emit_zig_wrappers "$cc_bin")"
+                _info "OBTAINED $dep → $cc_bin ($cc_kind, $cc_src, wrappers: $cc_wrap)"
+            else
+                rc=$?
+                _err "OBTAIN FAILED for $dep (rc=$rc) — NOT faking success"
+                overall_rc=$rc
+                continue
+            fi
+        fi
+        # Globals consumed by obtain_via_source for the build deps below.
+        RESOLVED_CC_BIN="$cc_bin"; RESOLVED_CC_KIND="$cc_kind"; RESOLVED_CC_WRAPPER_DIR="$cc_wrap"
+        {
+            printf '%s_BIN=%s\n'    "$ep" "$cc_bin"
+            printf '%s_KIND=%s\n'   "$ep" "$cc_kind"
+            printf '%s_SOURCE=%s\n' "$ep" "$cc_src"
+            [ -n "$cc_wrap" ] && printf '%s_WRAPPER_DIR=%s\n' "$ep" "$cc_wrap"
+            [ -n "$cc_wrap" ] && printf '%s_CC=%s\n' "$ep" "$cc_wrap/cc"
+        } >> "$RESOLVED_ENV.tmp"
+        continue
+    fi
+
     if [ "$kind" = "toolchain" ]; then
         tc_bin=""; tc_root=""; tc_ver=""; tc_src=""; tc_out=""; tc_rest=""
         if [ "$FORCE_OBTAIN" != "1" ]; then

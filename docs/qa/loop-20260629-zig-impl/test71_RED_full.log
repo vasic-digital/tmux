@@ -1,0 +1,12 @@
+════════════════════════════════════════════════════════════════
+  test 71 — root-free zig build (TMX-063) (RED_MODE=1, N=3)
+════════════════════════════════════════════════════════════════
+PASS 71: C10 touched scripts parse clean (bash -n) AND are sudo/su-free + human-wait-free (operator mandate 2026-06-29)
+PASS 71: C9a cc (zig) registry branch present in obtain_local_deps.sh (mutation target exists)
+PASS 71: C1 NORMAL-host no-regression: cc resolved to HOST (CC_KIND=host, CC_SOURCE=host-system) — no zig obtained, existing path untouched
+PASS 71: C2 neuter valid: host compilers/linkers/autotools/pkg-config unreachable; generic tools present (bare-host simulation real)
+PASS 71: C3 RED reproduced: neutered build WITHOUT zig obtain FAILS (no C toolchain → cannot link tmux) — defect present on the broken artifact
+EVIDENCE 71: RED capture: qa-results/loop-20260629/zig-impl/RED_no_toolchain_build_fail.log
+════════════════════════════════════════════════════════════════
+  test 71 SUMMARY: PASS=5 FAIL=0 SKIP=0 (RED_MODE=1)
+════════════════════════════════════════════════════════════════

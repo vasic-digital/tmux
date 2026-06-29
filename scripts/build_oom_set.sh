@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # build_oom_set.sh — compile oom_set.c and install it with CAP_SYS_RESOURCE,
 # enabling the tmx wrapper to set oom_score_adj=-500 without
-# requiring the operator to run tmux via sudo.
+# requiring the operator to run tmux as root.
 #
 # This is Option B from docs/guides/TMUX_OPTIMIZED_BUILD.md §8.
 #
 # Usage:
-#   bash scripts/build_oom_set.sh           — build only (no sudo)
-#   sudo bash scripts/build_oom_set.sh --install  — build + install + setcap
+#   bash scripts/build_oom_set.sh           — build only (no root needed)
+#   (as root) bash scripts/build_oom_set.sh --install  — build + install + setcap
 #
 # Output:
 #   <project>/scripts/oom_set       (binary, no special perms)
@@ -38,7 +38,7 @@ for arg in "$@"; do
     esac
 done
 
-# Compile (no sudo needed)
+# Compile (no root needed)
 echo "[build_oom_set] compiling $SRC..."
 gcc -O2 -Wall -Wextra -Werror -fstack-protector-strong -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
     -o "$OUT" "$SRC"
@@ -52,7 +52,7 @@ echo ""
 if [ "$INSTALL" -eq 1 ]; then
     if [ "$(id -u)" != "0" ]; then
         echo "ERROR: --install requires root (it copies to /usr/local/bin and runs setcap)."
-        echo "  Re-run as: sudo bash $0 --install"
+        echo "  Re-run as root: bash $0 --install"
         exit 2
     fi
     echo "[build_oom_set] installing as $INSTALL_PATH with cap_sys_resource+ep..."
@@ -65,6 +65,6 @@ if [ "$INSTALL" -eq 1 ]; then
     echo "  (setup will detect the helper and Test 08 will PASS)"
 else
     echo "[build_oom_set] build complete (no install)."
-    echo "  To install with setcap (one-time, requires sudo):"
-    echo "    sudo bash $0 --install"
+    echo "  To install with setcap (one-time, requires root):"
+    echo "    (as root) bash $0 --install"
 fi

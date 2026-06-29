@@ -140,12 +140,56 @@ _run_install_deps() {
     fi
 }
 
+# ROOT-FREE C toolchain readiness (TMX-063). Returns 0 iff an OBTAINED zig
+# toolchain (CC_KIND=zig in resolved.env) is present AND its flag-filter `cc`
+# wrapper can LINK a trivial exe. This is the no-privilege path: a host with no
+# working host compiler builds via the obtained zig instead of needing root.
+# §11.4.6: link-probe the real wrapper — never assume "obtained ⇒ works".
+_rootfree_toolchain_ready() {
+    _renv="${LOCAL_DEPS_ROOT:-$REPO_ROOT/.local-deps}/$(uname -s)_$(uname -m)/resolved.env"
+    [ -f "$_renv" ] || return 1
+    _ck="$(sed -n 's/^CC_KIND=//p' "$_renv" 2>/dev/null | head -1)"
+    _cw="$(sed -n 's/^CC_WRAPPER_DIR=//p' "$_renv" 2>/dev/null | head -1)"
+    [ "$_ck" = "zig" ] || return 1
+    [ -n "$_cw" ] && [ -x "$_cw/cc" ] || return 1
+    _td="$(mktemp -d "${TMPDIR:-/tmp}/tmxzig.XXXXXX" 2>/dev/null)" || return 1
+    printf 'int main(void){return 0;}\n' > "$_td/t.c"
+    if "$_cw/cc" "$_td/t.c" -o "$_td/t" >/dev/null 2>&1 && [ -x "$_td/t" ]; then
+        rm -rf "$_td"; return 0
+    fi
+    rm -rf "$_td"; return 1
+}
+
 # The native-build entry gate. Returns 0 when the toolchain can link (proceed);
 # non-zero (after emitting honest help) when it cannot and was not auto-fixed.
 # Composes §11.4.101 (safe reversible auto-decision) + §11.4.66 (interactive
 # consent) + §11.4.122-spirit (no surprise privileged mutation without consent).
 _native_build_preflight() {
     if cc_can_link; then return 0; fi
+
+    # ── ROOT-FREE path FIRST (TMX-063) ───────────────────────────────────────
+    # Before any privileged-install advice, try the obtained zig toolchain. If a
+    # working obtained zig is already present (Step 1b obtains `cc`), proceed with
+    # NO root. If not yet obtained, OBTAIN it now (root-free, non-interactive) and
+    # re-check. Only if THAT fails do we fall through to the honest "re-run as
+    # root" message — so the install-as-root path is the LAST resort, not the
+    # first. §11.4.101 safe/reversible autonomous decision; §11.4.123 link-proven.
+    # Skipped under TMX_SETUP_LIB_ONLY (the §11.4.115 lib-mode harness, test 70):
+    # the root-free path is covered by the REAL test 71, so lib-mode keeps testing
+    # the install/honest path in isolation, independent of any .local-deps state.
+    if [ "${TMX_SETUP_LIB_ONLY:-}" != "1" ]; then
+        if _rootfree_toolchain_ready; then
+            echo "[setup] ✓ host C compiler cannot link — using OBTAINED root-free toolchain (zig). No root needed." >&2
+            return 0
+        fi
+        echo "[setup] host C compiler cannot link — obtaining a ROOT-FREE toolchain (zig) before any root advice…" >&2
+        DEPS=cc bash "$REPO_ROOT/scripts/obtain_local_deps.sh" 1>&2 || true
+        if _rootfree_toolchain_ready; then
+            echo "[setup] ✓ obtained root-free C toolchain (zig) that links — proceeding without root." >&2
+            return 0
+        fi
+    fi
+
     echo "[setup] native build preflight: C compiler cannot link an executable." >&2
 
     _consent="${AUTO_INSTALL_DEPS:-auto}"; _do_install=0
@@ -438,7 +482,7 @@ esac
 # runtime) + Step 3 wrapper LD_PRELOAD/LD_LIBRARY_PATH (LD_PRELOAD ignores
 # rpath → MUST be the absolute path; docs/research/local_deps_20260628).
 echo ""
-echo "[setup] step 1b — obtain/resolve local dependencies (jemalloc + libevent + ncurses)"
+echo "[setup] step 1b — obtain/resolve local dependencies (cc + jemalloc + libevent + ncurses)"
 JEMALLOC_SO=""
 JEMALLOC_LIBDIR=""
 JEMALLOC_SOURCE=""
@@ -454,7 +498,13 @@ obtain_rc=0
 # (Linux branch) sources resolved.env to add -I/-L + PKG_CONFIG_PATH for the
 # local libevent/ncurses; the container build needs none of this (the image
 # carries them) so the extra resolves are harmless there.
-DEPS="jemalloc libevent ncurses" bash scripts/obtain_local_deps.sh || obtain_rc=$?
+#
+# `cc` LEADS the list (TMX-063): the ROOT-FREE C toolchain (zig) is resolved
+# (host cc that LINKS) or obtained (prebuilt zig) FIRST, so on a host with no
+# working host compiler the obtained zig feeds the libevent/ncurses/jemalloc
+# source builds that follow. On a normal host `cc` resolves to the host
+# compiler (CC_KIND=host) and nothing changes (no zig obtained, no regression).
+DEPS="cc jemalloc libevent ncurses" bash scripts/obtain_local_deps.sh || obtain_rc=$?
 if [ "$obtain_rc" -ne 0 ]; then
     echo "  ⚠ obtain_local_deps.sh exited $obtain_rc (typed error 10-14, see output above) — NOT faking success (§11.4)"
 fi

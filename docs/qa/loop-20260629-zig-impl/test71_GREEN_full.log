@@ -1,0 +1,21 @@
+════════════════════════════════════════════════════════════════
+  test 71 — root-free zig build (TMX-063) (RED_MODE=0, N=3)
+════════════════════════════════════════════════════════════════
+PASS 71: C10 touched scripts parse clean (bash -n) AND are sudo/su-free + human-wait-free (operator mandate 2026-06-29)
+PASS 71: C9a cc (zig) registry branch present in obtain_local_deps.sh (mutation target exists)
+PASS 71: C1 NORMAL-host no-regression: cc resolved to HOST (CC_KIND=host, CC_SOURCE=host-system) — no zig obtained, existing path untouched
+PASS 71: C2 neuter valid: host compilers/linkers/autotools/pkg-config unreachable; generic tools present (bare-host simulation real)
+PASS 71: C4 GREEN: REAL project scripts built tmux via the OBTAINED zig toolchain (no host cc, no root, no sudo)
+PASS 71: C4b confirmed CC_KIND=zig (local-toolchain) drove the build
+PASS 71: C5 tmux -V == 'tmux 3.6a' (user-visible build product)
+EVIDENCE 71: GREEN runtime: qa-results/loop-20260629/zig-impl/GREEN_tmux_runtime_proof.log
+PASS 71: C6 LIVE SESSION: zig-built tmux ran a real session (marker ZIG71_42 captured from the pane)
+EVIDENCE 71: GREEN live session: qa-results/loop-20260629/zig-impl/GREEN_tmux_live_session.log
+PASS 71: C7 LOCAL-LINK: tmux DT_NEEDED includes the LOCAL widec libncursesw.so (residual #2 fixed — local ncurses won AC_SEARCH_LIBS)
+PASS 71: C7b tmux DT_NEEDED includes libevent + libjemalloc (full hardened local chain linked)
+EVIDENCE 71: readelf NEEDED: qa-results/loop-20260629/zig-impl/GREEN_readelf_needed.log
+PASS 71: C8 determinism: 3 independent zig rebuilds all produced an identical 'tmux 3.6a' (§11.4.50)
+PASS 71: C9 §1.1 MUTATION CAUGHT: stripping the cc registry branch → no zig obtained (CC_KIND='') → build cannot proceed (the guard has teeth)
+════════════════════════════════════════════════════════════════
+  test 71 SUMMARY: PASS=12 FAIL=0 SKIP=0 (RED_MODE=0)
+════════════════════════════════════════════════════════════════
