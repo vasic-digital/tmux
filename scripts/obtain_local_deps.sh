@@ -1128,10 +1128,20 @@ _obtain_static_tinfo() {
     (
         cd "$srcdir"
         export CC="$cc" MAKE="$mk"
+        # §11.4.108/§11.4.111: bake the SYSTEM terminfo search path into the
+        # static libtinfo so the shipped binary finds the host terminfo DB at
+        # runtime. WITHOUT these, ncurses defaults the compiled-in path to the
+        # ephemeral build prefix ($work/pfx/share/terminfo) which is ABSENT at
+        # runtime → "can't find terminfo database" (forensic 2026-06-30). The
+        # conventional Linux locations cover Debian/Ubuntu (/lib + /usr/lib),
+        # most distros (/usr/share), and local (/etc). $TERMINFO_DIRS env still
+        # overrides at runtime (the tmx wrapper also exports it, belt+suspenders).
         ./configure --prefix="$work/pfx" CC="$cc" MAKE="$mk" \
             --with-termlib --without-shared --with-normal --without-debug \
             --without-ada --without-cxx --without-cxx-binding \
             --without-tests --without-manpages --without-progs \
+            --with-default-terminfo-dir=/usr/share/terminfo \
+            --with-terminfo-dirs="/usr/share/terminfo:/etc/terminfo:/lib/terminfo:/usr/lib/terminfo" \
             --disable-stripping >>"$blog" 2>&1
         "$mk" -j"$( (command -v nproc >/dev/null 2>&1 && nproc) || echo 2)" libs >>"$blog" 2>&1
     ) || { _err "static tinfo: source build failed — see $blog"; return 1; }

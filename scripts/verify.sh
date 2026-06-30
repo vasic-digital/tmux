@@ -716,6 +716,39 @@ _check_CM_JEMALLOC_LINK_BY_SONAME() {
     return "$rc"
 }
 
+# ── CM-TERMINFO-DIRS-RESOLVED — §11.4.108/§11.4.111 runtime terminfo lookup ───
+# The shipped tmux links a STATIC libtinfo whose compiled-in terminfo search
+# path can be the ephemeral local-deps build prefix (absent at runtime) → `tmx
+# new` dies "can't find terminfo database / the tmux server did not come up"
+# (forensic 2026-06-30, TERM=screen-256color present in /usr/share/terminfo).
+# ncurses honours $TERMINFO_DIRS (env) BEFORE its compiled-in default, so the fix
+# is: (i) the tmx wrapper exports the host's real terminfo dirs
+# (_ensure_terminfo_dirs, called at load) AND (ii) the static-tinfo build bakes in
+# the SYSTEM dirs (obtain_local_deps.sh --with-terminfo-dirs). Runtime/anti-bluff
+# half: scripts/tests/76_terminfo_database_resolves.sh + meta-test mutation M76.
+_check_CM_TERMINFO_DIRS_RESOLVED() {
+    local g="CM-TERMINFO-DIRS-RESOLVED"
+    local rc=0
+    local tpl="$REPO_ROOT/scripts/tmx.template"
+    local obt="$REPO_ROOT/scripts/obtain_local_deps.sh"
+    if [ ! -f "$tpl" ]; then
+        printf '[FAIL] %s (i) missing scripts/tmx.template\n' "$g"; return 1
+    fi
+    grep -q '_ensure_terminfo_dirs()' "$tpl" \
+        || { printf '[FAIL] %s (i) tmx.template lacks _ensure_terminfo_dirs()\n' "$g"; rc=1; }
+    grep -q 'export TERMINFO_DIRS' "$tpl" \
+        || { printf '[FAIL] %s (ii) tmx.template does not export TERMINFO_DIRS (static tinfo cannot find the DB)\n' "$g"; rc=1; }
+    grep -qE '^_ensure_terminfo_dirs[[:space:]]*$' "$tpl" \
+        || { printf '[FAIL] %s (iii) tmx.template never CALLS _ensure_terminfo_dirs at load (defined but unused)\n' "$g"; rc=1; }
+    if [ -f "$obt" ] && ! grep -q -- '--with-terminfo-dirs' "$obt"; then
+        printf '[FAIL] %s (iv) obtain_local_deps.sh static-tinfo build lacks --with-terminfo-dirs (raw binary keeps the ephemeral build-prefix path)\n' "$g"; rc=1
+    fi
+    if [ "$rc" -eq 0 ]; then
+        printf '[PASS] %s (wrapper exports host terminfo dirs at load + static-tinfo bakes in system dirs)\n' "$g"
+    fi
+    return "$rc"
+}
+
 # ── CM-NO-SUDO-NO-INTERACTION (operator mandate 2026-06-29) ──────────────────
 # "There cannot be any use of su or sudo inside our project full automation
 # scripts or test and no user interaction!" — DIRECT user authority, 2026-06-29.
@@ -895,6 +928,22 @@ if [ "$JEMLINK_FAIL" -ne 0 ]; then
     exit 1
 fi
 echo "  ✓ Layer-1 CM-JEMALLOC-LINK-BY-SONAME gate GREEN"
+
+# ── Layer-1 — CM-TERMINFO-DIRS-RESOLVED (§11.4.108/§11.4.111) ─────────
+echo ""
+echo "  Layer-1 static gate — CM-TERMINFO-DIRS-RESOLVED (§11.4.108/§11.4.111)..."
+TINFO_FAIL=0
+_check_CM_TERMINFO_DIRS_RESOLVED || TINFO_FAIL=1
+if [ "$TINFO_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: CM-TERMINFO-DIRS-RESOLVED FAILed. The tmx wrapper does not export the"
+    echo "     host terminfo dirs and/or the static-tinfo build omits --with-terminfo-dirs"
+    echo "     → the shipped tmux dies 'can't find terminfo database' at runtime"
+    echo "     (server did not come up). See scripts/tmx.template _ensure_terminfo_dirs"
+    echo "     + scripts/obtain_local_deps.sh static-tinfo configure."
+    exit 1
+fi
+echo "  ✓ Layer-1 CM-TERMINFO-DIRS-RESOLVED gate GREEN"
 
 # ── Layer-1 — CM-NO-SUDO-NO-INTERACTION (operator mandate 2026-06-29) ──
 # Self-contained run block (own FAIL var + accurate message) for the

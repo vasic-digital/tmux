@@ -283,6 +283,39 @@ _ensure_terminfo_term() {
     fi
 }
 
+# Ensure the inner tmux finds the host's terminfo DATABASE. The shipped tmux is
+# linked against a STATIC libtinfo whose compiled-in terminfo search path can be
+# a build-time prefix that is ABSENT at runtime (§11.4.108) — so `tmux new` dies
+# "can't find terminfo database" even though the host HAS the entry (forensic
+# 2026-06-30: TERM=screen-256color present in /usr/share/terminfo, but the static
+# tinfo searched only the gone .local-deps build prefix). ncurses consults
+# $TERMINFO_DIRS (env) BEFORE its compiled-in default, so export the host's REAL
+# terminfo dirs — as reported by the system `infocmp -D` (authoritative), else
+# the conventional locations. Idempotent + honest (§11.4.6): an operator-set
+# TERMINFO_DIRS is preserved (system dirs appended, not replaced); if no dir is
+# found we leave the env untouched rather than invent one. §11.4.111.
+_ensure_terminfo_dirs() {
+    _etd_sys=""
+    if command -v infocmp >/dev/null 2>&1; then
+        _etd_sys="$(infocmp -D 2>/dev/null | tr '\n' ':' | sed 's/:*$//')"
+    fi
+    if [ -z "$_etd_sys" ]; then
+        for _etd_d in /usr/share/terminfo /lib/terminfo /etc/terminfo /usr/lib/terminfo /run/current-system/sw/share/terminfo; do
+            [ -d "$_etd_d" ] && _etd_sys="${_etd_sys:+$_etd_sys:}$_etd_d"
+        done
+    fi
+    [ -n "$_etd_sys" ] || return 0
+    if [ -n "${TERMINFO_DIRS:-}" ]; then
+        TERMINFO_DIRS="${TERMINFO_DIRS}:${_etd_sys}"
+    else
+        TERMINFO_DIRS="$_etd_sys"
+    fi
+    export TERMINFO_DIRS
+}
+# Run at load so EVERY inner tmux invocation (new / attach / ls / kill) inherits
+# the resolved TERMINFO_DIRS before the static-tinfo binary looks up the DB.
+_ensure_terminfo_dirs
+
 # ── arg parsing ──────────────────────────────────────────────────────
 
 SUBCMD=""

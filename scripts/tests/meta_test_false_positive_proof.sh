@@ -868,6 +868,19 @@ run_mutation \
     "scripts/tests/75_jemalloc_link_soname.sh" \
     "FAIL.*C2b"
 
+# ── M76: tmx.template — strip the top-level _ensure_terminfo_dirs call ───
+# §11.4.108/§11.4.111 / §1.1 paired mutation for CM-TERMINFO-DIRS-RESOLVED.
+# Removing the at-load call leaves the wrapper without the TERMINFO_DIRS export,
+# so the static-tinfo tmux dies "can't find terminfo database" (forensic
+# 2026-06-30). Test 76's C2 (top-level-call present) then FAILs → MUTATION CAUGHT.
+run_mutation \
+    "M76: tmx.template strip top-level _ensure_terminfo_dirs call (§11.4.111 terminfo)" \
+    "scripts/tmx.template" \
+    "inplace_sed '/^_ensure_terminfo_dirs[[:space:]]*\$/d' \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/76_terminfo_database_resolves.sh" \
+    "FAIL.*C2"
+
 # ═══════════════════════════════════════════════════════════════════════
 # v1.0.9 shell-session-resume PWUs (P5) — paired mutations
 # ═══════════════════════════════════════════════════════════════════════
