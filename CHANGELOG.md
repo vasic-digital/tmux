@@ -6,6 +6,18 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.32] — 2026-07-02
+
+### Changed
+- **Fully-elastic ("liquid") per-session memory (Constitution §105/§106).** tmx
+  scopes now launch with `MemoryMax=infinity` + a `MemoryMin=128M` floor instead of
+  a hard `MemoryMax` cap — a session uses all available RAM/zram and is NEVER
+  per-scope OOM-killed. Genuine exhaustion is handled system-wide by systemd-oomd +
+  zram + the user-slice backstop (OOM-Protect). `TMX_MEM` becomes an OPT-IN *soft*
+  `MemoryHigh` throttle (reclaim, never kill); `TMX_MEM=auto` uses the host-adaptive
+  size. Fixes ">3 concurrent agents get OOM-killed" under memory pressure. Applied to
+  both tracked sources (`tmx.template`, `tmx.safe`); test 15 updated (memory.max=max,
+  memory.min=128M, TMX_MEM=3G→memory.high=3G) — verified 8/8 live.
 ## [v1.0.31] — 2026-06-29
 
 **Fully-autonomous ROOT-FREE build + 4-host install/retest hardening. A live install+retest on all four hosts (nezha, amber, thinker, mistborn) caught six findings — every one a test-harness / build-orchestration robustness issue, NOT a product defect (tmx builds, sessions, and the root-free build work on every host) — all fixed and re-verified GREEN on all four hosts: Linux x86_64 ×3 (including a host with no system jemalloc) and macOS arm64.**

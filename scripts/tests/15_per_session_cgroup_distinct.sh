@@ -185,18 +185,25 @@ else
     fi
 fi
 
-# ── T3: memory.max readback matches the configured cap ──────────────
+# ── T3: fully-elastic default — memory.max=max + a MemoryMin floor ──
 echo ""
-echo "--- T3: memory.max per session matches configured cap ---"
+echo "--- T3: default session is fully elastic (memory.max=max) with a MemoryMin floor ---"
 A_MEM_MAX=$(cat "/sys/fs/cgroup${A_CG}/memory.max" 2>/dev/null || echo "?")
 B_MEM_MAX=$(cat "/sys/fs/cgroup${B_CG}/memory.max" 2>/dev/null || echo "?")
-# Default cap is host-adaptive (max(MemTotal*0.6/4, 2GB)). Just assert
-# non-empty + numeric + ≥ 2GB. T5 below tests the override path explicitly.
-two_gib=$((2 * 1024 * 1024 * 1024))
-if [ "$A_MEM_MAX" -ge "$two_gib" ] 2>/dev/null && [ "$B_MEM_MAX" -ge "$two_gib" ] 2>/dev/null; then
-    _pass "T3: memory.max A=$A_MEM_MAX B=$B_MEM_MAX (both ≥ 2GB floor, positive evidence: /sys/fs/cgroup/.../memory.max)"
+A_MEM_MIN=$(cat "/sys/fs/cgroup${A_CG}/memory.min" 2>/dev/null || echo "?")
+# Elastic model (Constitution §105): NO hard per-scope cap by default — a session
+# uses all available RAM/zram and is never per-scope OOM-killed. A runaway is
+# stopped system-wide by systemd-oomd + the user-slice backstop, not here. TMX_MEM
+# (T5) adds an opt-in soft throttle. A small MemoryMin floor protects the session.
+if [ "$A_MEM_MAX" = "max" ] && [ "$B_MEM_MAX" = "max" ]; then
+    _pass "T3: memory.max A=$A_MEM_MAX B=$B_MEM_MAX (fully elastic — never per-scope OOM-killed)"
 else
-    _fail "T3: memory.max A=$A_MEM_MAX B=$B_MEM_MAX (expected ≥ $two_gib)"
+    _fail "T3: memory.max A=$A_MEM_MAX B=$B_MEM_MAX (expected 'max' under the elastic default)"
+fi
+if [ "$A_MEM_MIN" = "134217728" ]; then
+    _pass "T3b: memory.min A=$A_MEM_MIN (128 MiB floor — session not reclaimed to death)"
+else
+    _fail "T3b: memory.min A=$A_MEM_MIN (expected 134217728 = 128 MiB floor)"
 fi
 
 # ── T4: cpu.max readback present ────────────────────────────────────
@@ -212,19 +219,25 @@ fi
 
 # ── T5: TMX_MEM override per session ────────────────────────────────
 echo ""
-echo "--- T5: TMX_MEM=3G override produces memory.max = 3 GiB exactly ---"
+echo "--- T5: TMX_MEM=3G sets a soft memory.high=3 GiB (throttle); memory.max stays elastic ---"
 TMX_MEM=3G "$WRAPPER" new -s "$C_NAME" -d 2>/dev/null
 sleep 1
 C_CG=$(systemctl --user show -p ControlGroup --value "$C_SCOPE" 2>/dev/null)
 if [ -z "$C_CG" ]; then
     _fail "T5: scope $C_SCOPE not registered after TMX_MEM=3G override"
 else
+    C_MEM_HIGH=$(cat "/sys/fs/cgroup${C_CG}/memory.high" 2>/dev/null || echo "?")
     C_MEM_MAX=$(cat "/sys/fs/cgroup${C_CG}/memory.max" 2>/dev/null || echo "?")
     expected=$((3 * 1024 * 1024 * 1024))
-    if [ "$C_MEM_MAX" = "$expected" ]; then
-        _pass "T5: TMX_MEM=3G → memory.max=$C_MEM_MAX (positive evidence: $C_MEM_MAX bytes = 3 GiB exactly)"
+    if [ "$C_MEM_HIGH" = "$expected" ]; then
+        _pass "T5: TMX_MEM=3G → memory.high=$C_MEM_HIGH (soft throttle = 3 GiB exactly)"
     else
-        _fail "T5: TMX_MEM=3G → memory.max=$C_MEM_MAX (expected $expected)"
+        _fail "T5: TMX_MEM=3G → memory.high=$C_MEM_HIGH (expected $expected)"
+    fi
+    if [ "$C_MEM_MAX" = "max" ]; then
+        _pass "T5b: TMX_MEM=3G → memory.max=max (soft throttle only — never a hard kill)"
+    else
+        _fail "T5b: TMX_MEM=3G → memory.max=$C_MEM_MAX (expected 'max'; TMX_MEM is a soft throttle)"
     fi
 fi
 

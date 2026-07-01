@@ -138,10 +138,16 @@ Each `tmx new -s NAME` spawns its OWN tmux server on socket `tmx-NAME`
 inside its OWN OS-native isolation boundary:
 
 - **Linux** — cgroup-v2 transient scope `tmx-NAME.scope` via
-  `systemd-run --user --scope`. `MemoryMax` host-adaptive
-  (`max(MemTotal × 60 % / 4, 2 GB)` unless `TMX_MEM` overrides),
-  `CPUQuota=200%`, `TasksMax=4096`, `Delegate=yes`. OOM in any one
-  scope affects ONLY that scope — `user.slice` survives.
+  `systemd-run --user --scope`, **fully elastic ("liquid") memory**:
+  `MemoryMax=infinity` (a session is NEVER per-scope OOM-killed) plus a
+  `MemoryMin=128M` floor so it is not reclaimed to death. `TMX_MEM` (or
+  `TMX_MEM=auto` for the host-adaptive size) adds an OPT-IN *soft*
+  `MemoryHigh` throttle (reclaim, never kill). `CPUQuota=200%`,
+  `TasksMax=4096`, `Delegate=yes`. Genuine exhaustion is handled
+  system-wide by systemd-oomd + zram + the `user.slice` backstop (see the
+  OOM-Protect project): a real runaway is stopped at TRUE exhaustion
+  without freezing the box, while normal multi-session load never triggers
+  a premature kill. Scopes remain independent cgroups (§14 crash isolation).
 - **macOS (Darwin)** — POSIX rlimit wrapper as session
   `default-command`: `RLIMIT_CPU` + `RLIMIT_NPROC`, kernel-enforced.
   `RLIMIT_AS` (memory) is NOT enforced by XNU for unprivileged
@@ -152,12 +158,14 @@ Plain-vanilla tmux UX with OS-native isolation as a safeguard.
 
 ### §106 — TMX_MEM memory-budget enforcement (project enforcement of universal §12.6)
 
-The universal 60 % host-memory budget is enforced in this project by
-the per-session containerization in `scripts/tmx`. Invariant:
-`Σ(active TMX_MEM) ≤ 0.6 × MemTotal`. Operator default `TMX_MEM=8G`.
-On Linux the cgroup `MemoryMax` is kernel-enforced; on macOS the cap is
-informational only (XNU gap, §105). There is NO operator-facing
-override of the per-host total.
+Default is **fully elastic**: sessions use all available RAM/zram and are
+never per-scope OOM-killed. The universal 60 % host-memory budget is enforced
+system-wide at the `user.slice` level (OOM-Protect: `MemoryMax=95%`,
+`MemoryHigh=90%`) rather than per session, so genuine exhaustion is caught
+without capping individual sessions — "never kill prematurely, never stuck".
+`TMX_MEM` is an OPT-IN per-session *soft* `MemoryHigh` throttle (reclaim, never
+kill; `TMX_MEM=auto` uses the host-adaptive `max(MemTotal × 60 % / 4, 2 GB)`
+size). On macOS the cap is informational only (XNU gap, §105).
 
 ### §107 — Upstream tmux submodule pinned + immutable
 

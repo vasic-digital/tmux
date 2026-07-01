@@ -436,9 +436,17 @@ case "$SUBCMD" in
             fi
         fi
 
-        MEM_MB=$(_default_mem_mb)
-        TMX_MEM_EFFECTIVE="${TMX_MEM:-${MEM_MB}M}"
+        # Fully-elastic ("liquid") memory (Constitution §105/§106): a session uses ALL
+        # available RAM/zram and is NEVER per-scope OOM-killed. Default = no hard cap
+        # (MemoryMax=infinity) + a small MemoryMin floor so it is not reclaimed to
+        # death; genuine exhaustion is handled system-wide by systemd-oomd + zram + the
+        # user-slice backstop (OOM-Protect). TMX_MEM adds an OPT-IN *soft* MemoryHigh
+        # throttle (reclaim, never kill); TMX_MEM=auto uses the host-adaptive size.
+        TMX_MEM_EFFECTIVE="${TMX_MEM:-}"
+        [ "$TMX_MEM_EFFECTIVE" = auto ] && TMX_MEM_EFFECTIVE="$(_default_mem_mb)M"
         TMX_CPU_EFFECTIVE="${TMX_CPU:-200}"
+        TMX_MEM_ARGS=( -p "MemoryMax=infinity" -p "MemoryMin=128M" )
+        [ -n "$TMX_MEM_EFFECTIVE" ] && TMX_MEM_ARGS+=( -p "MemoryHigh=$TMX_MEM_EFFECTIVE" )
 
         INTERACTIVE=1
         for a in "$@"; do
@@ -527,7 +535,7 @@ case "$SUBCMD" in
                 if [ "$_scope_ok" -eq 1 ]; then
                     systemd-run --user --scope --quiet \
                         --unit="$SCOPE_UNIT" \
-                        -p "MemoryMax=$TMX_MEM_EFFECTIVE" \
+                        "${TMX_MEM_ARGS[@]}" \
                         -p "CPUQuota=${TMX_CPU_EFFECTIVE}%" \
                         -p "TasksMax=4096" \
                         -p "Delegate=yes" \
