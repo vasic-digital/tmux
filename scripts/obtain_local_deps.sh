@@ -634,12 +634,15 @@ obtain_via_container() {
         fi
     fi
     mkdir -p "$LIBDIR"
-    local userns=()
-    [ "${engine##*/}" = "podman" ] && userns=(--userns=keep-id)
+    # POSIX-clean (dash-parseable — §11.4.67 sh -n gate; Ubuntu /bin/sh is dash):
+    # userns holds at most one arg, so a plain string + unquoted expansion replaces
+    # the bash array. Behaves identically under bash; no arrays => parses under sh.
+    local userns=""
+    [ "${engine##*/}" = "podman" ] && userns="--userns=keep-id"
     # Inside the image: locate the dereferenced lib (ldconfig or known dir)
     # and copy it to the bind-mounted /out (host-owned via USER builder).
     if ! "$engine" run --rm \
-            ${userns[@]+"${userns[@]}"} \
+            $userns \
             -v "$LIBDIR":/out:rw \
             "$image" \
             bash -c '

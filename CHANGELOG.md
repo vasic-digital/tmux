@@ -6,6 +6,16 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.33] — 2026-07-02
+
+### Fixed
+- **Ubuntu/dash portability: `obtain_local_deps.sh` failed `sh -n`** (test 74,
+  §11.4.67), blocking setup.sh's PATH-export on hosts where `/bin/sh` is dash
+  (Ubuntu). The `userns` bash array (podman `--userns=keep-id`) was the sole
+  non-POSIX construct; replaced with a plain string + unquoted expansion —
+  identical under bash, now parses under dash. Root-caused live on thinker/amber
+  (tmux 3.6a compiled but the verification gate refused PATH-export).
+
 ## [v1.0.32] — 2026-07-02
 
 ### Changed
