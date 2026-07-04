@@ -288,3 +288,37 @@ func TestPasswordRoundTrip(t *testing.T) {
 		t.Errorf("password not cleared: exit %d (want 0)", rc)
 	}
 }
+
+func TestHasPassword(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "state.json")
+	t.Setenv("TMX_STATE_FILE", tmp)
+
+	// No record at all → exit 2.
+	if rc := cmdHasPassword([]string{"nosession"}, io.Discard, io.Discard); rc != 2 {
+		t.Errorf("cmdHasPassword no record: exit %d (want 2)", rc)
+	}
+
+	// Record exists, no password → exit 1.
+	if rc := cmdRecord([]string{"work", "/tmp"}, io.Discard); rc != 0 {
+		t.Fatalf("cmdRecord failed: exit %d", rc)
+	}
+	if rc := cmdHasPassword([]string{"work"}, io.Discard, io.Discard); rc != 1 {
+		t.Errorf("cmdHasPassword record no password: exit %d (want 1)", rc)
+	}
+
+	// Password set → exit 0.
+	if rc := cmdSetPassword([]string{"work", "secret123"}, io.Discard); rc != 0 {
+		t.Fatalf("cmdSetPassword failed: exit %d", rc)
+	}
+	if rc := cmdHasPassword([]string{"work"}, io.Discard, io.Discard); rc != 0 {
+		t.Errorf("cmdHasPassword record with password: exit %d (want 0)", rc)
+	}
+
+	// Password cleared (empty) → back to exit 1.
+	if rc := cmdSetPassword([]string{"work", ""}, io.Discard); rc != 0 {
+		t.Fatalf("cmdSetPassword clear failed: exit %d", rc)
+	}
+	if rc := cmdHasPassword([]string{"work"}, io.Discard, io.Discard); rc != 1 {
+		t.Errorf("cmdHasPassword cleared password: exit %d (want 1)", rc)
+	}
+}

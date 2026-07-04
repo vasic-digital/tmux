@@ -43,6 +43,7 @@ Usage:
   tmx-state get-color <session>
   tmx-state set-password <session> <password>
   tmx-state verify-password <session> <password>
+  tmx-state has-password <session>
   tmx-state version
 
 Env:
@@ -80,6 +81,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return cmdSetPassword(rest, stderr)
 	case "verify-password":
 		return cmdVerifyPassword(rest, stdout, stderr)
+	case "has-password":
+		return cmdHasPassword(rest, stdout, stderr)
 	case "version", "--version", "-v":
 		fmt.Fprintln(stdout, Version)
 		return 0
@@ -495,6 +498,51 @@ func cmdVerifyPassword(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	if verifyPassword(password, sess.PasswordHash) {
+		return 0
+	}
+	return 1
+}
+
+// cmdHasPassword: tmx-state has-password <session>
+//
+// Exits 0 if the session record exists AND has a non-empty password hash.
+// Exits 1 if the session record exists but has no password set.
+// Exits 2 if the session record does not exist at all.
+// Prints nothing to stdout (caller uses exit code) — mirrors
+// verify-password's contract. Replaces the double-call
+// verify-password-with-an-empty-guess trick previously used by the
+// wrapper's attach verb to answer the same question.
+func cmdHasPassword(args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("has-password", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	if err := fs.Parse(args); err != nil {
+		return 1
+	}
+	if fs.NArg() != 1 {
+		fmt.Fprintln(stderr, "tmx-state has-password: expected <session>")
+		return 1
+	}
+	session := fs.Arg(0)
+
+	path, err := statePath()
+	if err != nil {
+		fmt.Fprintf(stderr, "tmx-state has-password: %v\n", err)
+		return 2
+	}
+
+	st, lerr := loadState(path)
+	if errors.Is(lerr, errStateRebuilt) {
+		return 2
+	}
+	if lerr != nil {
+		fmt.Fprintf(stderr, "tmx-state has-password: %v\n", lerr)
+		return 2
+	}
+	sess, ok := st.Sessions[session]
+	if !ok {
+		return 2
+	}
+	if sess.PasswordHash != "" {
 		return 0
 	}
 	return 1
