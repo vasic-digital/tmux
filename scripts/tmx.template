@@ -316,6 +316,40 @@ _ensure_terminfo_dirs() {
 # the resolved TERMINFO_DIRS before the static-tinfo binary looks up the DB.
 _ensure_terminfo_dirs
 
+# Read a password from /dev/tty character-by-character, echoing '*' per
+# keystroke instead of the real character (§2 mandate, 2026-07-05:
+# passwords MUST NOT be visible to a naked eye while typing). Backspace/DEL
+# erases the last '*' and the last buffered character. Terminates on
+# Enter. Prints the collected password to stdout (NO trailing newline) —
+# callers capture it via command substitution:
+#   pw=$(_read_password_masked "prompt: ")
+# Ctrl-D/EOF is treated as "done" with whatever was typed so far (possibly
+# empty), matching the plain `read -r` EOF behaviour it replaces.
+_read_password_masked() {
+    local prompt="$1"
+    local pw=""
+    local char
+    printf '%s' "$prompt" >/dev/tty
+    while IFS= read -r -s -n1 char </dev/tty; do
+        if [ -z "$char" ]; then
+            break
+        fi
+        case "$char" in
+            $'\x7f'|$'\x08')
+                if [ -n "$pw" ]; then
+                    pw="${pw%?}"
+                    printf '\b \b' >/dev/tty
+                fi
+                continue
+                ;;
+        esac
+        pw="${pw}${char}"
+        printf '*' >/dev/tty
+    done
+    printf '\n' >/dev/tty
+    printf '%s' "$pw"
+}
+
 # ── arg parsing ──────────────────────────────────────────────────────
 
 SUBCMD=""
@@ -677,8 +711,7 @@ case "$SUBCMD" in
         # Only on interactive sessions (not -d). Silent + non-fatal if the
         # state binary is absent or fails.
         if [ "$INTERACTIVE" -eq 1 ] && [ -t 0 ]; then
-            printf '[tmx] Enter password for session "%s" (blank = none): ' "$NAME" >/dev/tty
-            IFS= read -r PASSWORD </dev/tty
+            PASSWORD=$(_read_password_masked "[tmx] Enter password for session \"$NAME\" (blank = none): ")
             if [ -n "$PASSWORD" ] && [ -x "$TMX_DIR/tmx-state-bin" ]; then
                 "$TMX_DIR/tmx-state-bin" set-password "$NAME" "$PASSWORD" >/dev/null 2>&1 || true
             fi

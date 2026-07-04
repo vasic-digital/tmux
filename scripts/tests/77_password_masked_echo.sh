@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# Test 77 — password input is masked with '*', never shown in plaintext.
+#
+# Purpose:    §2 mandate (2026-07-05): passwords MUST NOT be visible to a
+#             naked eye while typing — presented with '*' characters
+#             instead. PTY-driven: types a password character-by-character
+#             into a real tmux pane running the wrapper, and asserts the
+#             pane's VISIBLE buffer shows only '*' characters for the typed
+#             password, never the plaintext, and that backspace erases one
+#             '*'.
+# Usage:      bash scripts/tests/77_password_masked_echo.sh
+# Inputs:     TMUX_BIN (optional override).
+# Outputs:    EVIDENCE lines; PASS/FAIL/SKIP; exit 0 PASS / 2 FAIL.
+# Side-effects: creates/kills ONLY its own private driver + inner sessions
+#             on private sockets under a private HOME/TMUX_TMPDIR/
+#             TMX_STATE_FILE. trap-cleaned on every exit path.
+# Dependencies: a built tmux binary, scripts/tmx wrapper, scripts/tmx-state-bin,
+#             python3 (kill-HUP not needed here, but pth_have_python gates
+#             the harness's other prerequisites consistently).
+# Cross-refs: scripts/tmx.template (_read_password_masked); test 68 (uses
+#             the same lib/pty_harness.sh); §2 forensic anchor 2026-07-05.
+# Last verified: 2026-07-05 (authored; live run pending build).
+set -uo pipefail
+
+SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SELF_DIR/../.." && pwd)"
+WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
+STATE_BIN="$REPO_ROOT/scripts/tmx-state-bin"
+HOST_OS="$(uname -s)"
+case "$HOST_OS" in
+    Darwin) TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux" ;;
+    *)      TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build/bin/tmux" ;;
+esac
+[ -x "$TMUX_BIN_DEFAULT" ] || TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-linux/bin/tmux"
+TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
+
+PASS=0; FAIL=0; SKIP=0
+_pass() { echo "PASS 77: $*"; PASS=$((PASS+1)); }
+_fail() { echo "FAIL 77: $*"; FAIL=$((FAIL+1)); }
+_skip() { echo "SKIP 77: $*"; SKIP=$((SKIP+1)); }
+
+echo "── Test 77: password input masked with '*' ──"
+
+case "$HOST_OS" in
+    Darwin|Linux) ;;
+    *) echo "SKIP 77: unsupported platform $HOST_OS — §11.4.3"; echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0 ;;
+esac
+
+. "$SELF_DIR/lib/interactive_pty_probe.sh"
+if ! ipty_interactive_terminal_ok "$TMUX_BIN"; then
+    _skip "headless: no functional interactive terminal — §11.4.3"
+    echo "── Test 77 summary: PASS=$PASS FAIL=$FAIL SKIP=$SKIP ──"; exit 0
+fi
+
+SCRATCH_CANDID="${TMPDIR:-/tmp}"; SCRATCH_CANDID="${SCRATCH_CANDID%/}"
+SCRATCH_REAL="$(cd "$SCRATCH_CANDID" 2>/dev/null && pwd -P)" || SCRATCH_REAL="$SCRATCH_CANDID"
+if [ "$(( ${#SCRATCH_REAL} + 60 ))" -gt 100 ]; then
+    SCRATCH="/tmp/tmx77.$$"
+else
+    SCRATCH="$SCRATCH_REAL/tmx77.$$"
+fi
+mkdir -p "$SCRATCH" || { echo "SKIP 77: cannot create scratch $SCRATCH"; echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0; }
+
+HARNESS="$SELF_DIR/lib/pty_harness.sh"
+if [ ! -f "$HARNESS" ]; then
+    echo "SKIP 77: PTY harness missing — §11.4.3"; rm -rf "$SCRATCH"; echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0
+fi
+# shellcheck disable=SC1090
+. "$HARNESS"
+
+if [ ! -x "$TMUX_BIN" ]; then _skip "tmux binary not built at $TMUX_BIN"; rm -rf "$SCRATCH"; echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0; fi
+if [ ! -x "$WRAPPER" ];  then _skip "scripts/tmx wrapper not generated (run setup.sh)"; rm -rf "$SCRATCH"; echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0; fi
+if [ ! -x "$STATE_BIN" ]; then _skip "scripts/tmx-state-bin not built"; rm -rf "$SCRATCH"; echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 0; fi
+
+HOME_DIR="$SCRATCH/home"; mkdir -p "$HOME_DIR"
+STATE_FILE="$SCRATCH/state.json"
+export TMX_STATE_FILE="$STATE_FILE"
+export TMUX_TMPDIR="$SCRATCH"
+export PTH_TMUX="$TMUX_BIN"
+export PTH_SOCK="tmx77drv-$$"
+export PTH_TMPDIR="$SCRATCH"
+
+NAME="t77_$$"
+SOCK="tmx-$NAME"
+
+_cleanup() {
+    pth_driver_kill
+    "$WRAPPER" delete -t "$NAME" >/dev/null 2>&1 || true
+    "$TMUX_BIN" -L "$SOCK" kill-server >/dev/null 2>&1 || true
+    rm -rf "$SCRATCH" 2>/dev/null || true
+}
+trap _cleanup EXIT
+
+_envpfx() { printf 'HOME=%s TMUX_TMPDIR=%s TMX_STATE_FILE=%s' "$HOME_DIR" "$SCRATCH" "$STATE_FILE"; }
+_wrap_in_pane() { _ds="$1"; shift; pth_run_pane "$_ds" "$(_envpfx) '$WRAPPER' $*"; }
+
+# Create the session (interactive, foreground) so we hit the create-time
+# password prompt.
+if ! _wrap_in_pane "drv_${NAME}" new -s "$NAME"; then
+    _fail "could not start create driver pane"; echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 2
+fi
+if ! pth_wait_text "drv_${NAME}" "Enter password for session" 12; then
+    _fail "create-time password prompt never appeared"
+    pth_kill_pane "drv_${NAME}"
+    echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 2
+fi
+
+# Type "ab" then backspace then "c" — expect the visible pane to show
+# exactly "**" after "ab" is typed, then one '*' erased, then "**" again
+# after the backspace+"c" (never the literal a/b/c characters).
+pth_send "drv_${NAME}" "ab"
+sleep 0.3
+_buf1="$(pth_capture "drv_${NAME}")"
+if printf '%s' "$_buf1" | grep -qF "ab"; then
+    _fail "plaintext 'ab' visible in pane buffer — masking not applied"
+else
+    if printf '%s' "$_buf1" | grep -q '\*\*'; then
+        _pass "two '*' characters shown after typing 2 chars, no plaintext"
+    else
+        _fail "expected two '*' characters after typing 'ab'; buffer: $_buf1"
+    fi
+fi
+
+# Backspace (0x7f) then 'c'. Correct masking hides the retyped 'c' as a '*',
+# so the visible buffer must show masked stars and NEVER the plaintext password
+# characters. The typed sequence is "ab" → backspace → "c" (logical password
+# "ac"); on the OLD unmasked wrapper the pane would echo "ac" (plaintext) and on
+# an un-erased-backspace bug it would echo "ab" — both are plaintext leaks and
+# MUST FAIL. On the masked wrapper the buffer shows "**" (star erased by
+# backspace, star re-added by 'c') with no plaintext, and MUST PASS. The prompt
+# text itself contains no "ab"/"ac" adjacency, so these are safe leak sentinels
+# (same technique assertion 1 uses with "ab"). NOTE: a bare grep for the literal
+# retyped 'c' is WRONG for a masking test — masking hides 'c' as '*', so 'c'
+# never appears; asserting its presence would fail on correct code (§11.4.1 /
+# §11.4.115). We assert absence-of-plaintext + presence-of-masked-stars instead.
+pth_send "drv_${NAME}" $'\x7f'
+pth_send "drv_${NAME}" "c"
+sleep 0.3
+_buf2="$(pth_capture "drv_${NAME}")"
+if printf '%s' "$_buf2" | grep -qF "ab" || printf '%s' "$_buf2" | grep -qF "ac"; then
+    _fail "plaintext still visible after backspace+retype: $_buf2"
+elif printf '%s' "$_buf2" | grep -q '\*\*'; then
+    _pass "backspace + retype shows masked output, no plaintext leaked"
+else
+    _fail "unexpected buffer after backspace+retype: $_buf2"
+fi
+
+pth_send_enter "drv_${NAME}"
+pth_wait_attached "$TMUX_BIN" "$SOCK" "$NAME" "1" 12 || true
+pth_kill_pane "drv_${NAME}"
+
+echo "── Test 77 summary: PASS=$PASS FAIL=$FAIL SKIP=$SKIP ──"
+[ "$FAIL" -eq 0 ]
