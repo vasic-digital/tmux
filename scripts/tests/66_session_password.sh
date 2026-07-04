@@ -91,6 +91,36 @@ _run_3_iters() {
         else
             _fail "T5 iter=$_iter: empty password clears → exit $rc (want 0)"
         fi
+
+        # T6: has-password exit 2 for a session with no record at all.
+        "$TMX_STATE_BIN" forget "haspwtest" >/dev/null 2>&1 || true
+        "$TMX_STATE_BIN" has-password "haspwtest" >/dev/null 2>&1
+        rc=$?
+        if [ "$rc" -eq 2 ]; then
+            _pass "T6 iter=$_iter: has-password no record → exit 2"
+        else
+            _fail "T6 iter=$_iter: has-password no record → exit $rc (want 2)"
+        fi
+
+        # T7: has-password exit 1 for a record with no password.
+        "$TMX_STATE_BIN" set-password "haspwtest" "" >/dev/null 2>&1
+        "$TMX_STATE_BIN" has-password "haspwtest" >/dev/null 2>&1
+        rc=$?
+        if [ "$rc" -eq 1 ]; then
+            _pass "T7 iter=$_iter: has-password record no password → exit 1"
+        else
+            _fail "T7 iter=$_iter: has-password record no password → exit $rc (want 1)"
+        fi
+
+        # T8: has-password exit 0 for a record with a password.
+        "$TMX_STATE_BIN" set-password "haspwtest" "somepw" >/dev/null 2>&1
+        "$TMX_STATE_BIN" has-password "haspwtest" >/dev/null 2>&1
+        rc=$?
+        if [ "$rc" -eq 0 ]; then
+            _pass "T8 iter=$_iter: has-password record with password → exit 0"
+        else
+            _fail "T8 iter=$_iter: has-password record with password → exit $rc (want 0)"
+        fi
     done
 }
 
