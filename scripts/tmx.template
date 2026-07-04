@@ -769,31 +769,36 @@ case "$SUBCMD" in
         ;;
 
     attach|attach-session|a)
+        # §11.4.115 root-cause fix (forensic anchor 2026-07-05): verify the
+        # session is actually LIVE *before* any password prompt. A name
+        # whose password persisted across an idle-recycle (tmx-recycler.sh
+        # kills the tmux server but keeps the tmx-state record) previously
+        # still triggered a verify prompt here even though nothing could
+        # ever be attached to — the operator would enter the correct
+        # password, then the exec below would fail against the dead
+        # socket, and the shell-init wizard's old `attach || new` fallback
+        # would silently re-prompt via the `new` verb, looking like a
+        # spurious "asked twice". Checking has-session first means a
+        # dead/absent session never prompts at all.
+        if ! "$TMUX_BIN" -L "$SOCK_LABEL" has-session -t "$NAME" 2>/dev/null; then
+            printf 'tmx: no session named "%s"\n' "$NAME" >&2
+            exit 1
+        fi
+
         # §1 session password guard: if the session has a password, verify
         # it before allowing attach. Only prompts on interactive TTYs.
         # Non-fatal if the state binary is absent (graceful degradation).
         if [ -x "$TMX_DIR/tmx-state-bin" ] && [ -t 0 ]; then
-            # Probe: does a password exist for this session? If the session
-            # record doesn't exist (exit 2), skip — no guard.
-            if "$TMX_DIR/tmx-state-bin" verify-password "$NAME" "" >/dev/null 2>&1; then
-                : # No password set — can attach freely.
-            else
-                # Password exists (exit 1) or state readable (exit 0 with attempt).
-                # Try an empty check again properly: if it returned non-zero AND
-                # the session exists in state (exit != 2), a password is set.
-                "$TMX_DIR/tmx-state-bin" verify-password "$NAME" "" 2>/dev/null
-                rc=$?
-                if [ "$rc" -eq 1 ]; then
-                    # Password IS set — prompt for it.
-                    printf '[tmx] Session "%s" is password-protected. Enter password: ' "$NAME" >/dev/tty
-                    IFS= read -r PASSWORD </dev/tty
-                    if ! "$TMX_DIR/tmx-state-bin" verify-password "$NAME" "$PASSWORD" >/dev/null 2>&1; then
-                        printf '[tmx] Incorrect password for session "%s".\n' "$NAME" >&2
-                        unset PASSWORD
-                        exit 1
-                    fi
+            "$TMX_DIR/tmx-state-bin" has-password "$NAME" >/dev/null 2>&1
+            if [ "$?" -eq 0 ]; then
+                # Password IS set — prompt for it (masked).
+                PASSWORD=$(_read_password_masked "[tmx] Session \"$NAME\" is password-protected. Enter password: ")
+                if ! "$TMX_DIR/tmx-state-bin" verify-password "$NAME" "$PASSWORD" >/dev/null 2>&1; then
+                    printf '[tmx] Incorrect password for session "%s".\n' "$NAME" >&2
                     unset PASSWORD
+                    exit 1
                 fi
+                unset PASSWORD
             fi
         fi
         # Re-apply the shipped config into the session BEFORE attaching, so
