@@ -195,7 +195,7 @@ challenges:
       tmx wrapper contains _apply_host_color + hostname_color.sh ref;
       status-style bg matches expected hostname colour on first and
       subsequent sessions
-    evidence: 'show -g status-style' output matched to hostname_color.sh result
+    evidence: "'show -g status-style' output matched to hostname_color.sh result"
     severity: high
 
   - id: TMUX-CH-16
@@ -986,4 +986,70 @@ challenges:
       §11.4.3 topology: SKIPs gracefully if the tmux binary or
       tmx-state-bin is not built, or if scripts/tmux is not generated
       (run scripts/setup.sh).
+    severity: blocker
+
+  - id: TMUX-CH-77
+    title: password input masked with '*'
+    description: |
+      Typing a session password shows only '*' characters on screen,
+      never the plaintext; backspace erases one '*'.
+    test_script: scripts/tests/77_password_masked_echo.sh
+    pass_condition: |
+      PTY pane buffer contains only '*' characters for the typed
+      password, never the literal characters
+    evidence: captured pane buffer transcript
+    severity: high
+
+  - id: TMUX-CH-78
+    title: wizard-created session name gets a random 4-digit suffix
+    description: |
+      Typing a base name at the interactive wizard creates a REAL session
+      named "<base>-NNNN" (4 random digits), never the literal typed
+      name, unless TMX_EXACT_NAME=1 is set.
+    test_script: scripts/tests/78_wizard_suffix_appended.sh
+    pass_condition: |
+      created session name matches ^<base>-[0-9]{4}$ (or equals the
+      literal base name when TMX_EXACT_NAME=1)
+    evidence: tmux ls output across all wrapper-owned sockets
+    severity: high
+
+  - id: TMUX-CH-79
+    title: wizard existing-session picker on blank input
+    description: |
+      Pressing Enter at the wizard prompt with existing sessions present
+      offers a numbered picker + "0) None"; selecting a number attaches
+      that session (password-protected sessions prompt exactly once).
+    test_script: scripts/tests/79_wizard_select_existing.sh
+    pass_condition: |
+      menu lists all existing sessions plus a None option; selection
+      attaches the chosen session; password-protected selection shows
+      exactly one password prompt
+    evidence: PTY pane transcript + session_attached state
+    severity: high
+
+  - id: TMUX-CH-80
+    title: creating a new password-protected session asks twice
+    description: |
+      Creating a genuinely new session with a password prompts for the
+      password AND a confirmation; mismatched confirmation retries up to
+      3 times then aborts with no session left behind.
+    test_script: scripts/tests/80_new_password_confirm_flow.sh
+    pass_condition: |
+      "Confirm password" prompt follows the first entry; matching pair
+      succeeds; 3x mismatch aborts with has-session failing afterward
+    evidence: PTY pane transcript + has-session / has-password exit codes
+    severity: critical
+
+  - id: TMUX-CH-81
+    title: reopening a password-protected session prompts exactly once
+    description: |
+      The forensic-anchor regression guard — reopening a recycled
+      (dead-but-state-persisted) password-protected session by name shows
+      exactly one password prompt, correct password attaches, and the
+      persisted hash is unchanged.
+    test_script: scripts/tests/81_open_existing_password_single_prompt.sh
+    pass_condition: |
+      exactly one password prompt on reopen; hash before == hash after;
+      wrong password on reopen is rejected
+    evidence: PTY pane transcript + persisted state-file hash comparison
     severity: blocker
