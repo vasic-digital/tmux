@@ -1429,6 +1429,48 @@ else
     trap - EXIT
 fi
 
+# ── M-MASK: tmx.template — masking prints the real character, not '*' ──
+run_mutation \
+    "M-MASK: password masking echoes plaintext instead of '*'" \
+    "scripts/tmx.template" \
+    "inplace_sed 's|printf .\\*. >/dev/tty|printf \"%s\" \"\$char\" >/dev/tty|' \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/77_password_masked_echo.sh" \
+    "FAIL"
+
+# ── M-LIVEFIRST: tmx.template — attach verb skips the has-session check ──
+# NOTE: the has-session guard text is byte-identical to an UNRELATED,
+# pre-existing check in the `new` verb (§11.4.108 create-failure detection,
+# ~150 lines earlier) — a plain sed 's|...|...|' would silently mutate BOTH
+# occurrences. Scoped to the `attach|attach-session|a)` case block (the
+# ONLY unique anchor immediately preceding this task's occurrence) via a
+# sed address range so the `new` verb's own check is never touched.
+run_mutation \
+    "M-LIVEFIRST: attach verb no longer checks liveness before password prompt" \
+    "scripts/tmx.template" \
+    "inplace_sed '/attach|attach-session|a)/,+15 s|if ! \"\$TMUX_BIN\" -L \"\$SOCK_LABEL\" has-session -t \"\$NAME\" 2>/dev/null; then|if false; then|' \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/84_attach_dead_session_no_prompt.sh" \
+    "FAIL"
+
+# ── M-CONFIRM: tmx.template — new-password confirmation step is skipped ──
+run_mutation \
+    "M-CONFIRM: new-password flow accepts without confirmation" \
+    "scripts/tmx.template" \
+    "inplace_sed 's|if \\[ \"\$_pw1\" = \"\$_pw2\" \\]; then|if true; then|' \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/80_new_password_confirm_flow.sh" \
+    "FAIL"
+
+# ── M-SUFFIX: tmx-shell-init.sh.template — suffix generation forced empty ──
+run_mutation \
+    "M-SUFFIX: wizard suffix generation forced to empty string" \
+    "scripts/tmx-shell-init.sh.template" \
+    "inplace_sed 's|_suffix=\$(awk .*|_suffix=\"\"|' \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/78_wizard_suffix_appended.sh" \
+    "FAIL"
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════
