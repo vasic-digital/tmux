@@ -1429,47 +1429,62 @@ else
     trap - EXIT
 fi
 
-# ── M-MASK: tmx.template — masking prints the real character, not '*' ──
-run_mutation \
-    "M-MASK: password masking echoes plaintext instead of '*'" \
-    "scripts/tmx.template" \
-    "inplace_sed 's|printf .\\*. >/dev/tty|printf \"%s\" \"\$char\" >/dev/tty|' \"\$target_abs\"" \
-    "false" \
+# ── M-MASK / M-LIVEFIRST / M-CONFIRM / M-SUFFIX (§11.4.120 reconciliation,
+#    2026-07-05) — CORRECTED after the whole-branch independent review
+#    (Task 12) found the original 4 entries were bluff gates: (1) they
+#    mutated the .template SOURCE files, but the tests they gate execute
+#    the separately-GENERATED, gitignored scripts/tmx / scripts/tmx-shell-
+#    init.sh artefacts — no rebuild ran between mutate and test, so the
+#    mutation never reached the code under test; (2) the bare "FAIL"
+#    expect-regex tautologically matches every test's OWN passing summary
+#    line ("... PASS=2 FAIL=0 SKIP=0 ..."), so "MUTATION CAUGHT" reported
+#    true even when the mutation had zero effect. Independently
+#    re-verified both defects before fixing (dry-run: bare grep -qE "FAIL"
+#    matches "FAIL=0"; `file scripts/tmx` confirms it is a real generated
+#    artefact, not a symlink; run_mutation() never calls setup.sh).
+#    Fixed by switching to v109_run_mutation (the established pattern for
+#    this exact situation — see M25/M26 above) targeting the GENERATED
+#    scripts/tmx / scripts/tmx-shell-init.sh directly (cp-restore is clean,
+#    matches source byte-for-byte since no placeholder substitution
+#    touches these lines) with a precise per-test FAIL-prefix regex that
+#    cannot match a clean summary line.
+v109_run_mutation \
+    "M-MASK" \
+    "password masking echoes plaintext instead of '*' (test 77)" \
+    "scripts/tmx" \
+    "inplace_sed 's|printf .\\*. >/dev/tty|printf \"%s\" \"\$char\" >/dev/tty|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
     "scripts/tests/77_password_masked_echo.sh" \
-    "FAIL"
+    "FAIL 77"
 
-# ── M-LIVEFIRST: tmx.template — attach verb skips the has-session check ──
 # NOTE: the has-session guard text is byte-identical to an UNRELATED,
 # pre-existing check in the `new` verb (§11.4.108 create-failure detection,
 # ~150 lines earlier) — a plain sed 's|...|...|' would silently mutate BOTH
 # occurrences. Scoped to the `attach|attach-session|a)` case block (the
 # ONLY unique anchor immediately preceding this task's occurrence) via a
 # sed address range so the `new` verb's own check is never touched.
-run_mutation \
-    "M-LIVEFIRST: attach verb no longer checks liveness before password prompt" \
-    "scripts/tmx.template" \
-    "inplace_sed '/attach|attach-session|a)/,+15 s|if ! \"\$TMUX_BIN\" -L \"\$SOCK_LABEL\" has-session -t \"\$NAME\" 2>/dev/null; then|if false; then|' \"\$target_abs\"" \
-    "false" \
+v109_run_mutation \
+    "M-LIVEFIRST" \
+    "attach verb no longer checks liveness before password prompt (test 84)" \
+    "scripts/tmx" \
+    "inplace_sed '/attach|attach-session|a)/,+15 s|if ! \"\$TMUX_BIN\" -L \"\$SOCK_LABEL\" has-session -t \"\$NAME\" 2>/dev/null; then|if false; then|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
     "scripts/tests/84_attach_dead_session_no_prompt.sh" \
-    "FAIL"
+    "FAIL 84"
 
-# ── M-CONFIRM: tmx.template — new-password confirmation step is skipped ──
-run_mutation \
-    "M-CONFIRM: new-password flow accepts without confirmation" \
-    "scripts/tmx.template" \
-    "inplace_sed 's|if \\[ \"\$_pw1\" = \"\$_pw2\" \\]; then|if true; then|' \"\$target_abs\"" \
-    "false" \
+v109_run_mutation \
+    "M-CONFIRM" \
+    "new-password flow accepts without confirmation (test 80)" \
+    "scripts/tmx" \
+    "inplace_sed 's|if \\[ \"\$_pw1\" = \"\$_pw2\" \\]; then|if true; then|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
     "scripts/tests/80_new_password_confirm_flow.sh" \
-    "FAIL"
+    "FAIL 80"
 
-# ── M-SUFFIX: tmx-shell-init.sh.template — suffix generation forced empty ──
-run_mutation \
-    "M-SUFFIX: wizard suffix generation forced to empty string" \
-    "scripts/tmx-shell-init.sh.template" \
-    "inplace_sed 's|_suffix=\$(awk .*|_suffix=\"\"|' \"\$target_abs\"" \
-    "false" \
+v109_run_mutation \
+    "M-SUFFIX" \
+    "wizard suffix generation forced to empty string (test 78)" \
+    "scripts/tmx-shell-init.sh" \
+    "inplace_sed 's|_suffix=\$(awk .*|_suffix=\"\"|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
     "scripts/tests/78_wizard_suffix_appended.sh" \
-    "FAIL"
+    "FAIL 78"
 
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)

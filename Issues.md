@@ -98,6 +98,28 @@ after the fix.
 
 ---
 
+### A3. META-TEST-72-73-COVERAGE-001 — tests 72/73 need persistent meta-test mutations
+
+**TMX-ID:** TMX-076
+**Type:** Task
+**Status:** Queued
+
+Tests 72 (libevent/ncurses local-dependency obtain) and 73 (build_native.sh
+local-dependency wiring) currently have no paired §1.1 mutation registered in
+scripts/tests/meta_test_false_positive_proof.sh, so a regression in either
+mechanism would not be mechanically caught by the layer-4 anti-bluff sweep.
+Re-filed follow-up from TMX-071 (originally tracked 2026-06-30 in commit
+`8232b15`, reverted the same day in commit `9b719a6` purely because of an
+unrelated add→db-to-md rendering tooling defect, not because the underlying
+work was invalid or completed — confirmed via git history per §11.4.124; the
+mutation-writing itself was never done). Acceptance: two new persistent
+mutations (mirroring the existing M-test67/CM-LOCAL-DEPS-MECHANISM pattern)
+that mutate a real invariant each test enforces and assert the harness FAILs,
+then restore cleanly; both wired into the standing sweep alongside the
+existing 60+ mutations.
+
+---
+
 ## B. Anti-bluff completeness across the existing test surface
 
 (Prior B-items closed: B3 P5-M20/P5-M21 escapes CLOSED in v1.0.16

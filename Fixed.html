@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.10" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>Fixed</title>
   <style>
@@ -91,6 +91,7 @@
       color: #606060;
     }
     code {
+      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -154,10 +155,13 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
-    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
     /* The extra [class] is a hack that increases specificity enough to
        override a similar rule in reveal.js */
@@ -4068,6 +4072,27 @@ an audit row and rejects terminal/unknown values —
 <code>go test ./cmd/workable-items</code> GREEN; pending conductor
 verification + close.</p>
 <h3
+id="a50-go-toolchain-obtain-001--obtain-go-toolchain-locally-for-the-tmx-state--workable-items-go-build--resolved">A50
+GO-TOOLCHAIN-OBTAIN-001 — obtain Go toolchain locally for the tmx-state
++ workable-items Go build — <code>RESOLVED</code></h3>
+<p><strong>TMX-ID:</strong> TMX-057 <strong>Status:</strong> Completed
+(→ Fixed.md) <strong>Type:</strong> Task <strong>Severity:</strong>
+MEDIUM</p>
+<p>On hosts lacking a system Go toolchain (e.g. <code>amber</code>), the
+<code>scripts/tmx-state/</code> and <code>cmd/workable-items/</code> Go
+binaries cannot be (re)built — blocking per-session cwd persistence AND
+the §11.4.93 workable-items SSoT tooling. <strong>Fix
+direction:</strong> extend the existing §11.4.77 local-deps mechanism
+(<code>obtain_local_deps.sh</code>, which already sha256-obtains
+libevent 2.1.12 + ncurses 6.5 into git-ignored
+<code>.local-deps/</code>) to resolve-or-obtain a pinned Go toolchain
+into <code>.local-deps/</code>, consumed by the Go build steps via
+<code>GOROOT</code>/<code>PATH</code>. <strong>Acceptance:</strong> on a
+host with no system <code>go</code>, a clean
+<code>go build ./cmd/workable-items</code> succeeds against the obtained
+local toolchain (exit 0; control without it →
+<code>go: command not found</code>).</p>
+<h3
 id="a54-no-sudo-projectwide-followup-001--convert-print-only-sudosetcap-hints-outside-the-install-path-and-extend-the-no-sudo-gate-project-wide--resolved">A54
 NO-SUDO-PROJECTWIDE-FOLLOWUP-001 — convert print-only sudo/setcap hints
 outside the install path and extend the no-sudo gate project-wide —
@@ -4086,6 +4111,24 @@ Status Queued. Acceptance: project-wide 0
 <code>sudo</code>/<code>su</code> execution paths, and the gate is
 scoped to flag execution only — no false positives on legitimate "(as
 root)" documentation strings.</p>
+<h3
+id="b50-test-coverage-g1-g5-001--close-test-coverage-gaps-g1-g5-for-the-v1030-cross-platform-install-hardening--resolved">B50
+TEST-COVERAGE-G1-G5-001 — close test-coverage gaps G1-G5 for the v1.0.30
+cross-platform install hardening — <code>RESOLVED</code></h3>
+<p><strong>TMX-ID:</strong> TMX-059 <strong>Status:</strong> Completed
+(→ Fixed.md) <strong>Type:</strong> Task <strong>Severity:</strong>
+MEDIUM</p>
+<p>v1.0.30 added native-build fallback (<code>setup.sh</code>),
+<code>build_native.sh</code> local-deps wiring
+(<code>-I</code>/<code>-L</code> + <code>PKG_CONFIG_PATH</code>),
+<code>obtain_local_deps.sh</code> libevent/ncurses obtain, and the
+escaped-colon session-color fix; the CHANGELOG tracks "test-coverage
+gaps G1-G5" but they are NOT yet enumerated distinctly nor each covered
+by an anti-bluff test + paired §1.1 mutation. <strong>Fix
+direction:</strong> first enumerate G1-G5 precisely, then add four-layer
+coverage (§11.4.4(b)) for each. <strong>Acceptance:</strong> each of
+G1-G5 has a named runtime test with captured evidence PLUS a paired
+meta-test mutation that FAILs when its guard is stripped.</p>
 <h3
 id="b51-db-fixedmd-ssot-drift-001--reconcile-dbfixedmd-ssot-drift-fixedmd-a46-a49-absent-from-the-items-table--resolved">B51
 DB-FIXEDMD-SSOT-DRIFT-001 — reconcile DB↔︎Fixed.md SSoT drift (Fixed.md
@@ -4138,5 +4181,41 @@ HTTPS-rewrite edge in <code>docs/guides</code> +
 self-recover. <strong>Acceptance:</strong> a docs page (synced HTML/PDF
 per §11.4.65) reproduces the repair steps, verified against the v1.0.30
 <code>setup.sh</code> fallback path.</p>
+<h3
+id="a52-meta-test-72-73-register-001--register-persistent-meta-test-mutations-for-114110-wiring--obsolete">A52.
+META-TEST-72-73-REGISTER-001 — register persistent meta-test mutations
+for §11.4.110 wiring — <code>Obsolete</code></h3>
+<p><strong>TMX-ID:</strong> TMX-071 <strong>Status:</strong> Obsolete (→
+Fixed.md) <strong>Type:</strong> Task <strong>Severity:</strong> LOW</p>
+<p><strong>Obsolete-Details:</strong></p>
+<ul>
+<li><strong>Since:</strong> 2026-06-30</li>
+<li><strong>Reason:</strong> feature-removed</li>
+<li><strong>Superseding-item:</strong> TMX-076 (Issues.md §A3 — the same
+undone work re-filed fresh)</li>
+<li><strong>Triple-check evidence:</strong> commit <code>8232b15</code>
+allocated this item 2026-06-30 to track "register persistent meta-test
+mutations M-test72/M-test73 + extended M-CM-LOCAL-DEPS-MECHANISM
+(§11.4.110)"; commit <code>9b719a6</code> reverted the DB row the SAME
+day — confirmed via <code>git log -S"TMX-071"</code> and both commits'
+full messages — purely because the <code>add</code> command's
+structured-only row was never rendered into canonical
+<code>Issues.md</code> by <code>db-to-md</code> (an unrelated §11.4.148
+tooling blind spot, not a defect in the tracked idea itself). The revert
+deleted the row outright without rolling back the <code>meta_id</code>
+allocation counter, leaving a permanent <code>TMX-070→TMX-072</code>
+sequence gap that <code>workable-items validate</code> correctly flags
+per §11.4.54 (ids are append-only, never renumbered or reused) once any
+later item was allocated past it — surfaced 2026-07-05 during the
+wizard/password-redesign release gate
+(<code>51_workable_items_db_integrity.sh</code> T3). This entry restores
+the allocated-but-retracted ordinal as an honest tombstone rather than
+leaving a silent hole; confirmed the underlying mutation-writing work
+was never actually completed under any other ID (grepped
+<code>scripts/tests/meta_test_false_positive_proof.sh</code> for
+<code>M-test72</code>/<code>M-test73</code> — absent) before re-filing
+it fresh as TMX-076, so the real remaining work is tracked, not silently
+lost.</li>
+</ul>
 </body>
 </html>

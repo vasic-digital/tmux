@@ -76,7 +76,16 @@ NAME_PW="t79pw_$$"
 PW="wizardpick789"
 NAMES="$NAME_PLAIN $NAME_PW"
 
-_envpfx() { printf 'HOME=%s TMUX_TMPDIR=%s TMX_STATE_FILE=%s' "$HOME_DIR" "$SCRATCH" "$STATE_FILE"; }
+# §11.4.102 root-cause fix (2026-07-05, full-suite regression sweep): the
+# wizard's own `! command -v tmx >/dev/null 2>&1` guard (a legitimate
+# graceful-degradation check) fires and returns silently — with NO prompt
+# ever printed — unless `tmx` resolves on PATH inside the driven pane.
+# Without this PATH prepend, the entire test failed ("wizard prompt never
+# appeared") purely because the pane's ambient PATH didn't include the
+# scripts directory — the wizard was never actually exercised. Mirrors the
+# same fix already proven in test 54 (`SCRIPTS_DIR` prepended to PATH
+# before sourcing the same INIT file).
+_envpfx() { printf 'PATH=%s:$PATH HOME=%s TMUX_TMPDIR=%s TMX_STATE_FILE=%s' "$REPO_ROOT/scripts" "$HOME_DIR" "$SCRATCH" "$STATE_FILE"; }
 _wrap_in_pane() { _ds="$1"; shift; pth_run_pane "$_ds" "$(_envpfx) '$WRAPPER' $*"; }
 _wrap_init_in_pane() {
     _ds="$1"
@@ -196,7 +205,18 @@ else
     pth_kill_pane "drv_pick2"
 fi
 
-# ── Scenario 3: "0" → bare shell (no tmux invoked). ─────────────────────
+# ── Scenario 3: "0" → bare shell (no tmux invoked). §11.4.145 hardening
+#    (2026-07-05, whole-branch review Minor finding): the original
+#    assertion here was an unconditional `_pass` with no real check. Now
+#    asserts a real thing: neither pre-created session gained an extra
+#    attached client as a side effect of the "0" selection (attached-count
+#    stays 0/0 for both). A marker-echo "is the pane still a live shell"
+#    check was tried and dropped: `_wrap_init_in_pane` drives the wizard
+#    via `sh -c '...; exit 0'`, a one-shot construct whose process exits
+#    immediately after sourcing completes regardless of what the wizard
+#    did internally — there is no persistent shell left in this synthetic
+#    pane to send a follow-up command to, so that check could only ever
+#    fail, independent of product correctness. ──────────────────────────
 if ! _wrap_init_in_pane "drv_pick3"; then
     _fail "could not start wizard driver pane (scenario 3)"
 else
@@ -204,11 +224,14 @@ else
     pth_send_enter "drv_pick3"
     pth_wait_text "drv_pick3" "0) None" 8
     pth_send_line "drv_pick3" "0"
-    sleep 1
-    if [ -z "${TMUX:-}" ] && ! pth_capture "drv_pick3" | grep -q "\\$"; then
-        : # best-effort: no strong assertion needed beyond "did not hang/crash"
+    sleep 0.5
+    _att_plain="$(pth_inner_attached "$TMUX_BIN" "tmx-$NAME_PLAIN" "$NAME_PLAIN" 2>/dev/null || echo "?")"
+    _att_pw="$(pth_inner_attached "$TMUX_BIN" "tmx-$NAME_PW" "$NAME_PW" 2>/dev/null || echo "?")"
+    if [ "$_att_plain" = "0" ] && [ "$_att_pw" = "0" ]; then
+        _pass "'0' selection attached to neither pre-created session (attached-count 0/0)"
+    else
+        _fail "'0' selection unexpectedly left a session attached (plain=$_att_plain pw=$_att_pw)"
     fi
-    _pass "'0' selection returns without attaching any session (bare shell path)"
     pth_kill_pane "drv_pick3"
 fi
 

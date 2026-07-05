@@ -10,12 +10,24 @@
 # Inputs:     scripts/tmx-shell-init.sh (the generated, .zshrc/.bashrc-sourced
 #             file). Run scripts/setup.sh first so it exists.
 # Outputs:    EVIDENCE prompt_count=N ; PASS/FAIL line ; exit 0 PASS / 2 FAIL.
-# Side-effects: none — uses a throwaway $HOME sandbox (trap-cleaned). Answers
-#             every prompt with a blank line so NO tmx session is ever created.
+# Side-effects: none — uses a throwaway $HOME + private TMUX_TMPDIR sandbox
+#             (trap-cleaned). Answers every prompt with a blank line so NO
+#             tmx session is ever created. TMUX_TMPDIR isolation is REQUIRED
+#             (2026-07-05, §4 wizard-picker redesign): blank input now queries
+#             `tmx ls` and diverts into a session-picker sub-prompt whenever
+#             ANY session exists on the resolved socket dir — without a
+#             private, pre-created (but empty) TMUX_TMPDIR/tmux-$(id -u) dir,
+#             `tmx ls` falls through to the REAL host's live sessions
+#             (§11.4.111 _our_sockets() only stops at the FIRST *existing*
+#             candidate dir), diverting the test into a prompt this driver
+#             never answers and masking the double-source guard entirely.
 # Dependencies: /bin/bash, python3 (stdlib pty only).
 # Cross-refs: scripts/tmx-shell-init.sh.template ; meta-test M-DBLPROMPT ;
-#             forensic anchor: user report 2026-05-29, nezha bash -l -i = 2.
-# Last verified: 2026-05-29
+#             forensic anchor: user report 2026-05-29, nezha bash -l -i = 2;
+#             TMUX_TMPDIR-isolation regression found 2026-07-05 via the
+#             M-DBLPROMPT meta-test mutation escaping on a host with live
+#             sessions (root-caused, not guessed, per §11.4.102/§11.4.120).
+# Last verified: 2026-07-05
 # ─────────────────────────────────────────────────────────────────────────
 set -eu
 
@@ -38,6 +50,15 @@ fi
 
 SANDBOX=$(mktemp -d)
 trap 'rm -rf "$SANDBOX"' EXIT
+
+# Private, pre-created-but-empty TMUX_TMPDIR socket dir. _our_sockets() (in
+# scripts/tmx.template) checks "${TMUX_TMPDIR:-}/tmux-$(id -u)" FIRST and
+# only falls back to the real "/tmp/tmux-$(id -u)" if that first candidate
+# does NOT exist as a directory — so it must be pre-created (empty) here,
+# not merely pointed at, or `tmx ls` (invoked by the wizard's blank-input
+# picker) falls through to the operator's real, live sessions.
+TMUX_SANDBOX_DIR="$SANDBOX/.tmux_tmpdir"
+mkdir -p "$TMUX_SANDBOX_DIR/tmux-$(id -u)"
 
 # Reproduce the nezha double-source topology in ONE process:
 #   .bash_profile sources tmx-shell-init  AND  sources .bashrc
@@ -65,13 +86,15 @@ RC
 # verdict prints — the meta-test greps stdout for the FAIL token, so the
 # FAIL line below MUST be emitted on the failure (count!=1) path.
 rc=0
-python3 - "$SANDBOX" "$INIT" <<'PY' || rc=$?
+python3 - "$SANDBOX" "$INIT" "$TMUX_SANDBOX_DIR" <<'PY' || rc=$?
 import os, pty, select, time, sys
-sandbox = sys.argv[1]
-init    = sys.argv[2]
+sandbox      = sys.argv[1]
+init         = sys.argv[2]
+tmux_tmpdir  = sys.argv[3]
 PROMPT  = b"Enter session name"
 env = dict(os.environ)
 env["HOME"] = sandbox
+env["TMUX_TMPDIR"] = tmux_tmpdir
 env.pop("TMUX", None)
 env.pop("TMX_SKIP", None)
 # tmx must be reachable so the prompt path actually runs (init returns

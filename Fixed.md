@@ -2995,3 +2995,34 @@ operator-facing repair guidance lives only in the CHANGELOG. **Fix direction:** 
 install HTTPS-rewrite edge in `docs/guides` + `docs/scripts` so an end user hitting either
 can self-recover. **Acceptance:** a docs page (synced HTML/PDF per §11.4.65) reproduces the
 repair steps, verified against the v1.0.30 `setup.sh` fallback path.
+
+### A52. META-TEST-72-73-REGISTER-001 — register persistent meta-test mutations for §11.4.110 wiring — `Obsolete`
+
+**TMX-ID:** TMX-071
+**Status:** Obsolete (→ Fixed.md)
+**Type:** Task
+**Severity:** LOW
+
+**Obsolete-Details:**
+- **Since:** 2026-06-30
+- **Reason:** feature-removed
+- **Superseding-item:** TMX-076 (Issues.md §A3 — the same undone work re-filed fresh)
+- **Triple-check evidence:** commit `8232b15` allocated this item 2026-06-30 to
+  track "register persistent meta-test mutations M-test72/M-test73 + extended
+  M-CM-LOCAL-DEPS-MECHANISM (§11.4.110)"; commit `9b719a6` reverted the DB row
+  the SAME day — confirmed via `git log -S"TMX-071"` and both commits' full
+  messages — purely because the `add` command's structured-only row was never
+  rendered into canonical `Issues.md` by `db-to-md` (an unrelated §11.4.148
+  tooling blind spot, not a defect in the tracked idea itself). The revert
+  deleted the row outright without rolling back the `meta_id` allocation
+  counter, leaving a permanent `TMX-070→TMX-072` sequence gap that
+  `workable-items validate` correctly flags per §11.4.54 (ids are
+  append-only, never renumbered or reused) once any later item was allocated
+  past it — surfaced 2026-07-05 during the wizard/password-redesign release
+  gate (`51_workable_items_db_integrity.sh` T3). This entry restores the
+  allocated-but-retracted ordinal as an honest tombstone rather than leaving
+  a silent hole; confirmed the underlying mutation-writing work was never
+  actually completed under any other ID (grepped
+  `scripts/tests/meta_test_false_positive_proof.sh` for `M-test72`/`M-test73`
+  — absent) before re-filing it fresh as TMX-076, so the real remaining work
+  is tracked, not silently lost.

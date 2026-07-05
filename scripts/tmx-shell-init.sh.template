@@ -152,6 +152,7 @@ if [ -z "$session_name" ] || [ "$session_name" = "default" ]; then
     _existing="$(tmx ls 2>/dev/null | sed -n 's/^\([^:]*\):.*/\1/p')"
     if [ -z "$_existing" ]; then
         # No existing sessions to offer — unchanged default: bare shell.
+        unset _existing
         return 0 2>/dev/null || exit 0
     fi
     printf '[tmx] Existing sessions:\n' >&2
@@ -194,6 +195,11 @@ if [ -z "$session_name" ] || [ "$session_name" = "default" ]; then
             exec sh -c 'exec tmx attach -t "$1"' tmx-shell-init "$_picked"
         fi
     fi
+    # §11.4.145 hardening (2026-07-05, whole-branch review Minor finding):
+    # this block `return`s rather than `exec`s on the "0"/None/invalid path,
+    # so any variable left set here would persist in the operator's own
+    # sourced interactive shell. Clear everything the picker introduced.
+    unset _existing _n _tmx_menu_names _attempt _valid _choice _picked _i _s
     return 0 2>/dev/null || exit 0
 fi
 
@@ -232,7 +238,16 @@ esac
 if [ -n "${TMX_EXACT_NAME:-}" ]; then
     real_name="$session_name"
 else
-    _suffix=$(awk 'BEGIN{srand(); printf "%04d", int(rand()*10000)}')
+    # §11.4.145 hardening (2026-07-05, whole-branch review finding I1):
+    # awk's `srand()` with no argument seeds from the current wall-clock
+    # SECOND, so two terminals opened within the same second computed the
+    # SAME suffix — not a ~1/10000 residual as originally documented, but
+    # an effectively deterministic collision for the common "open several
+    # terminals at once" case (the second `tmx new` would then hit the
+    # pre-existing collision guard and exit 4 instead of creating a
+    # session). Mixing in this shell's own PID makes same-second opens
+    # from different processes diverge.
+    _suffix=$(awk -v p="$$" 'BEGIN{srand(); printf "%04d", (int(rand()*10000)+p)%10000}')
     real_name="${session_name}-${_suffix}"
 fi
 exec sh -c 'exec tmx new -s "$1"' tmx-shell-init "$real_name"
