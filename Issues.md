@@ -267,3 +267,11 @@ Reopening a session that had been idle-recycled (its tmux process torn down for 
 **Status:** Queued
 
 Previously, pressing Enter without typing a session name at the interactive tmx wizard always dropped the operator into a plain shell with no other option. Now, if any sessions already exist, the operator sees a numbered list of them plus a 'None' option, and can pick a number to join that session directly (still prompted for its password exactly once if it is protected) instead of having to remember and retype its exact name. Choosing None, or pressing Enter again, behaves exactly as before (a plain shell). Implemented in scripts/tmx-shell-init.sh.template. Acceptance: test 79 passes, covering picking a plain session, picking a password-protected one, and choosing None.
+
+### G5 SANITIZE-NAME-001 — session names containing spaces or special characters are normalized to safe names
+
+**TMX-ID:** TMX-078
+**Type:** Feature
+**Status:** Implemented (→ Fixed.md)
+
+When the operator types or passes a session name containing spaces, tabs, or other special characters, tmx now normalizes it instead of rejecting it: leading/trailing whitespace is removed, internal whitespace runs are collapsed to a single `-`, and any remaining characters outside the session-name safe set are stripped. This applies both to `tmx new -s NAME` (via `scripts/tmx.template`) and to the interactive wizard prompt (via `scripts/tmx-shell-init.sh.template`), so names like `"hello world"` become `hello-world`. The wizard prompt preserves inline colour syntax (`name:red`, `name:#hex`) by splitting at the first `:` before sanitizing the name and inserting the random suffix before the colour token (`home-1234:red`). Empty or whitespace-only input continues to fall through to the existing empty/default picker path. Closure: v1.0.35 / versionCode 36.

@@ -6,6 +6,54 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.35] — 2026-07-05
+
+### Added
+
+- **Session-name sanitization for spaces and special characters.** Both the
+  `tmx new -s NAME` operator path and the interactive wizard prompt now
+  normalize a typed/passed name instead of rejecting it: leading/trailing
+  whitespace is stripped, internal whitespace runs are collapsed to a single
+  `-`, and any remaining characters outside the safe session-name set are
+  deleted. Names like `"hello world"` become `hello-world`, so the operator
+  can type naturally without memorizing the allowed character set. Empty or
+  whitespace-only input continues to fall through to the existing empty/default
+  picker path (no accidental session creation). Implemented in
+  `scripts/tmx.template` and `scripts/tmx-shell-init.sh.template`.
+- **Wizard colour syntax preserved alongside sanitization.** The interactive
+  prompt keeps `:` and `#` so `name:red` and `name:#hex` still reach the
+  wrapper; the random suffix is inserted before the colour token
+  (`home-1234:red`, not `home:red-1234`) so the wrapper sees a valid colour.
+
+### Fixed
+
+- **Test reconciliation for the intentional safe-set change.** Historical
+  tests 63 (escaped-colour syntax) and 65 (wizard prompt validation) asserted
+  the old reject-on-invalid behaviour; they now assert the new normalize-
+  then-forward behaviour per §11.4.120, preventing a false RED after the
+  sanitization change.
+
+### Verification
+
+- New test `35_session_name_validation.sh` covers the wizard sanitization
+  path (spaces, tabs, special characters, trim, empty/whitespace-only,
+  colour-preservation) with a fake `tmx` and 3× determinism.
+- New test `82_session_name_sanitization_live.sh` creates real tmux sessions
+  with messy names and verifies the sanitized name and socket label match.
+- Paired meta-test `M82` neutralizes the whitespace-to-hyphen handling in the
+  generated `scripts/tmx`; test 82 fails, proving the guard has teeth.
+- `setup.sh`: **PASS=69 FAIL=0 SKIP=13** (nezha, Linux x86_64).
+- Standalone `run_all.sh`: **PASS=69 FAIL=0 SKIP=13** (nezha, Linux x86_64).
+- `meta_test_false_positive_proof.sh`: **66 mutations caught, 0 escaped,
+  11 skipped** (layer-4 coverage active). `M82` was skipped by the
+  automated harness (mutation-target lookup transient); it was manually
+  reproduced: applying the mutation makes test 82 FAIL, restoring makes
+  test 82 PASS — the guard has teeth.
+- Live operator-path retest: `tmx new -s 'hello world' -d` created
+  `hello-world`; `tmx new -s '  messy! name  ' -d` created `messy-name`;
+  `tmx new -s 'hello world:red' -d` created `hello-world` with
+  `status-style bg=red`. All sessions deleted cleanly.
+
 ## [v1.0.34] — 2026-07-05
 
 ### Added

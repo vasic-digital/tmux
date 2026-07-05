@@ -10,9 +10,10 @@
 #   - non-TTY stdin/stdout           → silent return 0 (scp/rsync/IDE pipes)
 #   - $TMX_SKIP non-empty            → silent return 0 (operator override)
 #   - `tmx` not on PATH              → silent return 0 (graceful degradation)
-#   - empty or `default` input       → return 0 (bare shell)
-#   - invalid session name           → stderr error + return 1
-#   - valid name                     → exec `tmx attach -t NAME` || exec `tmx new -s NAME`
+#   - empty or `default` input       → return 0 (bare shell / session picker)
+#   - name with spaces/special chars → normalised to a safe session name
+#   - implausibly long sanitised name → stderr error + return 1
+#   - valid name                     → exec `tmx new -s NAME` (with a unique suffix)
 #
 # Project: __PROJECT__
 
@@ -135,6 +136,15 @@ if [ -n "${_TMX_SHELL_INIT_PROMPTED:-}" ]; then
 fi
 _TMX_SHELL_INIT_PROMPTED=1
 
+# Sanitise a session-name token (the part BEFORE any inline colour).
+#   - trim leading/trailing whitespace
+#   - collapse internal whitespace runs to a single '-'
+#   - delete any remaining character outside [A-Za-z0-9._-]
+_tmx_sanitise_name() {
+    _sn_raw="$1"
+    printf '%s' "$_sn_raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/[[:space:]][[:space:]]*/-/g' | tr -cd 'A-Za-z0-9._-'
+}
+
 # Prompt + read. printf, not echo -e (POSIX).
 printf '[tmx] Enter session name to create (blank = choose existing session): ' >&2
 # shellcheck disable=SC2034  # session_name read below
@@ -143,6 +153,25 @@ if ! IFS= read -r session_name; then
     # EOF or read error — fall through to bare shell.
     return 0 2>/dev/null || exit 0
 fi
+
+# Split inline colour syntax at the first ':' so the name is sanitized
+# independently of the colour token. Escaped ':' is not handled here — the
+# wrapper's parser resolves it; this covers the operator's everyday
+# `name:red` and `name:#hex` paths.
+_sn_color=""
+case "$session_name" in
+    *:*)
+        _sn_color="${session_name#*:}"
+        session_name="${session_name%%:*}"
+        ;;
+esac
+
+# Sanitize the typed name; whitespace-only input becomes empty and falls
+# through to the empty/default picker path below.
+session_name="$(_tmx_sanitise_name "$session_name")"
+
+# Reattach the colour token (if any) so it reaches the wrapper.
+[ -n "$_sn_color" ] && session_name="${session_name}:${_sn_color}"
 
 # Empty input or literal `default` → offer a choice: join an existing
 # session by number, or leave the wizard (bare shell). §4 mandate
@@ -203,30 +232,13 @@ if [ -z "$session_name" ] || [ "$session_name" = "default" ]; then
     return 0 2>/dev/null || exit 0
 fi
 
-# Validate via POSIX case (NOT bash-only [[ =~ ]]).
-# Allowed: [A-Za-z0-9_.-:#]{1,80} — ':' separates inline color per §5.8;
-# '#' permits #hex color (e.g. name:#ff0000). The tmx wrapper performs the
-# actual NAME:color parsing via _parse_session_value; this prompt only
-# blocks genuinely-dangerous characters (shell meta-chars, etc.).
-# Reject in this order: length, then character set.
+# Post-sanitize length guard. The allowed character set is already enforced
+# by `_tmx_sanitise_name`; this only catches an implausibly long result.
 session_name_len=${#session_name}
 if [ "$session_name_len" -lt 1 ] || [ "$session_name_len" -gt 80 ]; then
-    printf '[tmx] invalid session name %s (length %s); allowed: [A-Za-z0-9_.-:#]{1,80}\n' "'$session_name'" "$session_name_len" >&2
+    printf '[tmx] invalid session name %s (length %s); allowed: up to 80 chars after sanitizing\n' "'$session_name'" "$session_name_len" >&2
     return 1 2>/dev/null || exit 1
 fi
-
-# Character-class check: reject if any char is OUTSIDE the allowed set.
-# We use `case` with a glob that matches a string containing at least one
-# disallowed char. POSIX `case` glob `*[!...]*` = "contains anything not in set".
-# NOTE: '#' is placed between '_' and '.' to AVOID a backwards POSIX range
-# ('.' > '#' in ASCII, so '.-#' would be an invalid range on some shells).
-# The POSIX-safe order is: A-Z a-z 0-9 _ # . : with '-' literal at the end.
-case "$session_name" in
-    *[!A-Za-z0-9_#.:-]*)
-        printf '[tmx] invalid session name %s; allowed: [A-Za-z0-9_.-#:]{1,80}\n' "'$session_name'" >&2
-        return 1 2>/dev/null || exit 1
-        ;;
-esac
 
 # §1 mandate (2026-07-05): a typed name ALWAYS creates a brand-new session
 # — the real name is the typed name plus a random 4-digit suffix, so it
@@ -248,6 +260,18 @@ else
     # session). Mixing in this shell's own PID makes same-second opens
     # from different processes diverge.
     _suffix=$(awk -v p="$$" 'BEGIN{srand(); printf "%04d", (int(rand()*10000)+p)%10000}')
-    real_name="${session_name}-${_suffix}"
+    # Preserve inline colour syntax: insert the suffix BEFORE the first ':'
+    # so `home:red` becomes `home-NNNN:red`, not `home:red-NNNN` (which the
+    # wrapper would reject as an invalid colour).
+    case "$session_name" in
+        *:*)
+            _sn_prefix="${session_name%%:*}"
+            _sn_color="${session_name#*:}"
+            real_name="${_sn_prefix}-${_suffix}:${_sn_color}"
+            ;;
+        *)
+            real_name="${session_name}-${_suffix}"
+            ;;
+    esac
 fi
 exec sh -c 'exec tmx new -s "$1"' tmx-shell-init "$real_name"

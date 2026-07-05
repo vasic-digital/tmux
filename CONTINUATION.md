@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-07-05T00:00:00Z
+**Last updated:** 2026-07-05T17:30:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,8 +15,8 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.29** (versionCode 30) — session lifecycle (clause 1-7), cross-platform local-deps, Darwin brew, C3 prefix-agnostic, terminfo/TERM fallback. Previous: v1.0.28 (password protection). |
-| Verification (this cycle) | **test 68 PASS=78/0/0 ×3** (7 clauses, real live sessions), **test 67 PASS=5/0/0 ×3**, **run_all PASS=52/0/13** (nezha), **47/0/19** (thinker), **58/0/7** (mistborn). §1.1 meta-sweep 58/0 on f641987. 4-host §11.4.108 evidence captured. |
+| Version | **1.0.35** (versionCode 36) — session-name sanitization for spaces/special characters in `tmx new -s NAME` and the interactive wizard, preserving inline colour syntax. Previous: v1.0.34 (random wizard suffix, picker, masked passwords). |
+| Verification (this cycle) | `setup.sh` v1.0.35: PASS=69 FAIL=0 SKIP=13 (nezha, Linux x86_64). `run_all.sh` v1.0.35: PASS=69 FAIL=0 SKIP=13. `meta_test_false_positive_proof.sh`: 66 mutations caught, 0 escaped, 11 skipped (M82 skipped by automated harness; manually reproduced and proven to catch). Live retest: `tmx new -s 'hello world' -d` → `hello-world`; `tmx new -s '  messy! name  ' -d` → `messy-name`; `tmx new -s 'hello world:red' -d` → `hello-world` with `bg=red`. Release tag v1.0.35 pending commit + publish. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `1576d3d`); `Containers/` submodule (pinned `fbef9d6`); project `Constitution.md` (Project Articles §101–§170 extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `GEMINI.md` (all lockstep to §11.4.170), `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)

@@ -54,6 +54,33 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
+### A50. Session-name sanitization for spaces and special characters — `RESOLVED`
+
+**Type:** Feature
+**Status:** Implemented (→ Fixed.md)
+**Closure cycle:** v1.0.35 / versionCode 36 (2026-07-05).
+**Reported:** Operator, 2026-07-05 — session names typed/passed with spaces or special characters should be normalized to safe names instead of rejected.
+
+**Root cause / behaviour.** `tmx new -s NAME` and the interactive wizard prompt previously rejected names containing spaces or most special characters. This forced the operator to know the allowed character set and made natural names like `"hello world"` unusable.
+
+**Fix.**
+- `scripts/tmx.template`: `_sanitise()` now trims leading/trailing whitespace, collapses internal whitespace runs to a single `-`, deletes any remaining character outside `[A-Za-z0-9._-]`, and falls back to `default` if the result is empty.
+- `scripts/tmx-shell-init.sh.template`: the wizard prompt splits inline colour syntax (`name:red`, `name:#hex`) at the first `:` before sanitizing the name, then reattaches the colour token and inserts the random suffix before the `:` so the wrapper sees a valid `name-NNNN:color` pair.
+
+**File touched.** `scripts/tmx.template`, `scripts/tmx-shell-init.sh.template`, `scripts/tests/35_session_name_validation.sh`, `scripts/tests/63_session_color.sh`, `scripts/tests/65_shell_init_color_prompt.sh`, `scripts/tests/82_session_name_sanitization_live.sh`, `scripts/tests/meta_test_false_positive_proof.sh`.
+
+**Captured evidence (4-layer).**
+- (a) Pre-build / static-source: `setup.sh` Layer-1 static gate GREEN.
+- (b) Runtime tests: `35_session_name_validation.sh` (wizard sanitization, 8 cases, 3× deterministic), `63_session_color.sh` (operator-path colour with escaped-colon reconciliation), `65_shell_init_color_prompt.sh` (wizard preserves colour syntax), `82_session_name_sanitization_live.sh` (real tmux sessions with messy names, 5 cases, 3× deterministic).
+- (c) Challenge: HelixQA Challenge coverage via the existing test-suite Challenge mapping.
+- (d) Paired mutation: `M82` neutralizes the whitespace-to-hyphen handling in the generated `scripts/tmx`; test 82 fails, proving the guard has teeth.
+
+**Regression-protection.** `M82` in `scripts/tests/meta_test_false_positive_proof.sh`.
+
+**Tracked task.** Issues.md §G5 `SANITIZE-NAME-001` / `TMX-078`.
+
+---
+
 ### A49. Test 17 (scrollback / copy-mode) load flake — root-caused + fixed (two independent vectors) — `RESOLVED`
 
 **Type:** Task

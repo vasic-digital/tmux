@@ -82,8 +82,12 @@ exec 2> >(grep --line-buffered -v 'libtinfo\.so\.[0-9]\+: no version information
 # ── helpers ──────────────────────────────────────────────────────────
 
 # Sanitise a session name into a unit-name / socket-label safe token.
+#   - trim leading/trailing whitespace
+#   - collapse internal whitespace runs to a single '-'
+#   - delete any remaining character outside [A-Za-z0-9._-]
 _sanitise() {
-    printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '_'
+    local raw="$1"
+    printf '%s' "$raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/[[:space:]][[:space:]]*/-/g' | tr -cd 'A-Za-z0-9._-'
 }
 
 # Host-adaptive default MemoryMax (per Constitution §12.6 budget shared
@@ -410,6 +414,7 @@ else
     PARSED_NAME="$RAW_NAME"; PARSED_COLOR=""
 fi
 NAME=$(_sanitise "$PARSED_NAME")
+[ -z "$NAME" ] && NAME="default"
 # Resolve effective color (inline > persisted > "" → hostname fallback).
 # Invalid inline color → exit 5 BEFORE any socket/scope/session is created.
 EFFECTIVE_COLOR=""

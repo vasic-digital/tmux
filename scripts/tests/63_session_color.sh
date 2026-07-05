@@ -84,9 +84,10 @@ else
     fi
 fi
 
-# T6: escaped ':' in name → sanitised name, color applied
-# raw 't63w6\:x:cyan' → name field "t63w6:x" → _sanitise → "t63w6_x"
-SAFE="t63w6_x"; CLEAN+=("$SAFE")
+# T6: escaped ':' in name → ':' is not a session-name character, so the
+# name portion "t63w6:x" is sanitised to "t63w6x" and the colour applies.
+# This reconciles the intentional safe-set change with the historical test.
+SAFE="t63w6x"; CLEAN+=("$SAFE")
 "$WRAPPER" new -s 't63w6\:x:cyan' -d >/dev/null 2>&1
 [ "$(_get_opt "$SAFE" status-style)" = "bg=cyan" ] && _pass "T6 escaped colon → $SAFE bg=cyan" || _fail "T6 status-style='$(_get_opt "$SAFE" status-style)'"
 

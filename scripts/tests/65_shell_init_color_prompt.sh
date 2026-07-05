@@ -79,62 +79,48 @@ else
     _fail "T1 'home:red' not rejected but tmx not invoked either; out=$out"
 fi
 
-# T2: the raw spec `home:red` reaches the tmx wrapper (the shell-init is a thin
-# input layer; the wrapper's _parse_session_value parses name vs color). With
-# the fake tmx exiting 1 on attach, BOTH `attach -t home:red` AND
-# `new -s home:red` should appear in the capture.
+# T2: the sanitized name + colour spec reaches the tmx wrapper. The suffix is
+# inserted BEFORE the colour token so the wrapper sees a valid name:color pair.
 rm -f "$CAPTURE"; drive 'home:red' >/dev/null 2>&1
-if grep -q 'home:red' "$CAPTURE" 2>/dev/null; then
+if grep -qE 'home-[0-9][0-9][0-9][0-9]:red' "$CAPTURE" 2>/dev/null; then
     _pass "T2 spec 'home:red' reaches wrapper (capture: $(cat "$CAPTURE"))"
 else
     _fail "T2 spec 'home:red' NOT in capture; capture=$(cat "$CAPTURE" 2>/dev/null)"
 fi
 
-# T3: the COLOR survives into the tmx `new -s` invocation (the shell-init
-# does NOT strip the color suffix — the wrapper's _parse_session_value will
-# parse it). With the fake tmx exiting 1 on attach, the fallback
-# `exec tmx new -s home:red` fires.
+# T3: the COLOUR survives into the tmx `new -s` invocation, with the suffix
+# placed before the ':' so the colour remains valid.
 rm -f "$CAPTURE"; drive 'home:red' >/dev/null 2>&1
-if grep -q 'new -s home:red' "$CAPTURE" 2>/dev/null; then
-    _pass "T3 color preserved: 'new -s home:red' captured"
+if grep -qE 'new -s home-[0-9][0-9][0-9][0-9]:red' "$CAPTURE" 2>/dev/null; then
+    _pass "T3 color preserved: 'new -s home-NNNN:red' captured"
 else
-    # Acceptable variant: attach path is sufficient if new path never fires
-    # (unlikely with our fake tmx, but defensive).
-    if grep -q 'new -s' "$CAPTURE" 2>/dev/null && grep -qv 'home:red' "$CAPTURE"; then
-        _fail "T3 color stripped: 'new -s' found but without ':red' suffix (capture=$(cat "$CAPTURE" 2>/dev/null))"
-    elif grep -q 'attach -t home:red' "$CAPTURE" 2>/dev/null; then
-        _pass "T3 color preserved in attach path: 'attach -t home:red'"
-    else
-        _fail "T3 no recognizable invocation; capture=$(cat "$CAPTURE" 2>/dev/null)"
-    fi
+    _fail "T3 color lost/misplaced; capture=$(cat "$CAPTURE" 2>/dev/null)"
 fi
 
-# T4: a genuinely-BAD name (space) is STILL rejected (the fix must not weaken
-# the existing security validation — §11.4.120 reconciliation discipline).
-out=$(drive 'bad name'); rc=$?
-if echo "$out" | grep -q 'invalid session name' && [ "$rc" -ne 0 ]; then
-    _pass "T4 'bad name' still rejected (charset validation intact)"
+# T4: a name containing spaces is SANITIZED, not rejected (the new behaviour
+# requested by the operator). The wrapper receives `bad-name-NNNN`.
+rm -f "$CAPTURE"; out=$(drive 'bad name'); rc=$?
+if grep -qE 'new -s bad-name-[0-9][0-9][0-9][0-9]' "$CAPTURE" 2>/dev/null && [ "$rc" -eq 0 ]; then
+    _pass "T4 'bad name' sanitized to 'bad-name' and forwarded (capture: $(cat "$CAPTURE"))"
 else
-    _fail "T4 'bad name' NOT rejected — fix weakened existing validation (out=$out rc=$rc)"
+    _fail "T4 'bad name' not sanitized as expected (out=$out rc=$rc capture=$(cat "$CAPTURE" 2>/dev/null))"
 fi
 
-# T5: invalid color token rejected at the prompt (defence in depth — wrapper
-# also rejects, but the prompt should not let an obviously-invalid color through).
-out=$(drive 'home:notacolor!'); rc=$?
-if echo "$out" | grep -qi 'invalid.*color\|invalid session name' && [ "$rc" -ne 0 ]; then
-    _pass "T5 invalid color 'notacolor!' rejected by prompt"
+# T5: an invalid colour token is forwarded to the wrapper; the prompt no longer
+# rejects it, but it must not silently strip the colour either.
+rm -f "$CAPTURE"; out=$(drive 'home:notacolor!'); rc=$?
+if grep -qE 'home-[0-9][0-9][0-9][0-9]:notacolor!' "$CAPTURE" 2>/dev/null; then
+    _pass "T5 invalid color forwarded to wrapper (capture: $(cat "$CAPTURE"))"
 else
-    # acceptable variant: if the prompt forwards as-is and lets the wrapper reject,
-    # that's also OK — but then capture must carry it and wrapper owns rejection.
-    _fail "T5 invalid color not rejected by prompt (out=$out rc=$rc)"
+    _fail "T5 invalid color not forwarded (out=$out rc=$rc capture=$(cat "$CAPTURE" 2>/dev/null))"
 fi
 
-# T6: #hex color accepted at the prompt.
+# T6: #hex color accepted at the prompt; suffix inserted before the '#' token.
 rm -f "$CAPTURE"; out=$(drive 'work:#3b82f6'); rc=$?
-if [ -s "$CAPTURE" ] && ! echo "$out" | grep -q 'invalid'; then
+if grep -qE 'new -s work-[0-9][0-9][0-9][0-9]:#3b82f6' "$CAPTURE" 2>/dev/null; then
     _pass "T6 '#hex' color accepted (capture: $(cat "$CAPTURE"))"
 else
-    _fail "T6 '#hex' rejected/lost (out=$out)"
+    _fail "T6 '#hex' rejected/lost (out=$out capture=$(cat "$CAPTURE" 2>/dev/null))"
 fi
 
 echo "── Test 65 result: PASS=$PASS FAIL=$FAIL ──"

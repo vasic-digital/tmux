@@ -1182,10 +1182,9 @@ v109_run_mutation \
 # block at lines 77-82 of tmx-ssh-dispatch.sh.template rejects names
 # containing disallowed characters (spaces, `;`, `&`, `$()`, etc.).
 # Without it, an attacker could pass `; rm -rf $HOME` as a session
-# name and the dispatcher would forward it to tmx. Tests 26
-# (`26_session_name_validation.sh`) and 27 (`27_dispatcher_rejects_-
-# multiword.sh`, both P6) verify the dispatcher rejects multi-word and
-# special-char inputs; without the regex, the test FAILs.
+# name and the dispatcher would forward it to tmx. Test 36
+# (`36_dispatcher_rejects_multiword.sh`, P6) verifies the dispatcher rejects
+# multi-word and special-char inputs; without the regex, the test FAILs.
 # Mutation: drop the entire case-block (5 lines) by python regex
 # substitution — sed cannot reliably express the multi-line block.
 v109_run_mutation \
@@ -1193,7 +1192,7 @@ v109_run_mutation \
     "strip session-name regex validation case-block from tmx-ssh-dispatch.sh.template" \
     "scripts/tmx-ssh-dispatch.sh.template" \
     "python3 -c 'import re, sys; p=\"\$target_abs\"; s=open(p).read(); pat=re.compile(r\"case \\\"\\\\\$session\\\" in\\n.*?esac\\n\", re.DOTALL); s2,n=pat.subn(\"\", s, count=1); open(p,\"w\").write(s2)'" \
-    "scripts/tests/35_session_name_validation.sh" \
+    "scripts/tests/36_dispatcher_rejects_multiword.sh" \
     "FAIL"
 
 # ── P5-M24: strip a `case \"$(uname -s)\"` branch from a cross-platform test
@@ -1279,6 +1278,34 @@ v109_run_mutation \
     "scripts/tests/66_session_password.sh" \
     "FAIL" \
     "cd \"\$REPO_ROOT/scripts/tmx-state\" && go build -o \"\$REPO_ROOT/scripts/tmx-state-bin\" . 2>/dev/null"
+
+# ── M82: neutralize whitespace-to-hyphen handling in the generated tmx wrapper
+# Spec §11.4.4 layer-4 guard for test 82: `_sanitise()` trims/collapses
+# whitespace before deleting disallowed characters. If the whitespace
+# collapse is skipped, "hello world" becomes "helloworld" instead of
+# "hello-world", so test 82's live session-name readback FAILs. The
+# mutation targets scripts/tmx (the generated, gitignored artefact the live
+# test executes), matching the M25/M26 cp-restore pattern.
+m82_mutate() {
+    python3 - "$1" <<'PYEOF'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+old = """    printf '%s' "$raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/[[:space:]][[:space:]]*/-/g' | tr -cd 'A-Za-z0-9._-'"""
+new = """    printf '%s' \"$raw\" | cat | tr -cd 'A-Za-z0-9._-'"""
+if old not in s:
+    sys.stderr.write('M82 target line not found\n')
+    sys.exit(1)
+open(p, 'w').write(s.replace(old, new, 1))
+PYEOF
+}
+v109_run_mutation \
+    "M82" \
+    "remove whitespace trim/collapse from scripts/tmx _sanitise (test 82 live readback fails)" \
+    "scripts/tmx" \
+    "m82_mutate \"\\\$target_abs\"" \
+    "scripts/tests/82_session_name_sanitization_live.sh" \
+    "FAIL"
 
 # ── M-test67: obtain_local_deps.sh — make resolved.env emit a NONEXISTENT
 #    JEMALLOC_SO → test 67 C1/C2 FAIL ("resolved lib does not exist").

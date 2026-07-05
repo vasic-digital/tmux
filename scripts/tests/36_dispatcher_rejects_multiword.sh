@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Test 27 — tmx-ssh-dispatch: multi-word / shell-injection rejected.
+# Test 36 — tmx-ssh-dispatch: multi-word / shell-injection rejected.
 #
 # CONTRACT (spec §6 edge case 9 + §5.2): SSH_ORIGINAL_COMMAND containing
 # spaces, shell metacharacters, or command substitutions MUST be rejected
@@ -15,8 +15,8 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SCRATCH="${TMPDIR:-/tmp}"; SCRATCH="${SCRATCH%/}"
 # Preflight: SKIP if scratch root not writable (§11.4.3)
 DISPATCH_TEMPLATE="$REPO_ROOT/scripts/tmx-ssh-dispatch.sh.template"
-DISPATCH_FILE="$SCRATCH/tmx-ssh-dispatch-27-$$.sh"
-export TMX_STATE_FILE="$SCRATCH/tmx-test-27-$$.json"
+DISPATCH_FILE="$SCRATCH/tmx-ssh-dispatch-36-$$.sh"
+export TMX_STATE_FILE="$SCRATCH/tmx-test-36-$$.json"
 
 _cleanup() {
     rm -f "$DISPATCH_FILE" "$TMX_STATE_FILE" 2>/dev/null || true
@@ -25,9 +25,9 @@ _wtest="$SCRATCH/.tmx_wtest_$$"
 if ! mkdir -p "$_wtest" 2>/dev/null || [ ! -w "$_wtest" ]; then echo "SKIP: scratch root $SCRATCH not writable — §11.4.3"; exit 77; fi
 trap '_cleanup' EXIT
 
-[ -f "$DISPATCH_TEMPLATE" ] || { echo "SKIP 27: tmx-ssh-dispatch.sh.template not present"; exit 77; }
+[ -f "$DISPATCH_TEMPLATE" ] || { echo "SKIP 36: tmx-ssh-dispatch.sh.template not present"; exit 77; }
 
-sed "s|__PROJECT__|$REPO_ROOT|g; s|__DATE__|test-27|g" "$DISPATCH_TEMPLATE" > "$DISPATCH_FILE"
+sed "s|__PROJECT__|$REPO_ROOT|g; s|__DATE__|test-36|g" "$DISPATCH_TEMPLATE" > "$DISPATCH_FILE"
 chmod 755 "$DISPATCH_FILE"
 
 # Multi-word and metacharacter-laden commands — all MUST be rejected.
@@ -55,7 +55,7 @@ run_iteration() {
         fi
     done
     if [ "$failures" -gt 0 ]; then
-        echo "FAIL 27 iter=$iter: $failures multi-word rejections failed"
+        echo "FAIL 36 iter=$iter: $failures multi-word rejections failed"
         return 1
     fi
     _evidence="iter=$iter bad_cmds_tested=${#BAD_COMMANDS[@]} all_rejected=yes no_exec_branch=yes"
@@ -71,10 +71,10 @@ for i in 1 2 3; do
 done
 
 if [ "${_hashes[0]}" != "${_hashes[1]}" ] || [ "${_hashes[1]}" != "${_hashes[2]}" ]; then
-    echo "FAIL 27: N=3 evidence hashes diverge: ${_hashes[*]}"
+    echo "FAIL 36: N=3 evidence hashes diverge: ${_hashes[*]}"
     exit 1
 fi
 
 echo "[evidence] reliability_hash=${_hashes[0]}"
-echo "PASS 27 dispatcher rejects ${#BAD_COMMANDS[@]} multi-word/injection commands (3/3 iterations)"
+echo "PASS 36 dispatcher rejects ${#BAD_COMMANDS[@]} multi-word/injection commands (3/3 iterations)"
 exit 0
