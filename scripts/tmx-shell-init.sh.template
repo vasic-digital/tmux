@@ -136,7 +136,7 @@ fi
 _TMX_SHELL_INIT_PROMPTED=1
 
 # Prompt + read. printf, not echo -e (POSIX).
-printf '[tmx] Enter session name (blank or "default" = bare shell): ' >&2
+printf '[tmx] Enter session name to create (blank = choose existing session): ' >&2
 # shellcheck disable=SC2034  # session_name read below
 session_name=''
 if ! IFS= read -r session_name; then
@@ -144,8 +144,56 @@ if ! IFS= read -r session_name; then
     return 0 2>/dev/null || exit 0
 fi
 
-# Empty input or literal `default` → bare shell, no tmx.
+# Empty input or literal `default` → offer a choice: join an existing
+# session by number, or leave the wizard (bare shell). §4 mandate
+# (2026-07-05): blank input is no longer an automatic bare shell when
+# sessions already exist — the operator gets a picker instead.
 if [ -z "$session_name" ] || [ "$session_name" = "default" ]; then
+    _existing="$(tmx ls 2>/dev/null | sed -n 's/^\([^:]*\):.*/\1/p')"
+    if [ -z "$_existing" ]; then
+        # No existing sessions to offer — unchanged default: bare shell.
+        return 0 2>/dev/null || exit 0
+    fi
+    printf '[tmx] Existing sessions:\n' >&2
+    _n=0
+    _tmx_menu_names=""
+    for _s in $_existing; do
+        _n=$((_n + 1))
+        printf '  %d) %s\n' "$_n" "$_s" >&2
+        _tmx_menu_names="${_tmx_menu_names}${_s} "
+    done
+    printf '  0) None (leave, bare shell)\n' >&2
+    _attempt=0
+    _valid=0
+    _choice=''
+    while [ "$_attempt" -lt 2 ] && [ "$_valid" -eq 0 ]; do
+        if [ "$_attempt" -eq 0 ]; then
+            printf '[tmx] Choose a session to join (0 = none): ' >&2
+        else
+            printf '[tmx] invalid choice; try again (0 = none): ' >&2
+        fi
+        IFS= read -r _choice
+        case "$_choice" in
+            ''|0) break ;;
+            *[!0-9]*) ;;
+            *) if [ "$_choice" -ge 1 ] && [ "$_choice" -le "$_n" ]; then _valid=1; fi ;;
+        esac
+        _attempt=$((_attempt + 1))
+    done
+    if [ "$_valid" -eq 1 ]; then
+        _picked=""
+        _i=0
+        for _s in $_tmx_menu_names; do
+            _i=$((_i + 1))
+            if [ "$_i" -eq "$_choice" ]; then
+                _picked="$_s"
+                break
+            fi
+        done
+        if [ -n "$_picked" ]; then
+            exec sh -c 'exec tmx attach -t "$1"' tmx-shell-init "$_picked"
+        fi
+    fi
     return 0 2>/dev/null || exit 0
 fi
 
@@ -174,9 +222,17 @@ case "$session_name" in
         ;;
 esac
 
-# Try attach first; if it fails (no such session), create. `exec` replaces the
-# current shell with the tmux client so detach returns the operator to the
-# pre-source environment rather than dropping into a child shell. We use a
-# single `exec sh -c` so the attach-or-new fallback is atomic (one exec, not
-# two — avoids double-prompt on attach success).
-exec sh -c 'tmx attach -t "$1" 2>/dev/null || exec tmx new -s "$1"' tmx-shell-init "$session_name"
+# §1 mandate (2026-07-05): a typed name ALWAYS creates a brand-new session
+# — the real name is the typed name plus a random 4-digit suffix, so it
+# can never collide with (or be confused for) a previous same-named
+# session. TMX_EXACT_NAME=1 opts out (scripts/tests that need a
+# deterministic exact name set this). No attach-first probe is needed
+# here any more — a freshly-suffixed name is always unique, so `tmx new`
+# is called directly.
+if [ -n "${TMX_EXACT_NAME:-}" ]; then
+    real_name="$session_name"
+else
+    _suffix=$(awk 'BEGIN{srand(); printf "%04d", int(rand()*10000)}')
+    real_name="${session_name}-${_suffix}"
+fi
+exec sh -c 'exec tmx new -s "$1"' tmx-shell-init "$real_name"
