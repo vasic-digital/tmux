@@ -1,10 +1,10 @@
 # tmx Shell Integration — Operator Guide
 
-**Revision:** 1
-**Last modified:** 2026-05-22T14:30:00Z
+**Revision:** 2
+**Last modified:** 2026-07-05T00:00:00Z
 **Authority:** vasic-digital tmux project
 **Maintainer:** milosvasic
-**Scope:** Operator install / uninstall / troubleshoot guide for the v1.0.9 `tmx-shell-init.sh` interactive-prompt feature
+**Scope:** Operator install / uninstall / troubleshoot guide for the `tmx-shell-init.sh` interactive-prompt feature, including the 2026-07-05 wizard + session-password redesign (random-suffix create, existing-session picker, masked single-prompt passwords)
 
 ---
 
@@ -16,19 +16,76 @@ operators previously copied into every rc file (the old snippet drifted
 silently, blocked SCP / IDE shells with a hung `read -r`, and forgot the
 operator's last cwd).
 
-The new init script:
+The new init script (2026-07-05 redesign — see the *Interactive
+session-selection prompt* section below for the full behaviour):
 
 - prompts only on **interactive TTY** shells (skips on SCP, rsync, IDE
   pipes, cron, non-interactive subshells);
-- defaults to **SKIP** (bare shell, no tmx) when the operator presses
-  Enter or types `default`;
-- on any other name, runs `tmx attach -t NAME` and falls back to
-  `tmx new -s NAME` if no such session exists;
+- when the operator presses Enter (blank input), offers a numbered
+  picker of the operator's existing sessions plus `0) None` — or, if no
+  sessions exist, defaults to **SKIP** (bare shell, no tmx), exactly as
+  before;
+- when the operator types a name, always creates a **brand-new** session
+  `name-NNNN` (random 4-digit suffix; `TMX_EXACT_NAME=1` opts out) rather
+  than attaching to an earlier session of the same base name;
 - on `tmx new`, the wrapper recalls the session's last cwd via
   `scripts/tmx-state-bin` and starts the pane there (see
   [docs/guides/tmx-state.md](tmx-state.md)).
 
-Project authority spec: `docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md` §4.A + §5.
+Project authority specs:
+`docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md`
+§4.A + §5 (original shell-resume feature) and
+`docs/superpowers/specs/2026-07-05-tmx-wizard-password-redesign-design.md`
+(2026-07-05 wizard + session-password redesign). Password behaviour has
+its own guide: [docs/guides/tmx-session-passwords.md](tmx-session-passwords.md).
+
+## Interactive session-selection prompt (2026-07-05 redesign)
+
+When a login shell sources `tmx-shell-init.sh`, the operator sees:
+
+```
+[tmx] Enter session name to create (blank = choose existing session):
+```
+
+**Typing a name** always creates a **brand-new** session — the real,
+underlying tmux session name is `<typed-name>-NNNN`, where `NNNN` is a
+random 4-digit suffix generated fresh on every invocation (so re-typing
+the same base name later never collides with, or silently reattaches to,
+an earlier session of the same base name). Set `TMX_EXACT_NAME=1` in the
+environment to suppress the suffix and use the typed name literally
+(intended for scripts/automation that need a deterministic name, not for
+interactive use).
+
+**Pressing Enter (blank input)**, if any of the operator's own sessions
+already exist, shows a numbered menu:
+
+```
+[tmx] Existing sessions:
+  1) my-session-4821
+  2) scratch-0193
+  0) None (leave, bare shell)
+[tmx] Choose a session to join (0 = none):
+```
+
+Choosing a number attaches that session (prompting for its password
+exactly once if it is password-protected). Choosing `0`, leaving it
+blank, or an invalid entry after one retry falls through to a bare shell
+— identical to today's behaviour when no sessions exist yet.
+
+### Password prompts
+
+- **A session name that has never been password-protected** (or whose
+  protection was cleared via `tmx delete`): creating it prompts for a
+  password (masked with `*`), then — only if non-blank — a confirmation
+  prompt. A mismatch retries up to 3 times before aborting with no
+  session created and no password set.
+- **A session name that already has a persisted password** — whether the
+  underlying tmux server is currently running or was torn down by the
+  idle recycler — is verified **once**. The correct password attaches
+  (or recreates + attaches, if it had been recycled); a wrong password is
+  rejected outright and no session is touched.
+- All password input is masked with `*` characters, never shown in
+  plaintext.
 
 ## 2. Prerequisites
 
@@ -107,36 +164,53 @@ situations:
 | `$TMX_SKIP` non-empty                  | operator opt-out for this shell only |
 | `tmx` not on `$PATH`                   | graceful degradation                 |
 | EOF on stdin (Ctrl-D at prompt)        | bare shell                           |
-| Empty input or the literal `default`   | bare shell                           |
+| Empty input **and no sessions exist**  | bare shell                           |
 
 The script prompts (and acts on the answer) only when none of the
-above guards trigger.
+above guards trigger. **Empty input when sessions DO exist** is not a
+silent skip — it shows the existing-session picker (see the redesign
+section above).
 
 Invalid names print an error and return 1:
 
 - length zero or > 64 characters;
 - any character outside `[A-Za-z0-9_.-]`.
 
-On a valid name it runs:
+On a valid **typed** name it generates a fresh 4-digit suffix and always
+creates a brand-new session (2026-07-05 redesign):
 
 ```sh
-exec sh -c 'tmx attach -t "$1" 2>/dev/null || exec tmx new -s "$1"' tmx-shell-init "$session_name"
+suffix="$(awk 'BEGIN{srand(); printf "%04d", int(rand()*10000)}')"
+exec sh -c 'exec tmx new -s "$1"' tmx-shell-init "${session_name}-${suffix}"
+# TMX_EXACT_NAME=1 → use "$session_name" literally, with no suffix.
 ```
 
-`exec` replaces the current shell with the tmux client so that pressing
-`Ctrl-b d` (detach) returns you cleanly to the parent shell.
+On **blank** input it lists the operator's existing sessions and, if any
+exist, offers a numbered picker (attaching the chosen session via
+`tmx attach -t <name>`); with no sessions it falls through to a bare
+shell. `exec` replaces the current shell with the tmux client so that
+pressing `Ctrl-b d` (detach) returns you cleanly to the parent shell.
 
 ## 5. Worked examples
 
-### Example 1 — New interactive login, attach to existing 'work'
+### Example 1 — New interactive login: create a fresh session or pick an existing one
 
 ```bash
 $ ssh milosvasic@nezha.local
 # .bashrc is sourced → tmx-shell-init.sh prompts:
-[tmx] Enter session name (blank or "default" = bare shell): work
-# If 'work' exists → attached to it; pane cwd restored to wherever you
-#   were when you last detached.
-# If 'work' did NOT exist → tmx new -s work -c <recalled-pwd> is run.
+[tmx] Enter session name to create (blank = choose existing session): work
+# Typing 'work' ALWAYS creates a brand-new session named work-NNNN
+#   (random 4-digit suffix); the pane cwd is restored to your
+#   last-recorded pwd for that session name. It never silently
+#   reattaches to an earlier 'work'.
+#
+# To attach an EXISTING session instead, press Enter at the prompt:
+[tmx] Enter session name to create (blank = choose existing session):
+[tmx] Existing sessions:
+  1) work-4821
+  0) None (leave, bare shell)
+[tmx] Choose a session to join (0 = none): 1
+# → attached to work-4821 (prompted once for its password if protected).
 ```
 
 ### Example 2 — SCP from another machine never hangs
