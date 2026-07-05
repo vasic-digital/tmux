@@ -114,10 +114,16 @@ _buf1="$(pth_capture "drv_${NAME}")"
 if printf '%s' "$_buf1" | grep -qF "ab"; then
     _fail "plaintext 'ab' visible in pane buffer — masking not applied"
 else
-    if printf '%s' "$_buf1" | grep -q '\*\*'; then
-        _pass "two '*' characters shown after typing 2 chars, no plaintext"
+    # capture-pane -p is a live screen SNAPSHOT (one line per row, not an
+    # accumulating log), so the prompt line's star count is exact at this
+    # instant — count EXACTLY 2, not merely "contains **" (which would also
+    # accept a stray-extra-star echo bug for 2 typed chars).
+    _prompt_line1="$(printf '%s\n' "$_buf1" | grep "Enter password for session")"
+    _star_count1=$(printf '%s' "$_prompt_line1" | tr -dc '*' | wc -c)
+    if [ "$_star_count1" -eq 2 ]; then
+        _pass "exactly two '*' characters shown after typing 2 chars, no plaintext"
     else
-        _fail "expected two '*' characters after typing 'ab'; buffer: $_buf1"
+        _fail "expected exactly 2 '*' characters after typing 'ab', got $_star_count1; line: $_prompt_line1"
     fi
 fi
 
@@ -139,10 +145,17 @@ sleep 0.3
 _buf2="$(pth_capture "drv_${NAME}")"
 if printf '%s' "$_buf2" | grep -qF "ab" || printf '%s' "$_buf2" | grep -qF "ac"; then
     _fail "plaintext still visible after backspace+retype: $_buf2"
-elif printf '%s' "$_buf2" | grep -q '\*\*'; then
-    _pass "backspace + retype shows masked output, no plaintext leaked"
 else
-    _fail "unexpected buffer after backspace+retype: $_buf2"
+    # logical password is "ac" (2 chars) after "ab" -> backspace -> "c";
+    # exact star count on the live snapshot must be 2, not merely "contains
+    # **" (which would also accept a stray-extra-star backspace-erase bug).
+    _prompt_line2="$(printf '%s\n' "$_buf2" | grep "Enter password for session")"
+    _star_count2=$(printf '%s' "$_prompt_line2" | tr -dc '*' | wc -c)
+    if [ "$_star_count2" -eq 2 ]; then
+        _pass "backspace + retype shows exactly 2 masked stars, no plaintext leaked"
+    else
+        _fail "expected exactly 2 '*' characters after backspace+retype, got $_star_count2; line: $_prompt_line2"
+    fi
 fi
 
 pth_send_enter "drv_${NAME}"

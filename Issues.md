@@ -120,6 +120,41 @@ existing 60+ mutations.
 
 ---
 
+### A4. NEW-COLLISION-GUARD-SCOPE-GATED-001 — the `new` verb's Linux collision guard is skipped entirely when systemd user-scopes are unavailable
+
+**TMX-ID:** TMX-077
+**Type:** Bug
+**Status:** Queued
+
+Found by the final whole-branch review of the wizard/password redesign
+(2026-07-05), confirmed pre-existing (not introduced by that plan) via
+direct inspection of scripts/tmx.template around the `new` verb's collision
+check. On Linux, `tmx new -s NAME` refuses to proceed when a session already
+occupies NAME's systemd scope — but that refusal is gated by
+`[ "$_scope_ok" -eq 1 ]`, and `_scope_ok` is set to 0 whenever `systemctl
+--version` reports below 230, `systemctl` is entirely absent, or a real
+`systemd-run --user --scope` probe fails (see the topology probe a few lines
+above the guard). On any such host, the guard is skipped outright rather
+than falling back to an alternate collision check (the way Darwin uses raw
+socket presence instead), so `tmx new -s NAME` against an already-live
+session of the same name could proceed further than intended before tmux's
+own internal duplicate-session refusal (if any) is reached — including
+possibly reaching the password-collection prompt for what the operator
+believes is a brand-new session. Not yet reproduced end-to-end on a real
+scope-unavailable host (this project's dev/CI hosts all have a working
+systemd user session), so the exact downstream behavior (does tmux's own
+duplicate-session check catch it first, and if not, could a live session's
+persisted password state be disturbed) is UNCONFIRMED pending that
+reproduction. **Fix direction:** give Linux a scope-independent fallback
+collision check mirroring Darwin's socket-presence check (e.g. `tmux -L
+SOCK_LABEL has-session -t NAME` before proceeding) so the refusal does not
+depend on `_scope_ok` at all. **Acceptance:** a test that forces
+`_scope_ok=0` (or runs on a genuinely scope-less host) and asserts `tmx new
+-s NAME` against an already-live NAME still refuses cleanly, with no
+password prompt reached.
+
+---
+
 ## B. Anti-bluff completeness across the existing test surface
 
 (Prior B-items closed: B3 P5-M20/P5-M21 escapes CLOSED in v1.0.16
