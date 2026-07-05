@@ -6,6 +6,68 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.34] — 2026-07-05
+
+### Added
+
+- **Random 4-digit suffix on wizard-created sessions.** Typing a session name
+  at the interactive `tmx` wizard now always creates a session whose real
+  name is the typed name plus a random 4-digit suffix (e.g. `my-session-2507`),
+  so retyping the same base name can never collide with an earlier session.
+  Set `TMX_EXACT_NAME=1` to opt out for scripted/deterministic use. Suffix
+  generation mixes the process PID into the `awk` seed alongside wall-clock
+  time to remove a same-second collision window across concurrent processes
+  (test 78, meta-test `M-SUFFIX`).
+- **Existing-session picker on blank wizard input.** Pressing Enter with no
+  typed name at the wizard no longer always drops to a bare shell. If any
+  sessions already exist, the operator sees a numbered list plus a `0) None`
+  option and can join one directly (still prompted for its password exactly
+  once if protected); choosing `None` (or pressing Enter again) keeps the
+  original bare-shell behaviour (test 79, meta-test coverage via the same
+  suite).
+- **Masked password input.** Every password prompt in the `tmx` wrapper now
+  echoes `*` per keystroke (with working backspace) instead of plaintext, via
+  a shared `_read_password_masked` helper (test 77, meta-test `M-MASK`).
+
+### Fixed
+
+- **Reopening a password-protected session no longer asks for the password
+  twice.** Root cause: the `attach` verb checked the remembered password
+  BEFORE checking whether the session was actually still running, so a
+  doomed attach on an idle-recycled session fell through to the create flow,
+  which unconditionally asked to set a password again — looking like it
+  might be resetting the password (it wasn't; typing the same password both
+  times always worked, but the UX was confusing and unsafe-looking). Opening
+  an already-protected session — live or idle-recycled — now verifies the
+  password exactly ONCE; only a genuinely brand-new session name asks for a
+  password AND a confirmation, with a fail-closed 3-attempt-mismatch abort
+  that leaves no session or password behind (tests 81, 84, 80; meta-test
+  `M-LIVEFIRST`/`M-CONFIRM`).
+- **`workable-items validate` `TMX-071` sequence-gap** (pre-existing, unrelated
+  to the above): a June 30 revert of an orphan DB row (tooling gap, not a
+  content defect) left a permanent gap in the append-only TMX-NNN sequence.
+  Retired honestly as an `Obsolete` tombstone citing both commits; the still-
+  undone follow-up work it tracked is re-filed fresh as `TMX-076` so nothing
+  is silently lost.
+
+### Verification
+
+Independent whole-branch code review + a full regression sweep (`setup.sh
+--verify-only`, PASS=68 FAIL=0 SKIP=13) caught and closed 5 additional
+findings before this release: a critical meta-test bluff-gate (4 mutations
+targeting the never-rebuilt `.template` source with a tautological `FAIL`
+regex, rewritten to target the generated artefact with precise per-test
+patterns), the suffix-collision hardening above, a variable-namespace leak
+into the operator's sourced shell, a broken test-only liveness marker, and a
+second real regression found during the sweep itself (test 54's sandbox
+never isolated `TMUX_TMPDIR`, so the new picker diverted into a session-
+choice prompt on any host with live sessions, masking the double-prompt
+idempotency guard). All fixed and re-verified 3x deterministic. Installed +
+retested live on host `nezha` (Linux x86_64) alongside 6 pre-existing real
+operator tmux sessions, confirmed untouched before and after install; a
+throwaway password-protected session was created, verified (masked input, no
+plaintext leak), and cleanly deleted as live evidence.
+
 ## [v1.0.33] — 2026-07-02
 
 ### Fixed
