@@ -166,3 +166,47 @@ M24/A2/D2 in parallel streams per §11.4.103.)
 **Fix direction:** strengthen test 26 to assert ALL FOUR surfaces (`status-style`, `pane-active-border-style`, `clock-mode-colour`, `window-status-current-style`) so the M24 mutation (removing any 3) reliably FAILs it — mirroring the all-4-surfaces assertion already proven in test 63 T3 for the per-session path. (This also closes the symmetry gap: the per-session path has a 4-surface guard; the hostname path should too.)
 
 **Out of scope:** the per-session-color feature (TMX-051). Tracked separately so the color release is not blocked by an unrelated pre-existing test-gap.
+
+---
+
+## G. Interactive wizard + session-password redesign (2026-07-05)
+
+New OPEN work from the 14-task wizard + session-password redesign plan
+(`docs/superpowers/plans/2026-07-05-tmx-wizard-password-redesign.md`; spec
+`docs/superpowers/specs/2026-07-05-tmx-wizard-password-redesign-design.md`).
+Code lands across sibling tasks of that plan; these four entries track the
+four user-visible requirements from the operator mandate (random-suffix
+create, masked password input, single-prompt reopen, existing-session
+picker).
+
+### G1 WIZARD-SUFFIX-001 — wizard-created sessions get a random 4-digit name suffix
+
+**TMX-ID:** TMX-072
+**Type:** Feature
+**Status:** Queued
+
+Typing a session name at the interactive tmx wizard now always creates a brand-new session whose real name is the typed name plus a random 4-digit suffix (e.g. my-session-2507), so retyping the same base name later can never collide with or be confused for an earlier session. This makes every session created through the wizard genuinely unique by construction, while scripts and tests that need a deterministic exact name can set TMX_EXACT_NAME=1 to opt out. Implemented in scripts/tmx-shell-init.sh.template. Acceptance: test 78 passes, showing the created session name matches base-NNNN and that TMX_EXACT_NAME=1 suppresses it.
+
+### G2 PASSWORD-MASK-001 — password input is masked with asterisks while typing
+
+**TMX-ID:** TMX-073
+**Type:** Feature
+**Status:** Queued
+
+Session passwords are no longer echoed in plaintext to the terminal while being typed. Every password prompt in the tmx wrapper now shows a single asterisk character for each keystroke, with backspace erasing one asterisk, so a password can never be read off the screen by someone glancing at it. Implemented via the shared _read_password_masked helper in scripts/tmx.template. Acceptance: test 77 passes, proving the pane buffer never contains the typed plaintext.
+
+### G3 DOUBLE-PROMPT-001 — reopening a password-protected session no longer asks for the password twice
+
+**TMX-ID:** TMX-074
+**Type:** Bug
+**Status:** Queued
+
+Reopening a session that had been idle-recycled (its tmux process torn down for inactivity, but its password remembered) used to show a confusing second prompt that looked like it might be resetting the password, even though typing the same password both times always worked. The root cause was the attach command checking the remembered password before checking whether the session was actually still running, so a doomed attach attempt fell through to the create flow, which unconditionally asked to set a password again. Opening an already-protected session (live or recycled) now verifies the password exactly once; only a genuinely brand-new session name asks for a password and a confirmation. Fixed in scripts/tmx.template's attach and new command handling. Acceptance: test 81 reproduces the exact reported scenario end-to-end and proves exactly one prompt appears, with the stored password unchanged afterward.
+
+### G4 WIZARD-PICKER-001 — wizard offers a picker of existing sessions when no new name is typed
+
+**TMX-ID:** TMX-075
+**Type:** Feature
+**Status:** Queued
+
+Previously, pressing Enter without typing a session name at the interactive tmx wizard always dropped the operator into a plain shell with no other option. Now, if any sessions already exist, the operator sees a numbered list of them plus a 'None' option, and can pick a number to join that session directly (still prompted for its password exactly once if it is protected) instead of having to remember and retype its exact name. Choosing None, or pressing Enter again, behaves exactly as before (a plain shell). Implemented in scripts/tmx-shell-init.sh.template. Acceptance: test 79 passes, covering picking a plain session, picking a password-protected one, and choosing None.

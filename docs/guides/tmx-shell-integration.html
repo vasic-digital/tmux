@@ -2,14 +2,164 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.10" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>tmx-shell-integration</title>
   <style>
 
+html {
+color: #1a1a1a;
+background-color: #fdfdfd;
+}
+body {
+margin: 0 auto;
+max-width: 36em;
+padding-left: 50px;
+padding-right: 50px;
+padding-top: 50px;
+padding-bottom: 50px;
+hyphens: auto;
+overflow-wrap: break-word;
+text-rendering: optimizeLegibility;
+font-kerning: normal;
+}
+@media (max-width: 600px) {
+body {
+font-size: 0.9em;
+padding: 12px;
+}
+h1 {
+font-size: 1.8em;
+}
+}
+@media print {
+html {
+background-color: white;
+}
+body {
+background-color: transparent;
+color: black;
+font-size: 12pt;
+}
+p, h2, h3 {
+orphans: 3;
+widows: 3;
+}
+h2, h3, h4 {
+page-break-after: avoid;
+}
+}
+p {
+margin: 1em 0;
+}
+a {
+color: #1a1a1a;
+}
+a:visited {
+color: #1a1a1a;
+}
+img {
+max-width: 100%;
+}
+svg {
+height: auto;
+max-width: 100%;
+}
+h1, h2, h3, h4, h5, h6 {
+margin-top: 1.4em;
+}
+h5, h6 {
+font-size: 1em;
+font-style: italic;
+}
+h6 {
+font-weight: normal;
+}
+ol, ul {
+padding-left: 1.7em;
+margin-top: 1em;
+}
+li > ol, li > ul {
+margin-top: 0;
+}
+blockquote {
+margin: 1em 0 1em 1.7em;
+padding-left: 1em;
+border-left: 2px solid #e6e6e6;
+color: #606060;
+}
+code {
+white-space: pre-wrap;
+font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+font-size: 85%;
+margin: 0;
+hyphens: manual;
+}
+pre {
+margin: 1em 0;
+overflow: auto;
+}
+pre code {
+padding: 0;
+overflow: visible;
+overflow-wrap: normal;
+}
+.sourceCode {
+background-color: transparent;
+overflow: visible;
+}
+hr {
+border: none;
+border-top: 1px solid #1a1a1a;
+height: 1px;
+margin: 1em 0;
+}
+table {
+margin: 1em 0;
+border-collapse: collapse;
+width: 100%;
+overflow-x: auto;
+display: block;
+font-variant-numeric: lining-nums tabular-nums;
+}
+table caption {
+margin-bottom: 0.75em;
+}
+tbody {
+margin-top: 0.5em;
+border-top: 1px solid #1a1a1a;
+border-bottom: 1px solid #1a1a1a;
+}
+th {
+border-top: 1px solid #1a1a1a;
+padding: 0.25em 0.5em 0.25em 0.5em;
+}
+td {
+padding: 0.125em 0.5em 0.25em 0.5em;
+}
+header {
+margin-bottom: 4em;
+text-align: center;
+}
+#TOC li {
+list-style: none;
+}
+#TOC ul {
+padding-left: 1.3em;
+}
+#TOC > ul {
+padding-left: 0;
+}
+#TOC a:not(:hover) {
+text-decoration: none;
+}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 
 ul.task-list[class]{list-style: none;}
@@ -85,19 +235,20 @@ code span.va { color: #000000; }
 code span.vs { color: #4e9a06; } 
 code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
 </style>
-  <style type="text/css"></style>
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
+<h1 class="title">tmx-shell-integration</h1>
 </header>
 <h1 id="tmx-shell-integration--operator-guide">tmx Shell Integration —
 Operator Guide</h1>
-<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
-2026-05-22T14:30:00Z <strong>Authority:</strong> vasic-digital tmux
+<p><strong>Revision:</strong> 2 <strong>Last modified:</strong>
+2026-07-05T00:00:00Z <strong>Authority:</strong> vasic-digital tmux
 project <strong>Maintainer:</strong> milosvasic <strong>Scope:</strong>
-Operator install / uninstall / troubleshoot guide for the v1.0.9
-<code>tmx-shell-init.sh</code> interactive-prompt feature</p>
+Operator install / uninstall / troubleshoot guide for the
+<code>tmx-shell-init.sh</code> interactive-prompt feature, including the
+2026-07-05 wizard + session-password redesign (random-suffix create,
+existing-session picker, masked single-prompt passwords)</p>
 <hr />
 <h2 id="1-overview">1. Overview</h2>
 <p><code>scripts/tmx-shell-init.sh</code> is the project-owned
@@ -106,20 +257,71 @@ shell-init script you source from your <code>.bashrc</code> /
 previously copied into every rc file (the old snippet drifted silently,
 blocked SCP / IDE shells with a hung <code>read -r</code>, and forgot
 the operator&#39;s last cwd).</p>
-<p>The new init script:</p>
+<p>The new init script (2026-07-05 redesign — see the <em>Interactive
+session-selection prompt</em> section below for the full behaviour):</p>
 <ul>
 <li>prompts only on <strong>interactive TTY</strong> shells (skips on
 SCP, rsync, IDE pipes, cron, non-interactive subshells);</li>
-<li>defaults to <strong>SKIP</strong> (bare shell, no tmx) when the
-operator presses Enter or types <code>default</code>;</li>
-<li>on any other name, runs <code>tmx attach -t NAME</code> and falls
-back to <code>tmx new -s NAME</code> if no such session exists;</li>
+<li>when the operator presses Enter (blank input), offers a numbered
+picker of the operator&#39;s existing sessions plus <code>0) None</code> —
+or, if no sessions exist, defaults to <strong>SKIP</strong> (bare shell,
+no tmx), exactly as before;</li>
+<li>when the operator types a name, always creates a
+<strong>brand-new</strong> session <code>name-NNNN</code> (random
+4-digit suffix; <code>TMX_EXACT_NAME=1</code> opts out) rather than
+attaching to an earlier session of the same base name;</li>
 <li>on <code>tmx new</code>, the wrapper recalls the session&#39;s last cwd
 via <code>scripts/tmx-state-bin</code> and starts the pane there (see <a href="tmx-state.md">docs/guides/tmx-state.md</a>).</li>
 </ul>
-<p>Project authority spec:
+<p>Project authority specs:
 <code>docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md</code>
-§4.A + §5.</p>
+§4.A + §5 (original shell-resume feature) and
+<code>docs/superpowers/specs/2026-07-05-tmx-wizard-password-redesign-design.md</code>
+(2026-07-05 wizard + session-password redesign). Password behaviour has
+its own guide: <a href="tmx-session-passwords.md">docs/guides/tmx-session-passwords.md</a>.</p>
+<h2 id="interactive-session-selection-prompt-2026-07-05-redesign">Interactive
+session-selection prompt (2026-07-05 redesign)</h2>
+<p>When a login shell sources <code>tmx-shell-init.sh</code>, the
+operator sees:</p>
+<pre><code>[tmx] Enter session name to create (blank = choose existing session):</code></pre>
+<p><strong>Typing a name</strong> always creates a
+<strong>brand-new</strong> session — the real, underlying tmux session
+name is <code>&lt;typed-name&gt;-NNNN</code>, where <code>NNNN</code> is
+a random 4-digit suffix generated fresh on every invocation (so
+re-typing the same base name later never collides with, or silently
+reattaches to, an earlier session of the same base name). Set
+<code>TMX_EXACT_NAME=1</code> in the environment to suppress the suffix
+and use the typed name literally (intended for scripts/automation that
+need a deterministic name, not for interactive use).</p>
+<p><strong>Pressing Enter (blank input)</strong>, if any of the
+operator&#39;s own sessions already exist, shows a numbered menu:</p>
+<pre><code>[tmx] Existing sessions:
+  1) my-session-4821
+  2) scratch-0193
+  0) None (leave, bare shell)
+[tmx] Choose a session to join (0 = none):</code></pre>
+<p>Choosing a number attaches that session (prompting for its password
+exactly once if it is password-protected). Choosing <code>0</code>,
+leaving it blank, or an invalid entry after one retry falls through to a
+bare shell — identical to today&#39;s behaviour when no sessions exist
+yet.</p>
+<h3 id="password-prompts">Password prompts</h3>
+<ul>
+<li><strong>A session name that has never been
+password-protected</strong> (or whose protection was cleared via
+<code>tmx delete</code>): creating it prompts for a password (masked
+with <code>*</code>), then — only if non-blank — a confirmation prompt.
+A mismatch retries up to 3 times before aborting with no session created
+and no password set.</li>
+<li><strong>A session name that already has a persisted
+password</strong> — whether the underlying tmux server is currently
+running or was torn down by the idle recycler — is verified
+<strong>once</strong>. The correct password attaches (or recreates +
+attaches, if it had been recycled); a wrong password is rejected
+outright and no session is touched.</li>
+<li>All password input is masked with <code>*</code> characters, never
+shown in plaintext.</li>
+</ul>
 <h2 id="2-prerequisites">2. Prerequisites</h2>
 <ul>
 <li>A POSIX shell: bash 3.2 (macOS default), bash 5+, zsh 5.8+, or
@@ -134,9 +336,9 @@ still works, the cwd just won&#39;t be restored.</li>
 <h2 id="3-installation">3. Installation</h2>
 <h3 id="31-recommended-path-use-the-generated-snippet">3.1 Recommended
 path (use the generated snippet)</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux                  <span class="co"># or wherever you cloned this repo</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># setup.sh GREEN summary prints the exact line to copy.</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux                  <span class="co"># or wherever you cloned this repo</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># setup.sh GREEN summary prints the exact line to copy.</span></span></code></pre></div>
 <p><code>setup.sh</code> writes the snippet into the operator&#39;s rc files
 automatically:</p>
 <ul>
@@ -162,17 +364,17 @@ you maintain your own rc)</h3>
 <code>/Users/milosvasic/Projects/tmux</code> replaced by the absolute
 path that <code>pwd</code> prints while you stand in the project
 root:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ─── vasic-digital optimized tmux ─────────────────────────────────────────────</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="va">VDIGITAL_TMUX_DIR</span><span class="op">=</span><span class="st">&quot;/Users/milosvasic/Projects/tmux/scripts&quot;</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="ot">-x</span> <span class="st">&quot;</span><span class="va">$VDIGITAL_TMUX_DIR</span><span class="st">/tmx&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">export</span> <span class="va">PATH</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$VDIGITAL_TMUX_DIR</span><span class="st">:</span><span class="va">$PATH</span><span class="st">&quot;</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="bu">[</span> <span class="ot">-r</span> <span class="st">&quot;</span><span class="va">$VDIGITAL_TMUX_DIR</span><span class="st">/tmx-shell-init.sh&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="bu">.</span> <span class="st">&quot;</span><span class="va">$VDIGITAL_TMUX_DIR</span><span class="st">/tmx-shell-init.sh&quot;</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># ─── end vasic-digital optimized tmux ─────────────────────────────────────────</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ─── vasic-digital optimized tmux ─────────────────────────────────────────────</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="va">VDIGITAL_TMUX_DIR</span><span class="op">=</span><span class="st">&quot;/Users/milosvasic/Projects/tmux/scripts&quot;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="ot">-x</span> <span class="st">&quot;</span><span class="va">$VDIGITAL_TMUX_DIR</span><span class="st">/tmx&quot;</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">export</span> <span class="va">PATH</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$VDIGITAL_TMUX_DIR</span><span class="st">:</span><span class="va">$PATH</span><span class="st">&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="bu">[</span> <span class="ot">-r</span> <span class="st">&quot;</span><span class="va">$VDIGITAL_TMUX_DIR</span><span class="st">/tmx-shell-init.sh&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="bu">.</span> <span class="st">&quot;</span><span class="va">$VDIGITAL_TMUX_DIR</span><span class="st">/tmx-shell-init.sh&quot;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co"># ─── end vasic-digital optimized tmux ─────────────────────────────────────────</span></span></code></pre></div>
 <p>Reload the rc and verify:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">exec</span> <span class="va">$SHELL</span> <span class="at">-l</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">which</span> tmx                            <span class="co"># → /Users/milosvasic/Projects/tmux/scripts/tmx</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="bu">type</span> tmx-shell-init.sh <span class="dv">2</span><span class="op">&gt;</span>/dev/null   <span class="co"># not on PATH itself — sourced via `.`</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">exec</span> <span class="va">$SHELL</span> <span class="at">-l</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">which</span> tmx                            <span class="co"># → /Users/milosvasic/Projects/tmux/scripts/tmx</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">type</span> tmx-shell-init.sh <span class="dv">2</span><span class="op">&gt;</span>/dev/null   <span class="co"># not on PATH itself — sourced via `.`</span></span></code></pre></div>
 <h3 id="33-note-for-macos-apple-silicon-operators">3.3 Note for macOS
 Apple Silicon operators</h3>
 <p>On macOS the project default cwd is <code>~/Projects/tmux</code>. If
@@ -212,62 +414,81 @@ situations:</p>
 <td>bare shell</td>
 </tr>
 <tr>
-<td>Empty input or the literal <code>default</code></td>
+<td>Empty input <strong>and no sessions exist</strong></td>
 <td>bare shell</td>
 </tr>
 </tbody>
 </table>
 <p>The script prompts (and acts on the answer) only when none of the
-above guards trigger.</p>
+above guards trigger. <strong>Empty input when sessions DO
+exist</strong> is not a silent skip — it shows the existing-session
+picker (see the redesign section above).</p>
 <p>Invalid names print an error and return 1:</p>
 <ul>
 <li>length zero or &gt; 64 characters;</li>
 <li>any character outside <code>[A-Za-z0-9_.-]</code>.</li>
 </ul>
-<p>On a valid name it runs:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">exec</span> sh <span class="at">-c</span> <span class="st">&#39;tmx attach -t &quot;$1&quot; 2&gt;/dev/null || exec tmx new -s &quot;$1&quot;&#39;</span> tmx-shell-init <span class="st">&quot;</span><span class="va">$session_name</span><span class="st">&quot;</span></span></code></pre></div>
-<p><code>exec</code> replaces the current shell with the tmux client so
-that pressing <code>Ctrl-b d</code> (detach) returns you cleanly to the
-parent shell.</p>
+<p>On a valid <strong>typed</strong> name it generates a fresh 4-digit
+suffix and always creates a brand-new session (2026-07-05 redesign):</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="va">suffix</span><span class="op">=</span><span class="st">&quot;</span><span class="va">$(</span><span class="fu">awk</span> <span class="st">&#39;BEGIN{srand(); printf &quot;%04d&quot;, int(rand()*10000)}&#39;</span><span class="va">)</span><span class="st">&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">exec</span> sh <span class="at">-c</span> <span class="st">&#39;exec tmx new -s &quot;$1&quot;&#39;</span> tmx-shell-init <span class="st">&quot;</span><span class="va">${session_name}</span><span class="st">-</span><span class="va">${suffix}</span><span class="st">&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># TMX_EXACT_NAME=1 → use &quot;$session_name&quot; literally, with no suffix.</span></span></code></pre></div>
+<p>On <strong>blank</strong> input it lists the operator&#39;s existing
+sessions and, if any exist, offers a numbered picker (attaching the
+chosen session via <code>tmx attach -t &lt;name&gt;</code>); with no
+sessions it falls through to a bare shell. <code>exec</code> replaces
+the current shell with the tmux client so that pressing
+<code>Ctrl-b d</code> (detach) returns you cleanly to the parent
+shell.</p>
 <h2 id="5-worked-examples">5. Worked examples</h2>
-<h3 id="example-1--new-interactive-login-attach-to-existing-work">Example 1
-— New interactive login, attach to existing &#39;work&#39;</h3>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh milosvasic@nezha.local</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># .bashrc is sourced → tmx-shell-init.sh prompts:</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Enter session name <span class="er">(</span><span class="ex">blank</span> or <span class="st">&quot;default&quot;</span> = bare shell<span class="kw">)</span><span class="bu">:</span> work</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># If &#39;work&#39; exists → attached to it; pane cwd restored to wherever you</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#   were when you last detached.</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># If &#39;work&#39; did NOT exist → tmx new -s work -c &lt;recalled-pwd&gt; is run.</span></span></code></pre></div>
+<h3 id="example-1--new-interactive-login-create-a-fresh-session-or-pick-an-existing-one">Example
+1 — New interactive login: create a fresh session or pick an existing
+one</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh milosvasic@nezha.local</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># .bashrc is sourced → tmx-shell-init.sh prompts:</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Enter session name to create <span class="er">(</span><span class="ex">blank</span> = choose existing session<span class="kw">)</span><span class="bu">:</span> work</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Typing &#39;work&#39; ALWAYS creates a brand-new session named work-NNNN</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">#   (random 4-digit suffix); the pane cwd is restored to your</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   last-recorded pwd for that session name. It never silently</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   reattaches to an earlier &#39;work&#39;.</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co"># To attach an EXISTING session instead, press Enter at the prompt:</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Enter session name to create <span class="er">(</span><span class="ex">blank</span> = choose existing session<span class="kw">)</span><span class="bu">:</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Existing sessions:</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="ex">1</span><span class="er">)</span> <span class="ex">work-4821</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  <span class="ex">0</span><span class="er">)</span> <span class="ex">None</span> <span class="er">(</span><span class="ex">leave,</span> bare shell<span class="kw">)</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Choose a session to join <span class="er">(</span><span class="ex">0</span> = none<span class="kw">)</span><span class="bu">:</span> 1</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co"># → attached to work-4821 (prompted once for its password if protected).</span></span></code></pre></div>
 <h3 id="example-2--scp-from-another-machine-never-hangs">Example 2 — SCP
 from another machine never hangs</h3>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># On your workstation:</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> scp report.pdf milosvasic@nezha.local:/tmp/</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">report.pdf</span>                                100% 1.2MB   3.0MB/s   00:00</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># scp succeeds immediately — tmx-shell-init.sh sees the non-TTY stdin</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># and silently returns 0 before any prompt is printed.</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># On your workstation:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> scp report.pdf milosvasic@nezha.local:/tmp/</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">report.pdf</span>                                100% 1.2MB   3.0MB/s   00:00</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># scp succeeds immediately — tmx-shell-init.sh sees the non-TTY stdin</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># and silently returns 0 before any prompt is printed.</span></span></code></pre></div>
 <h3 id="example-3--opt-out-for-this-shell-only">Example 3 — Opt out for
 this shell only</h3>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> TMX_SKIP=1 bash <span class="at">-l</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># .bashrc runs, but tmx-shell-init.sh exits early (TMX_SKIP non-empty)</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># You land directly in a bare bash shell, no tmx, no prompt.</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> unset TMX_SKIP</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> exec <span class="va">$SHELL</span> <span class="at">-l</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Back to the prompt-on-login behaviour.</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> TMX_SKIP=1 bash <span class="at">-l</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># .bashrc runs, but tmx-shell-init.sh exits early (TMX_SKIP non-empty)</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># You land directly in a bare bash shell, no tmx, no prompt.</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> unset TMX_SKIP</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> exec <span class="va">$SHELL</span> <span class="at">-l</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Back to the prompt-on-login behaviour.</span></span></code></pre></div>
 <h3 id="example-4--inside-a-nested-tmux-pane">Example 4 — Inside a
 nested tmux pane</h3>
-<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx new <span class="at">-s</span> outer            <span class="co"># creates session &#39;outer&#39;</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># inside the pane:</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> bash <span class="at">-l</span>                     <span class="co"># spawns a sub-shell</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># .bashrc runs again, but $TMUX is set, so tmx-shell-init.sh is silent.</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># No prompt, no nesting — Ctrl-b d still detaches the outer session.</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx new <span class="at">-s</span> outer            <span class="co"># creates session &#39;outer&#39;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># inside the pane:</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> bash <span class="at">-l</span>                     <span class="co"># spawns a sub-shell</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># .bashrc runs again, but $TMUX is set, so tmx-shell-init.sh is silent.</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># No prompt, no nesting — Ctrl-b d still detaches the outer session.</span></span></code></pre></div>
 <h3 id="example-5--manual-probe-without-installing">Example 5 — Manual
 probe without installing</h3>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the script under a sub-shell with stdin redirected from /dev/null</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># (mimics the SCP non-TTY case).</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> bash <span class="at">-c</span> <span class="st">&#39;. /Users/milosvasic/Projects/tmux/scripts/tmx-shell-init.sh&#39;</span> <span class="op">&lt;</span>/dev/null</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> echo <span class="va">$?</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Exit 0 with no output = non-TTY guard fired as designed.</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the script under a sub-shell with stdin redirected from /dev/null</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># (mimics the SCP non-TTY case).</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> bash <span class="at">-c</span> <span class="st">&#39;. /Users/milosvasic/Projects/tmux/scripts/tmx-shell-init.sh&#39;</span> <span class="op">&lt;</span>/dev/null</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> echo <span class="va">$?</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Exit 0 with no output = non-TTY guard fired as designed.</span></span></code></pre></div>
 <h2 id="6-troubleshooting">6. Troubleshooting</h2>
 <table>
 <thead>
@@ -323,8 +544,8 @@ tmx-state guide</td>
 <h3 id="71-standard-uninstall-v1011">7.1 Standard uninstall
 (v1.0.11+)</h3>
 <p>The cleanest path is the dedicated operator entry point:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh</span></code></pre></div>
 <p>This delegates to <code>setup.sh --uninstall</code> (single source of
 truth) and performs ALL of:</p>
 <ol type="1">
@@ -344,10 +565,10 @@ shell init).</li>
 per-session state (optional)</h3>
 <p>By default the uninstall preserves <code>~/.tmx/</code> (per-session
 last-pwd records) per §9 zero-risk-data-safety. To purge:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh <span class="at">--purge-state</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh <span class="at">--purge-state</span></span></code></pre></div>
 <h3 id="73-equivalent-invocation">7.3 Equivalent invocation</h3>
-<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh <span class="at">--uninstall</span>          <span class="co"># same as scripts/uninstall.sh</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="va">PURGE_STATE</span><span class="op">=</span>1 <span class="fu">bash</span> scripts/setup.sh <span class="at">--uninstall</span>   <span class="co"># same as --purge-state</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh <span class="at">--uninstall</span>          <span class="co"># same as scripts/uninstall.sh</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="va">PURGE_STATE</span><span class="op">=</span>1 <span class="fu">bash</span> scripts/setup.sh <span class="at">--uninstall</span>   <span class="co"># same as --purge-state</span></span></code></pre></div>
 <h3 id="74-clean-slate-before-reinstall">7.4 Clean-slate before
 reinstall</h3>
 <p><code>setup.sh</code> automatically runs the uninstall logic at step

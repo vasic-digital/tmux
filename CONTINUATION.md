@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-06-28T19:30Z
+**Last updated:** 2026-07-05T00:00:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,44 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.28 — Wizard + session-password redesign (2026-07-05) — docs landed, code in sibling tasks
+
+**Status:** IN PROGRESS — Task 11 of 14 (documentation) landing this commit.
+
+**Plan:** `docs/superpowers/plans/2026-07-05-tmx-wizard-password-redesign.md`
+**Spec:** `docs/superpowers/specs/2026-07-05-tmx-wizard-password-redesign-design.md`
+
+Four user-visible requirements (operator mandate 2026-07-05), tracked as new
+OPEN workable items in the SQLite SSoT + `Issues.md` §G:
+
+- **TMX-072** (Feature) — wizard-created sessions get a random 4-digit name
+  suffix (`name-NNNN`; `TMX_EXACT_NAME=1` opts out).
+- **TMX-073** (Feature) — password input masked with `*` while typing.
+- **TMX-074** (Bug) — reopening a password-protected (idle-recycled) session
+  no longer asks for the password twice; verify-once.
+- **TMX-075** (Feature) — wizard offers a numbered picker of existing sessions
+  (+ `0) None`) on blank input.
+
+**This task (Task 11 — documentation) delivered:** README What's-new + docs-map
+rows; `docs/guides/tmx-shell-integration.md` wizard section rewritten (suffix,
+picker, masking, `TMX_EXACT_NAME`); new `docs/guides/tmx-session-passwords.md`
+standalone guide + Mermaid decision-flow diagram (rendered PNG, confirmed
+image-not-raw-source in the PDF per §11.4.168); new `docs/guides/FAQ.md`; the 4
+workable items added to the SQLite SSoT + `Issues.md` §G regenerated
+byte-identical (`diff` clean); all touched Markdown re-exported to HTML/PDF/DOCX.
+
+**Next (remaining plan tasks, concurrent):** the CODE tasks — `has-password` Go
+subcommand, `_read_password_masked` + restructured `new`/`attach` in
+`scripts/tmx.template`, the always-create + picker wizard in
+`scripts/tmx-shell-init.sh.template`, and tests 77–84 + 66/68 reconciliation —
+then full-suite retest + a validated release tag per §11.4.40 / §11.4.126.
+Terminal goal: a new fully-validated version published to all remotes.
+
+**Note (§11.4.6):** `workable-items validate` reports a single pre-existing
+`§11.4.54 ticket sequence gap: expected TMX-071, found TMX-072` — TMX-071 was a
+previously-reverted item and the `next_atm_id` counter was already at 72, so the
+new items correctly start there. NOT to be back-filled or renumbered.
 
 ### §3.27 — v1.0.26 RELEASED (per-session color) + BOTH HOSTS INSTALLED → 2026-06-19
 
