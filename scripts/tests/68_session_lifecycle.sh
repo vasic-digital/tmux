@@ -27,8 +27,10 @@
 #                  REJECTED, only the correct one attaches.
 #               C6 after leaving with no client, the session is RECYCLED after
 #                  a short idle window (TMX_RECYCLE_IDLE_SECS) — but dir+color+
-#                  password are ALWAYS remembered, so a re-create restores all
-#                  three.
+#                  password are ALWAYS remembered. A re-create VERIFIES the
+#                  remembered password ONCE (§11.4.120 reconciliation,
+#                  2026-07-05: correct attaches + restores dir/color; wrong is
+#                  rejected) rather than re-prompting to set a new one.
 #               C7 `tmx delete -t NAME` then re-create → DEFAULT color (host
 #                  fallback), DEFAULT dir ($HOME), FRESH create password prompt
 #                  (the reset).
