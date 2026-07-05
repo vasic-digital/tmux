@@ -21,13 +21,15 @@ session-selection prompt* section below for the full behaviour):
 
 - prompts only on **interactive TTY** shells (skips on SCP, rsync, IDE
   pipes, cron, non-interactive subshells);
-- when the operator presses Enter (blank input), offers a numbered
-  picker of the operator's existing sessions plus `0) None` — or, if no
-  sessions exist, defaults to **SKIP** (bare shell, no tmx), exactly as
-  before;
-- when the operator types a name, always creates a **brand-new** session
-  `name-NNNN` (random 4-digit suffix; `TMX_EXACT_NAME=1` opts out) rather
-  than attaching to an earlier session of the same base name;
+- when the operator presses Enter (blank input) **or types the literal
+  word `default`** — the two are treated identically — offers a
+  numbered picker of the operator's existing sessions plus `0) None`
+  — or, if no sessions exist, defaults to **SKIP** (bare shell, no
+  tmx), exactly as before;
+- when the operator types any other, non-blank, non-`default` name,
+  always creates a **brand-new** session `name-NNNN` (random 4-digit
+  suffix; `TMX_EXACT_NAME=1` opts out) rather than attaching to an
+  earlier session of the same base name;
 - on `tmx new`, the wrapper recalls the session's last cwd via
   `scripts/tmx-state-bin` and starts the pane there (see
   [docs/guides/tmx-state.md](tmx-state.md)).
@@ -47,17 +49,19 @@ When a login shell sources `tmx-shell-init.sh`, the operator sees:
 [tmx] Enter session name to create (blank = choose existing session):
 ```
 
-**Typing a name** always creates a **brand-new** session — the real,
-underlying tmux session name is `<typed-name>-NNNN`, where `NNNN` is a
-random 4-digit suffix generated fresh on every invocation (so re-typing
-the same base name later never collides with, or silently reattaches to,
-an earlier session of the same base name). Set `TMX_EXACT_NAME=1` in the
+**Typing a name — other than the literal word `default`** — always
+creates a **brand-new** session — the real, underlying tmux session
+name is `<typed-name>-NNNN`, where `NNNN` is a random 4-digit suffix
+generated fresh on every invocation (so re-typing the same base name
+later never collides with, or silently reattaches to, an earlier
+session of the same base name). Set `TMX_EXACT_NAME=1` in the
 environment to suppress the suffix and use the typed name literally
 (intended for scripts/automation that need a deterministic name, not for
 interactive use).
 
-**Pressing Enter (blank input)**, if any of the operator's own sessions
-already exist, shows a numbered menu:
+**Pressing Enter (blank input) — or typing the literal word `default`**
+(the wizard treats the two identically), if any of the operator's own
+sessions already exist, shows a numbered menu:
 
 ```
 [tmx] Existing sessions:
@@ -164,20 +168,22 @@ situations:
 | `$TMX_SKIP` non-empty                  | operator opt-out for this shell only |
 | `tmx` not on `$PATH`                   | graceful degradation                 |
 | EOF on stdin (Ctrl-D at prompt)        | bare shell                           |
-| Empty input **and no sessions exist**  | bare shell                           |
+| Empty input, or the literal word `default`, **and no sessions exist** | bare shell |
 
 The script prompts (and acts on the answer) only when none of the
-above guards trigger. **Empty input when sessions DO exist** is not a
-silent skip — it shows the existing-session picker (see the redesign
-section above).
+above guards trigger. **Empty input, or the literal word `default`,
+when sessions DO exist** is not a silent skip — it shows the
+existing-session picker (see the redesign section above).
 
 Invalid names print an error and return 1:
 
 - length zero or > 64 characters;
 - any character outside `[A-Za-z0-9_.-]`.
 
-On a valid **typed** name it generates a fresh 4-digit suffix and always
-creates a brand-new session (2026-07-05 redesign):
+On a valid **typed** name — other than the literal word `default`,
+which is routed to the blank-input branch below — it generates a fresh
+4-digit suffix and always creates a brand-new session (2026-07-05
+redesign):
 
 ```sh
 suffix="$(awk 'BEGIN{srand(); printf "%04d", int(rand()*10000)}')"
@@ -185,10 +191,11 @@ exec sh -c 'exec tmx new -s "$1"' tmx-shell-init "${session_name}-${suffix}"
 # TMX_EXACT_NAME=1 → use "$session_name" literally, with no suffix.
 ```
 
-On **blank** input it lists the operator's existing sessions and, if any
-exist, offers a numbered picker (attaching the chosen session via
-`tmx attach -t <name>`); with no sessions it falls through to a bare
-shell. `exec` replaces the current shell with the tmux client so that
+On **blank** input, or the literal word `default`, it lists the
+operator's existing sessions and, if any exist, offers a numbered
+picker (attaching the chosen session via `tmx attach -t <name>`); with
+no sessions it falls through to a bare shell. `exec` replaces the
+current shell with the tmux client so that
 pressing `Ctrl-b d` (detach) returns you cleanly to the parent shell.
 
 ## 5. Worked examples

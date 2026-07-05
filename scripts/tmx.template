@@ -487,6 +487,58 @@ case "$SUBCMD" in
             case "$a" in -d|-D) INTERACTIVE=0 ;; esac
         done
 
+        # §11.4.115 root-cause fix (half 2 of 2, forensic anchor
+        # 2026-07-05): decide the password intent BEFORE any tmux session
+        # is created/recreated. Prevents a wrong password on an
+        # already-protected name from ever spinning up a session
+        # (fail-closed), and stops a recycled-dead session's persisted
+        # password from being silently overwritten by the old
+        # unconditional "set a new password" prompt.
+        NEW_PASSWORD=""
+        SET_NEW_PASSWORD=0
+        if [ "$INTERACTIVE" -eq 1 ] && [ -t 0 ] && [ -x "$TMX_DIR/tmx-state-bin" ]; then
+            "$TMX_DIR/tmx-state-bin" has-password "$NAME" >/dev/null 2>&1
+            _hp_rc=$?
+            if [ "$_hp_rc" -eq 0 ]; then
+                # Existing password (live session OR a recycled-dead one
+                # whose state persisted) — verify ONCE. Wrong password
+                # aborts before anything is created.
+                _pw_guess=$(_read_password_masked "[tmx] Session \"$NAME\" is password-protected. Enter password: ")
+                if ! "$TMX_DIR/tmx-state-bin" verify-password "$NAME" "$_pw_guess" >/dev/null 2>&1; then
+                    printf 'tmx: incorrect password for session "%s".\n' "$NAME" >&2
+                    unset _pw_guess
+                    exit 1
+                fi
+                unset _pw_guess
+            else
+                # Genuinely fresh name (no persisted password at all, or
+                # one already cleared) — collect an OPTIONAL new password
+                # with confirmation. Blank = no password, skip confirm.
+                _pw_attempts=0
+                while [ "$_pw_attempts" -lt 3 ]; do
+                    _pw1=$(_read_password_masked "[tmx] Enter password for session \"$NAME\" (blank = none): ")
+                    if [ -z "$_pw1" ]; then
+                        unset _pw1
+                        break
+                    fi
+                    _pw2=$(_read_password_masked "[tmx] Confirm password: ")
+                    if [ "$_pw1" = "$_pw2" ]; then
+                        NEW_PASSWORD="$_pw1"
+                        SET_NEW_PASSWORD=1
+                        unset _pw1 _pw2
+                        break
+                    fi
+                    printf '[tmx] passwords did not match, try again\n' >&2
+                    unset _pw1 _pw2
+                    _pw_attempts=$((_pw_attempts + 1))
+                done
+                if [ "$_pw_attempts" -eq 3 ]; then
+                    printf 'tmx: passwords did not match after 3 attempts — session not created.\n' >&2
+                    exit 1
+                fi
+            fi
+        fi
+
         # §11.4.111 wrapper robustness: make $TERM terminfo-valid for the inner
         # tmux server BEFORE we spawn it, so tmx works from inside a nested tmux
         # / minimal-terminfo host instead of dying with "missing or unsuitable
@@ -707,16 +759,14 @@ case "$SUBCMD" in
             "$TMUX_BIN" -L "$SOCK_LABEL" set-environment -g TMX_HOSTNAME "$TMX_HOSTNAME" 2>/dev/null || true
         fi
 
-        # §1 session password: prompt optionally, store if non-empty.
-        # Only on interactive sessions (not -d). Silent + non-fatal if the
-        # state binary is absent or fails.
-        if [ "$INTERACTIVE" -eq 1 ] && [ -t 0 ]; then
-            PASSWORD=$(_read_password_masked "[tmx] Enter password for session \"$NAME\" (blank = none): ")
-            if [ -n "$PASSWORD" ] && [ -x "$TMX_DIR/tmx-state-bin" ]; then
-                "$TMX_DIR/tmx-state-bin" set-password "$NAME" "$PASSWORD" >/dev/null 2>&1 || true
-            fi
-            unset PASSWORD
+        # Apply the password collected by the pre-creation gate above (only
+        # set when this was a genuinely fresh name — see Step 3 above). The
+        # tmux session is confirmed up at this point (the has-session check
+        # earlier in this verb already passed).
+        if [ "$SET_NEW_PASSWORD" -eq 1 ] && [ -x "$TMX_DIR/tmx-state-bin" ]; then
+            "$TMX_DIR/tmx-state-bin" set-password "$NAME" "$NEW_PASSWORD" >/dev/null 2>&1 || true
         fi
+        unset NEW_PASSWORD
 
         if [ "$INTERACTIVE" -eq 1 ]; then
             exec "$TMUX_BIN" -L "$SOCK_LABEL" attach -t "$NAME"

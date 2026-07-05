@@ -18,6 +18,8 @@ anything; only the interactive wizard adds the random suffix).
 
 ## How do I pick an existing session instead of creating a new one?
 
-Press Enter (blank input) at the wizard's "Enter session name to create"
-prompt. If you have existing sessions, you'll see a numbered menu; pick a
-number to join that session, or `0` to leave the wizard.
+Press Enter (blank input) — or type the literal word `default`, which the
+wizard treats identically to blank input — at the wizard's "Enter session
+name to create" prompt. If you have existing sessions, you'll see a
+numbered menu; pick a number to join that session, or `0` to leave the
+wizard.

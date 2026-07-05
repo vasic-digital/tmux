@@ -249,7 +249,11 @@ for _iter in 1 2 3; do
     echo "── iter $_iter: session '$NAME' ──"
 
     # ───────────────────────────── C1 + C2 ──────────────────────────────
-    # `tmx new -s NAME:red` → create prompt → send password → attaches.
+    # `tmx new -s NAME:red` → create prompt → password → confirm → attaches.
+    # §11.4.120 reconciliation (2026-07-05): the `new` verb now asks for the
+    # password TWICE on a genuinely fresh name (password + confirmation), per
+    # the §3 double-prompt mandate (root-cause fix half 2 of 2). Drive BOTH
+    # prompts with the matching value so the create flow completes.
     if ! _wrap_in_pane "drv_${NAME}_c" new -s "$NAME:red"; then
         _fail "iter $_iter C1: could not start create driver pane"; continue
     fi
@@ -258,6 +262,12 @@ for _iter in 1 2 3; do
         pth_kill_pane "drv_${NAME}_c"; continue
     fi
     echo "[evidence C2 iter=$_iter] create password prompt observed; sending password via send-keys"
+    pth_send "drv_${NAME}_c" "$PW"; pth_send_enter "drv_${NAME}_c"
+    if ! pth_wait_text "drv_${NAME}_c" "Confirm password" 8; then
+        _fail "iter $_iter C2: create-time password confirmation prompt never appeared"
+        pth_kill_pane "drv_${NAME}_c"; continue
+    fi
+    echo "[evidence C2 iter=$_iter] confirmation prompt observed; sending matching confirmation"
     pth_send "drv_${NAME}_c" "$PW"; pth_send_enter "drv_${NAME}_c"
     if ! pth_wait_attached "$TMUX_BIN" "$SOCK" "$NAME" "1" 12; then
         _fail "iter $_iter C1: session did not come up / attach after password"
@@ -410,9 +420,16 @@ for _iter in 1 2 3; do
     fi
     if [ "$_c6_ok" -eq 1 ]; then
         pth_send "drv_${C6NAME}_c" "$PW"; pth_send_enter "drv_${C6NAME}_c"
-        if ! pth_wait_attached "$TMUX_BIN" "$C6SOCK" "$C6NAME" "1" 12; then
-            _fail "iter $_iter C6: dedicated recycle session did not attach after password"
+        # §11.4.120 reconciliation: fresh-name create now confirms the password.
+        if ! pth_wait_text "drv_${C6NAME}_c" "Confirm password" 8; then
+            _fail "iter $_iter C6: dedicated-session create confirmation prompt never appeared"
             pth_kill_pane "drv_${C6NAME}_c"; _c6_ok=0
+        else
+            pth_send "drv_${C6NAME}_c" "$PW"; pth_send_enter "drv_${C6NAME}_c"
+            if ! pth_wait_attached "$TMUX_BIN" "$C6SOCK" "$C6NAME" "1" 12; then
+                _fail "iter $_iter C6: dedicated recycle session did not attach after password"
+                pth_kill_pane "drv_${C6NAME}_c"; _c6_ok=0
+            fi
         fi
     fi
 
@@ -471,16 +488,21 @@ for _iter in 1 2 3; do
             [ "$?" -eq 1 ] && _pass "iter $_iter C6: wrong password STILL rejected after recycle (exit 1 — hash not wiped)" \
                 || _fail "iter $_iter C6: wrong password accepted after recycle (password silently wiped to none)"
 
-            # Re-create (bare name) restores all three. Create always re-prompts;
-            # send BLANK to KEEP the remembered password (non-empty would
-            # overwrite). RC_WINDOW=0 here so it is not recycled mid-verify.
+            # Re-create (bare name) restores all three. §11.4.120 reconciliation
+            # (2026-07-05, root-cause fix half 2 of 2): the recycled-dead
+            # session's password PERSISTED, so the `new` verb now takes the
+            # VERIFY-ONCE path — it prompts "…is password-protected. Enter
+            # password:" and requires the CORRECT existing password to re-enter
+            # (the old "blank keeps password" idiom is gone; verify does NOT
+            # overwrite, so the password is still kept). RC_WINDOW=0 here so it
+            # is not recycled mid-verify.
             if ! _wrap_in_pane "drv_${C6NAME}_re" new -s "$C6NAME"; then
                 _fail "iter $_iter C6: could not start re-create driver pane"
-            elif ! pth_wait_text "drv_${C6NAME}_re" "Enter password for session" 12; then
-                _fail "iter $_iter C6: re-create password prompt never appeared"
+            elif ! pth_wait_text "drv_${C6NAME}_re" "password-protected" 12; then
+                _fail "iter $_iter C6: re-create did NOT show the verify-password prompt"
                 pth_kill_pane "drv_${C6NAME}_re"
             else
-                pth_send_enter "drv_${C6NAME}_re"     # blank = keep existing password
+                pth_send "drv_${C6NAME}_re" "$PW"; pth_send_enter "drv_${C6NAME}_re"   # verify existing password
                 if pth_wait_attached "$TMUX_BIN" "$C6SOCK" "$C6NAME" "1" 12; then
                     ss="$(_get_opt "$C6NAME" status-style)"
                     [ "$ss" = "bg=red" ] && _pass "iter $_iter C6: re-create RESTORED RED (bg=red)" \
