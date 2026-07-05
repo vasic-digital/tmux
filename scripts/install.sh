@@ -167,6 +167,48 @@ require_git() {
     command -v git >/dev/null 2>&1 || _die "git not found on PATH. Install git first (Linux: your package manager; macOS: xcode-select --install or brew install git)." 3
 }
 
+# ── safe submodule update ─────────────────────────────────────────────────────
+# `git submodule update --init --recursive` aborts when a submodule has local
+# modifications that the new commit would overwrite. We preserve those changes
+# by stashing them, updating, then restoring. This composes with §9.2 (no silent
+# data loss) and §11.4.113 (merge-onto-latest-main, no force-push).
+_update_submodules_safe() {
+    local install_dir="$1"
+    if git ${GITC[@]+"${GITC[@]}"} -C "$install_dir" submodule update --init --recursive; then
+        return 0
+    fi
+
+    _say "submodule update blocked by local changes; stashing, updating, then restoring (§9.2)"
+    local stashed=()
+    local s
+    while IFS= read -r s; do
+        [ -n "$s" ] || continue
+        local spath="$install_dir/$s"
+        if { [ -d "$spath/.git" ] || [ -f "$spath/.git" ]; } \
+           && [ -n "$(git -C "$spath" status --porcelain 2>/dev/null)" ]; then
+            local stash_msg="[install.sh auto-stash] $s $(date -u +%Y%m%d-%H%M%S)"
+            _say "  stashing local changes in $s"
+            git -C "$spath" stash push -m "$stash_msg" || _warn "stash failed in $s"
+            stashed+=("$s:$stash_msg")
+        fi
+    done < <(git -C "$install_dir" submodule --quiet foreach 'printf "%s\n" "$sm_path"')
+
+    git ${GITC[@]+"${GITC[@]}"} -C "$install_dir" submodule update --init --recursive \
+        || _die "submodule update failed even after stashing local changes"
+
+    # Restore stashes in reverse order (LIFO).
+    local i
+    for (( i=${#stashed[@]}-1; i>=0; i-- )); do
+        local entry="${stashed[$i]}"
+        local s="${entry%%:*}"
+        local spath="$install_dir/$s"
+        _say "  restoring local changes in $s"
+        if ! git -C "$spath" stash pop 2>/dev/null; then
+            _warn "could not automatically restore stashed changes in $s (stash preserved: ${entry#*:})"
+        fi
+    done
+}
+
 echo "════════════════════════════════════════════════════════════════"
 echo "  vasic-digital optimized tmux — curl installer"
 echo "════════════════════════════════════════════════════════════════"
@@ -204,7 +246,7 @@ if [ "$MODE" = "update" ]; then
     git ${GITC[@]+"${GITC[@]}"} -C "$TMX_INSTALL_DIR" pull --ff-only origin "$TMX_INSTALL_BRANCH" \
         || git ${GITC[@]+"${GITC[@]}"} -C "$TMX_INSTALL_DIR" pull --ff-only \
         || _warn "git pull --ff-only could not fast-forward (local diverged?) — keeping local state, continuing"
-    git ${GITC[@]+"${GITC[@]}"} -C "$TMX_INSTALL_DIR" submodule update --init --recursive
+    _update_submodules_safe "$TMX_INSTALL_DIR"
     _say "  ✓ updated + submodules refreshed"
 else
     # mkdir -p so a clone into ~/Projects/<deep>/tmux works; git clone needs the
@@ -215,7 +257,7 @@ else
         || git ${GITC[@]+"${GITC[@]}"} clone --recurse-submodules \
              "$TMX_REPO_URL" "$TMX_INSTALL_DIR"
     # Belt-and-suspenders recursive init (idempotent after --recurse-submodules).
-    git ${GITC[@]+"${GITC[@]}"} -C "$TMX_INSTALL_DIR" submodule update --init --recursive
+    _update_submodules_safe "$TMX_INSTALL_DIR"
     _say "  ✓ cloned + submodules initialised"
 fi
 
