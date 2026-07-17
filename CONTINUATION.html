@@ -178,7 +178,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-07-05T00:00:00Z</p>
+<p><strong>Last updated:</strong> 2026-07-05T17:30:00Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -215,17 +215,23 @@ current state. Update this document as you work.</p>
 </tr>
 <tr>
 <td>Version</td>
-<td><strong>1.0.29</strong> (versionCode 30) — session lifecycle (clause
-1-7), cross-platform local-deps, Darwin brew, C3 prefix-agnostic,
-terminfo/TERM fallback. Previous: v1.0.28 (password protection).</td>
+<td><strong>1.0.35</strong> (versionCode 36) — session-name sanitization
+for spaces/special characters in <code>tmx new -s NAME</code> and the
+interactive wizard, preserving inline colour syntax. Previous: v1.0.34
+(random wizard suffix, picker, masked passwords).</td>
 </tr>
 <tr>
 <td>Verification (this cycle)</td>
-<td><strong>test 68 PASS=78/0/0 ×3</strong> (7 clauses, real live
-sessions), <strong>test 67 PASS=5/0/0 ×3</strong>, <strong>run_all
-PASS=52/0/13</strong> (nezha), <strong>47/0/19</strong> (thinker),
-<strong>58/0/7</strong> (mistborn). §1.1 meta-sweep 58/0 on f641987.
-4-host §11.4.108 evidence captured.</td>
+<td><code>setup.sh</code> v1.0.35: PASS=69 FAIL=0 SKIP=13 (nezha, Linux
+x86_64). <code>run_all.sh</code> v1.0.35: PASS=69 FAIL=0 SKIP=13.
+<code>meta_test_false_positive_proof.sh</code>: 66 mutations caught, 0
+escaped, 11 skipped (M82 skipped by automated harness; manually
+reproduced and proven to catch). Live retest:
+<code>tmx new -s 'hello world' -d</code> → <code>hello-world</code>;
+<code>tmx new -s '  messy! name  ' -d</code> → <code>messy-name</code>;
+<code>tmx new -s 'hello world:red' -d</code> → <code>hello-world</code>
+with <code>bg=red</code>. Release tag v1.0.35 pending commit +
+publish.</td>
 </tr>
 <tr>
 <td>Governance docs</td>

@@ -200,6 +200,7 @@ bind P run -b 'sh -c "pbpaste 2>/dev/null || wl-paste -n 2>/dev/null || xclip -o
 #   application instead of being collapsed by tmux's key parser.
 set -g  allow-passthrough   on
 set -s  extended-keys       on
+set -s  extended-keys-format csi-u
 set -as terminal-features   'xterm*:extkeys'
 
 # ── status line — minimal ───────────────────────────────────────────────────

@@ -544,5 +544,26 @@ before (a plain shell). Implemented in
 scripts/tmx-shell-init.sh.template. Acceptance: test 79 passes, covering
 picking a plain session, picking a password-protected one, and choosing
 None.</p>
+<h3
+id="g5-sanitize-name-001--session-names-containing-spaces-or-special-characters-are-normalized-to-safe-names">G5
+SANITIZE-NAME-001 — session names containing spaces or special
+characters are normalized to safe names</h3>
+<p><strong>TMX-ID:</strong> TMX-078 <strong>Type:</strong> Feature
+<strong>Status:</strong> Implemented (→ Fixed.md)</p>
+<p>When the operator types or passes a session name containing spaces,
+tabs, or other special characters, tmx now normalizes it instead of
+rejecting it: leading/trailing whitespace is removed, internal
+whitespace runs are collapsed to a single <code>-</code>, and any
+remaining characters outside the session-name safe set are stripped.
+This applies both to <code>tmx new -s NAME</code> (via
+<code>scripts/tmx.template</code>) and to the interactive wizard prompt
+(via <code>scripts/tmx-shell-init.sh.template</code>), so names like
+<code>"hello world"</code> become <code>hello-world</code>. The wizard
+prompt preserves inline colour syntax (<code>name:red</code>,
+<code>name:#hex</code>) by splitting at the first <code>:</code> before
+sanitizing the name and inserting the random suffix before the colour
+token (<code>home-1234:red</code>). Empty or whitespace-only input
+continues to fall through to the existing empty/default picker path.
+Closure: v1.0.35 / versionCode 36.</p>
 </body>
 </html>

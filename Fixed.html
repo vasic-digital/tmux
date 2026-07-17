@@ -328,6 +328,63 @@ layer (c) met by challenge entries CH-01 through CH-14</td>
 <h2 id="a-tooling--harness-gaps--resolved">A. Tooling / harness gaps —
 RESOLVED</h2>
 <h3
+id="a50-session-name-sanitization-for-spaces-and-special-characters--resolved">A50.
+Session-name sanitization for spaces and special characters —
+<code>RESOLVED</code></h3>
+<p><strong>Type:</strong> Feature <strong>Status:</strong> Implemented
+(→ Fixed.md) <strong>Closure cycle:</strong> v1.0.35 / versionCode 36
+(2026-07-05). <strong>Reported:</strong> Operator, 2026-07-05 — session
+names typed/passed with spaces or special characters should be
+normalized to safe names instead of rejected.</p>
+<p><strong>Root cause / behaviour.</strong> <code>tmx new -s NAME</code>
+and the interactive wizard prompt previously rejected names containing
+spaces or most special characters. This forced the operator to know the
+allowed character set and made natural names like
+<code>"hello world"</code> unusable.</p>
+<p><strong>Fix.</strong></p>
+<ul>
+<li><code>scripts/tmx.template</code>: <code>_sanitise()</code> now
+trims leading/trailing whitespace, collapses internal whitespace runs to
+a single <code>-</code>, deletes any remaining character outside
+<code>[A-Za-z0-9._-]</code>, and falls back to <code>default</code> if
+the result is empty.</li>
+<li><code>scripts/tmx-shell-init.sh.template</code>: the wizard prompt
+splits inline colour syntax (<code>name:red</code>,
+<code>name:#hex</code>) at the first <code>:</code> before sanitizing
+the name, then reattaches the colour token and inserts the random suffix
+before the <code>:</code> so the wrapper sees a valid
+<code>name-NNNN:color</code> pair.</li>
+</ul>
+<p><strong>File touched.</strong> <code>scripts/tmx.template</code>,
+<code>scripts/tmx-shell-init.sh.template</code>,
+<code>scripts/tests/35_session_name_validation.sh</code>,
+<code>scripts/tests/63_session_color.sh</code>,
+<code>scripts/tests/65_shell_init_color_prompt.sh</code>,
+<code>scripts/tests/82_session_name_sanitization_live.sh</code>,
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>.</p>
+<p><strong>Captured evidence (4-layer).</strong></p>
+<ul>
+<li>(a) Pre-build / static-source: <code>setup.sh</code> Layer-1 static
+gate GREEN.</li>
+<li>(b) Runtime tests: <code>35_session_name_validation.sh</code>
+(wizard sanitization, 8 cases, 3× deterministic),
+<code>63_session_color.sh</code> (operator-path colour with
+escaped-colon reconciliation),
+<code>65_shell_init_color_prompt.sh</code> (wizard preserves colour
+syntax), <code>82_session_name_sanitization_live.sh</code> (real tmux
+sessions with messy names, 5 cases, 3× deterministic).</li>
+<li>(c) Challenge: HelixQA Challenge coverage via the existing
+test-suite Challenge mapping.</li>
+<li>(d) Paired mutation: <code>M82</code> neutralizes the
+whitespace-to-hyphen handling in the generated <code>scripts/tmx</code>;
+test 82 fails, proving the guard has teeth.</li>
+</ul>
+<p><strong>Regression-protection.</strong> <code>M82</code> in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>.</p>
+<p><strong>Tracked task.</strong> Issues.md §G5
+<code>SANITIZE-NAME-001</code> / <code>TMX-078</code>.</p>
+<hr />
+<h3
 id="a49-test-17-scrollback--copy-mode-load-flake--root-caused--fixed-two-independent-vectors--resolved">A49.
 Test 17 (scrollback / copy-mode) load flake — root-caused + fixed (two
 independent vectors) — <code>RESOLVED</code></h3>

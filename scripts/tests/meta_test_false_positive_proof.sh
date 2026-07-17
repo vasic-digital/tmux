@@ -1513,6 +1513,20 @@ v109_run_mutation \
     "scripts/tests/78_wizard_suffix_appended.sh" \
     "FAIL 78"
 
+# ── M-CSIU: strip extended-keys-format csi-u from tmux.conf.template
+# (test 85 catches config template missing the setting).
+# Kimi Code TUI recommendation 2026-07-17: "tmux extended-keys-format is
+# xterm. Kimi Code works best with csi-u." The setting was added to
+# scripts/tmux.conf.template; this mutation removes it and asserts test 85
+# catches the missing config line.
+v109_run_mutation \
+    "M-CSIU" \
+    "strip extended-keys-format csi-u from tmux.conf.template (test 85)" \
+    "scripts/tmux.conf.template" \
+    "inplace_sed '/extended-keys-format.*csi-u/d' \"\$target_abs\"" \
+    "scripts/tests/85_extended_keys_format_csi_u.sh" \
+    "FAIL 85"
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════

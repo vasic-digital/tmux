@@ -1053,3 +1053,22 @@ challenges:
       wrong password on reopen is rejected
     evidence: PTY pane transcript + persisted state-file hash comparison
     severity: blocker
+
+  - id: TMUX-CH-85
+    title: extended-keys-format set to CSI-u for modern TUI compatibility
+    description: |
+      The tmux config sets extended-keys-format to csi-u so that modern
+      TUI agents (Kimi Code, Claude Code, neovim, helix, etc.) receive
+      modified keys in the CSI-u format (\033[K;Mu) instead of the older
+      xterm modifyOtherKeys format (\033[27;M;K~). tmux TRANSLATES between
+      formats: it always requests xterm modifyOtherKeys from the outer
+      terminal and re-encodes for the inner app, so CSI-u works safely
+      regardless of the outer terminal emulator.
+    test_script: scripts/tests/85_extended_keys_format_csi_u.sh
+    pass_condition: |
+      config template contains 'extended-keys-format csi-u';
+      live tmux server has the option applied;
+      source code confirms csi-u index 0, xterm index 1;
+      source code has both CSI-u and xterm encoding format strings
+    evidence: config grep + tmux show-options + source-code verification
+    severity: high
