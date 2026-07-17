@@ -247,6 +247,43 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project's anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="v1036--2026-07-17">[v1.0.36] — 2026-07-17</h2>
+<h3 id="changed">Changed</h3>
+<ul>
+<li><strong><code>extended-keys-format</code> set to <code>csi-u</code>
+for modern TUI compatibility.</strong> Kimi Code (and other modern TUI
+agents like Claude Code, neovim, helix, lazygit, yazi) prefer the CSI-u
+encoding format (<code>\033[&lt;keycode&gt;;&lt;modifier&gt;u</code>)
+for modified keys over the older xterm modifyOtherKeys format
+(<code>\033[27;&lt;modifier&gt;;&lt;keycode&gt;~</code>). Deep
+investigation of the tmux 3.6a source confirmed that
+<code>extended-keys-format</code> controls ONLY the encoding tmux sends
+to the inner application — tmux always requests xterm modifyOtherKeys
+mode 2 from the outer terminal and translates internally, so CSI-u works
+safely regardless of the outer terminal emulator. Added to
+<code>scripts/tmux.conf.template</code> alongside the existing
+<code>extended-keys on</code> setting. Source references:
+<code>tmux/input-keys.c:432-480</code> (encoding function),
+<code>tmux/options-table.c:102-104,393-398</code> (option definition),
+<code>tmux/tty-features.c:240</code> (outer-terminal enable
+sequence).</li>
+</ul>
+<h3 id="verification">Verification</h3>
+<ul>
+<li>New test <code>85_extended_keys_format_csi_u.sh</code> (7
+assertions, 3x deterministic PASS): verifies config template contains
+the setting, live tmux server has it applied, and source code confirms
+the CSI-u/xterm index order, default value, and both encoding format
+strings.</li>
+<li>Challenge <code>TMUX-CH-85</code> added to
+<code>scripts/challenges/tmux.yaml</code>.</li>
+<li>Meta-test mutation <code>M-CSIU</code> (strips the config line, test
+85 catches it).</li>
+<li>Full regression: <code>setup.sh --verify-only</code> GREEN, PASS=70
+FAIL=0 SKIP=13.</li>
+<li>Installed and verified live on host <code>nezha</code>; all
+pre-existing sessions confirmed untouched before and after install.</li>
+</ul>
 <h2 id="v1035--2026-07-05">[v1.0.35] — 2026-07-05</h2>
 <h3 id="added">Added</h3>
 <ul>
@@ -277,7 +314,7 @@ change.</strong> Historical tests 63 (escaped-colour syntax) and 65
 they now assert the new normalize- then-forward behaviour per §11.4.120,
 preventing a false RED after the sanitization change.</li>
 </ul>
-<h3 id="verification">Verification</h3>
+<h3 id="verification-1">Verification</h3>
 <ul>
 <li>New test <code>35_session_name_validation.sh</code> covers the
 wizard sanitization path (spaces, tabs, special characters, trim,
@@ -356,7 +393,7 @@ an <code>Obsolete</code> tombstone citing both commits; the still-
 undone follow-up work it tracked is re-filed fresh as
 <code>TMX-076</code> so nothing is silently lost.</li>
 </ul>
-<h3 id="verification-1">Verification</h3>
+<h3 id="verification-2">Verification</h3>
 <p>Independent whole-branch code review + a full regression sweep
 (<code>setup.sh --verify-only</code>, PASS=68 FAIL=0 SKIP=13) caught and
 closed 5 additional findings before this release: a critical meta-test
@@ -387,7 +424,7 @@ bash, now parses under dash. Root-caused live on thinker/amber (tmux
 3.6a compiled but the verification gate refused PATH-export).</li>
 </ul>
 <h2 id="v1032--2026-07-02">[v1.0.32] — 2026-07-02</h2>
-<h3 id="changed">Changed</h3>
+<h3 id="changed-1">Changed</h3>
 <ul>
 <li><strong>Fully-elastic ("liquid") per-session memory (Constitution
 §105/§106).</strong> tmx scopes now launch with
@@ -464,7 +501,7 @@ C4/C5); <code>run_all.sh</code> adds the brew <code>gnubin</code> PATH
 (GNU <code>timeout</code>) and re-execs under bash ≥ 4 (tests
 30/39/49/57) — a no-op on Linux.</li>
 </ul>
-<h3 id="changed-1">Changed</h3>
+<h3 id="changed-2">Changed</h3>
 <ul>
 <li><strong>test 70 C8/G1 + C10 reconciled (§11.4.120)</strong> to
 assert the new <code>_cb_ok</code> containerized-fallback wiring (teeth
@@ -518,7 +555,7 @@ not ATMOSphere). Cross-platform install hardening: curl one-liner
 installer, libevent/ncurses local-dependency obtain, native-build
 fallback for rootless-Podman hosts, and an escaped-colon session-color
 fix.</strong></p>
-<h3 id="changed-2">Changed</h3>
+<h3 id="changed-3">Changed</h3>
 <ul>
 <li><strong>Workable-item ticket key migrated <code>ATM-</code> →
 <code>TMX-</code> everywhere (§11.4.54 / §11.4.35).</strong> This
@@ -587,7 +624,7 @@ tmux-default green). Now passes <code>$NAME</code> to <code>-s</code>
 (parity with the already-correct Darwin path). Test 63 →
 PASS=8/0/0.</li>
 </ul>
-<h3 id="verification-2">Verification</h3>
+<h3 id="verification-3">Verification</h3>
 <ul>
 <li>nezha (Linux x86_64): TMX-001 GATE A go test GREEN; GATE B validate
 0-findings + zero-ATM-keys (non-export) + ATMOSphere keep-list intact +
@@ -688,7 +725,7 @@ measurement + <code>/tmp</code> fallback.
 (<code>scripts/tmx-shell-init.sh.template</code>,
 <code>scripts/setup.sh</code>)</li>
 </ul>
-<h3 id="verification-3">Verification</h3>
+<h3 id="verification-4">Verification</h3>
 <p>Captured physical evidence (real, not fabricated):</p>
 <ul>
 <li><strong>nezha (Linux x86_64):</strong> test 68 PASS=78/0/0 ×3, test
@@ -819,7 +856,7 @@ default-green. <code>tmx-state-bin</code> gains <code>set-color</code> /
 Linux + macOS; the macOS bridge forwards the <code>-s</code> value
 verbatim, the VM-side wrapper parses.</li>
 </ul>
-<h3 id="changed-3">Changed</h3>
+<h3 id="changed-4">Changed</h3>
 <ul>
 <li><code>tmx-state-bin</code> <code>v1.0.9</code> → <code>v1.1.0</code>
 (additive: <code>Session.Color</code>, <code>set-color</code>/
@@ -867,7 +904,7 @@ submodule to its latest upstream (<code>1d408cb</code>), fix host-level
 codegraph version skew, and clean dead test-socket cruft — per the
 operator mandate "we MUST ALWAYS target the latest versions of all our
 submodules." No tmux product-surface change.</strong></p>
-<h3 id="changed-4">Changed</h3>
+<h3 id="changed-5">Changed</h3>
 <ul>
 <li><strong>HelixConstitution submodule advanced <code>3f4d690</code> →
 <code>1d408cb</code></strong> (+67 upstream commits, new universal
@@ -2076,7 +2113,7 @@ exits the shell, re-spawns the session, asserts
 <code>pane_current_path</code> is the recalled target. 15/15 PASS, 3/3
 deterministic iterations.</li>
 </ul>
-<h3 id="changed-5">Changed</h3>
+<h3 id="changed-6">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx-shell-init.sh.template</code></strong> —
 the <code>$TMUX</code>-set branch no longer bails immediately. It now
@@ -2131,7 +2168,7 @@ HTML</p>
 <ul>
 <li>PDF exports refreshed.</li>
 </ul>
-<h3 id="verification-4">Verification</h3>
+<h3 id="verification-5">Verification</h3>
 <ul>
 <li>macOS verify-only sweep: PASS=40 FAIL=0 SKIP=3 → GREEN (includes new
 test 43 plus the four follow-up fixes test 35/41/43/wrapper).</li>
@@ -2205,7 +2242,7 @@ invocation, <code>--purge-state</code> flag, automatic clean-slate
 behaviour baked into <code>setup.sh</code> step 0, and verification
 commands operators can run to confirm uninstall worked.</li>
 </ul>
-<h3 id="changed-6">Changed</h3>
+<h3 id="changed-7">Changed</h3>
 <ul>
 <li><strong><code>README.md</code> install-mode table</strong> —
 "Removable via <code>bash scripts/setup.sh --uninstall</code>" updated
@@ -2245,7 +2282,7 @@ any <code>## N. Section</code> chapter in the master manual that omits a
 v1.0.X+ feature introduced in code. Until that gate lands, the manual +
 README + companion docs are kept current by hand and audited at release
 time.</p>
-<h3 id="verification-5">Verification</h3>
+<h3 id="verification-6">Verification</h3>
 <ul>
 <li>Test 42 still PASSes 21/21 with identical hash (no regression)</li>
 <li>Test 16 now SKIP-with-reason on nezha when the rename race fires the
@@ -2317,7 +2354,7 @@ setup-verify).</li>
 <li><strong><code>docs/scripts/uninstall.md</code></strong> — §11.4.18
 companion doc for the uninstall script.</li>
 </ul>
-<h3 id="changed-7">Changed</h3>
+<h3 id="changed-8">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx-shell-init.sh.template</code></strong> —
 header typo fixed (<code>twork-tmux</code> →
@@ -2404,7 +2441,7 @@ parity</h3>
 <p>Test 42 works identically on Linux + macOS — uses a sandboxed rc file
 (not <code>~/.bashrc</code> / <code>~/.zshrc</code>) so no
 platform-specific shell detection is required.</p>
-<h3 id="verification-6">Verification</h3>
+<h3 id="verification-7">Verification</h3>
 <ul>
 <li>macOS full setup.sh --verify-only: PASS=39 FAIL=0 SKIP=3 →
 GREEN</li>
@@ -2450,7 +2487,7 @@ and nezha-Linux.</p>
 documented regeneration mechanism. Fixes the cross-platform binary
 shipping bug introduced in v1.0.9.</li>
 </ul>
-<h3 id="changed-8">Changed</h3>
+<h3 id="changed-9">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx.template</code></strong> —
 <code>-c $START_DIR</code> now injected whenever the wrapper sees the
@@ -2645,7 +2682,7 @@ during P2/P3)</li>
 rows linking to the v1.0.9 docs.</li>
 </ul></li>
 </ul>
-<h3 id="changed-9">Changed</h3>
+<h3 id="changed-10">Changed</h3>
 <ul>
 <li><strong><code>scripts/bashrc_snippet.template</code></strong> — now
 sources <code>tmx-shell-init.sh</code> in addition to setting PATH; the

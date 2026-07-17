@@ -6,6 +6,37 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.36] — 2026-07-17
+
+### Changed
+
+- **`extended-keys-format` set to `csi-u` for modern TUI compatibility.**
+  Kimi Code (and other modern TUI agents like Claude Code, neovim, helix,
+  lazygit, yazi) prefer the CSI-u encoding format
+  (`\033[<keycode>;<modifier>u`) for modified keys over the older xterm
+  modifyOtherKeys format (`\033[27;<modifier>;<keycode>~`). Deep
+  investigation of the tmux 3.6a source confirmed that `extended-keys-format`
+  controls ONLY the encoding tmux sends to the inner application — tmux
+  always requests xterm modifyOtherKeys mode 2 from the outer terminal and
+  translates internally, so CSI-u works safely regardless of the outer
+  terminal emulator. Added to `scripts/tmux.conf.template` alongside the
+  existing `extended-keys on` setting. Source references:
+  `tmux/input-keys.c:432-480` (encoding function),
+  `tmux/options-table.c:102-104,393-398` (option definition),
+  `tmux/tty-features.c:240` (outer-terminal enable sequence).
+
+### Verification
+
+- New test `85_extended_keys_format_csi_u.sh` (7 assertions, 3x
+  deterministic PASS): verifies config template contains the setting, live
+  tmux server has it applied, and source code confirms the CSI-u/xterm
+  index order, default value, and both encoding format strings.
+- Challenge `TMUX-CH-85` added to `scripts/challenges/tmux.yaml`.
+- Meta-test mutation `M-CSIU` (strips the config line, test 85 catches it).
+- Full regression: `setup.sh --verify-only` GREEN, PASS=70 FAIL=0 SKIP=13.
+- Installed and verified live on host `nezha`; all pre-existing sessions
+  confirmed untouched before and after install.
+
 ## [v1.0.35] — 2026-07-05
 
 ### Added
