@@ -6,6 +6,107 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.37] — 2026-07-22 (prepared; release tag pending operator gate)
+
+### Fixed
+
+- **Progressive session sluggishness — fixed 200% CPUQuota default replaced
+  with a host-adaptive default.** Root cause (proven with captured cgroup
+  evidence, `docs/qa/cpu-throttle-20260722/`): the wrapper hardcoded
+  `TMX_CPU_EFFECTIVE="${TMX_CPU:-200}"`, so EVERY session scope got
+  `CPUQuota=200%` (2 cores) regardless of host size. On the 64-core
+  production host the whole session tree — the tmux SERVER plus the Claude
+  agent, all subagents and MCP servers (126 processes / 945 threads
+  measured) — shared 2 cores; cgroup `cpu.stat` showed 18.8% of CFS periods
+  throttled and 1757 s of cumulative forced idle in a ~25 min session.
+  Because the tmux server lives inside the same throttled scope, quota
+  exhaustion froze typing echo and timer redraws for the remainder of every
+  100 ms period — the operator-visible "more and more sluggish / timer
+  updates every 5-10 s" symptom, worsening as subagents accumulate. New
+  default: `_default_cpu_pct()` = cores × 15% (60% of the host shared
+  across the same assumed 4 concurrent sessions as `_default_mem_mb`),
+  floored at the legacy 200% (small hosts keep exact old behaviour), capped
+  at cores × 100. `TMX_CPU=<pct>` still overrides; `TMX_CPU=auto` selects
+  the adaptive default. Implemented in `scripts/tmx.template` + generated
+  `scripts/tmx`; live session remediated in place via
+  `systemctl --user set-property --runtime … CPUQuota=960%`.
+- **CFS burst bank (`cpu.max.burst`) — quota-sized by default.** Live
+  forensics on the remediated session (2026-07-22, coordinator measurement
+  arm) proved the raised quota alone is not sufficient: at 960% quota with
+  326 procs / 1830 threads the fleet still throttled 16.9% of CFS periods
+  during active phases while AVERAGE demand was only 4.35 CPUs — spikes
+  inside a single 100 ms period exhaust the budget and freeze the tmux
+  server for the period remainder (episodic, worsening with session age:
+  lifetime 10.9% vs current 16.9%). The wrapper now writes
+  `cpu.max.burst = quota` into the freshly-created scope's delegated
+  cgroup (systemd exposes no CPUQuotaBurst property), letting the scope
+  bank UNUSED quota and spend it during spikes. Containment is preserved
+  by the kernel itself: burst is hard-capped at <= quota, so a runaway
+  flat-out fleet accumulates zero bank and stays quota-bounded.
+  `TMX_CPU_BURST=<pct>` overrides; `auto`/unset = quota-sized; `0`
+  disables; missing `cpu.max.burst` (pre-5.14 kernel / cgroup-v1) is an
+  honest silent skip. Live scope remediated in place (burst 0 → 960000).
+- **Stale generated-wrapper repair (found during verification).** The dev
+  checkout's gitignored `scripts/tmx` predated the v1.0.35 sanitizer
+  (old `tr -c … '_'` replace instead of delete) — test 63 T6 failed
+  against it while the template was correct (a §11.4.108 SOURCE→ARTIFACT
+  gap; A/B-proven unrelated to the CPU change). Wrapper regenerated from
+  the current template; tests 63 (3× PASS=8) and 82 (PASS=30) confirm.
+  The operator-installed checkout at `~/tmux` was verified current.
+
+### Verification
+
+- New test `86_cpu_quota_host_adaptive.sh` (§11.4.115 single-source
+  polarity; numbered 86 — upstream's v1.0.36 already claimed test number
+  85): RED_MODE=1 reproduces the defect on the pre-fix artifact
+  (exit 0) and the guard mode FAILs on it; on the fixed artifact RED fails
+  (defect absent) and the guard PASSes — including G5, which spawns a real
+  session through the operator wrapper path and reads
+  `cpu.max=960000 µs/100ms` back from the freshly-created scope's cgroup
+  (§11.4.108 runtime layer). Functional truth-table (function extracted
+  from the artifact and RUN, never grep-only): 64→960, 4→200 (floor),
+  256→3840, unknown→200 (fallback); default-expansion: unset→adaptive,
+  auto→adaptive, explicit 400 preserved. Polarity re-proven independently
+  by the respawned session on 2026-07-22 (all four quadrants).
+- Paired meta-test mutation `M-CPUADAPT` (reverts the wrapper default to
+  the fixed `${TMX_CPU:-200}`; test 86 guard mode catches it) added to
+  `meta_test_false_positive_proof.sh` per §1.1.
+- Challenge `TMUX-CH-86` added to `scripts/challenges/tmux.yaml`
+  (severity blocker; live cgroup `cpu.max` readback as evidence).
+- Burst A/B proof (`docs/qa/cpu-throttle-20260722/burst_ab_{probe.sh,
+  result.txt}`): identical bursty workload (spikes over quota, average
+  0.2× quota) in two throwaway 100%-quota scopes — burst=0: 17/51
+  periods throttled (33%), 1.05 s throttled time in 12 s; burst=quota:
+  0/48 throttled (0%), 0 µs. `cpu.stat` deltas are the oracle
+  (§11.4.201 authoritative source). Test 86 G6 asserts the wrapper
+  really lands `cpu.max.burst == quota` on a freshly-spawned scope
+  (honest SKIP on kernels without `cpu.max.burst`).
+- OPEN follow-up (tracked, operator decision required): the live
+  measurement arm's strongest recommendation — move the interactive
+  tmux server into a SEPARATE scope from the batch/subagent fleet so
+  keystroke handling never shares a 100 ms CFS budget with burst
+  workers. This changes the crash-isolation topology (tests 09/15
+  semantics) and is deliberately NOT rushed into this release. Honest
+  boundary: the throttle mechanism is the confirmed dominant,
+  externally-measurable cause; in-process Node event-loop latency was
+  not instrumented and may contribute residually.
+- Live before/after on the affected session (identical fixed workload):
+  throttled time 11786 ms → 0 ms; tmux round-trip max latency 50 ms → 3 ms;
+  45 × 10 s cgroup time-series shows `nr_throttled` +289/30 s before vs
+  flat after the runtime quota raise. Evidence:
+  `docs/qa/cpu-throttle-20260722/`.
+- Adjacent tests re-run GREEN: 24 (CPU-cap enforcement, explicit quotas)
+  and 15 (per-session cgroup distinctness — its fresh sessions read back
+  `cpu.max='960000 100000'`, independent end-to-end confirmation).
+- Ruled out on the live host (same captured run): tmux-server RSS leak
+  (flat 10.2–10.4 MB), fd leak (constant 9), status-line `#()` subprocess
+  storms (zero `#()` in the live status formats), history-limit blowup,
+  memory-cgroup throttling (`memory.events` all zero). Config-layer
+  latency settings verified already optimal on the live server
+  (`escape-time 0`, `status-interval 15`, no `#()` command substitutions
+  in status formats) — no further config change warranted without new
+  measured evidence.
+
 ## [v1.0.36] — 2026-07-17
 
 ### Changed

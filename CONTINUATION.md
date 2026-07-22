@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-07-05T17:30:00Z
+**Last updated:** 2026-07-22T19:05:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,7 +15,7 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.35** (versionCode 36) — session-name sanitization for spaces/special characters in `tmx new -s NAME` and the interactive wizard, preserving inline colour syntax. Previous: v1.0.34 (random wizard suffix, picker, masked passwords). |
+| Version | **1.0.37 prepared** (versionCode 38; release tag pending operator gate) — host-adaptive CPUQuota default (cores × 15%, floor 200%) replacing the fixed 200% that was the proven root cause of progressive session sluggishness on many-core hosts (evidence `docs/qa/cpu-throttle-20260722/`; test 86 + meta-mutation M-CPUADAPT). Previous: v1.0.36 (2026-07-17, extended-keys-format csi-u), v1.0.35 (session-name sanitization). |
 | Verification (this cycle) | `setup.sh` v1.0.35: PASS=69 FAIL=0 SKIP=13 (nezha, Linux x86_64). `run_all.sh` v1.0.35: PASS=69 FAIL=0 SKIP=13. `meta_test_false_positive_proof.sh`: 66 mutations caught, 0 escaped, 11 skipped (M82 skipped by automated harness; manually reproduced and proven to catch). Live retest: `tmx new -s 'hello world' -d` → `hello-world`; `tmx new -s '  messy! name  ' -d` → `messy-name`; `tmx new -s 'hello world:red' -d` → `hello-world` with `bg=red`. Release tag v1.0.35 pending commit + publish. |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `1576d3d`); `Containers/` submodule (pinned `fbef9d6`); project `Constitution.md` (Project Articles §101–§170 extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `GEMINI.md` (all lockstep to §11.4.170), `Issues.md`, `Fixed.md`, this document |
 
@@ -33,6 +33,28 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.29 — Progressive-sluggishness root cause fixed: host-adaptive CPUQuota (2026-07-22) — v1.0.37 prepared
+
+**Status:** READY FOR RELEASE GATE — fix (adaptive quota + quota-sized
+`cpu.max.burst` bank) + test 86 (G1–G6) + M-CPUADAPT mutation + captured
+evidence committed; release tag v1.0.37 (versionCode 38) awaits operator/conductor
+approval. Live forensics (coordinator measurement arm, 2026-07-22) confirmed the
+throttle mechanism as the dominant cause: even at 960% quota, 16.9% of periods
+throttled during fleet bursts (avg demand 4.35 CPUs) — the burst bank closes
+that (A/B: 33% → 0% throttled on identical spiky workload). OPEN follow-up
+(operator decision): split the interactive tmux server into its own scope,
+separate from the subagent fleet (changes crash-isolation topology). Root cause: fixed `CPUQuota=200%` per `tmx` scope throttled the whole
+session tree (tmux server included) on many-core hosts — cgroup `cpu.stat` showed
+18.8% throttled periods / 1757 s forced idle; typing echo + timer redraws froze for
+the rest of every 100 ms CFS period. Fix: `_default_cpu_pct()` in
+`scripts/tmx.template` (cores × 15%, floor 200%, cap cores × 100; `TMX_CPU`
+override preserved; `TMX_CPU=auto` = adaptive). Evidence:
+`docs/qa/cpu-throttle-20260722/` (before/after throttle probes, latency series,
+45×10 s cgroup time-series, test-86 polarity matrix). Live production scope
+remediated in place (`cpu.max=960000`). Config-layer latency settings audited
+already-optimal (escape-time 0, no `#()` in status) — no further change without
+new measured evidence.
 
 ### §3.28 — Wizard + session-password redesign (2026-07-05) — docs landed, code in sibling tasks
 

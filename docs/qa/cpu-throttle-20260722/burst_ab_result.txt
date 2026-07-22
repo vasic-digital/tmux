@@ -1,0 +1,3 @@
+# burst A/B probe 2026-07-23T00:11:25+05:00 — quota=100% (1 CPU); every 600ms two simultaneous ~60ms spinners (spike ~120ms CPU inside one 100ms period; average ~0.2 CPU)
+A_burst0: burst=0 window=12s periods=51 throttled=17 ratio=33% throttled_usec_delta=1046967
+B_burstQ: burst=100000 window=12s periods=48 throttled=0 ratio=0% throttled_usec_delta=0

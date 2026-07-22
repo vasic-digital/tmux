@@ -178,7 +178,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-07-05T17:30:00Z</p>
+<p><strong>Last updated:</strong> 2026-07-22T19:05:00Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -215,10 +215,13 @@ current state. Update this document as you work.</p>
 </tr>
 <tr>
 <td>Version</td>
-<td><strong>1.0.35</strong> (versionCode 36) — session-name sanitization
-for spaces/special characters in <code>tmx new -s NAME</code> and the
-interactive wizard, preserving inline colour syntax. Previous: v1.0.34
-(random wizard suffix, picker, masked passwords).</td>
+<td><strong>1.0.37 prepared</strong> (versionCode 38; release tag
+pending operator gate) — host-adaptive CPUQuota default (cores × 15%,
+floor 200%) replacing the fixed 200% that was the proven root cause of
+progressive session sluggishness on many-core hosts (evidence
+<code>docs/qa/cpu-throttle-20260722/</code>; test 86 + meta-mutation
+M-CPUADAPT). Previous: v1.0.36 (2026-07-17, extended-keys-format csi-u),
+v1.0.35 (session-name sanitization).</td>
 </tr>
 <tr>
 <td>Verification (this cycle)</td>
@@ -269,6 +272,34 @@ user-mandate quote)</li>
 sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
+<h3
+id="329--progressive-sluggishness-root-cause-fixed-host-adaptive-cpuquota-2026-07-22--v1037-prepared">§3.29
+— Progressive-sluggishness root cause fixed: host-adaptive CPUQuota
+(2026-07-22) — v1.0.37 prepared</h3>
+<p><strong>Status:</strong> READY FOR RELEASE GATE — fix (adaptive quota
++ quota-sized <code>cpu.max.burst</code> bank) + test 86 (G1–G6) +
+M-CPUADAPT mutation + captured evidence committed; release tag v1.0.37
+(versionCode 38) awaits operator/conductor approval. Live forensics
+(coordinator measurement arm, 2026-07-22) confirmed the throttle
+mechanism as the dominant cause: even at 960% quota, 16.9% of periods
+throttled during fleet bursts (avg demand 4.35 CPUs) — the burst bank
+closes that (A/B: 33% → 0% throttled on identical spiky workload). OPEN
+follow-up (operator decision): split the interactive tmux server into
+its own scope, separate from the subagent fleet (changes crash-isolation
+topology). Root cause: fixed <code>CPUQuota=200%</code> per
+<code>tmx</code> scope throttled the whole session tree (tmux server
+included) on many-core hosts — cgroup <code>cpu.stat</code> showed 18.8%
+throttled periods / 1757 s forced idle; typing echo + timer redraws
+froze for the rest of every 100 ms CFS period. Fix:
+<code>_default_cpu_pct()</code> in <code>scripts/tmx.template</code>
+(cores × 15%, floor 200%, cap cores × 100; <code>TMX_CPU</code> override
+preserved; <code>TMX_CPU=auto</code> = adaptive). Evidence:
+<code>docs/qa/cpu-throttle-20260722/</code> (before/after throttle
+probes, latency series, 45×10 s cgroup time-series, test-86 polarity
+matrix). Live production scope remediated in place
+(<code>cpu.max=960000</code>). Config-layer latency settings audited
+already-optimal (escape-time 0, no <code>#()</code> in status) — no
+further change without new measured evidence.</p>
 <h3
 id="328--wizard--session-password-redesign-2026-07-05--docs-landed-code-in-sibling-tasks">§3.28
 — Wizard + session-password redesign (2026-07-05) — docs landed, code in

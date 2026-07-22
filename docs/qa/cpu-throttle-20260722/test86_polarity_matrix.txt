@@ -1,0 +1,14 @@
+# §11.4.115 polarity matrix — test 86_cpu_quota_host_adaptive.sh
+# (originally authored as test 85; renumbered 86 after upstream v1.0.36
+#  claimed number 85 for extended-keys-format; matrix re-captured on the
+#  merged tree @ 04b4472 + fix, 2026-07-22, respawned session)
+# [1] pre-fix (git 381ffae template) RED_MODE=1 exit=0 (defect reproduced)
+# [2] pre-fix (git 381ffae template) RED_MODE=0 exit=1 (guard catches broken artifact: G2/G3/G4 FAIL)
+# [3] fixed template                 RED_MODE=1 exit=1 (defect absent)
+# [4] fixed template                 RED_MODE=0 exit=0 PASS=5 FAIL=0 SKIP=0
+#     incl. G5 live spawn through scripts/tmx: cgroup readback cpu.max=960000 µs/100ms (=960% host-adaptive on 64 cores)
+# [M] M-CPUADAPT mutation dry-run (auto→200 revert on temp copy): guard FAIL: G2, exit=1 (mutation caught)
+# [G6 addendum 2026-07-23] burst extension: fixed guard run PASS=6 FAIL=0 SKIP=0
+#     incl. G6 cpu.max.burst=960000 readback == quota on fresh scope spawn.
+#     Induced-burst A/B (burst_ab_result.txt): burst=0 -> 17/51 periods
+#     throttled (33%, 1.05s); burst=quota -> 0/48 (0%, 0us). Same workload.

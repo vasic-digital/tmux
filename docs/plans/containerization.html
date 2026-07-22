@@ -2,31 +2,180 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.10" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>containerization</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="per-session-tmux-isolation--plan">Per-Session Tmux Isolation —
 Plan</h1>
 <p><strong>Source:</strong> Web deep-research dispatched 2026-05-07. See
@@ -40,7 +189,14 @@ pattern: <code>systemd-run --user --scope</code></h2>
 <li><code>MemoryMax=8G</code> (default; tunable via <code>TMX_MEM</code>
 env var)</li>
 <li><code>CPUQuota=200%</code> (= 2 CPUs; tunable via
-<code>TMX_CPU</code>)</li>
+<code>TMX_CPU</code>) — <strong>amended v1.0.37 (2026-07-22):</strong>
+the fixed 200% default was the proven root cause of progressive session
+sluggishness on many-core hosts (whole session tree, tmux server
+included, squeezed into 2 cores → CFS throttling froze typing
+echo/timers). Default is now host-adaptive: <code>cores × 15%</code>
+(60% of the host shared across 4 assumed sessions, mirroring the memory
+default), floored at 200%. <code>TMX_CPU=&lt;pct&gt;</code> still
+overrides; <code>TMX_CPU=auto</code> = adaptive.</li>
 <li><code>Delegate=yes</code> (lets tmux/children create sub-cgroups for
 LSPs etc.)</li>
 <li><code>TasksMax=4096</code></li>
@@ -75,7 +231,8 @@ builds).</p>
 <tr>
 <td>TTY (xterm-256color)</td>
 <td><strong>Native PTY</strong></td>
-<td><code>podman exec -it</code> has OPOST/ONLCR glitch (<a href="https://github.com/containers/podman/issues/3179">containers/podman#3179</a>)</td>
+<td><code>podman exec -it</code> has OPOST/ONLCR glitch (<a
+href="https://github.com/containers/podman/issues/3179">containers/podman#3179</a>)</td>
 </tr>
 <tr>
 <td>Per-keystroke latency</td>
@@ -110,8 +267,16 @@ tmx kill &lt;name&gt;         systemctl --user stop tmx-&lt;name&gt;.scope + cle
 <ul>
 <li><code>TMX_MEM</code> (default <code>8G</code>) —
 <code>MemoryMax</code> per scope</li>
-<li><code>TMX_CPU</code> (default <code>200%</code>) —
-<code>CPUQuota</code> per scope</li>
+<li><code>TMX_CPU</code> (default host-adaptive since v1.0.37:
+<code>cores × 15%</code>, floor <code>200%</code>; was fixed
+<code>200%</code> before) — <code>CPUQuota</code> per scope</li>
+<li><code>TMX_CPU_BURST</code> (since v1.0.37; default <code>auto</code>
+= quota-sized) — <code>cpu.max.burst</code> CFS burst bank per scope,
+written directly to the delegated cgroup after scope creation. The
+kernel caps burst ≤ quota, so the long-term rate stays
+<code>CPUQuota</code>-bounded (runaway containment preserved);
+<code>0</code> disables; silently skipped on kernels without
+<code>cpu.max.burst</code> (&lt; 5.14 / cgroup-v1).</li>
 </ul>
 <h2 id="crash-isolation-invariants-must-be-tested">Crash isolation
 invariants (must be tested)</h2>
@@ -172,7 +337,8 @@ cgroups (LSPs, build watchers).</li>
 <li><strong>Cgroup v1 hosts</strong>: limited support. Add
 <code>systemd.unified_cgroup_hierarchy=1</code> to kernel cmdline on
 Ubuntu 20.04 / RHEL 8.</li>
-<li><strong>RHEL 8</strong> has known <a href="https://access.redhat.com/solutions/7099227">systemd bug</a> —
+<li><strong>RHEL 8</strong> has known <a
+href="https://access.redhat.com/solutions/7099227">systemd bug</a> —
 MemoryMax not enforced in transient <code>--user</code> scope. RHEL 9
 fine.</li>
 <li><strong><code>PrivateTmp=yes</code></strong> would break ssh-agent /
@@ -188,13 +354,16 @@ gives 2× headroom. On a 64 GB host, 5 concurrent sessions × 8 GB cap =
 Realistic concurrent heavy-use is 2-3 sessions.</p>
 <h2 id="sources">Sources</h2>
 <ul>
-<li><a href="https://ankursinha.in/2022/10/29/isolating-tmux-windows-to-prevent-systemd-oomd-from-killing-the-server.html">Ankur
+<li><a
+href="https://ankursinha.in/2022/10/29/isolating-tmux-windows-to-prevent-systemd-oomd-from-killing-the-server.html">Ankur
 Sinha — Isolating tmux windows</a> — primary prior art</li>
 <li><a href="https://github.com/tmux/tmux/issues/428">tmux/tmux#428</a>
 — confirms no upstream feature</li>
-<li><a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html">systemd.resource-control(5)</a>
+<li><a
+href="https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html">systemd.resource-control(5)</a>
 — semantics</li>
-<li><a href="https://github.com/containers/podman/issues/3179">containers/podman#3179</a>
+<li><a
+href="https://github.com/containers/podman/issues/3179">containers/podman#3179</a>
 — pattern-A TTY cost</li>
 <li><a href="https://access.redhat.com/solutions/7099227">Red Hat KB
 7099227</a> — RHEL 8 MemoryMax bug</li>

@@ -1527,6 +1527,22 @@ v109_run_mutation \
     "scripts/tests/85_extended_keys_format_csi_u.sh" \
     "FAIL 85"
 
+# ── M-CPUADAPT: revert the host-adaptive CPUQuota default to the fixed
+# 200% (test 86 catches the regression). §11.4.115(F): the canonical
+# mutation for a landed fix is the fix-commit's revert — this restores the
+# exact pre-fix default `TMX_CPU_EFFECTIVE="${TMX_CPU:-200}"` that was the
+# proven root cause of progressive session sluggishness on many-core hosts
+# (2026-07-22 forensics, docs/qa/cpu-throttle-20260722/). Test 86 G2
+# asserts the auto-default wiring is present and the fixed-200 default is
+# gone; with the mutation applied G2 FAILs and the test exits non-zero.
+v109_run_mutation \
+    "M-CPUADAPT" \
+    "revert host-adaptive CPUQuota default to fixed 200% in tmx.template (test 86)" \
+    "scripts/tmx.template" \
+    "inplace_sed 's|TMX_CPU_EFFECTIVE=\"\${TMX_CPU:-auto}\"|TMX_CPU_EFFECTIVE=\"\${TMX_CPU:-200}\"|' \"\$target_abs\"" \
+    "scripts/tests/86_cpu_quota_host_adaptive.sh" \
+    "FAIL: G2"
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════

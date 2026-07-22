@@ -112,6 +112,44 @@ _default_mem_mb() {
     printf '%d' "$mb"
 }
 
+# Host-adaptive default CPUQuota percent (Constitution §12.6 shared budget +
+# §12.11 maximal dynamic utilization): 60% of host CPU cores divided across
+# the same assumed 4 concurrent sessions as _default_mem_mb (= cores x 15%),
+# floored at the legacy fixed default (200%). Forensic anchor (2026-07-22,
+# progressive-sluggishness root cause): the previous FIXED CPUQuota=200%
+# default squeezed a 64-core host's ENTIRE session tree — tmux server +
+# Claude agent + all subagents, 945 threads / 126 processes measured — into
+# 2 cores; cgroup cpu.stat showed nr_throttled 2680/14279 periods (18.8%)
+# and 1757 s cumulative forced-idle in a ~25 min session, and a fixed
+# 4-thread probe accumulated 11786 ms of throttle in 2 s of wall time.
+# Raising the live scope 200%→960% dropped the identical probe to 0 ms
+# throttled and collapsed tmux server round-trip max latency 50 ms→3 ms.
+# The tmux server shares the scope with the workload it renders, so quota
+# exhaustion froze typing echo + timers for the rest of every 100 ms CFS
+# period — the operator-visible "more and more sluggish" symptom.
+_default_cpu_pct() {
+    local cores pct
+    case "$HOST_OS" in
+        Darwin)
+            cores=$(sysctl -n hw.ncpu 2>/dev/null || echo 0)
+            ;;
+        *)
+            cores=$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 0)
+            ;;
+    esac
+    case "$cores" in ''|*[!0-9]*) cores=0 ;; esac
+    if [ "${cores:-0}" -gt 0 ] 2>/dev/null; then
+        pct=$(( cores * 100 * 60 / 100 / 4 ))
+        # Never promise more than the host physically has.
+        [ "$pct" -gt $(( cores * 100 )) ] && pct=$(( cores * 100 ))
+    else
+        pct=200
+    fi
+    # Floor at the legacy fixed default — small hosts keep the old behaviour.
+    [ "$pct" -lt 200 ] && pct=200
+    printf '%d' "$pct"
+}
+
 # Probe Linux topology (systemd ≥ 230 + functional --user --scope).
 # On macOS this is a no-op; isolation uses rlimit instead.
 _scope_ok=0
@@ -483,7 +521,12 @@ case "$SUBCMD" in
         # throttle (reclaim, never kill); TMX_MEM=auto uses the host-adaptive size.
         TMX_MEM_EFFECTIVE="${TMX_MEM:-}"
         [ "$TMX_MEM_EFFECTIVE" = auto ] && TMX_MEM_EFFECTIVE="$(_default_mem_mb)M"
-        TMX_CPU_EFFECTIVE="${TMX_CPU:-200}"
+        # CPU: explicit TMX_CPU wins; `auto`/unset → host-adaptive default.
+        # Was a FIXED `200` (2 cores) for ANY host before v1.0.36 — the
+        # proven root cause of progressive typing lag / 5-10 s timer stalls
+        # in long multi-subagent Claude sessions (see _default_cpu_pct).
+        TMX_CPU_EFFECTIVE="${TMX_CPU:-auto}"
+        [ "$TMX_CPU_EFFECTIVE" = auto ] && TMX_CPU_EFFECTIVE="$(_default_cpu_pct)"
         TMX_MEM_ARGS=( -p "MemoryMax=infinity" -p "MemoryMin=128M" )
         [ -n "$TMX_MEM_EFFECTIVE" ] && TMX_MEM_ARGS+=( -p "MemoryHigh=$TMX_MEM_EFFECTIVE" )
 
@@ -631,6 +674,33 @@ case "$SUBCMD" in
                         -p "TasksMax=4096" \
                         -p "Delegate=yes" \
                         "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
+                    # §12.11 CFS burst allowance (live forensics 2026-07-22):
+                    # even at an adaptive 960% quota an active multi-subagent
+                    # fleet burst-throttled 16.9% of CFS periods while its
+                    # AVERAGE demand was only 4.35 CPUs — spikes inside one
+                    # 100 ms period exhaust the budget and freeze the tmux
+                    # server (typing echo/timers) for the period remainder.
+                    # cpu.max.burst (kernel >= 5.14) lets the scope BANK
+                    # unused quota from earlier periods and spend it during a
+                    # spike; the kernel hard-caps burst <= quota, so the
+                    # long-term rate stays bounded by CPUQuota — containment
+                    # of a runaway fleet is PRESERVED (a flat-out spinner
+                    # accumulates zero bank). TMX_CPU_BURST=<pct> overrides;
+                    # auto/unset = quota-sized bank; 0 disables. Written
+                    # directly to the delegated cgroup because systemd
+                    # exposes no CPUQuotaBurst property; a missing
+                    # cpu.max.burst file (older kernel / cgroup-v1) is an
+                    # honest silent skip — the quota itself still applies.
+                    TMX_CPU_BURST_EFFECTIVE="${TMX_CPU_BURST:-auto}"
+                    [ "$TMX_CPU_BURST_EFFECTIVE" = auto ] && TMX_CPU_BURST_EFFECTIVE="$TMX_CPU_EFFECTIVE"
+                    case "$TMX_CPU_BURST_EFFECTIVE" in ''|*[!0-9]*) TMX_CPU_BURST_EFFECTIVE=0 ;; esac
+                    if [ "$TMX_CPU_BURST_EFFECTIVE" -gt 0 ] 2>/dev/null; then
+                        _burst_cg="$(systemctl --user show "$SCOPE_UNIT" -p ControlGroup --value 2>/dev/null)"
+                        if [ -n "$_burst_cg" ] && [ -f "/sys/fs/cgroup${_burst_cg}/cpu.max.burst" ]; then
+                            printf '%s' "$(( TMX_CPU_BURST_EFFECTIVE * 1000 ))" \
+                                > "/sys/fs/cgroup${_burst_cg}/cpu.max.burst" 2>/dev/null || true
+                        fi
+                    fi
                 else
                     "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
                 fi

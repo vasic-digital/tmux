@@ -1072,3 +1072,24 @@ challenges:
       source code has both CSI-u and xterm encoding format strings
     evidence: config grep + tmux show-options + source-code verification
     severity: high
+
+  - id: TMUX-CH-86
+    title: host-adaptive CPUQuota default prevents progressive session sluggishness
+    description: |
+      The tmx wrapper's default per-session CPUQuota is host-adaptive
+      (cores x 15%, floored at the legacy 200%, capped at cores x 100)
+      instead of the fixed 200% that throttled the whole session tree —
+      tmux server included — into 2 cores on many-core hosts (proven root
+      cause of the "more and more sluggish / timers update every 5-10 s"
+      operator symptom: 18.8% of CFS periods throttled, 1757 s forced
+      idle; evidence docs/qa/cpu-throttle-20260722/). Explicit TMX_CPU
+      still overrides; TMX_CPU=auto selects the adaptive default.
+    test_script: scripts/tests/86_cpu_quota_host_adaptive.sh
+    pass_condition: |
+      _default_cpu_pct present and functionally correct (64->960,
+      4->200 floor, 256->3840, unknown->200 fallback);
+      TMX_CPU unset/auto expands to the adaptive default, explicit
+      value preserved; on Linux a freshly-spawned session's cgroup
+      cpu.max reads back the adaptive quota (runtime layer, §11.4.108)
+    evidence: functional truth-table run + live cgroup cpu.max readback
+    severity: blocker
