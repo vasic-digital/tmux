@@ -6,7 +6,7 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
-## [v1.0.37] — 2026-07-22 (prepared; release tag pending operator gate)
+## [v1.0.37] — 2026-07-23
 
 ### Fixed
 

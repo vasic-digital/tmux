@@ -34,7 +34,7 @@ Paste this prompt:
 
 ## §3 — Active work
 
-### §3.29 — Progressive-sluggishness root cause fixed: host-adaptive CPUQuota (2026-07-22) — v1.0.37 prepared
+### §3.30 — Progressive-sluggishness root cause fixed: host-adaptive CPUQuota (2026-07-23) — v1.0.37 released
 
 **Status:** READY FOR RELEASE GATE — fix (adaptive quota + quota-sized
 `cpu.max.burst` bank) + test 86 (G1–G6) + M-CPUADAPT mutation + captured
