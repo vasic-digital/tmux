@@ -102,7 +102,7 @@ after the fix.
 
 **TMX-ID:** TMX-076
 **Type:** Task
-**Status:** Queued
+**Status:** Ready for testing
 
 Tests 72 (libevent/ncurses local-dependency obtain) and 73 (build_native.sh
 local-dependency wiring) currently have no paired §1.1 mutation registered in

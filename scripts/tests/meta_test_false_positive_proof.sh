@@ -1543,6 +1543,37 @@ v109_run_mutation \
     "scripts/tests/86_cpu_quota_host_adaptive.sh" \
     "FAIL: G2"
 
+# ── M72: obtain_local_deps.sh — change libevent+ncurses envprefix so that
+#    resolved.env emits variables under WRONG names (§1.1 paired mutation
+#    for test 72). The dep still resolves correctly (exit 0), but the
+#    resolved.env has BROKEN_LE_M72_LIBDIR instead of LIBEVENT_LIBDIR, so test
+#    72's _assert_build_dep_wired finds no wiring → B1/B2 FAIL. This proves
+#    the GREEN guard catches a drift in the dep→envprefix mapping — the
+#    exact source-level error that would make tmux's ./configure link step
+#    miss a local dep while reporting success.
+v109_run_mutation \
+    "M72" \
+    "change libevent+ncurses envprefix in obtain_local_deps.sh dep catalog so resolved.env emits variables under wrong names (test 72 B1/B2 fails — no expected LIBEVENT_*/NCURSES_* wiring found)" \
+    "scripts/obtain_local_deps.sh" \
+    "inplace_sed '/libevent:envprefix)/s/LIBEVENT/BROKEN_LE_M72/' \"\$target_abs\" && inplace_sed '/ncurses:envprefix)/s/NCURSES/BROKEN_NC_M72/' \"\$target_abs\"" \
+    "scripts/tests/72_libevent_ncurses_obtain.sh" \
+    "^FAIL 72"
+
+# ── M73: build_native.sh — replace the libevent/ncurses -I/-L wiring values
+#    with bogus paths (§1.1 paired mutation for test 73). The LE_CPPFLAGS/LE_LDFLAGS
+#    and NC_CPPFLAGS/NC_LDFLAGS assignments still execute (guards still fire because
+#    resolved.env has the source variables), but produce -I/M73/broken instead of
+#    -I<INC_LE>. The D0 marker check still passes (LIBEVENT_INCDIR text is preserved
+#    in the guard), but D1/D2 FAIL because the computed CFLAGS/LDFLAGS lack the
+#    expected include+lib dirs.
+v109_run_mutation \
+    "M73" \
+    "replace libevent+ncurses -I/-L wiring values with bogus paths in build_native.sh (test 73 D1/D2 fails — no expected -I/-L flags in computed CFLAGS/LDFLAGS)" \
+    "scripts/build_native.sh" \
+    "inplace_sed 's#-I\${LIBEVENT_INCDIR}#-I/M73/broken#' \"\$target_abs\" && inplace_sed 's#-L\${LIBEVENT_LIBDIR}#-L/M73/broken#' \"\$target_abs\" && inplace_sed 's#-I\${NCURSES_INCDIR}#-I/M73/broken#' \"\$target_abs\" && inplace_sed 's#-L\${NCURSES_LIBDIR}#-L/M73/broken#' \"\$target_abs\"" \
+    "scripts/tests/73_build_native_localdeps_wiring.sh" \
+    "^FAIL 73"
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════
