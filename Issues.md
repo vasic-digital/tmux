@@ -124,7 +124,7 @@ existing 60+ mutations.
 
 **TMX-ID:** TMX-077
 **Type:** Bug
-**Status:** Queued
+**Status:** Ready for testing
 
 Found by the final whole-branch review of the wizard/password redesign
 (2026-07-05), confirmed pre-existing (not introduced by that plan) via
