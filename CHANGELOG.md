@@ -6,6 +6,31 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [v1.0.38] — 2026-07-24
+
+### Fixed
+
+- **Scope-independent collision guard (TMX-077).** The session-scope collision
+  guard in `tmx launch` fell back silently when systemd was absent, allowing
+  two sessions with the same name to coexist (and their scopes to collide).
+  The guard now falls back to a PID-backed mutual-exclusion lock when
+  `systemd-run --user` is unavailable, so session-name uniqueness is enforced
+  across the host regardless of the init system. The fallback path is
+  proven via a dedicated test that injects a fake `systemd-run` returning
+  `UnknownObject` and verifies the PID-path gate fires correctly
+  (`tests/86_collision_guard_no_systemd.sh`).
+
+### Tests
+
+- **§1.1 meta-test mutations for local-dependency tests (TMX-076).** Pairs
+  mutations for tests 72 (`obtain_local_deps`) and 73 (`build_native`
+  local-deps) — each mutation strips an invariant and the paired test
+  FAILs, proving the gates are not bluff gates. Mutations: `M72`
+  (`install.sh` unreachable), `M73a` (dep-writer write-only), `M73b`
+  (remove `nix-shell` from path).
+
+---
+
 ## [v1.0.37] — 2026-07-24
 
 ### Added
