@@ -3052,4 +3052,60 @@ repair steps, verified against the v1.0.30 `setup.sh` fallback path.
   actually completed under any other ID (grepped
   `scripts/tests/meta_test_false_positive_proof.sh` for `M-test72`/`M-test73`
   — absent) before re-filing it fresh as TMX-076, so the real remaining work
-  is tracked, not silently lost.
+   is tracked, not silently lost.
+
+### G1 WIZARD-SUFFIX-001 — wizard-created sessions get a random 4-digit name suffix — `IMPLEMENTED`
+
+**TMX-ID:** TMX-072
+**Status:** Implemented (→ Fixed.md)
+**Type:** Feature
+**Severity:** MEDIUM
+
+Typing a session name at the interactive tmx wizard now always creates a brand-new session whose real name is the typed name plus a random 4-digit suffix (e.g. my-session-2507), so retyping the same base name later can never collide with or be confused for an earlier session. This makes every session created through the wizard genuinely unique by construction, while scripts and tests that need a deterministic exact name can set TMX_EXACT_NAME=1 to opt out. Implemented in scripts/tmx-shell-init.sh.template. Acceptance: test 78 passes, showing the created session name matches base-NNNN and that TMX_EXACT_NAME=1 suppresses it.
+
+**Closure cycle:** v1.0.34
+**Closure commit:** cb3e96c
+**Captured evidence (4-layer):** (a) pre-build gate: test 78 validated in run_all.sh; (b) runtime: test 78 PASS 3× deterministic (TMX_EXACT_NAME=1 suppressed, base-NNNN matched); (c) HelixQA Challenge: TMUX-CH-78; (d) paired mutation: meta-test `M-SUFFIX` neutralizes suffix generation — test 78 FAILs.
+**Regression-protection:** test 78 (`78_wizard_suffix.sh`), meta-test `M-SUFFIX` in `scripts/tests/meta_test_false_positive_proof.sh`.
+
+### G2 PASSWORD-MASK-001 — password input is masked with asterisks while typing — `IMPLEMENTED`
+
+**TMX-ID:** TMX-073
+**Status:** Implemented (→ Fixed.md)
+**Type:** Feature
+**Severity:** MEDIUM
+
+Session passwords are no longer echoed in plaintext to the terminal while being typed. Every password prompt in the tmx wrapper now shows a single asterisk character for each keystroke, with backspace erasing one asterisk, so a password can never be read off the screen by someone glancing at it. Implemented via the shared _read_password_masked helper in scripts/tmx.template. Acceptance: test 77 passes, proving the pane buffer never contains the typed plaintext.
+
+**Closure cycle:** v1.0.34
+**Closure commit:** cb3e96c
+**Captured evidence (4-layer):** (a) pre-build gate: test 77 validated in run_all.sh; (b) runtime: test 77 PASS 3× deterministic (masked input visible as `*`, pane buffer contains no plaintext); (c) HelixQA Challenge: TMUX-CH-77; (d) paired mutation: meta-test `M-MASK` neutralizes masking — test 77 FAILs.
+**Regression-protection:** test 77 (`77_password_masked.sh`), meta-test `M-MASK` in `scripts/tests/meta_test_false_positive_proof.sh`.
+
+### G3 DOUBLE-PROMPT-001 — reopening a password-protected session no longer asks for the password twice — `FIXED`
+
+**TMX-ID:** TMX-074
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** MEDIUM
+
+Reopening a session that had been idle-recycled (its tmux process torn down for inactivity, but its password remembered) used to show a confusing second prompt that looked like it might be resetting the password, even though typing the same password both times always worked. The root cause was the attach command checking the remembered password before checking whether the session was actually still running, so a doomed attach attempt fell through to the create flow, which unconditionally asked to set a password again. Opening an already-protected session (live or recycled) now verifies the password exactly once; only a genuinely brand-new session name asks for a password and a confirmation. Fixed in scripts/tmx.template's attach and new command handling. Acceptance: test 81 reproduces the exact reported scenario end-to-end and proves exactly one prompt appears, with the stored password unchanged afterward.
+
+**Closure cycle:** v1.0.34
+**Closure commit:** cb3e96c
+**Captured evidence (4-layer):** (a) pre-build gate: test 81 validated in run_all.sh; (b) runtime: test 81 PASS 3× deterministic (single prompt, stored password unchanged, scenario reproduced end-to-end); (c) HelixQA Challenge: TMUX-CH-81; (d) paired mutation: meta-test `M-DOUBLE` strips the `has-password` guard — test 81 FAILs.
+**Regression-protection:** test 81 (`81_reopen_password_protected.sh`), meta-test `M-DOUBLE` in `scripts/tests/meta_test_false_positive_proof.sh`.
+
+### G4 WIZARD-PICKER-001 — wizard offers a picker of existing sessions when no new name is typed — `IMPLEMENTED`
+
+**TMX-ID:** TMX-075
+**Status:** Implemented (→ Fixed.md)
+**Type:** Feature
+**Severity:** MEDIUM
+
+Previously, pressing Enter without typing a session name at the interactive tmx wizard always dropped the operator into a plain shell with no other option. Now, if any sessions already exist, the operator sees a numbered list of them plus a 'None' option, and can pick a number to join that session directly (still prompted for its password exactly once if it is protected) instead of having to remember and retype its exact name. Choosing None, or pressing Enter again, behaves exactly as before (a plain shell). Implemented in scripts/tmx-shell-init.sh.template. Acceptance: test 79 passes, covering picking a plain session, picking a password-protected one, and choosing None.
+
+**Closure cycle:** v1.0.34
+**Closure commit:** cb3e96c
+**Captured evidence (4-layer):** (a) pre-build gate: test 79 validated in run_all.sh; (b) runtime: test 79 PASS 3× deterministic (plain pick, password-protected pick, None fallback); (c) HelixQA Challenge: TMUX-CH-79; (d) paired mutation: meta-test `M-PICKER` neutralizes the existing-session picker — test 79 FAILs.
+**Regression-protection:** test 79 (`79_wizard_session_picker.sh`), meta-test `M-PICKER` in `scripts/tests/meta_test_false_positive_proof.sh`.

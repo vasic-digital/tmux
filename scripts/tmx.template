@@ -140,14 +140,92 @@ _default_cpu_pct() {
     case "$cores" in ''|*[!0-9]*) cores=0 ;; esac
     if [ "${cores:-0}" -gt 0 ] 2>/dev/null; then
         pct=$(( cores * 100 * 60 / 100 / 4 ))
-        # Never promise more than the host physically has.
+        # Cap the ADAPTIVE value at host capacity. NOTE: the legacy floor
+        # below deliberately re-exceeds this cap on 1-2-core hosts (floor
+        # 200% > capacity) — that IS the pre-v1.0.37 behaviour those hosts
+        # always had, and a CFS quota above physical capacity is simply
+        # unenforceable (never reached), so it cannot starve anything
+        # (§11.4.201 honest boundary: the cap governs the adaptive path
+        # only; the floor wins on tiny hosts by design).
         [ "$pct" -gt $(( cores * 100 )) ] && pct=$(( cores * 100 ))
     else
         pct=200
     fi
-    # Floor at the legacy fixed default — small hosts keep the old behaviour.
+    # Floor at the legacy fixed default — small hosts keep the old behaviour
+    # (including re-exceeding the capacity cap above; see the cap comment).
     [ "$pct" -lt 200 ] && pct=200
     printf '%d' "$pct"
+}
+
+# ── §11.4.225 interactive-server scope split (TMX_SERVER_SPLIT=1) ─────
+# Opt-in topology (default OFF): the tmux SERVER keeps tmx-NAME.scope for
+# itself with a SMALL host-adaptive quota, while the WORKLOAD (every pane
+# shell + everything it spawns) runs in per-pane transient scopes under a
+# dedicated tmxw-<name>.slice carrying the REMAINDER of the session budget
+# plus the burst bank. Fleet bursts then cannot starve the server's
+# keystroke/echo/timer handling even if the quota is ever mis-tuned
+# (HEL-006/HEL-003 forensics 2026-07-22/23: in the shared scope a bursting
+# fleet throttled 16.9-100% of CFS periods and froze the server for each
+# period's remainder). Mechanism B of the scope-split design (slice +
+# per-pane scopes); preconditions probed LIVE on systemd 255 (2026-07-23):
+# slice quota via `systemctl --user set-property --runtime` on a
+# not-yet-started slice WORKS, and cpu.max.burst IS user-writable on the
+# slice cgroup (over-quota writes EINVAL — kernel caps burst <= quota).
+
+# Host-adaptive server-scope quota percent ([OPEN: SPLIT-2] resolution).
+# The tmux server is SINGLE-THREADED — one core (100%) is its structural
+# ceiling. Scale down on small hosts: a quarter core per host core, capped
+# at that ceiling, floored at a quarter core. TMX_SRV_CPU=<pct> overrides
+# (consumed by _split_cpu_pcts below).
+_srv_cpu_pct() {
+    local cores pct
+    case "$HOST_OS" in
+        Darwin)
+            cores=$(sysctl -n hw.ncpu 2>/dev/null || echo 0)
+            ;;
+        *)
+            cores=$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 0)
+            ;;
+    esac
+    case "$cores" in ''|*[!0-9]*) cores=0 ;; esac
+    if [ "${cores:-0}" -gt 0 ] 2>/dev/null; then
+        pct=$(( cores * 25 ))
+        [ "$pct" -gt 100 ] && pct=100
+        [ "$pct" -lt 25 ] && pct=25
+    else
+        pct=25
+    fi
+    printf '%d' "$pct"
+}
+
+# Pure split math: given the session's TOTAL CPUQuota pct, print
+# "<srv> <workload>". srv + workload == total ALWAYS (the §12.6 session
+# budget is SPLIT, never over-committed); srv never exceeds HALF the total
+# (small hosts / an explicit low TMX_CPU keep a usable workload budget)
+# and never drops below 1. Returns 1 (caller falls back LOUDLY to the
+# shared topology) on a non-numeric or absurdly small (<2) total.
+_split_cpu_pcts() {
+    local total="$1" srv
+    case "$total" in ''|*[!0-9]*) return 1 ;; esac
+    [ "$total" -lt 2 ] && return 1
+    srv="${TMX_SRV_CPU:-auto}"
+    [ "$srv" = auto ] && srv="$(_srv_cpu_pct)"
+    case "$srv" in ''|*[!0-9]*) srv="$(_srv_cpu_pct)" ;; esac
+    [ "$srv" -gt $(( total / 2 )) ] && srv=$(( total / 2 ))
+    [ "$srv" -lt 1 ] && srv=1
+    printf '%d %d' "$srv" $(( total - srv ))
+}
+
+# Workload-slice unit name for a sanitised session name. systemd treats
+# '-' inside slice names as cgroup HIERARCHY (tmxw-a-b.slice would nest
+# under tmxw-a.slice, so session "a"'s quota would silently bound session
+# "a-b"'s fleet — a real hazard, not a theory: operator session names
+# carry dashes). Replace '-' with systemd's own \x2d escape so every
+# session slice is a FLAT leaf under tmxw.slice (probed live on systemd
+# 255: identical to `systemd-escape` output for the _sanitise token set;
+# dots pass through unchanged).
+_slice_unit_for() {
+    printf 'tmxw-%s.slice' "${1//-/\\x2d}"
 }
 
 # Probe Linux topology (systemd ≥ 230 + functional --user --scope).
@@ -467,6 +545,10 @@ fi
 SAFE_NAME="$NAME"
 SOCK_LABEL="${TMX_SOCK_PREFIX}${SAFE_NAME}"
 SCOPE_UNIT="${TMX_SCOPE_PREFIX}${SAFE_NAME}.scope"
+# §11.4.225 split topology's workload slice for this session (used by the
+# split-aware create/kill paths; stopping it is a no-op for shared-topology
+# sessions, so every teardown path handles both modes identically).
+SLICE_UNIT="$(_slice_unit_for "$SAFE_NAME")"
 
 [ -n "$EXPLICIT_LABEL" ] && SOCK_LABEL="$EXPLICIT_LABEL"
 
@@ -499,8 +581,12 @@ case "$SUBCMD" in
         # Collision check (Linux only — scope-based; Darwin uses socket
         # presence as the natural collision detector).
         if [ "$HOST_OS" = "Linux" ] && [ "$_scope_ok" -eq 1 ] && \
-           systemctl --user is-active --quiet "$SCOPE_UNIT" 2>/dev/null; then
-            echo "tmx: refusing to create session '$NAME' — scope $SCOPE_UNIT is already active." >&2
+           { systemctl --user is-active --quiet "$SCOPE_UNIT" 2>/dev/null || \
+             systemctl --user is-active --quiet "$SLICE_UNIT" 2>/dev/null; }; then
+            # The slice check also catches a LINGERING workload slice from a
+            # crashed split-topology session (slices stay active after their
+            # last member exits) — the documented remedy below releases both.
+            echo "tmx: refusing to create session '$NAME' — scope $SCOPE_UNIT or workload slice $SLICE_UNIT is already active." >&2
             echo "     run 'tmx kill-session -t $NAME' to release it, or pick a different name." >&2
             exit 4
         fi
@@ -529,6 +615,27 @@ case "$SUBCMD" in
         [ "$TMX_CPU_EFFECTIVE" = auto ] && TMX_CPU_EFFECTIVE="$(_default_cpu_pct)"
         TMX_MEM_ARGS=( -p "MemoryMax=infinity" -p "MemoryMin=128M" )
         [ -n "$TMX_MEM_EFFECTIVE" ] && TMX_MEM_ARGS+=( -p "MemoryHigh=$TMX_MEM_EFFECTIVE" )
+
+        # §11.4.225 opt-in server/workload split (Linux + functional scopes
+        # only; see _srv_cpu_pct/_split_cpu_pcts/_slice_unit_for above).
+        # FAIL-CLOSED: any precondition miss falls back LOUDLY to the
+        # proven shared-scope topology — never a silent half-split state.
+        TMX_SPLIT_EFFECTIVE=0
+        TMX_SRV_CPU_EFFECTIVE=""
+        TMX_WORK_CPU_EFFECTIVE=""
+        if [ "${TMX_SERVER_SPLIT:-0}" = "1" ] && [ "$HOST_OS" = "Linux" ]; then
+            if [ "$_scope_ok" -ne 1 ]; then
+                echo "tmx: TMX_SERVER_SPLIT=1 requested but systemd scopes are unavailable — using the shared topology." >&2
+            elif [ ! -f "$TMX_DIR/tmx-pane-shim.sh" ]; then
+                echo "tmx: TMX_SERVER_SPLIT=1 requested but $TMX_DIR/tmx-pane-shim.sh is missing — using the shared topology." >&2
+            elif _split_pair="$(_split_cpu_pcts "$TMX_CPU_EFFECTIVE")"; then
+                TMX_SRV_CPU_EFFECTIVE="${_split_pair%% *}"
+                TMX_WORK_CPU_EFFECTIVE="${_split_pair##* }"
+                TMX_SPLIT_EFFECTIVE=1
+            else
+                echo "tmx: TMX_SERVER_SPLIT=1 requested but TMX_CPU='$TMX_CPU_EFFECTIVE' is not splittable — using the shared topology." >&2
+            fi
+        fi
 
         INTERACTIVE=1
         for a in "$@"; do
@@ -666,7 +773,49 @@ case "$SUBCMD" in
                     SAW_NEW=1
                 fi
 
-                if [ "$_scope_ok" -eq 1 ]; then
+                if [ "$TMX_SPLIT_EFFECTIVE" -eq 1 ]; then
+                    # ── §11.4.225 SPLIT topology ─────────────────────────
+                    # 1. Configure the workload slice BEFORE anything can
+                    #    run in it (quota + task cap + optional TMX_MEM soft
+                    #    memory throttle). set-property on the not-yet-
+                    #    started slice writes a runtime drop-in the slice
+                    #    picks up the moment the first pane scope joins it
+                    #    (probed live, systemd 255). Failure => fall back
+                    #    LOUDLY to the shared topology: a slice without its
+                    #    quota would run the fleet UNBOUNDED (fail-closed,
+                    #    §11.4.201).
+                    _slice_props=( "CPUQuota=${TMX_WORK_CPU_EFFECTIVE}%" "TasksMax=4096" )
+                    [ -n "$TMX_MEM_EFFECTIVE" ] && _slice_props+=( "MemoryHigh=$TMX_MEM_EFFECTIVE" )
+                    if ! systemctl --user set-property --runtime "$SLICE_UNIT" "${_slice_props[@]}" 2>/dev/null; then
+                        echo "tmx: could not configure workload slice $SLICE_UNIT — falling back to the shared-scope topology." >&2
+                        TMX_SPLIT_EFFECTIVE=0
+                    fi
+                fi
+                if [ "$TMX_SPLIT_EFFECTIVE" -eq 1 ]; then
+                    # 2. The SERVER gets tmx-NAME.scope for itself with the
+                    #    small srv quota; the initial window command is the
+                    #    pane shim, which places the pane shell into its own
+                    #    transient scope under the slice and ABORTS if it
+                    #    cannot (fail-closed — a pane must never silently
+                    #    run inside the server's small scope). TasksMax=256:
+                    #    the srv scope holds only the single-threaded server
+                    #    + one idle systemd-run waiter pair per pane +
+                    #    short-lived hook commands ([DEFAULT — adjustable]).
+                    #    Server memory stays elastic (MemoryMax=infinity +
+                    #    MemoryMin floor) — fleet memory pressure now lands
+                    #    on the SLICE, so the server can no longer be
+                    #    reclaimed to death by workload memory.
+                    if [ "$SAW_NEW" -eq 1 ]; then
+                        NEW_ARGS+=("bash '$TMX_DIR/tmx-pane-shim.sh' '$SLICE_UNIT'")
+                    fi
+                    systemd-run --user --scope --quiet \
+                        --unit="$SCOPE_UNIT" \
+                        "${TMX_MEM_ARGS[@]}" \
+                        -p "CPUQuota=${TMX_SRV_CPU_EFFECTIVE}%" \
+                        -p "TasksMax=256" \
+                        -p "Delegate=yes" \
+                        "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
+                elif [ "$_scope_ok" -eq 1 ]; then
                     systemd-run --user --scope --quiet \
                         --unit="$SCOPE_UNIT" \
                         "${TMX_MEM_ARGS[@]}" \
@@ -674,35 +823,48 @@ case "$SUBCMD" in
                         -p "TasksMax=4096" \
                         -p "Delegate=yes" \
                         "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
-                    # §12.11 CFS burst allowance (live forensics 2026-07-22):
-                    # even at an adaptive 960% quota an active multi-subagent
-                    # fleet burst-throttled 16.9% of CFS periods while its
-                    # AVERAGE demand was only 4.35 CPUs — spikes inside one
-                    # 100 ms period exhaust the budget and freeze the tmux
-                    # server (typing echo/timers) for the period remainder.
-                    # cpu.max.burst (kernel >= 5.14) lets the scope BANK
-                    # unused quota from earlier periods and spend it during a
-                    # spike; the kernel hard-caps burst <= quota, so the
-                    # long-term rate stays bounded by CPUQuota — containment
-                    # of a runaway fleet is PRESERVED (a flat-out spinner
-                    # accumulates zero bank). TMX_CPU_BURST=<pct> overrides;
-                    # auto/unset = quota-sized bank; 0 disables. Written
-                    # directly to the delegated cgroup because systemd
-                    # exposes no CPUQuotaBurst property; a missing
-                    # cpu.max.burst file (older kernel / cgroup-v1) is an
-                    # honest silent skip — the quota itself still applies.
+                else
+                    "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
+                fi
+                # §12.11 CFS burst allowance (live forensics 2026-07-22):
+                # even at an adaptive 960% quota an active multi-subagent
+                # fleet burst-throttled 16.9% of CFS periods while its
+                # AVERAGE demand was only 4.35 CPUs — spikes inside one
+                # 100 ms period exhaust the budget and freeze the tmux
+                # server (typing echo/timers) for the period remainder.
+                # cpu.max.burst (kernel >= 5.14) lets the scope BANK
+                # unused quota from earlier periods and spend it during a
+                # spike; the kernel hard-caps burst <= quota, so the
+                # long-term rate stays bounded by CPUQuota — containment
+                # of a runaway fleet is PRESERVED (a flat-out spinner
+                # accumulates zero bank). TMX_CPU_BURST=<pct> overrides;
+                # auto/unset = quota-sized bank; 0 disables. Written
+                # directly to the delegated cgroup because systemd
+                # exposes no CPUQuotaBurst property; a missing
+                # cpu.max.burst file (older kernel / cgroup-v1) is an
+                # honest silent skip — the quota itself still applies.
+                # §11.4.225 split topology: this block banks the SERVER
+                # scope's OWN small quota (disabled together with an
+                # explicit TMX_CPU_BURST=0); the operator-facing burst
+                # semantics move to the WORKLOAD slice, applied after the
+                # first pane joins it (see the split verify step below).
+                if [ "$_scope_ok" -eq 1 ]; then
                     TMX_CPU_BURST_EFFECTIVE="${TMX_CPU_BURST:-auto}"
-                    [ "$TMX_CPU_BURST_EFFECTIVE" = auto ] && TMX_CPU_BURST_EFFECTIVE="$TMX_CPU_EFFECTIVE"
-                    case "$TMX_CPU_BURST_EFFECTIVE" in ''|*[!0-9]*) TMX_CPU_BURST_EFFECTIVE=0 ;; esac
-                    if [ "$TMX_CPU_BURST_EFFECTIVE" -gt 0 ] 2>/dev/null; then
+                    if [ "$TMX_SPLIT_EFFECTIVE" -eq 1 ]; then
+                        _scope_burst="$TMX_SRV_CPU_EFFECTIVE"
+                        [ "$TMX_CPU_BURST_EFFECTIVE" = "0" ] && _scope_burst=0
+                    else
+                        _scope_burst="$TMX_CPU_BURST_EFFECTIVE"
+                        [ "$_scope_burst" = auto ] && _scope_burst="$TMX_CPU_EFFECTIVE"
+                    fi
+                    case "$_scope_burst" in ''|*[!0-9]*) _scope_burst=0 ;; esac
+                    if [ "$_scope_burst" -gt 0 ] 2>/dev/null; then
                         _burst_cg="$(systemctl --user show "$SCOPE_UNIT" -p ControlGroup --value 2>/dev/null)"
                         if [ -n "$_burst_cg" ] && [ -f "/sys/fs/cgroup${_burst_cg}/cpu.max.burst" ]; then
-                            printf '%s' "$(( TMX_CPU_BURST_EFFECTIVE * 1000 ))" \
+                            printf '%s' "$(( _scope_burst * 1000 ))" \
                                 > "/sys/fs/cgroup${_burst_cg}/cpu.max.burst" 2>/dev/null || true
                         fi
                     fi
-                else
-                    "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
                 fi
                 ;;
 
@@ -769,6 +931,54 @@ case "$SUBCMD" in
         fi
         [ "$CREATE_ERR" != "/dev/null" ] && rm -f "$CREATE_ERR" 2>/dev/null || true
 
+        # §11.4.200/§11.4.225 split verify-after-write: the workload slice
+        # must REALLY hold the first pane's shell (read back from the
+        # kernel's cgroup tree — the authoritative source, never the tool's
+        # exit status). A mis-placed pane (systemd-run failure inside the
+        # shim) MUST abort the session loudly — the fleet silently running
+        # inside the server's small scope is the highest-blast-radius
+        # regression of the split design and is refused by construction.
+        if [ "${TMX_SPLIT_EFFECTIVE:-0}" -eq 1 ]; then
+            _split_ok=0
+            _slice_cg=""
+            _i=0
+            while [ "$_i" -lt 50 ]; do
+                _slice_cg="$(systemctl --user show "$SLICE_UNIT" -p ControlGroup --value 2>/dev/null)"
+                if [ -n "$_slice_cg" ] && [ -d "/sys/fs/cgroup${_slice_cg}" ] && \
+                   find "/sys/fs/cgroup${_slice_cg}" -mindepth 2 -name cgroup.procs -exec cat {} + 2>/dev/null | grep -q '[0-9]'; then
+                    _split_ok=1
+                    break
+                fi
+                sleep 0.2
+                _i=$((_i + 1))
+            done
+            if [ "$_split_ok" -ne 1 ]; then
+                printf 'tmx: failed to place session "%s" shell into %s — aborting (refusing to run the workload inside the server scope).\n' "$NAME" "$SLICE_UNIT" >&2
+                "$TMUX_BIN" -L "$SOCK_LABEL" kill-session -t "$NAME" 2>/dev/null || true
+                systemctl --user stop "$SCOPE_UNIT" 2>/dev/null || true
+                systemctl --user stop "$SLICE_UNIT" 2>/dev/null || true
+                exit 1
+            fi
+            # Slice burst bank (§12.11): the operator-facing burst
+            # semantics land HERE in split mode — auto = workload quota;
+            # explicit pct is kernel-capped at the slice quota (an
+            # oversized write fails EINVAL => honest no-burst); 0 =
+            # disabled. Same direct-write technique as the scope (systemd
+            # exposes no CPUQuotaBurst property); a missing cpu.max.burst
+            # file is an honest silent skip.
+            _slice_burst="${TMX_CPU_BURST:-auto}"
+            [ "$_slice_burst" = auto ] && _slice_burst="$TMX_WORK_CPU_EFFECTIVE"
+            case "$_slice_burst" in ''|*[!0-9]*) _slice_burst=0 ;; esac
+            if [ "$_slice_burst" -gt 0 ] 2>/dev/null && [ -f "/sys/fs/cgroup${_slice_cg}/cpu.max.burst" ]; then
+                printf '%s' "$(( _slice_burst * 1000 ))" \
+                    > "/sys/fs/cgroup${_slice_cg}/cpu.max.burst" 2>/dev/null || true
+            fi
+            # Future windows/splits land in the slice too. Single-quoted so
+            # the \x2d in escaped slice names survives the `sh -c` tmux
+            # uses to run the default-command string.
+            "$TMUX_BIN" -L "$SOCK_LABEL" set -g default-command "bash '$TMX_DIR/tmx-pane-shim.sh' '$SLICE_UNIT'" 2>/dev/null || true
+        fi
+
         _apply_oom_score "$SOCK_LABEL"
         if [ -n "$EFFECTIVE_COLOR" ]; then
             _apply_color "$SOCK_LABEL" "$EFFECTIVE_COLOR"
@@ -821,6 +1031,7 @@ case "$SUBCMD" in
             TMX_RC_SOCK="$SOCK_LABEL" \
             TMX_RC_NAME="$NAME" \
             TMX_RC_SCOPE="$SCOPE_UNIT" \
+            TMX_RC_SLICE="$SLICE_UNIT" \
             TMX_RC_STATE_BIN="$TMX_DIR/tmx-state-bin" \
             TMX_RC_WINDOW="$TMX_RECYCLE_WINDOW" \
             TMX_RC_MARKER="$MARKER_PATH" \
@@ -859,6 +1070,10 @@ case "$SUBCMD" in
             if [ "$HOST_OS" = "Linux" ]; then
                 local_scope="${TMX_SCOPE_PREFIX}${sock#${TMX_SOCK_PREFIX}}.scope"
                 systemctl --user stop "$local_scope" 2>/dev/null || true
+                # §11.4.225 split pair: stop the session's workload slice
+                # too (no-op for shared-topology sessions; slices LINGER
+                # active after their last member exits).
+                systemctl --user stop "$(_slice_unit_for "${sock#${TMX_SOCK_PREFIX}}")" 2>/dev/null || true
             fi
         done < <(_our_sockets)
         ;;
@@ -866,6 +1081,10 @@ case "$SUBCMD" in
     kill-session)
         "$TMUX_BIN" -L "$SOCK_LABEL" kill-session -t "$NAME" 2>/dev/null || true
         if [ "$HOST_OS" = "Linux" ]; then
+            # §11.4.225 split pair: slice first (fleet), then the scope
+            # (server). Both stops are no-ops when the unit is not active,
+            # so this one teardown path serves BOTH topologies.
+            systemctl --user stop "$SLICE_UNIT" 2>/dev/null || true
             systemctl --user stop "$SCOPE_UNIT" 2>/dev/null || true
         fi
         ;;
@@ -875,9 +1094,12 @@ case "$SUBCMD" in
         # so a fresh `tmx new -s NAME` starts from defaults (host-fallback
         # color, $HOME dir, fresh password prompt). This is the ONLY verb
         # that clears state — kill-session and the idle recycler PRESERVE it.
-        # 1. Tear down the runtime (reuse the kill-session teardown path).
+        # 1. Tear down the runtime (reuse the kill-session teardown path,
+        #    §11.4.225 split pair included — slice stop is a shared-mode
+        #    no-op).
         "$TMUX_BIN" -L "$SOCK_LABEL" kill-session -t "$NAME" 2>/dev/null || true
         if [ "$HOST_OS" = "Linux" ]; then
+            systemctl --user stop "$SLICE_UNIT" 2>/dev/null || true
             systemctl --user stop "$SCOPE_UNIT" 2>/dev/null || true
         fi
         # 2. Tidy the recycler's transient marker + singleton lock for this
