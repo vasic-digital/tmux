@@ -6,6 +6,13 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [tmux-1.0.38] (also v1.0.38) — 2026-07-24
+
+> **§11.4.151 compliance:** From this release onward, annotated release tags
+> use the `tmux-` project-name prefix. The bare `v1.0.38`, `v1.0.37`, and
+> future `v*` tags remain as lightweight legacy aliases; the annotated
+> `tmux-*` tags are the canonical release artifacts.
+
 ## [v1.0.38] — 2026-07-24
 
 ### Fixed
