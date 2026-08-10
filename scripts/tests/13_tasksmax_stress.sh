@@ -135,15 +135,18 @@ _fail() { echo "FAIL: $*"; FAIL=$((FAIL + 1)); }
 _skip() { echo "SKIP: $*"; SKIP=$((SKIP + 1)); }
 
 TEST_NAME="tmx-test-$$-t7"
-# Production wrapper uses TasksMax=4096; the test uses a smaller cap so
-# that the fork-storm fits in a reasonable MemoryMax. With 4096 sleep
-# processes × ~700KB RSS each = ~3 GB, the test would OOM-kill its own
-# scope before pids.current could be read on hosts with limited RAM
+# 2026-08-10: production wrapper has NO TasksMax cap by DEFAULT (see test
+# 88); TMX_TASKS=auto opts IN to the legacy fixed 4096, TMX_TASKS=<N> to
+# an explicit cap. This test drives its OWN direct systemd-run invocation
+# (below) with a smaller cap so the fork-storm fits in a reasonable
+# MemoryMax, independent of the wrapper's default/opt-in cap. With 4096
+# sleep processes × ~700KB RSS each = ~3 GB, the test would OOM-kill its
+# own scope before pids.current could be read on hosts with limited RAM
 # (CI runners, podman machine VMs). 256 tasks × ~700KB = ~180MB —
-# comfortably under MemoryMax=512M. The wrapper-invariant T2.2 in
-# test 09 separately verifies that the wrapper's TasksMax is 4096 in
-# the actual generated wrapper script; this test exercises ENFORCEMENT
-# of the cgroup pids interface, which is identical at any TasksMax value.
+# comfortably under MemoryMax=512M. Test 09's T2.2 separately verifies
+# only that the wrapper MENTIONS the TasksMax mechanism at all (not that
+# 4096 is its value); this test exercises ENFORCEMENT of the cgroup pids
+# interface directly, which is identical at any TasksMax value.
 TASKS_MAX_TEST=256
 TASKS_TARGET=300  # spawn more than the cap to verify enforcement
 TASKS_MAX=$TASKS_MAX_TEST

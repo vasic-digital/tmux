@@ -89,17 +89,23 @@ challenges:
   - id: TMUX-CH-09
     title: crash isolation scope — cgroup invariants
     description: |
-      The tmx wrapper's systemd-run --user --scope mechanism enforces
-      memory/cpu caps AND survives SIGKILL without taking user.slice down.
-      Verifies T1 (host capability), T2 (wrapper invariants), T3 (cgroup
-      readback), T4 (SIGKILL containment + user.slice survival), T6
-      (concurrent scopes independent).
+      The tmx wrapper's systemd-run --user --scope mechanism carries the
+      MemoryMax/CPUQuota/TasksMax/Delegate cgroup properties AND survives
+      SIGKILL without taking user.slice down. Since 2026-08-10 MemoryMax
+      is always-on (elastic, infinity by default); CPUQuota/TasksMax are
+      OPT-IN only (see test 88 for default-vs-opt-in coverage) — this
+      challenge verifies the MECHANISM is present and wired, not that a
+      cap is always applied. Verifies T1 (host capability), T2 (wrapper
+      invariants — mechanism presence), T3 (cgroup readback), T4 (SIGKILL
+      containment + user.slice survival), T6 (concurrent scopes
+      independent).
     test_script: scripts/tests/09_crash_isolation_scope.sh
     pass_condition: |
       PASS >= 8  FAIL = 0  (T1: systemd 230+, cgroup v2; T2: wrapper
-      has MemoryMax/CPUQuota/TasksMax/Delegate; T3: memory.max + cpu.max
-      readback from /sys/fs/cgroup; T4: SIGKILL kills scope but not
-      default.target; T6: 3 concurrent scopes all active)
+      mentions MemoryMax/CPUQuota/TasksMax/Delegate somewhere; T3:
+      memory.max + cpu.max readback from /sys/fs/cgroup; T4: SIGKILL
+      kills scope but not default.target; T6: 3 concurrent scopes all
+      active)
     evidence: |
       /sys/fs/cgroup/.../memory.max content = configured MemoryMax;
       /sys/fs/cgroup/.../cpu.max content present;
@@ -122,12 +128,16 @@ challenges:
   - id: TMUX-CH-13
     title: TasksMax fork-bomb resistance (T7)
     description: |
-      Spawn processes inside the scope until TasksMax=4096 is hit.
-      Verify pids.current == pids.max and no processes leak outside.
-      Destructive test — requires TMX_TEST_DESTRUCTIVE=1.
+      Spawn processes inside a test-owned scope (its OWN direct
+      systemd-run invocation, independent of the wrapper's default/opt-in
+      TMX_TASKS since 2026-08-10 — see test 88) until its configured
+      TasksMax is hit. Verify pids.current == pids.max and no processes
+      leak outside. Destructive test — requires TMX_TEST_DESTRUCTIVE=1.
     test_script: scripts/tests/13_tasksmax_stress.sh
     pass_condition: |
-      pids.current == pids.max == 4096; no processes escape the scope
+      pids.current == pids.max == the test's own configured cap
+      (sized for MemoryMax headroom, not the wrapper's TasksMax);
+      no processes escape the scope
     evidence: /sys/fs/cgroup/.../pids.current + pids.max readback
     severity: high
 
@@ -154,16 +164,20 @@ challenges:
     title: per-session cgroup distinctness (operator-path)
     description: |
       Multiple `tmx new -s NAME -d` invocations MUST each produce a
-      distinct cgroup-v2 transient scope `tmx-NAME.scope`, with its
-      own MemoryMax / CPUQuota / TasksMax. Closes the Fixed.md A12
-      bluff where all sessions shared one scope (operator-facing
-      isolation claim was false). Tests the OPERATOR PATH per §11.4.7.
+      distinct cgroup-v2 transient scope `tmx-NAME.scope`, with its own
+      independent cgroup tree. Closes the Fixed.md A12 bluff where all
+      sessions shared one scope (operator-facing isolation claim was
+      false). Since 2026-08-10 a default session is fully elastic — no
+      CPUQuota/TasksMax cap, MemoryMax=infinity — TMX_MEM/TMX_CPU/
+      TMX_TASKS opt IN to a cap (see test 88). Tests the OPERATOR PATH
+      per §11.4.7.
     test_script: scripts/tests/15_per_session_cgroup_distinct.sh
     pass_condition: |
-      PASS=6  FAIL=0  (T1 two distinct scopes active; T2 cgroup paths
-      differ with their own pids; T3 memory.max readback ≥2GB floor;
-      T4 cpu.max present; T5 TMX_MEM=3G override = 3 GiB exactly;
-      T6 unit names operator-targetable as tmx-NAME.scope)
+      PASS=8  FAIL=0  (T1 two distinct scopes active; T2 cgroup paths
+      differ with their own pids; T3 memory.max=max by default (elastic)
+      + MemoryMin floor; T4 cpu.max=max by default (no CPUQuota); T5
+      TMX_MEM=3G override = 3 GiB soft MemoryHigh exactly, memory.max
+      stays max; T6 unit names operator-targetable as tmx-NAME.scope)
     evidence: |
       systemctl --user is-active per scope = active for each;
       /sys/fs/cgroup/.../memory.max readback per scope;
@@ -1074,22 +1088,65 @@ challenges:
     severity: high
 
   - id: TMUX-CH-86
-    title: host-adaptive CPUQuota default prevents progressive session sluggishness
+    title: host-adaptive CPUQuota (opt-in via TMX_CPU=auto) prevents progressive session sluggishness
     description: |
-      The tmx wrapper's default per-session CPUQuota is host-adaptive
+      When an operator explicitly opts a session into a CPU cap
+      (TMX_CPU=auto), the tmx wrapper applies a host-adaptive CPUQuota
       (cores x 15%, floored at the legacy 200%, capped at cores x 100)
-      instead of the fixed 200% that throttled the whole session tree —
-      tmux server included — into 2 cores on many-core hosts (proven root
-      cause of the "more and more sluggish / timers update every 5-10 s"
-      operator symptom: 18.8% of CFS periods throttled, 1757 s forced
-      idle; evidence docs/qa/cpu-throttle-20260722/). Explicit TMX_CPU
-      still overrides; TMX_CPU=auto selects the adaptive default.
+      instead of the fixed 200% that used to throttle the whole session
+      tree — tmux server included — into 2 cores on many-core hosts
+      (proven root cause of the "more and more sluggish / timers update
+      every 5-10 s" operator symptom: 18.8% of CFS periods throttled,
+      1757 s forced idle; evidence docs/qa/cpu-throttle-20260722/).
+      2026-08-10: CPUQuota is no longer applied BY DEFAULT at all (see
+      TMUX-CH-87) — TMX_CPU=auto is now how an operator opts IN to this
+      adaptive value; an explicit TMX_CPU=<pct> still overrides it.
     test_script: scripts/tests/86_cpu_quota_host_adaptive.sh
     pass_condition: |
       _default_cpu_pct present and functionally correct (64->960,
       4->200 floor, 256->3840, unknown->200 fallback);
-      TMX_CPU unset/auto expands to the adaptive default, explicit
-      value preserved; on Linux a freshly-spawned session's cgroup
-      cpu.max reads back the adaptive quota (runtime layer, §11.4.108)
+      TMX_CPU unset expands to '' (no cap), TMX_CPU=auto expands to the
+      adaptive default (opt-in), explicit value preserved; on Linux a
+      session spawned with TMX_CPU=auto reads back the adaptive quota
+      on its cgroup (runtime layer, §11.4.108)
     evidence: functional truth-table run + live cgroup cpu.max readback
+    severity: blocker
+
+  - id: TMUX-CH-87
+    title: no resource or lifetime limit by default — every cap is strictly opt-in
+    description: |
+      Operator report (2026-08-10): "sessions and processes get killed
+      and wiped out ... on powerful hardware with enough resources".
+      Systematic-debugging root-caused THREE unconditional-by-default
+      caps: CPUQuota applied to every scope with no off switch; a
+      hardcoded TasksMax=4096 with NO override knob at all (unlike
+      TMX_MEM/TMX_CPU); and — the DOMINANT cause — the idle-timeout
+      recycler (scripts/tmx-recycler.sh) tearing down ANY session with
+      no client attached for >= 900s BY DEFAULT, using "no client
+      attached" (NOT "no activity") as its sole idle signal, so a
+      genuinely-active detached background/autonomous job (the normal
+      way to run long tmx work per the project's own §11.4.87/§11.4.89/
+      §11.4.103 background-work mandates) was killed regardless of
+      whether it was doing anything. All three are now opt-in only,
+      extending the memory model (already "liquid"/never-killed by
+      default) to CPU, tasks, and session lifetime: TMX_CPU / TMX_TASKS
+      / TMX_RECYCLE_IDLE_SECS default to unlimited/never-recycle;
+      `=auto` (or an explicit value) opts IN to the previous
+      host-adaptive / legacy-fixed behaviour. Darwin's TMX_CPU_HARD_SEC
+      / TMX_PROC_MAX default to `unlimited` for the same reason.
+    test_script: scripts/tests/88_no_limits_by_default.sh
+    pass_condition: |
+      static wiring: TMX_CPU/TMX_TASKS/TMX_RECYCLE_IDLE_SECS all default
+      to unlimited/off (no unconditional CPUQuota, TasksMax configurable
+      not hardcoded, idle-recycle off in BOTH the wrapper's window
+      resolution AND the recycler script's own internal default);
+      functional truth-table for all three knobs' unset/auto/explicit
+      expansion; on Linux a session spawned with NONE of the three env
+      vars set reads back cpu.max=max AND pids.max=max on its cgroup
+      AND installs no idle-recycle tmux hook (§11.4.108 runtime layer);
+      a session spawned with all three explicitly opted in still lands
+      the bounded values and the recycle hook (regression coverage for
+      the preserved opt-in code paths, §11.4.120)
+    evidence: functional truth-table run + live cgroup cpu.max/pids.max
+      readback + live tmux show-hooks readback (default vs opt-in)
     severity: blocker

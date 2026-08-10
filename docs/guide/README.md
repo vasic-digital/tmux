@@ -1,5 +1,8 @@
 # vasic-digital Optimized tmux — User & Operator Guide
 
+**Revision:** 2
+**Last modified:** 2026-08-10T00:00:00Z
+
 **Status:** Phase 38, Bug #33 (this session, 2026-05-07).
 **Constitution alignment:** §11.4 anti-bluff covenant (gated PATH export), §12.9 containerized build pattern, §12.10 continuation-doc invariant.
 
@@ -96,11 +99,11 @@ The orchestrator runs five gated phases:
 | 06 concurrent panes | 10 panes don't OOM the server | severe leak |
 | 07 long session | 25 s sustained activity grows < 50% | gradual leak |
 | 08 oom_score_adj | wrapper applies -500 | wrapper script broken — biggest §12-protection benefit gone |
-| 09 crash isolation scope | cgroup-v2 transient scope enforces MemoryMax/CPUQuota/TasksMax; SIGKILL containment does not take user.slice down | per-session isolation broken |
+| 09 crash isolation scope | cgroup-v2 transient scope mechanism present (MemoryMax always-on; CPUQuota/TasksMax opt-in, see §5.6); SIGKILL containment does not take user.slice down | per-session isolation broken |
 | 10 hostname colour algorithm | DJB2 → 27-palette deterministic on same hostname; spread ≥ 12/16 across distinct names | host distinguishability broken |
 | 11 hostname colour integration | wrapper applies expected status-bg to running server; persists on second session | colour-on-attach broken |
 | 12 memory pressure under cap (destructive, `TMX_TEST_DESTRUCTIVE=1`) | allocation up to MemoryMax triggers OOM-kill of scope only; user.slice survives | memory cap not enforced |
-| 13 TasksMax stress (destructive) | fork-bomb caps at TasksMax=4096; cgroup pids interface readback | task-count cap not enforced |
+| 13 TasksMax stress (destructive) | fork-bomb against a direct test-owned cgroup cap; cgroup pids interface readback (independent of the wrapper's default/opt-in `TMX_TASKS`, see §5.6) | task-count cap not enforced |
 | 14 concurrent OOM independence (destructive) | kill scope A → scopes B and C survive with original MainPIDs | scope independence broken |
 
 Plus a §11.4.4 layer-4 paired-mutation harness (`meta_test_false_positive_proof.sh`) with 6 registered mutations against tests 09 / 10. The gate is considered self-validating only when all mutations are caught.
@@ -132,16 +135,23 @@ Each `tmx new -s NAME` invocation produces its own tmux server running as a **ho
 
 ### Mechanism per OS
 
+**No resource or lifetime limit applies by default on EITHER OS** (2026-08-10
+mandate — root-cause fix for sessions/processes being killed despite ample
+host capacity). The isolation primitive below still gives every session its
+own crash/identity boundary; every cap in the table is strictly opt-in via
+the env vars in the "Caps" section further down.
+
 | | Linux | macOS (Darwin) |
 |---|---|---|
 | Binary format | ELF 64 (built via `build_containerized.sh` or `build_native.sh`) | Mach-O 64 (built via `build_native.sh` against Homebrew deps) |
 | Output dir | `tmux/build/bin/tmux` | `tmux/build-darwin/bin/tmux` |
 | Isolation primitive | cgroup-v2 transient scope via `systemd-run --user --scope --unit=tmx-NAME.scope` | POSIX rlimit wrapper (`scripts/tmx-rlimit-wrapper.sh`) applied as session `default-command` |
-| Memory cap | `MemoryMax` (kernel-enforced per cgroup) | **NOT ENFORCED** — see "Honest gap" below |
-| CPU cap | `CPUQuota=200%` (per cgroup) | `RLIMIT_CPU` (kernel-enforced per process, SIGXCPU on hard exhaust) |
-| Task cap | `TasksMax=4096` (per cgroup) | `RLIMIT_NPROC` (kernel-enforced per user) |
+| Memory cap | `MemoryMax=infinity` by default (never OOM-killed); `TMX_MEM` opts IN to a *soft* `MemoryHigh` | **NOT ENFORCED** — see "Honest gap" below |
+| CPU cap | none by default (no `CPUQuota` property); `TMX_CPU` opts IN | none by default (`RLIMIT_CPU=unlimited`); `TMX_CPU_HARD_SEC` opts IN (kernel-enforced per process, SIGXCPU on hard exhaust) |
+| Task cap | none by default (`TasksMax=infinity`); `TMX_TASKS` opts IN | none by default (`RLIMIT_NPROC=unlimited`); `TMX_PROC_MAX` opts IN (kernel-enforced per user) |
+| Session lifetime | unbounded by default; `TMX_RECYCLE_IDLE_SECS` opts IN to idle auto-recycle | same (shared `scripts/tmx-recycler.sh`, cross-platform) |
 | jemalloc preload | `LD_PRELOAD` | `DYLD_INSERT_LIBRARIES` + `DYLD_FORCE_FLAT_NAMESPACE=1` |
-| OOM containment | OOM in scope ⇒ kernel kills only that scope; `user.slice` survives | CPU/NPROC enforced; **memory: process may grow until host swaps** |
+| OOM containment | OOM in scope ⇒ kernel kills only that scope; `user.slice` survives | CPU/NPROC enforced when opted in; **memory: process may grow until host swaps** |
 | OOM helper | `tmx-oom-set` (setcap, sets `oom_score_adj=-500`) | N/A (no `oom_score_adj` interface on Darwin) |
 
 ### Honest gap (macOS memory cap)
@@ -164,13 +174,27 @@ The `tmx-rlimit-wrapper` on Darwin therefore applies ONLY the limits the kernel 
 - **Scope unit (Linux only)**: `tmx-<sanitised-NAME>.scope`. Operator-targetable: `systemctl --user status tmx-mywork.scope`.
 - **Sanitisation**: characters outside `[A-Za-z0-9._-]` → `_`. Collision (scope already active OR server already running on socket) errors out explicitly.
 
-### Caps (per session, both OSes)
+### Caps (per session, both OSes) — ALL OPT-IN, none applied by default
 
-| Cap | Default | Override | Linux | Darwin |
-|---|---|---|---|---|
-| Memory | host-adaptive: `max(MemTotal × 60% / 4, 2 GB)` | `TMX_MEM=8G tmx new -s heavy` | ✓ cgroup `MemoryMax` enforced | ✗ NOT enforced (XNU gap) |
-| CPU | `200%` (2 cores) on Linux; `86400 s` (24 h) on Darwin | `TMX_CPU=400` (Linux); `TMX_CPU_HARD_SEC=3600` (Darwin) | ✓ `CPUQuota` | ✓ `RLIMIT_CPU` |
-| Tasks | `4096` | (env: no; edit template) | ✓ `TasksMax` per scope | ✓ `RLIMIT_NPROC` per user |
+Every cap below is OFF by default — a session gets the full host's CPU,
+memory, task/thread budget, and runs indefinitely until the operator ends
+it. Set the env var (durable in shell rc, or per-invocation) only when a
+cap is genuinely wanted (e.g. a host intentionally shared across many
+concurrent sessions).
+
+| Cap | Default | `=auto` opt-in | Explicit opt-in | Linux | Darwin |
+|---|---|---|---|---|---|
+| Memory | unlimited (`MemoryMax=infinity`; no soft throttle) | `TMX_MEM=auto` → host-adaptive `max(MemTotal × 60% / 4, 2 GB)` *soft* `MemoryHigh` | `TMX_MEM=8G tmx new -s heavy` | ✓ cgroup `MemoryHigh` (soft, reclaim never kill) | ✗ NOT enforced (XNU gap) |
+| CPU | unlimited (no `CPUQuota` / `RLIMIT_CPU=unlimited`) | `TMX_CPU=auto` → cores × 15% (floor 200%, cap cores × 100%) | `TMX_CPU=400` (Linux, %); `TMX_CPU_HARD_SEC=3600` (Darwin, seconds) | ✓ `CPUQuota` | ✓ `RLIMIT_CPU` |
+| Tasks | unlimited (`TasksMax=infinity` / `RLIMIT_NPROC=unlimited`) | `TMX_TASKS=auto` → legacy fixed `4096` | `TMX_TASKS=8192` (Linux); `TMX_PROC_MAX=4096` (Darwin) | ✓ `TasksMax` per scope | ✓ `RLIMIT_NPROC` per user |
+| Session lifetime | unbounded (never auto-recycled) | — (no `auto` form) | `TMX_RECYCLE_IDLE_SECS=900` — auto-recycle after N idle (no-client-attached) seconds; state (dir/color/password) always survives | ✓ `scripts/tmx-recycler.sh` watcher | ✓ (same watcher, cross-platform) |
+
+Root-cause note (2026-08-10): the idle-timeout recycler is the ONLY
+mechanism in this codebase that can kill an already-running session's
+processes irrespective of host capacity — its idle signal is "no client
+attached", NOT "no activity", so a genuinely-working detached background
+job used to be killed after just 15 minutes by default. It is now strictly
+opt-in.
 
 ### Cleanup
 

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # tmx-recycler.sh — idle-timeout session recycler watcher for the tmx wrapper.
 #
-# Purpose (clause 6 — idle recycler):
-#   A detached tmx session with NO client attached stays alive for a
-#   configurable window (default 900 s = TMX_RECYCLE_IDLE_SECS), then is
-#   auto-recycled: its runtime is torn down (tmux session killed + the OS
+# Purpose (clause 6 — idle recycler, OPT-IN, OFF by default since 2026-08-10):
+#   A detached tmx session with NO client attached NEVER auto-recycles by
+#   default (TMX_RECYCLE_IDLE_SECS=0). Set TMX_RECYCLE_IDLE_SECS=<secs> to
+#   opt IN: the session then stays alive for that configurable idle window,
+#   then is auto-recycled: its runtime is torn down (tmux session killed + the OS
 #   isolation primitive freed — systemd `--user --scope` on Linux; nothing
 #   extra on macOS where the rlimit wrapper `exec`s the shell) WITHOUT
 #   clearing persisted state. last_pwd / color / password_hash survive in
@@ -46,7 +47,7 @@
 #   TMX_RC_SCOPE      systemd scope unit (tmx-NAME.scope)          (Linux teardown)
 #   TMX_RC_STATE_BIN  absolute path to tmx-state-bin               (record-before-kill)
 #   TMX_RC_MARKER     detach-since marker file path                (required)
-#   TMX_RC_WINDOW     idle window in seconds (default 900; 0 = off)
+#   TMX_RC_WINDOW     idle window in seconds (default 0 = off; opt-in)
 #   TMX_RC_HOST_OS    uname -s of the host (Linux | Darwin)
 #   TMX_RC_POLL       poll interval seconds (default min(WINDOW,60), >=1)
 #   TMX_RC_LOCK       singleton lock path (default <marker%.detached>.lock)
@@ -121,13 +122,16 @@ _watch() {
     NAME="${TMX_RC_NAME:-}"
     SCOPE="${TMX_RC_SCOPE:-}"
     STATE_BIN="${TMX_RC_STATE_BIN:-}"
-    WINDOW="${TMX_RC_WINDOW:-900}"
+    WINDOW="${TMX_RC_WINDOW:-0}"
     MARKER="${TMX_RC_MARKER:-}"
     HOST_OS="${TMX_RC_HOST_OS:-$(uname -s)}"
 
     # Validate WINDOW; non-integer → safe default (§11.4.6 no-guessing).
-    case "$WINDOW" in ''|*[!0-9]*) WINDOW=900 ;; esac
-    [ "$WINDOW" -eq 0 ] && return 0   # disabled (per-session opt-out knob)
+    # The SAFE default is "do not auto-kill" (0), not a guessed positive
+    # window — a malformed value must never silently arm a session-killing
+    # timer the operator did not knowingly request (2026-08-10 mandate).
+    case "$WINDOW" in ''|*[!0-9]*) WINDOW=0 ;; esac
+    [ "$WINDOW" -eq 0 ] && return 0   # disabled by default (opt-in knob)
 
     # Required config present, or there is nothing safe to watch.
     [ -n "$TMUX_BIN" ] && [ -n "$SOCK" ] && [ -n "$NAME" ] && [ -n "$MARKER" ] || return 0

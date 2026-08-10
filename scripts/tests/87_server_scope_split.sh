@@ -252,8 +252,12 @@ fi
 # teardown of the load session; G7 asserts the PAIR is gone.
 "$WRAPPER" kill-session -t "$SESS" >/dev/null 2>&1
 
-# G6: burst banks on BOTH units under default env (auto burst == own quota).
-TMX_SERVER_SPLIT=1 TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$SESS2" -d >/dev/null 2>&1
+# G6: burst banks on BOTH units under an opt-in adaptive total (auto burst
+# == own quota). 2026-08-10 reconciliation (§11.4.120 — CPU is unlimited by
+# DEFAULT now, so the split topology needs an explicit, splittable
+# TMX_CPU to engage at all; TMX_CPU=auto opts IN to the same host-adaptive
+# total this sub-test always intended to exercise).
+TMX_SERVER_SPLIT=1 TMX_CPU=auto TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$SESS2" -d >/dev/null 2>&1
 sleep 1
 SCOPE_CG2="$(_cg_of_unit "tmx-$SESS2.scope")"
 SLICE_CG2="$(_cg_of_unit "tmxw-$SESS2.slice")"
@@ -287,7 +291,9 @@ fi
 
 # G8: dashed session name → escaped flat slice (no unintended cgroup
 # hierarchy: 'foo' quota must never bound 'foo-bar'). Live \x2d path.
-TMX_SERVER_SPLIT=1 TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$SESS3" -d >/dev/null 2>&1
+# 2026-08-10 reconciliation (§11.4.120): TMX_CPU=auto opts IN so the split
+# topology (which requires a splittable total) actually engages — see G6.
+TMX_SERVER_SPLIT=1 TMX_CPU=auto TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$SESS3" -d >/dev/null 2>&1
 sleep 1
 ESC_ACTIVE="$(systemctl --user is-active "$SLICE_ESC3" 2>/dev/null || true)"
 ESC_CG="$(_cg_of_unit "$SLICE_ESC3")"

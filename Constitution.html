@@ -188,7 +188,7 @@ Project Constitution</h1>
 <tbody>
 <tr>
 <td>Revision</td>
-<td>3</td>
+<td>4</td>
 </tr>
 <tr>
 <td>Created</td>
@@ -196,7 +196,7 @@ Project Constitution</h1>
 </tr>
 <tr>
 <td>Last modified</td>
-<td>2026-05-21</td>
+<td>2026-08-10</td>
 </tr>
 <tr>
 <td>Status</td>
@@ -209,7 +209,11 @@ Constitution, pinned <code>7f738df</code></td>
 </tr>
 <tr>
 <td>Status summary</td>
-<td>R3 (2026-05-21): full refactor to the HelixConstitution
+<td>R4 (2026-08-10): §105/§106 updated — no CPU/task/lifetime cap by
+default (matching the already-correct "liquid" memory model); root-cause
+fix for sessions/processes being killed despite ample host capacity
+(idle-recycler default-on kill + unconditional CPUQuota/TasksMax with no
+full opt-out). R3 (2026-05-21): full refactor to the HelixConstitution
 extends-template form. Universal clauses now inherited from the
 <code>constitution/</code> submodule; this file holds only Project
 Articles §101–§109. No universal clause weakened — inheritance is
@@ -349,11 +353,23 @@ PASS-bluff. Silent degradation to a no-isolation path is forbidden.</p>
 <code>tmx-unsupported</code> via <code>_probe_topology()</code> — the
 canonical dispatch seam.</p>
 <h3
-id="105--per-session-isolation-architecture-default-since-2026-05-13">§105
-— Per-session isolation architecture (default since 2026-05-13)</h3>
+id="105--per-session-isolation-architecture-default-since-2026-05-13-no-limits-by-default-since-2026-08-10">§105
+— Per-session isolation architecture (default since 2026-05-13;
+no-limits-by-default since 2026-08-10)</h3>
 <p>Each <code>tmx new -s NAME</code> spawns its OWN tmux server on
 socket <code>tmx-NAME</code> inside its OWN OS-native isolation
-boundary:</p>
+boundary. <strong>The isolation boundary gives every session an
+independent crash/identity container (§14); it carries NO resource or
+lifetime cap unless the operator explicitly opts in.</strong> Root-cause
+forensic anchor (2026-08-10, operator mandate): sessions and their
+processes were observed killed/wiped out despite running on powerful
+hardware with ample capacity. Systematic-debugging traced this to three
+unconditional-by-default caps (CPUQuota with no off switch, a hardcoded
+<code>TasksMax=4096</code> with no override knob at all, and — the
+dominant cause — the idle-timeout recycler tearing down ANY detached
+session after 900 s regardless of whether it was actively working). All
+three are now opt-in only, extending the memory model (§106) that was
+already correct:</p>
 <ul>
 <li><strong>Linux</strong> — cgroup-v2 transient scope
 <code>tmx-NAME.scope</code> via <code>systemd-run --user --scope</code>,
@@ -362,38 +378,114 @@ boundary:</p>
 OOM-killed) plus a <code>MemoryMin=128M</code> floor so it is not
 reclaimed to death. <code>TMX_MEM</code> (or <code>TMX_MEM=auto</code>
 for the host-adaptive size) adds an OPT-IN <em>soft</em>
-<code>MemoryHigh</code> throttle (reclaim, never kill).
-<code>CPUQuota=200%</code>, <code>TasksMax=4096</code>,
+<code>MemoryHigh</code> throttle (reclaim, never kill). <strong>CPU: no
+<code>CPUQuota</code> property at all by default (unlimited)</strong> —
+<code>TMX_CPU=auto</code> opts IN to the v1.0.37 host-adaptive value
+(cores × 15%), <code>TMX_CPU=&lt;pct&gt;</code> opts IN to an explicit
+cap. <strong>Tasks: <code>TasksMax=infinity</code> by default</strong> —
+<code>TMX_TASKS=auto</code> opts IN to the legacy fixed 4096 ceiling,
+<code>TMX_TASKS=&lt;N&gt;</code> opts IN to an explicit cap.
 <code>Delegate=yes</code>. Genuine exhaustion is handled system-wide by
 systemd-oomd + zram + the <code>user.slice</code> backstop (see the
 OOM-Protect project): a real runaway is stopped at TRUE exhaustion
 without freezing the box, while normal multi-session load never triggers
 a premature kill. Scopes remain independent cgroups (§14 crash
-isolation).</li>
+isolation). An OPT-IN <code>TMX_SERVER_SPLIT=1</code> topology
+additionally isolates the tmux SERVER's own small scope from the
+workload's cgroup so a bursting fleet can never CPU-starve the server's
+own keystroke/echo/timer handling (requires an explicit, splittable
+<code>TMX_CPU</code> to engage — see
+<code>scripts/tmx-pane-shim.sh</code> + the <code>_split_cpu_pcts</code>
+design comment in <code>scripts/tmx.template</code>).</li>
 <li><strong>macOS (Darwin)</strong> — POSIX rlimit wrapper as session
 <code>default-command</code>: <code>RLIMIT_CPU</code> +
-<code>RLIMIT_NPROC</code>, kernel-enforced. <code>RLIMIT_AS</code>
-(memory) is NOT enforced by XNU for unprivileged processes — documented
-honestly per §101, see <code>docs/guide/README.md</code> §5.6.</li>
+<code>RLIMIT_NPROC</code>, kernel-enforced, <strong>both unlimited by
+default</strong> — <code>TMX_CPU_HARD_SEC=&lt;secs&gt;</code> /
+<code>TMX_PROC_MAX=&lt;N&gt;</code> opt IN to an explicit cap (was a
+fixed 24 h / 4096 default with no way to remove it).
+<code>RLIMIT_AS</code> (memory) is NOT enforced by XNU for unprivileged
+processes — documented honestly per §101, see
+<code>docs/guide/README.md</code> §5.6.</li>
+<li><strong>Both OSes</strong> — the idle-timeout session recycler
+(<code>scripts/tmx-recycler.sh</code>) is OFF by default
+(<code>TMX_RECYCLE_IDLE_SECS=0</code>).
+<code>TMX_RECYCLE_IDLE_SECS=&lt;secs&gt;</code> opts IN to auto-teardown
+of a session after that many seconds with no client attached (state —
+last_pwd/color/password — always survives a recycle; only
+<code>tmx delete</code> clears it).</li>
 </ul>
 <p>The session shell is the operator's host shell with full
 <code>$PATH</code>. Plain-vanilla tmux UX with OS-native isolation as a
-safeguard.</p>
+safeguard, and no resource/lifetime ceiling unless the operator asks for
+one.</p>
 <h3
-id="106--tmx_mem-memory-budget-enforcement-project-enforcement-of-universal-126">§106
-— TMX_MEM memory-budget enforcement (project enforcement of universal
-§12.6)</h3>
-<p>Default is <strong>fully elastic</strong>: sessions use all available
-RAM/zram and are never per-scope OOM-killed. The universal 60 %
+id="106--resource-budget-enforcement-project-enforcement-of-universal-126--cpu-memory-tasks-and-lifetime-all-opt-in">§106
+— Resource-budget enforcement (project enforcement of universal §12.6) —
+CPU, memory, tasks, and lifetime all opt-in</h3>
+<p>Default is <strong>fully elastic across every dimension</strong>:
+sessions use all available CPU/RAM/zram/task-slots, run for as long as
+the operator wants, and are never per-scope OOM-killed, throttled,
+task-capped, or auto-torn-down by tmx itself. The universal 60 %
 host-memory budget is enforced system-wide at the
 <code>user.slice</code> level (OOM-Protect: <code>MemoryMax=95%</code>,
 <code>MemoryHigh=90%</code>) rather than per session, so genuine
 exhaustion is caught without capping individual sessions — "never kill
-prematurely, never stuck". <code>TMX_MEM</code> is an OPT-IN per-session
-<em>soft</em> <code>MemoryHigh</code> throttle (reclaim, never kill;
-<code>TMX_MEM=auto</code> uses the host-adaptive
-<code>max(MemTotal × 60 % / 4, 2 GB)</code> size). On macOS the cap is
-informational only (XNU gap, §105).</p>
+prematurely, never stuck." Every cap is strictly OPT-IN, via environment
+variable (settable as durable shell-rc configuration or as a
+per-invocation param — both are "configuration" in this project's
+design):</p>
+<table>
+<thead>
+<tr>
+<th>Knob</th>
+<th>Default</th>
+<th><code>=auto</code> opt-in</th>
+<th>Explicit opt-in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TMX_MEM</code></td>
+<td>unset → no soft throttle (hard cap always
+<code>infinity</code>)</td>
+<td>host-adaptive <code>max(MemTotal × 60% / 4, 2 GB)</code>
+<em>soft</em> <code>MemoryHigh</code></td>
+<td><code>TMX_MEM=8G</code> etc.</td>
+</tr>
+<tr>
+<td><code>TMX_CPU</code></td>
+<td>unset → no <code>CPUQuota</code> (unlimited)</td>
+<td>host-adaptive cores × 15% (floor 200%, cap cores × 100%)</td>
+<td><code>TMX_CPU=400</code> (%)</td>
+</tr>
+<tr>
+<td><code>TMX_TASKS</code></td>
+<td>unset → <code>TasksMax=infinity</code></td>
+<td>legacy fixed <code>4096</code></td>
+<td><code>TMX_TASKS=8192</code></td>
+</tr>
+<tr>
+<td><code>TMX_RECYCLE_IDLE_SECS</code></td>
+<td>unset/<code>0</code> → never auto-recycled</td>
+<td>— (no <code>auto</code> form)</td>
+<td><code>TMX_RECYCLE_IDLE_SECS=900</code> etc.</td>
+</tr>
+<tr>
+<td><code>TMX_CPU_HARD_SEC</code> (Darwin)</td>
+<td>unset → <code>unlimited</code> RLIMIT_CPU</td>
+<td>—</td>
+<td><code>TMX_CPU_HARD_SEC=3600</code></td>
+</tr>
+<tr>
+<td><code>TMX_PROC_MAX</code> (Darwin)</td>
+<td>unset → <code>unlimited</code> RLIMIT_NPROC</td>
+<td>—</td>
+<td><code>TMX_PROC_MAX=4096</code></td>
+</tr>
+</tbody>
+</table>
+<p>On macOS the memory cap is informational only regardless of
+<code>TMX_MEM</code> (XNU gap, §105).</p>
 <h3 id="107--upstream-tmux-submodule-pinned--immutable">§107 — Upstream
 tmux submodule pinned + immutable</h3>
 <p><code>tmux/</code> references <code>tmux/tmux</code> at tag

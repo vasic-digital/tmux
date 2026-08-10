@@ -278,12 +278,16 @@ tmx kill            # alias for kill-session
 tmx kill-server     # nuke all your sessions
 ```
 
-Per-session resource overrides (unchanged from v1.0.x):
+Per-session resource opt-ins (since v1.0.39: NO cap applies unless you set
+one of these — a session gets the full host's CPU/memory/tasks and never
+auto-recycles by default; see `docs/guide/README.md` §5.6):
 
 ```bash
-TMX_MEM=8G    tmx new -s heavy           # Linux: 8 GB MemoryMax
+TMX_MEM=8G    tmx new -s heavy           # Linux: 8 GB soft MemoryHigh throttle
 TMX_CPU=400   tmx new -s build           # Linux: 400% CPUQuota
 TMX_CPU_HARD_SEC=3600 tmx new -s timeboxed  # Darwin: 1 hour RLIMIT_CPU
+TMX_TASKS=8192 tmx new -s fleet          # Linux: 8192 TasksMax
+TMX_RECYCLE_IDLE_SECS=900 tmx new -s ephemeral  # auto-recycle after 15 min idle
 ```
 
 ## 5. Anti-bluff covenant (§11.4)

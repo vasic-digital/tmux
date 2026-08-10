@@ -275,3 +275,40 @@ Previously, pressing Enter without typing a session name at the interactive tmx 
 **Status:** Implemented (→ Fixed.md)
 
 When the operator types or passes a session name containing spaces, tabs, or other special characters, tmx now normalizes it instead of rejecting it: leading/trailing whitespace is removed, internal whitespace runs are collapsed to a single `-`, and any remaining characters outside the session-name safe set are stripped. This applies both to `tmx new -s NAME` (via `scripts/tmx.template`) and to the interactive wizard prompt (via `scripts/tmx-shell-init.sh.template`), so names like `"hello world"` become `hello-world`. The wizard prompt preserves inline colour syntax (`name:red`, `name:#hex`) by splitting at the first `:` before sanitizing the name and inserting the random suffix before the colour token (`home-1234:red`). Empty or whitespace-only input continues to fall through to the existing empty/default picker path. Closure: v1.0.35 / versionCode 36.
+
+---
+
+## H. Pre-existing timing issues surfaced during the 2026-08-10 no-limits-by-default cycle
+
+Discovered while validating TMX-079 (see `Fixed.md`). Confirmed via §11.4.114
+A/B isolation against the v1.0.38 baseline (identical failures reproduced
+BEFORE any of TMX-079's changes were applied) — NOT caused by TMX-079, and
+TMX-079's own fix + tests are unaffected. Tracked here so they are not lost.
+
+### H1 STATE-HOOK-RACE-001 — test 27 sub-check "18" (run-shell cwd-record hook) fails deterministically on iteration 1
+
+**TMX-ID:** TMX-080
+**Type:** Bug
+**Status:** Queued
+
+**What:** `scripts/tests/27_state_persistence.sh`'s sub-check labelled "18" drives the wrapper's `run-shell "$STATE_BIN record $SESS #{pane_current_path}"` hook directly (the same command the wrapper installs on `client-detached`/`session-closed`) and polls `tmx-state-bin recall` for up to 5 s waiting for the write to land. Iteration 1 of 3 fails deterministically — `recall` still returns the PRE-hook (Phase-1 target) path, never the hook's own path — both in isolation (3/3 runs) and inside the full suite.
+
+**Evidence:** `bash scripts/tests/27_state_persistence.sh` → `FAIL 18 iter=1: run-shell hook did not update state — recall='...-target-<pid>' (expected '...-hook-<pid>-1')`, reproduced identically 3× in isolation and 2× on the v1.0.38 baseline (pre-TMX-079) via `git stash` A/B, 2026-08-10.
+
+**Discovery note (this is the FIRST time it is tracked as its own item, hence `Queued` not `Reopened` per §11.4.34 — the latter presupposes a prior closure, and this defect was never previously closed):** previously only described inline as an accepted "harness timing race" in the test file's own comments (lines ~150-186 of `scripts/tests/27_state_persistence.sh`), which this investigation shows is an INCOMPLETE diagnosis (the failure is NOT purely a full-suite-CPU-contention artifact — it reproduces in isolation too, on an otherwise idle host). Discovered by AI, 2026-08-10, during TMX-079 validation.
+
+**Fix direction (not yet investigated to root cause):** the test's own comments already correctly rule out a slow `cd`-landing race (T2's separate poll-for-cwd loop) and a `run-shell`-fire vs `record`-write-completion race (the 5 s poll). Iteration 1 specifically failing (not 2 or 3) is CONSISTENT WITH a first-invocation-only effect — e.g. `tmx-state-bin`'s DB/lock-file initialization on a cold state file, or a `run-shell` first-dispatch latency inside a freshly-created tmux server — but this is UNCONFIRMED: no instrumentation has yet isolated the actual cause. Needs a dedicated systematic-debugging pass (§11.4.102) with additional instrumentation (e.g. logging `tmx-state-bin record`'s own start/end timestamps) before a fix is attempted — out of scope for TMX-079.
+
+### H2 SPLIT-QUIET-SETTLE-001 — test 87 G4 ("quiet-phase control") occasionally fails to observe a zero-throttle settle window
+
+**TMX-ID:** TMX-081
+**Type:** Bug
+**Status:** Queued
+
+**What:** `scripts/tests/87_server_scope_split.sh` G4 waits for a 1 s idle window with `nr_throttled` delta 0 on BOTH the server scope and the workload slice (settling past shell-startup noise) before G5 measures throttling under deliberate load. G4 fails ("quiet-phase never settled") with a small non-zero delta on the workload slice.
+
+**Evidence:** reproduced identically on both the TMX-079-fixed tree and the v1.0.38 baseline (`git stash` A/B, 3× each, 2026-08-10) — `FAIL: G4: quiet-phase never settled (never-settled: .../tmxw-t87_<pid>.slice:delta=10)`. The isolation invariant G4 exists to set up for (G5: the server scope is NEVER co-throttled while the slice is) PASSES consistently regardless, so the feature under test is proven sound — this is a control-window settle heuristic being slightly too strict/short, not a defect in the isolation mechanism itself.
+
+**Discovery note (this is the FIRST time it is tracked as its own item, hence `Queued` not `Reopened` per §11.4.34 — the latter presupposes a prior closure, and this defect was never previously closed):** discovered by AI, 2026-08-10, during TMX-079 validation.
+
+**Fix direction (not yet investigated to root cause):** needs either a longer settle window or a higher delta tolerance for the workload slice specifically (shell/pane-shim startup on a freshly-joined slice may legitimately cost a few throttled periods even at rest) — which of the two (or another cause entirely) is UNCONFIRMED without the actual `cpu.stat` samples across the settle window; needs a dedicated systematic-debugging pass (§11.4.102) before deciding — out of scope for TMX-079.

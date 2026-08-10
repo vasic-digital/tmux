@@ -6,12 +6,21 @@
 #     spawns a separate tmux server (socket `tmx-NAME`) and wraps the
 #     session's initial shell in the OS-native isolation primitive:
 #       - Linux : systemd-run --user --scope --unit=tmx-NAME.scope
-#                 -p MemoryMax=… -p CPUQuota=… -p TasksMax=… -p Delegate=yes
-#       - macOS : scripts/tmx-rlimit-wrapper.sh sets RLIMIT_AS / CPU /
-#                 NPROC before exec'ing $SHELL
+#                 -p MemoryMax=infinity -p Delegate=yes  (identity/crash
+#                 isolation only — NO CPU/task cap unless opted in)
+#       - macOS : scripts/tmx-rlimit-wrapper.sh (RLIMIT_AS/CPU/NPROC, all
+#                 unlimited unless opted in) before exec'ing $SHELL
+#   * NO LIMITS BY DEFAULT (2026-08-10 mandate): CPU, memory, tasks/
+#     threads, and session lifetime are all UNBOUNDED unless the operator
+#     explicitly opts in via TMX_CPU / TMX_MEM / TMX_TASKS /
+#     TMX_RECYCLE_IDLE_SECS (env var config or per-invocation param — see
+#     the "Caps (per session, opt-in only)" comment near TMX_MEM_EFFECTIVE
+#     below, and docs/guide/README.md §5.6). The isolation primitive still
+#     gives every session its OWN cgroup/rlimit boundary for crash/identity
+#     containment (§14) — it just carries no resource ceiling unless asked.
 #   * The session's shell sees the FULL HOST ENVIRONMENT: same PATH
 #     (including Homebrew on macOS, /usr/local/bin on Linux), same
-#     filesystem, same user. Resource caps are kernel-enforced; nothing
+#     filesystem, same user. Any opted-in cap is kernel-enforced; nothing
 #     else is sandboxed away.
 #
 # Operator commands (the supported subset; everything else passes
@@ -606,20 +615,40 @@ case "$SUBCMD" in
             fi
         fi
 
-        # Fully-elastic ("liquid") memory (Constitution §105/§106): a session uses ALL
-        # available RAM/zram and is NEVER per-scope OOM-killed. Default = no hard cap
-        # (MemoryMax=infinity) + a small MemoryMin floor so it is not reclaimed to
-        # death; genuine exhaustion is handled system-wide by systemd-oomd + zram + the
-        # user-slice backstop (OOM-Protect). TMX_MEM adds an OPT-IN *soft* MemoryHigh
-        # throttle (reclaim, never kill); TMX_MEM=auto uses the host-adaptive size.
+        # Fully-elastic ("liquid") session (Constitution §105/§106, extended
+        # 2026-08-10 operator mandate): a session uses ALL available host
+        # capacity — CPU, memory, tasks/threads, AND lifetime — and is NEVER
+        # per-scope OOM-killed, throttled, task-capped, or auto-torn-down BY
+        # DEFAULT. Root-cause forensic anchor (systematic-debugging, this
+        # commit): operator report "sessions and processes get killed and
+        # wiped out ... on powerful hardware with enough resources" traced to
+        # THREE unconditional-by-default caps — CPUQuota (throttle only, but
+        # no off switch), a hardcoded TasksMax=4096 with NO override knob at
+        # all, and (the dominant cause) the idle-timeout recycler tearing
+        # down ANY detached session after 900s regardless of whether it is
+        # actively working (see the "clause 6" recycler wiring below). Every
+        # cap is now OPT-IN only, mirroring the memory model that was
+        # already correct: unset/empty envs => unlimited; TMX_*=auto opts IN
+        # to the previous host-adaptive/legacy-fixed value; TMX_*=<N> opts
+        # IN to an explicit numeric cap. Genuine exhaustion is still handled
+        # system-wide by systemd-oomd + zram + the user-slice backstop
+        # (OOM-Protect) — "never kill prematurely, never stuck".
         TMX_MEM_EFFECTIVE="${TMX_MEM:-}"
         [ "$TMX_MEM_EFFECTIVE" = auto ] && TMX_MEM_EFFECTIVE="$(_default_mem_mb)M"
-        # CPU: explicit TMX_CPU wins; `auto`/unset → host-adaptive default.
-        # Was a FIXED `200` (2 cores) for ANY host before v1.0.36 — the
-        # proven root cause of progressive typing lag / 5-10 s timer stalls
-        # in long multi-subagent Claude sessions (see _default_cpu_pct).
-        TMX_CPU_EFFECTIVE="${TMX_CPU:-auto}"
+        # CPU: NO cap by default (unset/empty => no CPUQuota property at all,
+        # i.e. unlimited — systemd's own default). TMX_CPU=auto opts IN to
+        # the v1.0.37 host-adaptive value (cores x 15%, see _default_cpu_pct
+        # — useful on a host an operator intentionally shares across many
+        # sessions). TMX_CPU=<pct> opts IN to an explicit numeric cap.
+        TMX_CPU_EFFECTIVE="${TMX_CPU:-}"
         [ "$TMX_CPU_EFFECTIVE" = auto ] && TMX_CPU_EFFECTIVE="$(_default_cpu_pct)"
+        # Tasks (pids controller): NO cap by default (TasksMax=infinity) —
+        # a large multi-agent fleet on a powerful host can legitimately need
+        # many thousands of threads/processes (universal Constitution
+        # §12.12). TMX_TASKS=auto opts IN to the legacy fixed 4096 ceiling;
+        # TMX_TASKS=<N> opts IN to an explicit numeric cap.
+        TMX_TASKS_EFFECTIVE="${TMX_TASKS:-infinity}"
+        [ "$TMX_TASKS_EFFECTIVE" = auto ] && TMX_TASKS_EFFECTIVE=4096
         TMX_MEM_ARGS=( -p "MemoryMax=infinity" -p "MemoryMin=128M" )
         [ -n "$TMX_MEM_EFFECTIVE" ] && TMX_MEM_ARGS+=( -p "MemoryHigh=$TMX_MEM_EFFECTIVE" )
 
@@ -640,7 +669,7 @@ case "$SUBCMD" in
                 TMX_WORK_CPU_EFFECTIVE="${_split_pair##* }"
                 TMX_SPLIT_EFFECTIVE=1
             else
-                echo "tmx: TMX_SERVER_SPLIT=1 requested but TMX_CPU='$TMX_CPU_EFFECTIVE' is not splittable — using the shared topology." >&2
+                echo "tmx: TMX_SERVER_SPLIT=1 requested but TMX_CPU='$TMX_CPU_EFFECTIVE' is not splittable — using the shared topology. (CPU is unlimited by default since v1.0.39; set TMX_CPU=auto or TMX_CPU=<pct> to opt in to a splittable total and re-enable the split topology.)" >&2
             fi
         fi
 
@@ -791,7 +820,7 @@ case "$SUBCMD" in
                     #    LOUDLY to the shared topology: a slice without its
                     #    quota would run the fleet UNBOUNDED (fail-closed,
                     #    §11.4.201).
-                    _slice_props=( "CPUQuota=${TMX_WORK_CPU_EFFECTIVE}%" "TasksMax=4096" )
+                    _slice_props=( "CPUQuota=${TMX_WORK_CPU_EFFECTIVE}%" "TasksMax=${TMX_TASKS_EFFECTIVE}" )
                     [ -n "$TMX_MEM_EFFECTIVE" ] && _slice_props+=( "MemoryHigh=$TMX_MEM_EFFECTIVE" )
                     if ! systemctl --user set-property --runtime "$SLICE_UNIT" "${_slice_props[@]}" 2>/dev/null; then
                         echo "tmx: could not configure workload slice $SLICE_UNIT — falling back to the shared-scope topology." >&2
@@ -823,11 +852,20 @@ case "$SUBCMD" in
                         -p "Delegate=yes" \
                         "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
                 elif [ "$_scope_ok" -eq 1 ]; then
+                    # No-limits-by-default (see the TMX_CPU_EFFECTIVE /
+                    # TMX_TASKS_EFFECTIVE comments above): CPUQuota is
+                    # OMITTED entirely (unlimited) unless the operator
+                    # opted in via TMX_CPU; TasksMax is always passed
+                    # explicitly (systemd accepts the literal "infinity")
+                    # so behaviour never depends on ambient systemd
+                    # defaults (§11.4.6 — no reliance on unverified config).
+                    TMX_CPU_ARGS=()
+                    [ -n "$TMX_CPU_EFFECTIVE" ] && TMX_CPU_ARGS=( -p "CPUQuota=${TMX_CPU_EFFECTIVE}%" )
                     systemd-run --user --scope --quiet \
                         --unit="$SCOPE_UNIT" \
                         "${TMX_MEM_ARGS[@]}" \
-                        -p "CPUQuota=${TMX_CPU_EFFECTIVE}%" \
-                        -p "TasksMax=4096" \
+                        "${TMX_CPU_ARGS[@]}" \
+                        -p "TasksMax=${TMX_TASKS_EFFECTIVE}" \
                         -p "Delegate=yes" \
                         "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
                 else
@@ -892,10 +930,19 @@ case "$SUBCMD" in
                     {print $0; exit}')
                 MEM_KB=$(( MEM_BYTES / 1024 ))
 
-                # CPU time soft limit: TMX_CPU_HARD_SEC env or 24h default.
-                CPU_SEC="${TMX_CPU_HARD_SEC:-86400}"
-                # Per-user process count (RLIMIT_NPROC is per-user on Darwin).
-                PROC_MAX="${TMX_PROC_MAX:-4096}"
+                # CPU time hard limit: NO cap by default (matches the Linux
+                # CPUQuota default, 2026-08-10 mandate) — `ulimit -t
+                # unlimited` (POSIX-standard keyword; falls back silently to
+                # whatever the shell can grant if the host cannot raise it
+                # that far, per the wrapper's existing `|| true` posture).
+                # TMX_CPU_HARD_SEC=<secs> opts IN to an explicit RLIMIT_CPU
+                # (was a fixed 24h default with no way to remove it).
+                CPU_SEC="${TMX_CPU_HARD_SEC:-unlimited}"
+                # Per-user process count (RLIMIT_NPROC is per-user on
+                # Darwin): NO cap by default. TMX_PROC_MAX=<N> opts IN to an
+                # explicit ceiling (was a fixed 4096 default with no
+                # override knob, unlike TMX_MEM/TMX_CPU).
+                PROC_MAX="${TMX_PROC_MAX:-unlimited}"
 
                 USER_SHELL="${SHELL:-/bin/zsh}"
 
@@ -1007,18 +1054,28 @@ case "$SUBCMD" in
             "$TMUX_BIN" -L "$SOCK_LABEL" set-hook -g session-closed  "$HOOK_CMD" 2>/dev/null || true
         fi
 
-        # ── clause 6: idle-timeout session recycler ─────────────────────
-        # Launch a per-session external watcher (scripts/tmx-recycler.sh)
-        # that recycles this session after it has had NO client attached for
-        # >= TMX_RECYCLE_IDLE_SECS (default 900). The watcher tears the
-        # runtime down (kill-session + Linux scope-stop) WITHOUT clearing
-        # state, so last_pwd / color / password persist for a later
-        # `tmx new -s NAME`. TMX_RECYCLE_IDLE_SECS=0 disables it (per-session
-        # opt-out for intentionally long-lived detached sessions). Singleton
+        # ── clause 6: idle-timeout session recycler (OPT-IN, default OFF) ─
+        # OFF by default (2026-08-10 mandate — root-cause forensic anchor:
+        # operator report "sessions and processes get killed and wiped out
+        # ... on powerful hardware with enough resources"). This watcher is
+        # the ONLY mechanism in the codebase that actually KILLS an
+        # already-running session's processes irrespective of host
+        # capacity: its idle metric is #{session_attached}==0 (a client is
+        # attached), deliberately NOT #{session_activity} (the session is
+        # doing something) — so a genuinely-active DETACHED background job
+        # (the normal way to run long tmx work — see universal Constitution
+        # §11.4.87/§11.4.89/§11.4.103 background/autonomous-work mandates)
+        # used to be killed after just 15 minutes regardless of whether it
+        # was working. When explicitly armed (TMX_RECYCLE_IDLE_SECS=<secs>,
+        # opt-in), a per-session external watcher (scripts/tmx-recycler.sh)
+        # recycles this session after it has had NO client attached for >=
+        # the configured window. The watcher tears the runtime down (kill-
+        # session + Linux scope-stop) WITHOUT clearing state, so last_pwd /
+        # color / password persist for a later `tmx new -s NAME`. Singleton
         # per session (§11.4.119); backgrounded + disowned (§11.4.89) so it
         # survives the `exec attach` below. The watcher is the SAME on Linux
         # and macOS (only the teardown's scope-stop step is Linux-only).
-        TMX_RECYCLE_WINDOW="${TMX_RECYCLE_IDLE_SECS:-900}"
+        TMX_RECYCLE_WINDOW="${TMX_RECYCLE_IDLE_SECS:-0}"
         RECYCLER="$TMX_DIR/tmx-recycler.sh"
         MARKER_DIR="${TMUX_TMPDIR:-/tmp}/tmx-recycler-$(id -u)"
         MARKER_PATH="$MARKER_DIR/${SAFE_NAME}.detached"

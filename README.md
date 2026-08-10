@@ -138,8 +138,8 @@ After `setup.sh` reports GREEN: open a new shell, or source the rc for your shel
             │ for each `tmx new -s NAME`:                         │ for each `tmx new -s NAME`:
             │   systemd-run --user --scope                        │   tmux -L tmx-NAME new-session -d -s NAME \
             │     --unit=tmx-NAME.scope                           │     "tmx-rlimit-wrapper.sh \
-            │     -p MemoryMax=<host-adaptive>                    │       <mem-kb> <cpu-sec> <nproc> \
-            │     -p CPUQuota=200% -p TasksMax=4096               │       $SHELL -l"
+            │     -p MemoryMax=infinity                           │       <mem-kb> <cpu-sec> <nproc> \
+            │     [-p CPUQuota=…]  [-p TasksMax=…]  ← opt-in only │       $SHELL -l"
             │     -p Delegate=yes                                 │   set -g default-command "rlimit-wrapper …"
             │   tmux -L tmx-NAME new -s NAME -d                   │
             │                                                     │
@@ -147,25 +147,27 @@ After `setup.sh` reports GREEN: open a new shell, or source the rc for your shel
    ┌─────────────────────────────────┐         ┌──────────────────────────────────────────┐
    │  cgroup-v2 transient scope      │         │  POSIX rlimit wrapper                    │
    │  tmx-NAME.scope                 │         │  scripts/tmx-rlimit-wrapper.sh           │
-   │  ├ MemoryMax = host-adaptive    │         │  ├ ulimit -t  ← RLIMIT_CPU   (enforced)  │
-   │  ├ CPUQuota  = 200%             │         │  ├ ulimit -u  ← RLIMIT_NPROC (enforced)  │
-   │  ├ TasksMax  = 4096             │         │  └ ulimit -v  ← RLIMIT_AS NOT enforced   │
-   │  ├ Delegate  = yes              │         │                  by XNU (documented gap) │
-   │  └ tmux 3.6a (Linux ELF)        │         │  tmux 3.6a (Mach-O)                      │
-   │  status-bar = DJB2(host)        │         │  status-bar = DJB2(host)                 │
-   │  oom_score_adj = -500           │         │  (oom_score_adj N/A on Darwin)           │
+   │  ├ MemoryMax = infinity         │         │  ├ ulimit -t  ← RLIMIT_CPU   (unlimited  │
+   │  ├ CPUQuota  = unset (unlimited)│         │  │             by default, opt-in)       │
+   │  ├ TasksMax  = infinity         │         │  ├ ulimit -u  ← RLIMIT_NPROC (unlimited  │
+   │  ├ Delegate  = yes              │         │  │             by default, opt-in)       │
+   │  └ tmux 3.6a (Linux ELF)        │         │  └ ulimit -v  ← RLIMIT_AS NOT enforced   │
+   │  status-bar = DJB2(host)        │         │                  by XNU (documented gap) │
+   │  oom_score_adj = -500           │         │  tmux 3.6a (Mach-O)                      │
+   │  idle-recycle = OFF by default  │         │  status-bar = DJB2(host)                 │
+   │  (TMX_RECYCLE_IDLE_SECS opt-in) │         │  (oom_score_adj N/A on Darwin)           │
    └─────────────────────────────────┘         └──────────────────────────────────────────┘
        Shell sees the operator's              Shell sees the operator's macOS host:
        Linux host: full FS, full PATH,        full FS, full PATH (Homebrew, system tools,
        all system binaries reachable.         all Mach-O binaries), `id` = operator's user.
 ```
 
-**Native dual-OS per-session isolation** (architecture since 2026-05-13). Each `tmx new -s NAME` invocation creates its own tmux server (socket `tmx-NAME`) with OS-native isolation:
+**Native dual-OS per-session isolation** (architecture since 2026-05-13; NO resource or lifetime limit by default since v1.0.39 — see `docs/guide/README.md` §5.6). Each `tmx new -s NAME` invocation creates its own tmux server (socket `tmx-NAME`) with OS-native isolation, unbounded unless the operator opts in:
 
-- **Linux** — cgroup-v2 transient scope `tmx-NAME.scope` via `systemd-run --user --scope`. Kernel enforces MemoryMax, CPUQuota, TasksMax per-group. OOM in one session is contained to that scope — every other session AND `user.slice` survive (Constitution §1 invariant).
-- **macOS (Darwin)** — POSIX rlimit wrapper sets `RLIMIT_CPU` (CPU time) and `RLIMIT_NPROC` (per-user process count) before exec'ing the operator's `$SHELL`. The Darwin XNU kernel enforces these per-process. Children inherit. **`RLIMIT_AS` (virtual memory) is NOT enforced** by XNU for unprivileged processes — this is a documented gap; full memory containment on macOS requires launchd jobs with `HardResourceLimits` plist (root). See `docs/guide/README.md` §5.6 for the strength comparison.
+- **Linux** — cgroup-v2 transient scope `tmx-NAME.scope` via `systemd-run --user --scope`. `MemoryMax=infinity` always; `CPUQuota`/`TasksMax` are OMITTED (unlimited) unless `TMX_CPU`/`TMX_TASKS` opt in. OOM in one session is contained to that scope — every other session AND `user.slice` survive (Constitution §1 invariant). The idle-timeout session recycler is OFF by default (`TMX_RECYCLE_IDLE_SECS=0`) — a session is never auto-torn-down just because no client is attached; `TMX_RECYCLE_IDLE_SECS=<secs>` opts in.
+- **macOS (Darwin)** — POSIX rlimit wrapper sets `RLIMIT_CPU` (CPU time) and `RLIMIT_NPROC` (per-user process count) to `unlimited` by default before exec'ing the operator's `$SHELL`; `TMX_CPU_HARD_SEC`/`TMX_PROC_MAX` opt in to an explicit cap. The Darwin XNU kernel enforces these per-process when set. Children inherit. **`RLIMIT_AS` (virtual memory) is NOT enforced** by XNU for unprivileged processes — this is a documented gap; full memory containment on macOS requires launchd jobs with `HardResourceLimits` plist (root). See `docs/guide/README.md` §5.6 for the strength comparison and the full opt-in knob table.
 
-Both OS paths deliver the **same operator UX**: plain-vanilla tmux behaviour, the operator's shell with full host PATH (Homebrew on macOS, /usr/local/bin on Linux, all system tools), per-session resource ceilings applied transparently. No VM. No bridge. No `core@localhost`. No bluff.
+Both OS paths deliver the **same operator UX**: plain-vanilla tmux behaviour, the operator's shell with full host PATH (Homebrew on macOS, /usr/local/bin on Linux, all system tools), and no resource/lifetime ceiling unless the operator explicitly asks for one. No VM. No bridge. No `core@localhost`. No bluff.
 
 ## What you get
 

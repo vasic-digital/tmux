@@ -6,6 +6,84 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [tmux-1.0.39] (also v1.0.39) — 2026-08-10
+
+### Fixed
+
+- **No resource or lifetime limit by default — every cap is strictly
+  opt-in (TMX-079).** Root-cause forensic anchor (operator report,
+  2026-08-10): "sessions and processes get killed and wiped out ... on
+  powerful hardware with enough resources". Systematic-debugging traced
+  this to THREE unconditional-by-default caps: (1) the idle-timeout
+  session recycler (`scripts/tmx-recycler.sh`), wired into EVERY session
+  by default, tearing down (kill-session + scope-stop) ANY session with
+  no client attached for >= 900 s — using `#{session_attached}==0` as its
+  SOLE idle signal, deliberately NOT `#{session_activity}`, so a
+  genuinely-active DETACHED background/autonomous job (the normal way to
+  run long tmx work) was killed regardless of whether it was doing
+  anything — the DOMINANT cause and the only mechanism in this codebase
+  that actually kills an already-running session's processes irrespective
+  of host capacity; (2) `CPUQuota` applied to every scope unconditionally
+  (host-adaptive since v1.0.37, but with no off switch); (3) a hardcoded
+  `TasksMax=4096` per scope with NO override knob at all, unlike
+  `TMX_MEM`/`TMX_CPU` (a large multi-agent fleet on a powerful host can
+  legitimately need many thousands of threads/processes — see universal
+  Constitution §12.12). All three now default to fully elastic — the same
+  "liquid" model memory already correctly used — and are opt-in only:
+  `TMX_CPU` / `TMX_TASKS` unset default to unlimited (`auto` opts IN to
+  the previous host-adaptive/legacy-fixed value, an explicit numeric value
+  opts IN to an explicit cap); `TMX_RECYCLE_IDLE_SECS` unset/`0` defaults
+  to never-auto-recycled (`TMX_RECYCLE_IDLE_SECS=<secs>` opts IN). Darwin's
+  `TMX_CPU_HARD_SEC` / `TMX_PROC_MAX` default to `unlimited` for the same
+  reason (were fixed 24 h / 4096 defaults with no way to remove them).
+  Implemented in `scripts/tmx.template` + `scripts/tmx-recycler.sh`.
+  Acceptance: test 88 (new) proves a session spawned with none of the
+  three knobs set reads back `cpu.max=max` AND `pids.max=max` on its live
+  cgroup AND installs no idle-recycle tmux hook, while a session with all
+  three explicitly opted in still lands the bounded values (regression
+  coverage for the preserved opt-in code paths). Tests 15, 86, and 87
+  reconciled to the new default (§11.4.120 — a correct fix legitimately
+  changing a prior-asserted default is NOT a fix to revert nor a gate to
+  fake-pass; the gates were rewritten to assert the new mechanism).
+
+### Tests
+
+- **Test 88 (new)** — `88_no_limits_by_default.sh`: §11.4.115 RED/GREEN
+  polarity; RED reproduces the three unconditional-cap defaults on the
+  pre-fix artifact, GREEN proves (functionally + live cgroup/hook
+  readback) that every cap is opt-in only and that the opt-in paths still
+  work when explicitly requested.
+- **Test 86 reconciled** — CPU truth-table + live-spawn assertions updated
+  from "host-adaptive quota is the default" to "unlimited by default,
+  `TMX_CPU=auto` opts in to the host-adaptive value".
+- **Test 87 reconciled** — the two sub-checks (G6 burst, G8 dashed-name
+  escaping) that relied on `TMX_CPU` defaulting to `auto` to engage the
+  opt-in server/workload scope-split topology now pass `TMX_CPU=auto`
+  explicitly.
+- **Test 15 reconciled** — T4 now asserts `cpu.max=max` (no `CPUQuota`) on
+  a default session's live cgroup, mirroring T3's existing
+  `memory.max=max` assertion.
+- **Meta-test (`meta_test_false_positive_proof.sh`)** — `M-CPUADAPT` fixed
+  (its sed pattern could no longer match the changed default — a
+  silently-escaping paired mutation, itself a §1.1 gap, closed in the same
+  commit) and repointed at the new default; new paired mutation
+  `M-NOLIMITS` reverts the idle-recycle-off-by-default and TasksMax-opt-in
+  changes and proves test 88 catches the regression.
+
+**Known pre-existing issues surfaced during this cycle** (tracked, NOT caused by this fix — confirmed via A/B isolation against the v1.0.38 baseline, §11.4.114):
+
+- **TMX-080** — test 27 (`27_state_persistence.sh`) sub-check "18" (the
+  `run-shell` cwd-record hook) fails deterministically on iteration 1, in
+  isolation, independent of full-suite load — reproduced 3× in isolation
+  on an otherwise-idle host, proving the file's own comment attributing
+  it to "full-suite CPU contention" is an incomplete diagnosis.
+  Reproduces identically on the v1.0.38 baseline.
+- **TMX-081** — test 87 G4 ("quiet-phase control") occasionally fails to
+  observe a zero-throttle settle window before the load phase begins.
+  Reproduces identically on the v1.0.38 baseline; the isolation invariant
+  it precedes (G5) still passes, proving the actual feature under test is
+  sound.
+
 ## [tmux-1.0.38] (also v1.0.38) — 2026-07-24
 
 > **§11.4.151 compliance:** From this release onward, annotated release tags

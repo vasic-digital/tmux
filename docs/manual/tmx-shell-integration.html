@@ -2,95 +2,244 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.10" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>tmx-shell-integration</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-color: #aaaaaa;
-}
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
-div.sourceCode
-{ background-color: #f8f8f8; }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ef2929; } 
-code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.at { color: #204a87; } 
-code span.bn { color: #0000cf; } 
-code span.cf { color: #204a87; font-weight: bold; } 
-code span.ch { color: #4e9a06; } 
-code span.cn { color: #8f5902; } 
-code span.co { color: #8f5902; font-style: italic; } 
-code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.dt { color: #204a87; } 
-code span.dv { color: #0000cf; } 
-code span.er { color: #a40000; font-weight: bold; } 
-code span.ex { } 
-code span.fl { color: #0000cf; } 
-code span.fu { color: #204a87; font-weight: bold; } 
-code span.im { } 
-code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.kw { color: #204a87; font-weight: bold; } 
-code span.op { color: #ce5c00; font-weight: bold; } 
-code span.ot { color: #8f5902; } 
-code span.pp { color: #8f5902; font-style: italic; } 
-code span.sc { color: #ce5c00; font-weight: bold; } 
-code span.ss { color: #4e9a06; } 
-code span.st { color: #4e9a06; } 
-code span.va { color: #000000; } 
-code span.vs { color: #4e9a06; } 
-code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="tmx-shell-session-resume--end-user-master-manual">tmx
 Shell-Session Resume — End-User Master Manual</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
@@ -104,15 +253,18 @@ copy-paste-runnable on macOS + Linux.</p>
 <ol type="1">
 <li><a href="#1-introduction--what-changed-in-v109">Introduction — what
 changed in v1.0.9</a></li>
-<li><a href="#2-quick-start--fastest-path-from-clone-to-first-resume">Quick
+<li><a
+href="#2-quick-start--fastest-path-from-clone-to-first-resume">Quick
 start — fastest path from clone to first resume</a></li>
 <li><a href="#3-daily-operations">Daily operations</a>
 <ul>
 <li>3.1 <a href="#31-scenario-a--your-morning">Scenario A — your
 morning</a></li>
-<li>3.2 <a href="#32-scenario-b--deep-dive-on-a-topic-over-multiple-days">Scenario
+<li>3.2 <a
+href="#32-scenario-b--deep-dive-on-a-topic-over-multiple-days">Scenario
 B — deep-dive on a topic over multiple days</a></li>
-<li>3.3 <a href="#33-scenario-c--ssh-straight-into-a-remote-session">Scenario C —
+<li>3.3 <a
+href="#33-scenario-c--ssh-straight-into-a-remote-session">Scenario C —
 SSH straight into a remote session</a></li>
 <li>3.4 <a href="#34-scenario-d--skip-the-prompt-for-one-shell">Scenario
 D — skip the prompt for one shell</a></li>
@@ -131,13 +283,13 @@ pre-v1.0.9</a></li>
 <h2 id="1-introduction--what-changed-in-v109">1. Introduction — what
 changed in v1.0.9</h2>
 <p>v1.0.9 ships <strong>four new things</strong> that together let you
-&quot;pick up where you left off&quot; without typing wrapper commands by
+"pick up where you left off" without typing wrapper commands by
 hand:</p>
 <ol type="1">
 <li><strong><code>scripts/tmx-shell-init.sh</code></strong> — the
 rc-side prompt is now one project-owned file you <code>.</code> (source)
 from <code>.bashrc</code>/<code>.zshrc</code>. No more drifting
-hand-pasted snippets. It&#39;s safe on SCP / rsync / IDE shells: the script
+hand-pasted snippets. It's safe on SCP / rsync / IDE shells: the script
 silently exits when stdin is not a TTY.</li>
 <li><strong><code>scripts/tmx-state-bin</code></strong> (Go) — a tiny
 daemon that stores per-session last-cwd in
@@ -164,7 +316,8 @@ start — fastest path from clone to first resume</h2>
 Linux are identical except
 <code>sudo bash scripts/install_deps.sh</code> is required before
 <code>setup.sh</code>).</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Clone the repo.</span></span>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Clone the repo.</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -197,13 +350,14 @@ Linux are identical except
 <span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Enter session name <span class="er">(</span><span class="ex">blank</span> or <span class="st">&quot;default&quot;</span> = bare shell<span class="kw">)</span><span class="bu">:</span> work</span>
 <span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="bu">pwd</span></span>
 <span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co"># /tmp                           ← cwd restored from ~/.tmx/state.json !</span></span></code></pre></div>
-<p>That&#39;s it. The &quot;restored cwd&quot; is the whole point. The state file
+<p>That's it. The "restored cwd" is the whole point. The state file
 lives at <code>~/.tmx/state.json</code> and is updated automatically by
 a tmux hook each time you detach.</p>
 <h2 id="3-daily-operations">3. Daily operations</h2>
 <h3 id="31-scenario-a--your-morning">3.1 Scenario A — your morning</h3>
-<p>You log in for the day. You want to resume yesterday&#39;s work.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fresh terminal opens. .zshrc fires tmx-shell-init.sh.</span></span>
+<p>You log in for the day. You want to resume yesterday's work.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fresh terminal opens. .zshrc fires tmx-shell-init.sh.</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Enter session name <span class="er">(</span><span class="ex">blank</span> or <span class="st">&quot;default&quot;</span> = bare shell<span class="kw">)</span><span class="bu">:</span> work</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># → ATTACHED to session &#39;work&#39; (it survived overnight).</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># → If it didn&#39;t survive (host rebooted), tmx new -s work -c &lt;recalled-pwd&gt;</span></span>
@@ -214,9 +368,10 @@ a tmux hook each time you detach.</p>
 opt-out.</p>
 <h3 id="32-scenario-b--deep-dive-on-a-topic-over-multiple-days">3.2
 Scenario B — deep-dive on a topic over multiple days</h3>
-<p>You&#39;re investigating a tricky bug. You&#39;ll come back to this many
+<p>You're investigating a tricky bug. You'll come back to this many
 times.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Day 1, morning.</span></span>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Day 1, morning.</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> exec <span class="va">$SHELL</span> <span class="at">-l</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Enter session name ...: investigate</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># inside the new pane:</span></span>
@@ -250,27 +405,28 @@ the operator runs in the pane, the shell fires that hook, which calls
 <code>tmx-state-bin record &lt;session&gt; $PWD</code>. The state file
 therefore always reflects the PWD at the LAST shell prompt before
 <code>exit</code>.</p>
-<p>This replaces v1.0.9&#39;s flawed design that relied on tmux&#39;s
+<p>This replaces v1.0.9's flawed design that relied on tmux's
 <code>client-detached</code> and <code>session-closed</code> hooks alone
 — those hooks fire AFTER the pane is destroyed, when
 <code>#{pane_current_path}</code> resolves to empty. v1.0.13 keeps the
 tmux hooks as best-effort fallback but the prompt-hook is the primary
 recording mechanism.</p>
 <p><strong>End-to-end guarantee:</strong> the user-visible behaviour
-(&quot;open terminal, choose session XXX, cd somewhere, exit, exit, reopen,
-choose XXX again → pane is in the same dir&quot;) is exercised by test
+("open terminal, choose session XXX, cd somewhere, exit, exit, reopen,
+choose XXX again → pane is in the same dir") is exercised by test
 <code>scripts/tests/43_e2e_cwd_persist_real_shell.sh</code> with
 positive captured evidence at each phase, 3 deterministic
 iterations.</p>
 <h3 id="322-edge-cases">3.2.2 Edge cases</h3>
 <p>The state file records the cwd of the pane whose prompt last fired.
 If you had two panes open with different cwds and <code>exit</code> only
-one, the surviving pane&#39;s prompt-hook continues to record until its own
+one, the surviving pane's prompt-hook continues to record until its own
 exit — the LAST recorded value wins.</p>
 <h3 id="33-scenario-c--ssh-straight-into-a-remote-session">3.3 Scenario
 C — SSH straight into a remote session</h3>
 <p>Setting it up once:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># On your mac (mistborn.local), with a working `ssh milosvasic@nezha.local`:</span></span>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># On your mac (mistborn.local), with a working `ssh milosvasic@nezha.local`:</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> cd ~/Projects/tmux</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> bash scripts/tmx-ssh-install.sh milosvasic@nezha.local</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 8 steps, idempotent. At the end:</span></span>
@@ -278,7 +434,8 @@ C — SSH straight into a remote session</h3>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   remote dispatch /home/milosvasic/Projects/tmux/scripts/tmx-ssh-dispatch.sh</span></span>
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   verification PASS</span></span></code></pre></div>
 <p>Using it day-to-day:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Empty command — login shell:</span></span>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Empty command — login shell:</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> ssh nezha.local-tmx</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Enter session name ...: work</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># → inside tmx session &#39;work&#39; on nezha, cwd restored.</span></span>
@@ -296,7 +453,8 @@ forwarding.</p>
 <h3 id="34-scenario-d--skip-the-prompt-for-one-shell">3.4 Scenario D —
 skip the prompt for one shell</h3>
 <p>Sometimes you just want a bare shell with no tmx wrapping.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Option 1: type &#39;default&#39; (literal token) when prompted.</span></span>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Option 1: type &#39;default&#39; (literal token) when prompted.</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">[tmx]</span> Enter session name <span class="er">(</span><span class="ex">blank</span> or <span class="st">&quot;default&quot;</span> = bare shell<span class="kw">)</span><span class="bu">:</span> default</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> <span class="co"># bare shell, no tmx, no nesting.</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -314,7 +472,8 @@ skip the prompt for one shell</h3>
 <span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">#   (e.g. on a build server where you never want tmx).</span></span></code></pre></div>
 <h3 id="35-scenario-e--inspect--reset-state-by-hand">3.5 Scenario E —
 inspect / reset state by hand</h3>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># What sessions does my state file know about?</span></span>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># What sessions does my state file know about?</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> tmx-state list</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">build</span>           /Users/milosvasic/Projects/tmux/scripts         1748189000</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">investigate</span>     /tmp                                            1748190100</span>
@@ -344,7 +503,8 @@ inspect / reset state by hand</h3>
 <tbody>
 <tr>
 <td>Shell integration (rc snippet)</td>
-<td><a href="../guides/tmx-shell-integration.md">docs/guides/tmx-shell-integration.md</a></td>
+<td><a
+href="../guides/tmx-shell-integration.md">docs/guides/tmx-shell-integration.md</a></td>
 </tr>
 <tr>
 <td>Go state daemon CLI</td>
@@ -352,7 +512,8 @@ inspect / reset state by hand</h3>
 </tr>
 <tr>
 <td>SSH dispatch</td>
-<td><a href="../guides/tmx-ssh-dispatch.md">docs/guides/tmx-ssh-dispatch.md</a></td>
+<td><a
+href="../guides/tmx-ssh-dispatch.md">docs/guides/tmx-ssh-dispatch.md</a></td>
 </tr>
 <tr>
 <td>Original install / OS notes</td>
@@ -371,15 +532,22 @@ inspect / reset state by hand</h3>
 </tbody>
 </table>
 <p>Wrapper command reference unchanged:</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tmx</span> new <span class="at">-s</span> NAME     <span class="co"># create (or attach if exists), restored cwd</span></span>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tmx</span> new <span class="at">-s</span> NAME     <span class="co"># create (or attach if exists), restored cwd</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">tmx</span> attach <span class="at">-t</span> NAME  <span class="co"># attach (fails if session does not exist)</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">tmx</span> ls              <span class="co"># list your sessions</span></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ex">tmx</span> kill            <span class="co"># alias for kill-session</span></span>
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ex">tmx</span> kill-server     <span class="co"># nuke all your sessions</span></span></code></pre></div>
-<p>Per-session resource overrides (unchanged from v1.0.x):</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="va">TMX_MEM</span><span class="op">=</span>8G    <span class="ex">tmx</span> new <span class="at">-s</span> heavy           <span class="co"># Linux: 8 GB MemoryMax</span></span>
+<p>Per-session resource opt-ins (since v1.0.39: NO cap applies unless
+you set one of these — a session gets the full host's CPU/memory/tasks
+and never auto-recycles by default; see
+<code>docs/guide/README.md</code> §5.6):</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="va">TMX_MEM</span><span class="op">=</span>8G    <span class="ex">tmx</span> new <span class="at">-s</span> heavy           <span class="co"># Linux: 8 GB soft MemoryHigh throttle</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="va">TMX_CPU</span><span class="op">=</span>400   <span class="ex">tmx</span> new <span class="at">-s</span> build           <span class="co"># Linux: 400% CPUQuota</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="va">TMX_CPU_HARD_SEC</span><span class="op">=</span>3600 <span class="ex">tmx</span> new <span class="at">-s</span> timeboxed  <span class="co"># Darwin: 1 hour RLIMIT_CPU</span></span></code></pre></div>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="va">TMX_CPU_HARD_SEC</span><span class="op">=</span>3600 <span class="ex">tmx</span> new <span class="at">-s</span> timeboxed  <span class="co"># Darwin: 1 hour RLIMIT_CPU</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="va">TMX_TASKS</span><span class="op">=</span>8192 <span class="ex">tmx</span> new <span class="at">-s</span> fleet          <span class="co"># Linux: 8192 TasksMax</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="va">TMX_RECYCLE_IDLE_SECS</span><span class="op">=</span>900 <span class="ex">tmx</span> new <span class="at">-s</span> ephemeral  <span class="co"># auto-recycle after 15 min idle</span></span></code></pre></div>
 <h2 id="5-anti-bluff-covenant-114">5. Anti-bluff covenant (§11.4)</h2>
 <p>This project ships under a hard rule: <strong>every test that says
 PASS must have captured positive runtime evidence that the feature
@@ -438,7 +606,7 @@ still parses</td>
 </tr>
 <tr>
 <td>36</td>
-<td>dispatcher with <code>SSH_ORIGINAL_COMMAND=&quot;echo hi&quot;</code> exits 1,
+<td>dispatcher with <code>SSH_ORIGINAL_COMMAND="echo hi"</code> exits 1,
 no tmux</td>
 </tr>
 <tr>
@@ -457,7 +625,7 @@ works</td>
 </tr>
 <tr>
 <td>40</td>
-<td><code>case &quot;$(uname -s)&quot;</code> branches PASS on both Linux and
+<td><code>case "$(uname -s)"</code> branches PASS on both Linux and
 Darwin</td>
 </tr>
 <tr>
@@ -472,9 +640,10 @@ document!)</td>
 gates themselves are not bluffs: e.g. M20 strips the <code>-t 0</code>
 guard from <code>tmx-shell-init.sh</code> and asserts test 30 FAILs.</p>
 <p>If you ever suspect a bluff (e.g. a feature says PASS in tests but
-doesn&#39;t work for you), the first thing to look at is the
+doesn't work for you), the first thing to look at is the
 <code>[evidence]</code> lines in the test output:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> bash scripts/tests/27_state_persistence.sh</span>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> bash scripts/tests/27_state_persistence.sh</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">[evidence]</span> iter=1 recall1=/tmp/tmx-test-18-target-12345 pane_path=/tmp/tmx-test-18-target-12345 recall2=/tmp/tmx-test-18-hook-12345-1</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ex">[evidence]</span> iter=2 recall1=... pane_path=...</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="ex">[evidence]</span> iter=3 recall1=... pane_path=...</span>
@@ -536,7 +705,7 @@ semicolons</td>
 intact</td>
 </tr>
 <tr>
-<td><code>[tmx] invalid session name &#39;work;ls&#39;</code></td>
+<td><code>[tmx] invalid session name 'work;ls'</code></td>
 <td>Name contains a metachar</td>
 <td>Fix the name — by design we reject shell-metachars (security)</td>
 </tr>
@@ -555,32 +724,36 @@ rebuilds an empty one</td>
 </tbody>
 </table>
 <h2 id="7-upgrading-from-pre-v109">7. Upgrading from pre-v1.0.9</h2>
-<p>If you&#39;re upgrading from v1.0.8 or earlier:</p>
+<p>If you're upgrading from v1.0.8 or earlier:</p>
 <ol type="1">
 <li>Pull the new code:
-<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull <span class="at">--ff-only</span></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> submodule update <span class="at">--init</span> <span class="at">--recursive</span></span></code></pre></div></li>
 <li>Re-run setup (this is idempotent — it generates the new files,
 builds the Go binary, and updates your rc snippet):
-<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span></code></pre></div></li>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span></code></pre></div></li>
 <li><strong>Important:</strong> remove any LEGACY hand-pasted snippet
 from your <code>.bashrc</code> / <code>.zshrc</code> that calls
 <code>read -r</code> directly. The legacy block typically looks like:
-<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># OLD — REMOVE</span></span>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># OLD — REMOVE</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="ot">-t</span> 0 <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">printf</span> <span class="st">&#39;Enter session: &#39;</span></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">read</span> <span class="at">-r</span> <span class="va">SESSION</span></span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">[</span> <span class="ot">-n</span> <span class="st">&quot;</span><span class="va">$SESSION</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="ex">tmx</span> new <span class="at">-s</span> <span class="st">&quot;</span><span class="va">$SESSION</span><span class="st">&quot;</span></span>
 <span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span></code></pre></div>
 The new block sources the project-owned file instead:
-<div class="sourceCode" id="cb14"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># NEW — KEEP</span></span>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># NEW — KEEP</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="bu">[</span> <span class="ot">-r</span> <span class="st">&quot;</span><span class="va">$VDIGITAL_TMUX_DIR</span><span class="st">/tmx-shell-init.sh&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="bu">.</span> <span class="st">&quot;</span><span class="va">$VDIGITAL_TMUX_DIR</span><span class="st">/tmx-shell-init.sh&quot;</span></span></code></pre></div></li>
 <li>Open a fresh shell. The new prompt is functionally similar; the
 behaviour differences are:
 <ul>
-<li><code>default</code> (literal) now means SKIP (used to mean &quot;create
-default session&quot;);</li>
+<li><code>default</code> (literal) now means SKIP (used to mean "create
+default session");</li>
 <li>blank input also means SKIP (used to be the default-session
 shortcut);</li>
 <li>SCP / rsync / IDE shells no longer hang.</li>
@@ -593,7 +766,8 @@ name) to get the same behaviour.</p>
 <h2 id="7a-uninstall-v1011">7a. Uninstall (v1.0.11+)</h2>
 <p>The dedicated uninstall entry point removes EVERYTHING setup.sh
 installed and leaves operator data untouched:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh</span></code></pre></div>
 <p>This calls <code>setup.sh --uninstall</code> under the hood (single
 source of truth), which:</p>
@@ -618,7 +792,8 @@ templates / source at install time, so removing them is safe — the next
 last-pwd state</h3>
 <p>By default, <code>~/.tmx/</code> (the cwd-memory state file) is
 preserved per §9 zero-risk-data-safety. To also remove it:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh <span class="at">--purge-state</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/uninstall.sh <span class="at">--purge-state</span></span></code></pre></div>
 <h3 id="clean-slate-reinstall-automatic-v1011">Clean-slate reinstall
 (automatic, v1.0.11+)</h3>
 <p>Every <code>bash scripts/setup.sh</code> invocation now runs the
@@ -629,7 +804,8 @@ missing init.sh, half-installed rc block) are cleaned first. Operator
 data under <code>~/.tmx/</code> is preserved.</p>
 <h3 id="how-to-verify-the-uninstall-worked">How to verify the uninstall
 worked</h3>
-<div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># rc snippet block gone:</span></span>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># rc snippet block gone:</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-c</span> <span class="st">&#39;─── vasic-digital optimized tmux ─&#39;</span> ~/.bashrc ~/.zshrc</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># expect: 0 in each</span></span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -649,7 +825,8 @@ worked</h3>
 1.22.</li>
 </ul>
 <p>Reproducible from a fresh clone via:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="at">--recurse-submodules</span> git@github.com:vasic-digital/tmux.git ~/Projects/tmux</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/Projects/tmux</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/install_deps.sh   <span class="co"># Linux only</span></span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/setup.sh</span>

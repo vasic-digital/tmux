@@ -52,6 +52,15 @@ _has_auto=0
 grep -q 'TMX_CPU_EFFECTIVE="\${TMX_CPU:-auto}"' "$TARGET" && _has_auto=1
 _has_fixed=0
 grep -q 'TMX_CPU_EFFECTIVE="\${TMX_CPU:-200}"' "$TARGET" && _has_fixed=1
+# 2026-08-10 reconciliation (§11.4.120 — a correct fix broke this gate's
+# stale "CPUQuota is host-adaptive BY DEFAULT" assumption; RECONCILED, never
+# fake-passed/reverted/deleted): CPU is now unlimited by default (no
+# CPUQuota property at all) and TMX_CPU=auto opts IN to this same
+# _default_cpu_pct() value. Both patterns below MUST hold post-fix.
+_has_empty_default=0
+grep -q 'TMX_CPU_EFFECTIVE="\${TMX_CPU:-}"' "$TARGET" && _has_empty_default=1
+_has_auto_optin=0
+grep -q '\[ "\$TMX_CPU_EFFECTIVE" = auto \] && TMX_CPU_EFFECTIVE="\$(_default_cpu_pct)"' "$TARGET" && _has_auto_optin=1
 
 if [ "$RED_MODE" = "1" ]; then
     # Reproduce the defect: fixed-200 default present AND no adaptive path.
@@ -72,11 +81,15 @@ else
     _fail "G1: bash -n reports syntax errors"
 fi
 
-# G2: adaptive function + auto wiring present; fixed default gone.
-if [ "$_has_fn" -eq 1 ] && [ "$_has_auto" -eq 1 ] && [ "$_has_fixed" -eq 0 ]; then
-    _pass "G2: _default_cpu_pct present, TMX_CPU:-auto wired, fixed-200 default removed"
+# G2: adaptive function present; CPU is UNLIMITED by default (2026-08-10 —
+# no unconditional CPUQuota, §11.4.120 reconciliation); `auto` remains an
+# explicit OPT-IN to the host-adaptive value; the pre-v1.0.37 fixed-200
+# default never reappears.
+if [ "$_has_fn" -eq 1 ] && [ "$_has_empty_default" -eq 1 ] && [ "$_has_auto_optin" -eq 1 ] && \
+   [ "$_has_auto" -eq 0 ] && [ "$_has_fixed" -eq 0 ]; then
+    _pass "G2: _default_cpu_pct present, CPU unlimited by default, TMX_CPU=auto opt-in wired, no unconditional/fixed-200 default"
 else
-    _fail "G2: wiring wrong (has_fn=$_has_fn has_auto=$_has_auto has_fixed=$_has_fixed)"
+    _fail "G2: wiring wrong (has_fn=$_has_fn has_empty_default=$_has_empty_default has_auto_optin=$_has_auto_optin has_auto=$_has_auto has_fixed=$_has_fixed)"
 fi
 
 # G3: FUNCTIONAL truth-table — extract the real function from the artifact
@@ -105,7 +118,14 @@ fi
 # G4: FUNCTIONAL default-expansion — run the real assignment pair.
 _asn="$(grep -E 'TMX_CPU_EFFECTIVE=|_default_cpu_pct\)"' "$TARGET" | grep -E '^\s*(TMX_CPU_EFFECTIVE=|\[ "\$TMX_CPU_EFFECTIVE" = auto \])' | sed 's/^[[:space:]]*//')"
 _expand() {  # _expand <TMX_CPU value or UNSET> → effective value
+    # unset FIRST (§11.4.201 independent-review finding, 2026-08-10): the
+    # inner `bash -c` otherwise INHERITS any TMX_CPU the operator's own
+    # shell rc has exported (e.g. per this fix's own documented opt-in
+    # `TMX_CPU=auto`) — the UNSET case would then spuriously read the
+    # ambient value instead of genuinely-unset, producing a false FAIL on
+    # exactly the opt-in configuration this fix is meant to keep working.
     bash -c "
+        unset TMX_CPU
         _default_cpu_pct() { echo 777; }
         if [ '$1' != UNSET ]; then TMX_CPU='$1'; fi
         $_asn
@@ -113,14 +133,16 @@ _expand() {  # _expand <TMX_CPU value or UNSET> → effective value
     " 2>/dev/null
 }
 e_unset="$(_expand UNSET)"; e_auto="$(_expand auto)"; e_num="$(_expand 400)"
-if [ "$e_unset" = "777" ] && [ "$e_auto" = "777" ] && [ "$e_num" = "400" ]; then
-    _pass "G4: default expansion — unset→adaptive, auto→adaptive, explicit 400 preserved"
+if [ "$e_unset" = "" ] && [ "$e_auto" = "777" ] && [ "$e_num" = "400" ]; then
+    _pass "G4: default expansion — unset→'' (unlimited by default), auto→adaptive(opt-in), explicit 400 preserved"
 else
-    _fail "G4: expansion wrong: unset→'$e_unset' auto→'$e_auto' 400→'$e_num' (want 777/777/400)"
+    _fail "G4: expansion wrong: unset→'$e_unset' auto→'$e_auto' 400→'$e_num' (want ''/777/400)"
 fi
 
-# G5 (Linux, live): a freshly-spawned session's scope really carries the
-# host-adaptive quota — §11.4.108 RUNTIME layer, read back from the cgroup.
+# G5 (Linux, live): a session spawned with TMX_CPU=auto (the explicit
+# OPT-IN, since 2026-08-10 CPU is unlimited by default — see test 88 for the
+# default-is-unlimited coverage) really carries the host-adaptive quota on
+# its cgroup — §11.4.108 RUNTIME layer, read back from the cgroup.
 if [ "$T86_LIVE" != "1" ]; then
     _skip "G5: live spawn disabled (T86_LIVE=$T86_LIVE)"
 elif [ "$(uname -s)" != "Linux" ]; then
@@ -138,7 +160,7 @@ else
         systemctl --user stop "$SCOPE_UNIT" >/dev/null 2>&1 || true
         [ -n "${TMUX_BIN_T86:-}" ] && "$TMUX_BIN_T86" -L "$SOCK" kill-server >/dev/null 2>&1 || true
     ' EXIT
-    "$WRAPPER" new -s "$SESS" -d >/dev/null 2>&1
+    TMX_CPU=auto "$WRAPPER" new -s "$SESS" -d >/dev/null 2>&1
     sleep 1
     CG="$(systemctl --user show "$SCOPE_UNIT" -p ControlGroup --value 2>/dev/null)"
     QUOTA=""

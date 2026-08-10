@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-07-24T00:00:00Z
+**Last updated:** 2026-08-10T00:00:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,9 +15,9 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.37** (versionCode 38) — host-adaptive CPUQuota default, interactive server-scope split (TMX_SERVER_SPLIT=1), TMX_CLASSIFICATION export, OOM score adjustment, and stale Issues.md fix (TMX-072–075 migrated to Fixed.md). Previous: v1.0.35 (session-name sanitization). |
-| Verification (this cycle) | Host-adaptive CPUQuota validated live on the 64-core fleet: 200%→960% dropped CFS throttle from 18.8% to 0%, server RT latency 50 ms→3 ms. `tmx.template` changes (302 lines: `_default_cpu_pct`, `_srv_cpu_pct`, `_split_cpu_pcts`, `_slice_unit_for`, scope split topology, OOM score adj, TMX_CLASSIFICATION) + new test `87_server_scope_split.sh` (309 lines, §11.4.115 RED/GREEN) + shim `tmx-pane-shim.sh` (89 lines). Full-suite retest pending at tag creation. Release tag v1.0.37 created and published. |
-| Governance docs | `constitution/` submodule (HelixConstitution, pinned `1576d3d`); `Containers/` submodule (pinned `fbef9d6`); project `Constitution.md` (Project Articles §101–§170 extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `GEMINI.md` (all lockstep to §11.4.170), `Issues.md`, `Fixed.md`, this document |
+| Version | **1.0.39** (versionCode 40) — NO resource or lifetime limit by default: CPU/tasks/session-lifetime brought into the same fully-elastic-by-default, opt-in-only model memory already used (root cause of "sessions/processes killed despite ample host capacity" — dominant cause was the idle-recycler defaulting ON at 900s). See §3 top entry + `Fixed.md` §H (TMX-079). Previous: v1.0.38 (TMX-076/077, scope-independent collision guard + meta-test mutations); v1.0.37 (host-adaptive CPUQuota default, interactive server-scope split TMX_SERVER_SPLIT=1, TMX_CLASSIFICATION export, OOM score adjustment). |
+| Verification (this cycle, v1.0.39) | No-limits-by-default fix validated: new test 88 (§11.4.115 RED/GREEN, live cgroup + tmux-hook readback) PASS=9/FAIL=0/SKIP=0; tests 09/13/15/86/87 reconciled (§11.4.120); final clean full-suite retest PASS=66/FAIL=6/SKIP=14 (all 6 failures independently confirmed pre-existing/unrelated via baseline A/B — §11.4.114); meta-test mutations `M-NOLIMITS` (new) + `M-CPUADAPT` (fixed) both proven to bite live; 3-round independent code review (Fable model) reached clean GO. Full detail: `Fixed.md` §H (TMX-079). (Prior cycle, v1.0.37: host-adaptive CPUQuota validated live on the 64-core fleet, 200%→960% dropped CFS throttle 18.8%→0%, server RT latency 50 ms→3 ms; interactive server-scope split TMX_SERVER_SPLIT=1 landed in v1.0.38.) |
+| Governance docs | `constitution/` submodule (HelixConstitution, pinned `1d81ef0`); `Containers/` submodule (pinned `18ed03d`); project `Constitution.md` (Project Articles §101–§109 extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `GEMINI.md` (all lockstep), `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
 
@@ -33,6 +33,22 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.30 — v1.0.39: no resource or lifetime limit by default (TMX-079) → 2026-08-10
+
+**Status:** DONE (fix + tests + docs landed; full-suite retest + release-tag publish in progress this commit).
+
+**Trigger (verbatim operator report, 2026-08-10):** "sessions and processes get killed and wiped out ... on powerful hardware with enough resources — it MUST NOT happen".
+
+**Root cause (systematic-debugging):** three unconditional-by-default caps in `scripts/tmx.template`: (1) the idle-timeout recycler (`scripts/tmx-recycler.sh`) tore down ANY session with no client attached for >= 900s regardless of activity — the dominant cause, and the ONLY mechanism that actually kills an already-running session's processes irrespective of host capacity; (2) `CPUQuota` applied unconditionally (host-adaptive since v1.0.37, no off switch); (3) a hardcoded `TasksMax=4096` with no override knob at all. Memory was already correctly "fully elastic" by default — CPU/tasks/lifetime brought into that same model.
+
+**Fix:** `TMX_CPU`/`TMX_TASKS` unset → unlimited (`=auto` opts in to the prior host-adaptive/legacy-fixed value); `TMX_RECYCLE_IDLE_SECS` unset/`0` → never auto-recycled; Darwin `TMX_CPU_HARD_SEC`/`TMX_PROC_MAX` → `unlimited` by default. Full detail + captured evidence: `Fixed.md` §H (TMX-079).
+
+**Tests:** new test 88 (§11.4.115 RED/GREEN, live cgroup + tmux-hook readback); tests 15/86/87 reconciled to the new default (§11.4.120 — a correct fix legitimately breaking a stale gate assumption); meta-test `M-NOLIMITS` added, `M-CPUADAPT` fixed (was silently escaping post-fix).
+
+**Discovered + tracked, NOT part of this fix (confirmed pre-existing via baseline A/B, §11.4.114):** TMX-080 (test 27 hook-record timing, `Issues.md` §H1), TMX-081 (test 87 G4 quiet-phase settle heuristic, `Issues.md` §H2).
+
+**Next in this commit:** independent code review (dispatched, Fable model per §11.4.209), full non-destructive `run_all.sh` retest (in progress), `meta_test_false_positive_proof.sh` full sweep, then `commit_all.sh` + version tag `tmux-1.0.39` published to GitHub + GitLab with changelog.
 
 ### §3.28 — Wizard + session-password redesign (2026-07-05) — docs landed, code in sibling tasks
 

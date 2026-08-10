@@ -91,20 +91,32 @@ if [ "$HOST_OS" = "Darwin" ]; then
         _fail "T2: tmux server PIDs A=$A_PID B=$B_PID — expected distinct non-empty values"
     fi
 
-    # T3: send-keys to each session, capture ulimit readback; the kernel-
-    # enforced rlimits (CPU + NPROC) should show their configured values.
+    # T3: send-keys to each session, capture ulimit readback. 2026-08-10
+    # reconciliation (§11.4.120/§11.4.201 independent-review finding): CPU
+    # is UNLIMITED by default now (TMX_CPU_HARD_SEC unset → `ulimit -t
+    # unlimited`), so `ulimit -t` reads back the literal word "unlimited",
+    # not a number — the regex accepts EITHER the default ("unlimited") OR
+    # a numeric value (an operator's TMX_CPU_HARD_SEC exported ambiently).
+    # NPROC (`ulimit -u`) still reads back numeric here even though its
+    # default is also "unlimited" now: raising the HARD limit above the
+    # host-granted ceiling (kern.maxprocperuid) is normally refused by the
+    # kernel for an unprivileged process, so `ulimit -u unlimited` silently
+    # falls back to whatever the host's own default hard limit already is
+    # (numeric) — the wrapper's existing `|| true` posture never treats
+    # that as an error (see T5 below for the explicit-opt-in case, which
+    # is unaffected by this default change).
     "$WRAPPER" send-keys -t "$A_NAME" "echo TMXLIMITS:cpu=\$(ulimit -t):nproc=\$(ulimit -u)" Enter 2>/dev/null
     "$WRAPPER" send-keys -t "$B_NAME" "echo TMXLIMITS:cpu=\$(ulimit -t):nproc=\$(ulimit -u)" Enter 2>/dev/null
     sleep 2
 
     A_PANE=$("$WRAPPER" capture-pane -t "$A_NAME" -p 2>/dev/null | grep TMXLIMITS | tail -1)
     B_PANE=$("$WRAPPER" capture-pane -t "$B_NAME" -p 2>/dev/null | grep TMXLIMITS | tail -1)
-    if echo "$A_PANE" | grep -qE 'cpu=[0-9]+:nproc=[0-9]+'; then
-        _pass "T3: session A rlimits applied: $A_PANE (positive evidence: ulimit -t and -u via send-keys + capture-pane)"
+    if echo "$A_PANE" | grep -qE 'cpu=(unlimited|[0-9]+):nproc=[0-9]+'; then
+        _pass "T3: session A rlimits applied: $A_PANE (positive evidence: ulimit -t and -u via send-keys + capture-pane; cpu=unlimited is the correct no-cap-by-default reading)"
     else
         _fail "T3: could not read rlimits from session A: '$A_PANE'"
     fi
-    if echo "$B_PANE" | grep -qE 'cpu=[0-9]+:nproc=[0-9]+'; then
+    if echo "$B_PANE" | grep -qE 'cpu=(unlimited|[0-9]+):nproc=[0-9]+'; then
         _pass "T4: session B rlimits applied: $B_PANE"
     else
         _fail "T4: could not read rlimits from session B: '$B_PANE'"
@@ -206,15 +218,18 @@ else
     _fail "T3b: memory.min A=$A_MEM_MIN (expected 134217728 = 128 MiB floor)"
 fi
 
-# ── T4: cpu.max readback present ────────────────────────────────────
+# ── T4: fully-elastic default — cpu.max=max (no CPUQuota by default) ──
+# 2026-08-10 reconciliation (§11.4.120 — CPU is now unlimited by default,
+# same "liquid" model as T3's memory.max=max; TMX_CPU opts IN to a real
+# cgroup quota — see test 86/88 for that opt-in coverage).
 echo ""
-echo "--- T4: cpu.max present per session ---"
+echo "--- T4: default session cpu.max=max (fully elastic — no CPUQuota unless TMX_CPU opts in) ---"
 A_CPU_MAX=$(cat "/sys/fs/cgroup${A_CG}/cpu.max" 2>/dev/null || echo "?")
 B_CPU_MAX=$(cat "/sys/fs/cgroup${B_CG}/cpu.max" 2>/dev/null || echo "?")
-if echo "$A_CPU_MAX" | grep -qE '^[0-9]+ [0-9]+$' && echo "$B_CPU_MAX" | grep -qE '^[0-9]+ [0-9]+$'; then
-    _pass "T4: cpu.max A='$A_CPU_MAX' B='$B_CPU_MAX' (positive evidence: cpu.max readback per session)"
+if echo "$A_CPU_MAX" | grep -qE '^max [0-9]+$' && echo "$B_CPU_MAX" | grep -qE '^max [0-9]+$'; then
+    _pass "T4: cpu.max A='$A_CPU_MAX' B='$B_CPU_MAX' (positive evidence: no CPUQuota by default, per-session cgroup readback)"
 else
-    _fail "T4: cpu.max A='$A_CPU_MAX' B='$B_CPU_MAX' (expected '<quota> <period>' format)"
+    _fail "T4: cpu.max A='$A_CPU_MAX' B='$B_CPU_MAX' (expected 'max <period>' format under the elastic default)"
 fi
 
 # ── T5: TMX_MEM override per session ────────────────────────────────
