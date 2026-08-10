@@ -234,12 +234,14 @@ RED/GREEN, live cgroup + tmux-hook readback) PASS=9/FAIL=0/SKIP=0; tests
 PASS=66/FAIL=6/SKIP=14 (all 6 failures independently confirmed
 pre-existing/unrelated via baseline A/B — §11.4.114); meta-test
 mutations <code>M-NOLIMITS</code> (new) + <code>M-CPUADAPT</code>
-(fixed) both proven to bite live; 3-round independent code review (Fable
-model) reached clean GO. Full detail: <code>Fixed.md</code> §H
-(TMX-079). (Prior cycle, v1.0.37: host-adaptive CPUQuota validated live
-on the 64-core fleet, 200%→960% dropped CFS throttle 18.8%→0%, server RT
-latency 50 ms→3 ms; interactive server-scope split TMX_SERVER_SPLIT=1
-landed in v1.0.38.)</td>
+(fixed) both proven to bite live; 4-round independent code review (Fable
+model) reached clean GO (round 1: 1 critical + 2 test/doc findings
+fixed; round 2: 4 doc/export-sync findings fixed; round 3: 3 small
+findings fixed; round 4: clean GO). Full detail: <code>Fixed.md</code>
+§H (TMX-079). (Prior cycle, v1.0.37: host-adaptive CPUQuota validated
+live on the 64-core fleet, 200%→960% dropped CFS throttle 18.8%→0%,
+server RT latency 50 ms→3 ms; interactive server-scope split
+TMX_SERVER_SPLIT=1 landed in v1.0.38.)</td>
 </tr>
 <tr>
 <td>Governance docs</td>
