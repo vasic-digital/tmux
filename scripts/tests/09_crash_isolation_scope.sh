@@ -440,7 +440,13 @@ else
     }
 
     # ── T7a: WORKLOAD death → server survives, responsive ───────────
-    TMX_SERVER_SPLIT=1 TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$T7A" -d >/dev/null 2>&1
+    # 2026-08-11 reconciliation (§11.4.120): TMX_CPU=auto opts IN so the
+    # split topology (which since v1.0.39/TMX-079 requires an explicit,
+    # splittable TMX_CPU to engage — CPU is unlimited by default) actually
+    # activates. Without this the wrapper falls back LOUDLY to the shared
+    # topology ("TMX_CPU='' is not splittable"), no workload slice is ever
+    # created, and T7a.0 fails because the split never engaged.
+    TMX_SERVER_SPLIT=1 TMX_CPU=auto TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$T7A" -d >/dev/null 2>&1
     T7A_PID=""
     for _i in $(seq 1 25); do
         T7A_PID="$("$TMUX_BIN_09" -L "tmx-$T7A" display-message -p '#{pid}' 2>/dev/null)"
@@ -474,7 +480,9 @@ else
 
     # ── T7b: SERVER death → workload dies with it (no orphan fleet),
     #         pair teardown leaks nothing ─────────────────────────────
-    TMX_SERVER_SPLIT=1 TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$T7B" -d >/dev/null 2>&1
+    # 2026-08-11 reconciliation (§11.4.120): same TMX_CPU=auto opt-in as
+    # T7a above — see that comment for the full explanation.
+    TMX_SERVER_SPLIT=1 TMX_CPU=auto TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$T7B" -d >/dev/null 2>&1
     T7B_UP=0
     for _i in $(seq 1 25); do
         "$TMUX_BIN_09" -L "tmx-$T7B" has-session -t "$T7B" 2>/dev/null && { T7B_UP=1; break; }

@@ -281,8 +281,13 @@ fi
 # through the same operator path.
 echo ""
 echo "--- T7: split topology — distinct scope+slice pair per session ---"
-TMX_SERVER_SPLIT=1 TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$D_NAME" -d 2>/dev/null
-TMX_SERVER_SPLIT=1 TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$E_NAME" -d 2>/dev/null
+# 2026-08-11 reconciliation (§11.4.120): TMX_CPU=auto opts IN so the split
+# topology actually engages — since v1.0.39/TMX-079 CPU is unlimited by
+# default, and _split_cpu_pcts rejects an unsplittable empty total, so
+# without this the wrapper falls back LOUDLY to the shared topology and no
+# slice is ever created (T7/T8 below then find 0 pairs / no slice pid).
+TMX_SERVER_SPLIT=1 TMX_CPU=auto TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$D_NAME" -d 2>/dev/null
+TMX_SERVER_SPLIT=1 TMX_CPU=auto TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$E_NAME" -d 2>/dev/null
 sleep 1
 PAIR_ACTIVE=0
 for u in "tmx-${D_NAME}.scope" "tmxw-${D_NAME}.slice" "tmx-${E_NAME}.scope" "tmxw-${E_NAME}.slice"; do

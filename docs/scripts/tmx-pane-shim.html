@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmx-pane-shim</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1 id="tmx-pane-shimsh--split-topology-pane-launcher">tmx-pane-shim.sh
+— split-topology pane launcher</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-07-23T00:00:00Z</p>
+<h2 id="overview">Overview</h2>
+<p><code>scripts/tmx-pane-shim.sh</code> is the pane launcher of the
+§11.4.225 interactive-server scope split
+(<code>TMX_SERVER_SPLIT=1</code>, opt-in, default OFF). In the split
+topology the tmux SERVER runs alone in
+<code>tmx-&lt;name&gt;.scope</code> with a small host-adaptive CPU
+quota, while every pane's shell — and therefore the entire workload
+fleet a pane spawns — runs inside its own transient systemd scope under
+the session's dedicated workload slice
+<code>tmxw-&lt;name&gt;.slice</code> (dashes in the session name are
+<code>\x2d</code>-escaped so every session slice is a flat leaf — no
+accidental slice nesting between sessions whose names prefix each
+other). The slice carries the remainder of the session CPU budget plus
+the CFS burst bank, so fleet bursts can never starve the server's
+keystroke/echo/timer handling (HEL-006/HEL-003 forensics,
+2026-07-22/23).</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Linux with systemd ≥ 230 and a functional
+<code>systemd-run --user --scope</code> (the same preconditions as the
+shared-scope topology).</li>
+<li>The pane environment must reach the user manager
+(<code>$XDG_RUNTIME_DIR/bus</code> — inherited from the tmux server's
+environment; true for every wrapper-spawned session).</li>
+<li>The wrapper (<code>scripts/tmx</code>, generated from
+<code>scripts/tmx.template</code>) passes the slice unit as the single
+argument; operators never invoke the shim directly.</li>
+</ul>
+<h2 id="usage">Usage</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># outer stage — what tmux runs as the window command / default-command:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> tmx-pane-shim.sh <span class="st">&#39;tmxw-mysession.slice&#39;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># inner stage — internal only, executed via systemd-run inside the pane scope:</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> tmx-pane-shim.sh <span class="at">--inner</span> <span class="st">&#39;tmxw-mysession.slice&#39;</span> /tmp/.tmx-pane-shim.XXXXXX</span></code></pre></div>
+<h2 id="internal-behaviour">Internal behaviour</h2>
+<ol type="1">
+<li><strong>Outer stage</strong> creates a placement marker file, then
+runs
+<code>systemd-run --user --scope --collect --quiet --slice=&lt;slice&gt; -- bash &lt;self&gt; --inner &lt;slice&gt; &lt;marker&gt;</code>.
+When systemd-run returns, the marker decides: marker written ⇒ the shell
+genuinely ran inside the slice and has exited — propagate its exit code
+(the pane closes normally). Marker empty ⇒ scope creation failed — print
+a loud FATAL, hold the message 5 s, exit 7.</li>
+<li><strong>Inner stage</strong> re-reads <code>/proc/self/cgroup</code>
+(the KERNEL's record, §11.4.200 verify-after-write against the
+authoritative source) and aborts unless the path names the slice; only
+then writes the marker and <code>exec</code>s the user's login shell
+(<code>$SHELL -l</code>, fallback <code>/bin/bash</code>).</li>
+</ol>
+<h2 id="fail-closed-contract-114200114201">Fail-closed contract
+(§11.4.200/§11.4.201)</h2>
+<p>A pane that cannot be placed inside the workload slice must NEVER
+silently run outside it — that would put the fleet into the server's
+small scope (or an unbounded cgroup), strictly worse than the shared
+topology. The shim refuses; additionally the wrapper's post-create
+verify polls the slice cgroup for a live pane pid and aborts the whole
+session (teardown + exit 1) if the first pane never lands.</p>
+<h2 id="edge-cases">Edge cases</h2>
+<ul>
+<li><code>systemd-run</code> missing from the pane environment → loud
+FATAL, exit 7.</li>
+<li>The slice was torn down between pane creation and shim start → scope
+creation fails → marker empty → loud FATAL (never a silent
+fallback).</li>
+<li><code>mktemp</code> failure → marker-based detection degrades
+gracefully (the inner cgroup verification still guards placement).</li>
+<li>Shared topology (<code>TMX_SERVER_SPLIT</code> unset/0): the shim is
+not invoked at all.</li>
+</ul>
+<h2 id="related-scripts">Related scripts</h2>
+<ul>
+<li><code>scripts/tmx.template</code> — spawner: split activation, slice
+<code>set-property</code>, post-create verify, pair teardown.</li>
+<li><code>scripts/tmx-recycler.sh</code> — idle recycler; stops the
+workload slice (<code>TMX_RC_SLICE</code>) alongside the scope.</li>
+<li><code>scripts/tests/87_server_scope_split.sh</code> — RED/GREEN
+polarity test + live throttle-isolation A/B.</li>
+<li><code>scripts/tests/09_crash_isolation_scope.sh</code> (T7) /
+<code>15_per_session_cgroup_distinct.sh</code> (T7–T9) — split-topology
+crash-isolation and pair-distinctness regression sections.</li>
+</ul>
+<h2 id="last-verified">Last verified</h2>
+<p>2026-07-23 — live on systemd 255 (64-core Linux host): placement,
+fail-closed abort, throttle isolation (slice 30 throttled periods under
+an 8-spinner fleet vs server scope 0), pair teardown.</p>
+</body>
+</html>

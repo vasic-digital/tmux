@@ -3140,3 +3140,36 @@ Root-cause forensic anchor (operator report, 2026-08-10): "sessions and processe
 - **Test 15** (`15_per_session_cgroup_distinct.sh`) T4 updated from asserting a numeric `<quota> <period>` `cpu.max` format to asserting `max <period>` (mirroring T3's pre-existing `memory.max=max` assertion for the elastic-by-default memory model).
 
 **§11.4.114 regression isolation (known pre-existing, unrelated issues surfaced by this cycle's testing, confirmed via baseline A/B — NOT part of this fix, tracked separately):** see `Issues.md` §H — TMX-080 (test 27 sub-check "18" hook-record timing) and TMX-081 (test 87 G4 quiet-phase settle heuristic). Both reproduce identically on the v1.0.38 baseline.
+
+---
+
+## I. Split-topology test reconciliation (2026-08-11)
+
+### I1 SPLIT-TEST-CPU-OPTIN-001 — new split-topology crash-isolation tests failed to engage the split (missing TMX_CPU=auto opt-in) — `FIXED`
+
+**TMX-ID:** TMX-082
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** HIGH (blocked `scripts/setup.sh`'s verification gate — `install.sh` correctly refused to PATH-export per §11.4/§109)
+
+Root cause (systematic-debugging, triggered by an operator-reported `install.sh` verification RED: `SUMMARY: PASS=68 FAIL=3 SKIP=15`, `FAILED tests: 09_crash_isolation_scope.sh 15_per_session_cgroup_distinct.sh 22_codegraph_mcp_wired.sh`): new crash-isolation test coverage for the opt-in server/workload scope-split topology (`TMX_SERVER_SPLIT=1`, §11.4.225) — test 09's T7 ("split-topology crash isolation") and test 15's T7-T9 ("distinct scope+slice pair per session") — landed on `main` via a separate work stream (commit `adf46d5`, "Auto-commit", 2026-08-11) one day after v1.0.39 shipped. Those new tests spawn `TMX_SERVER_SPLIT=1` sessions without also setting `TMX_CPU` — but since v1.0.39 (TMX-079) `TMX_CPU` defaults to empty/unlimited, and the split topology's `_split_cpu_pcts()` requires an explicit, splittable numeric total to engage at all (fail-closed by design). Without an opt-in `TMX_CPU`, the wrapper correctly falls back LOUDLY to the shared topology (`tmx: TMX_SERVER_SPLIT=1 requested but TMX_CPU='' is not splittable — using the shared topology...`) exactly as v1.0.39 intended — so no workload slice is ever created, and the new tests' assertions that the split engaged fail (test 09 T7a.0: "split session did not come up... slice=inactive"; test 15 T7: "expected 4 active pair units, found 2").
+
+**This is NOT a regression in the v1.0.39 fix.** Direct reproduction proved the opt-in mechanism itself works exactly as designed (the fallback fires, the message is correct, the shared topology comes up cleanly) — the newly-landed tests simply hadn't been reconciled to the v1.0.39 default change yet, the same class of gap already fixed in test 87's G6/G8 sub-checks during the v1.0.39 review cycle (§11.4.120), just not yet propagated to this independently-landed, newer test coverage.
+
+**Evidence:** direct reproduction BEFORE the fix — `bash scripts/tests/09_crash_isolation_scope.sh` → `FAIL: T7a.0: split session did not come up (pid='...' slice=inactive)`; `bash scripts/tests/15_per_session_cgroup_distinct.sh` → `FAIL: T7: expected 4 active pair units, found 2`. Root-cause confirmation — a manual `TMX_SERVER_SPLIT=1 TMX_RECYCLE_IDLE_SECS=0 ./scripts/tmx new -s repro-t7-check -d` reproduced the EXACT fallback message + inactive slice, isolating the cause with certainty before any fix was attempted. AFTER the fix — test 09 PASS=20/FAIL=0/SKIP=0 (was 17/1/0); test 15 PASS=11/FAIL=0/SKIP=0 (was previously FAILing T7/T8, T9 passed trivially).
+
+**Fix:** added `TMX_CPU=auto` to all four affected `TMX_SERVER_SPLIT=1` spawn commands: `scripts/tests/09_crash_isolation_scope.sh` T7a (~line 449) and T7b (~line 485); `scripts/tests/15_per_session_cgroup_distinct.sh` T7 (~lines 289-290 post-fix, both `$D_NAME` and `$E_NAME` spawns).
+
+**Also fixed as part of this cycle (test 22, unrelated pre-existing gap, not a regression):** the host-local `~/.config/opencode/opencode.json` (this host only — not tracked in the git repo) was missing the `codegraph` MCP server entry that Claude Code, Kimi CLI, Crush, and Qwen Code already had wired on this same host. Added via OpenCode's own local-MCP schema (`{"type": "local", "command": ["codegraph", "serve", "--mcp"], "enabled": true}`), verified by a JSON round-trip proving none of the file's other 132 entries were disturbed. Test 22 now PASS=7/FAIL=0/SKIP=0.
+
+**Closure cycle:** v1.0.40
+**Closure commit:** (this commit)
+**Captured evidence (4-layer, §11.4.108):**
+- (a) **pre-build gate / source layer:** the fix is a 4-line addition (`TMX_CPU=auto`) to two test files; `bash -n` clean on both.
+- (b) **runtime layer:** direct re-execution of both fixed tests shows the split topology genuinely engaging (test 09 T7a.0/T7b.1-3 all PASS with real cgroup/PID readback; test 15 T7/T8 PASS with real distinct cgroup pair verification).
+- (c) **HelixQA Challenge:** not added separately — tests 09/15 (`TMUX-CH-09`/`TMUX-CH-15`) already cover this surface; their existing pass_condition already requires the full PASS count these fixes restore.
+- (d) **paired mutation:** the pre-existing `M-SPLIT` / `M-SPLIT-QUOTA` mutations (added by the same `adf46d5` commit) were independently re-verified (2026-08-11) to still genuinely match live content in `scripts/tmx` post-merge — NOT found to be silently escaping (an initial suspicion was checked and disproven by testing the actual current sed pattern rather than a stale historical diff).
+
+**Regression-protection:** tests 09/15 T7 (and 15's T8/T9) now exercise the reconciled spawn pattern on every run.
+
+**§11.4.114 regression isolation:** confirmed via direct reproduction that the v1.0.39 default-change mechanism (the `TMX_CPU='' is not splittable` fallback) behaves exactly as intended — the defect was entirely in the newer tests' missing opt-in, never in the wrapper.

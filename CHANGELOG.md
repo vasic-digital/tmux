@@ -6,6 +6,55 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [tmux-1.0.40] (also v1.0.40) — 2026-08-11
+
+### Fixed
+
+- **Split-topology (`TMX_SERVER_SPLIT=1`) crash-isolation tests failed to
+  engage the split at all — missing `TMX_CPU=auto` opt-in (TMX-082).**
+  Root cause (systematic-debugging, triggered by an operator-reported
+  `install.sh` verification-gate RED): new crash-isolation test coverage
+  for the opt-in server/workload scope-split topology (test 09's T7,
+  test 15's T7-T9) landed on `main` via a separate work stream, one day
+  after v1.0.39. Those new tests spawn `TMX_SERVER_SPLIT=1` sessions
+  without also setting `TMX_CPU` — but since v1.0.39 (TMX-079) `TMX_CPU`
+  defaults to empty/unlimited, and the split topology's `_split_cpu_pcts`
+  requires an explicit, splittable total to engage at all. Without an
+  opt-in `TMX_CPU`, the wrapper correctly falls back LOUDLY to the shared
+  topology ("`TMX_CPU='' is not splittable`") exactly as designed — so no
+  workload slice is ever created, and the new tests' assertions that the
+  split engaged fail. Same root cause + same fix pattern already applied
+  to test 87's G6/G8 sub-checks during the v1.0.39 review cycle, just not
+  yet propagated to this newer, independently-landed test coverage.
+  **Not a regression in the v1.0.39 fix** — confirmed via direct
+  reproduction: the wrapper's own fallback message fires exactly as
+  intended, proving the opt-in mechanism itself is working correctly;
+  the newly-added tests simply hadn't been reconciled to it yet
+  (§11.4.120). Fixed by adding `TMX_CPU=auto` to the four affected spawn
+  commands (`scripts/tests/09_crash_isolation_scope.sh` T7a/T7b,
+  `scripts/tests/15_per_session_cgroup_distinct.sh` T7). Verified: test
+  09 PASS=20/FAIL=0/SKIP=0 (was 17/1/0), test 15 PASS=11/FAIL=0/SKIP=0
+  (was previously failing T7/T8).
+- **Host-local `~/.config/opencode/opencode.json` (this host only, not
+  tracked in the repo) was missing the codegraph MCP server entry** that
+  every other configured CLI agent (Claude Code, Kimi, Crush, Qwen Code)
+  already had wired on this host — test 22's T2 flagged this pre-existing
+  gap. Not a code defect; a host-configuration gap closed for parity
+  by adding the `codegraph` entry to the `mcp` object using OpenCode's
+  own local-MCP schema (`{"type": "local", "command": ["codegraph",
+  "serve", "--mcp"], "enabled": true}`), verified via a JSON round-trip
+  proving no other one of the file's 132 pre-existing entries was
+  disturbed.
+
+### Verification
+
+Reproduced via direct test invocation (`bash scripts/tests/09_...sh`,
+`15_...sh`, `22_...sh`) before any fix, confirming the exact failure
+signatures reported by the operator's `install.sh` run; root-caused with
+a direct minimal reproduction of the wrapper's own fallback path; fixed;
+re-verified all three tests individually GREEN; full `scripts/verify.sh`
+gate re-run clean before release.
+
 ## [tmux-1.0.39] (also v1.0.39) — 2026-08-10
 
 ### Fixed
