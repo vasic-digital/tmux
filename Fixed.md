@@ -3052,4 +3052,91 @@ repair steps, verified against the v1.0.30 `setup.sh` fallback path.
   actually completed under any other ID (grepped
   `scripts/tests/meta_test_false_positive_proof.sh` for `M-test72`/`M-test73`
   — absent) before re-filing it fresh as TMX-076, so the real remaining work
-  is tracked, not silently lost.
+   is tracked, not silently lost.
+
+### G1 WIZARD-SUFFIX-001 — wizard-created sessions get a random 4-digit name suffix — `IMPLEMENTED`
+
+**TMX-ID:** TMX-072
+**Status:** Implemented (→ Fixed.md)
+**Type:** Feature
+**Severity:** MEDIUM
+
+Typing a session name at the interactive tmx wizard now always creates a brand-new session whose real name is the typed name plus a random 4-digit suffix (e.g. my-session-2507), so retyping the same base name later can never collide with or be confused for an earlier session. This makes every session created through the wizard genuinely unique by construction, while scripts and tests that need a deterministic exact name can set TMX_EXACT_NAME=1 to opt out. Implemented in scripts/tmx-shell-init.sh.template. Acceptance: test 78 passes, showing the created session name matches base-NNNN and that TMX_EXACT_NAME=1 suppresses it.
+
+**Closure cycle:** v1.0.34
+**Closure commit:** cb3e96c
+**Captured evidence (4-layer):** (a) pre-build gate: test 78 validated in run_all.sh; (b) runtime: test 78 PASS 3× deterministic (TMX_EXACT_NAME=1 suppressed, base-NNNN matched); (c) HelixQA Challenge: TMUX-CH-78; (d) paired mutation: meta-test `M-SUFFIX` neutralizes suffix generation — test 78 FAILs.
+**Regression-protection:** test 78 (`78_wizard_suffix.sh`), meta-test `M-SUFFIX` in `scripts/tests/meta_test_false_positive_proof.sh`.
+
+### G2 PASSWORD-MASK-001 — password input is masked with asterisks while typing — `IMPLEMENTED`
+
+**TMX-ID:** TMX-073
+**Status:** Implemented (→ Fixed.md)
+**Type:** Feature
+**Severity:** MEDIUM
+
+Session passwords are no longer echoed in plaintext to the terminal while being typed. Every password prompt in the tmx wrapper now shows a single asterisk character for each keystroke, with backspace erasing one asterisk, so a password can never be read off the screen by someone glancing at it. Implemented via the shared _read_password_masked helper in scripts/tmx.template. Acceptance: test 77 passes, proving the pane buffer never contains the typed plaintext.
+
+**Closure cycle:** v1.0.34
+**Closure commit:** cb3e96c
+**Captured evidence (4-layer):** (a) pre-build gate: test 77 validated in run_all.sh; (b) runtime: test 77 PASS 3× deterministic (masked input visible as `*`, pane buffer contains no plaintext); (c) HelixQA Challenge: TMUX-CH-77; (d) paired mutation: meta-test `M-MASK` neutralizes masking — test 77 FAILs.
+**Regression-protection:** test 77 (`77_password_masked.sh`), meta-test `M-MASK` in `scripts/tests/meta_test_false_positive_proof.sh`.
+
+### G3 DOUBLE-PROMPT-001 — reopening a password-protected session no longer asks for the password twice — `FIXED`
+
+**TMX-ID:** TMX-074
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** MEDIUM
+
+Reopening a session that had been idle-recycled (its tmux process torn down for inactivity, but its password remembered) used to show a confusing second prompt that looked like it might be resetting the password, even though typing the same password both times always worked. The root cause was the attach command checking the remembered password before checking whether the session was actually still running, so a doomed attach attempt fell through to the create flow, which unconditionally asked to set a password again. Opening an already-protected session (live or recycled) now verifies the password exactly once; only a genuinely brand-new session name asks for a password and a confirmation. Fixed in scripts/tmx.template's attach and new command handling. Acceptance: test 81 reproduces the exact reported scenario end-to-end and proves exactly one prompt appears, with the stored password unchanged afterward.
+
+**Closure cycle:** v1.0.34
+**Closure commit:** cb3e96c
+**Captured evidence (4-layer):** (a) pre-build gate: test 81 validated in run_all.sh; (b) runtime: test 81 PASS 3× deterministic (single prompt, stored password unchanged, scenario reproduced end-to-end); (c) HelixQA Challenge: TMUX-CH-81; (d) paired mutation: meta-test `M-DOUBLE` strips the `has-password` guard — test 81 FAILs.
+**Regression-protection:** test 81 (`81_reopen_password_protected.sh`), meta-test `M-DOUBLE` in `scripts/tests/meta_test_false_positive_proof.sh`.
+
+### G4 WIZARD-PICKER-001 — wizard offers a picker of existing sessions when no new name is typed — `IMPLEMENTED`
+
+**TMX-ID:** TMX-075
+**Status:** Implemented (→ Fixed.md)
+**Type:** Feature
+**Severity:** MEDIUM
+
+Previously, pressing Enter without typing a session name at the interactive tmx wizard always dropped the operator into a plain shell with no other option. Now, if any sessions already exist, the operator sees a numbered list of them plus a 'None' option, and can pick a number to join that session directly (still prompted for its password exactly once if it is protected) instead of having to remember and retype its exact name. Choosing None, or pressing Enter again, behaves exactly as before (a plain shell). Implemented in scripts/tmx-shell-init.sh.template. Acceptance: test 79 passes, covering picking a plain session, picking a password-protected one, and choosing None.
+
+**Closure cycle:** v1.0.34
+**Closure commit:** cb3e96c
+**Captured evidence (4-layer):** (a) pre-build gate: test 79 validated in run_all.sh; (b) runtime: test 79 PASS 3× deterministic (plain pick, password-protected pick, None fallback); (c) HelixQA Challenge: TMUX-CH-79; (d) paired mutation: meta-test `M-PICKER` neutralizes the existing-session picker — test 79 FAILs.
+**Regression-protection:** test 79 (`79_wizard_session_picker.sh`), meta-test `M-PICKER` in `scripts/tests/meta_test_false_positive_proof.sh`.
+
+---
+
+## H. No resource or lifetime limit by default (2026-08-10)
+
+### H1 NO-LIMITS-BY-DEFAULT-001 — sessions and processes no longer get killed/throttled/task-capped by default — `FIXED`
+
+**TMX-ID:** TMX-079
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** BLOCKER
+
+Root-cause forensic anchor (operator report, 2026-08-10): "sessions and processes get killed and wiped out ... on powerful hardware with enough resources". Systematic-debugging (`superpowers:systematic-debugging`) traced this to three unconditional-by-default caps in `scripts/tmx.template`: (1) the idle-timeout session recycler (`scripts/tmx-recycler.sh`), wired into every session by default, tore down (kill-session + Linux scope-stop) ANY session with no client attached for >= 900 seconds — using `#{session_attached}==0` as its sole idle signal, deliberately NOT `#{session_activity}`, so a genuinely-active DETACHED background/autonomous job (the normal way to run long tmx work, per this project's own universal-Constitution §11.4.87/§11.4.89/§11.4.103 background-work mandates) was killed regardless of whether it was doing anything — the DOMINANT cause, and the ONLY mechanism in this codebase that actually kills an already-running session's processes irrespective of host capacity; (2) `CPUQuota` applied to every scope unconditionally (host-adaptive since v1.0.37, but with no off switch); (3) a hardcoded `TasksMax=4096` per scope with NO override knob at all, unlike `TMX_MEM`/`TMX_CPU` — a large multi-agent fleet on a powerful host can legitimately need many thousands of threads/processes (universal Constitution §12.12). Memory was ALREADY correctly "fully elastic" by default (`MemoryMax=infinity`, Constitution §105/§106) — all three of the above are now brought into that SAME opt-in-only model: `TMX_CPU`/`TMX_TASKS` unset default to unlimited (`=auto` opts IN to the previous host-adaptive/legacy-fixed value; an explicit numeric value opts IN to an explicit cap); `TMX_RECYCLE_IDLE_SECS` unset/`0` defaults to never-auto-recycled. Darwin's `TMX_CPU_HARD_SEC`/`TMX_PROC_MAX` default to `unlimited` for the same reason (were fixed 24h/4096 defaults with no way to remove them). Implemented in `scripts/tmx.template` + `scripts/tmx-recycler.sh`. Project Constitution §105/§106 and `docs/guide/README.md` §5.6 updated to document the new opt-in-only model.
+
+**Closure cycle:** v1.0.39
+**Closure commit:** 84d5201
+**Captured evidence (4-layer, §11.4.108):**
+- (a) **pre-build gate / source layer:** test 88 static wiring checks (G1/G2/G3a/G3b/G4) — no unconditional CPUQuota, `TasksMax` configurable (no hardcoded 4096), idle-recycle default `0` in BOTH the wrapper's window resolution AND the recycler script's own internal default; functional truth-table for TMX_CPU/TMX_TASKS/recycler-window unset/auto/explicit expansion.
+- (b) **runtime layer (§11.4.108 clean-target):** test 88 G5a/G5b — a session spawned with `env -u TMX_CPU -u TMX_TASKS -u TMX_RECYCLE_IDLE_SECS -u TMX_MEM` reads back `cpu.max=max` AND `pids.max=max` on its live cgroup, AND `tmux show-hooks` proves NO idle-recycle hook was installed (positive evidence the session cannot be auto-killed by tmx itself); test 88 G6a/G6b — the SAME three knobs explicitly opted in (`TMX_CPU=auto TMX_TASKS=auto TMX_RECYCLE_IDLE_SECS=5`) still land the bounded values (`cpu.max` bounded, `pids.max=4096`) and the recycle hook IS installed (regression coverage for the preserved opt-in paths, §11.4.120).
+- (c) **HelixQA Challenge:** `TMUX-CH-87` (new).
+- (d) **paired mutation (§1.1/§11.4.115(F)):** `M-NOLIMITS` in `scripts/tests/meta_test_false_positive_proof.sh` reverts the idle-recycle-off-by-default (back to 900s) and the `TasksMax` opt-in knob (back to hardcoded 4096) — test 88 G2 FAILs with the mutation applied. `M-CPUADAPT` (pre-existing, for test 86) was itself found to be a SILENTLY-ESCAPING mutation once this fix landed (its sed pattern could no longer match the changed default) — fixed in the same commit to target the new default, per §11.4.120.
+- §11.4.115 RED/GREEN polarity: `RED_MODE=1 bash scripts/tests/88_no_limits_by_default.sh` PASSes (defect reproduced) on the pre-fix artifact and FAILs (defect absent, expected) on the fixed artifact; `RED_MODE=0` (GREEN) is PASS=9/FAIL=0/SKIP=0 on the fixed artifact including all live cgroup/hook readbacks.
+
+**Regression-protection:** test 88 (`88_no_limits_by_default.sh`), meta-test `M-NOLIMITS` + reconciled `M-CPUADAPT` in `scripts/tests/meta_test_false_positive_proof.sh`, Challenge `TMUX-CH-87`.
+
+**§11.4.120 reconciliation (fix legitimately broke pre-existing gates asserting the OLD default — RECONCILED, never fake-passed/reverted/deleted):**
+- **Test 86** (`86_cpu_quota_host_adaptive.sh`) G2/G4/G5/G6 updated from "CPUQuota is host-adaptive BY DEFAULT" to "CPUQuota is unlimited by default; `TMX_CPU=auto` opts in to the host-adaptive value" — the valuable `_default_cpu_pct()` truth-table + live-cgroup-readback coverage is fully preserved, only the default-vs-opt-in assumption changed.
+- **Test 87** (`87_server_scope_split.sh`) G6 and G8 sub-spawns updated to pass `TMX_CPU=auto` explicitly — the opt-in server/workload scope-split topology (`TMX_SERVER_SPLIT=1`) requires an explicit, splittable `TMX_CPU` to engage at all now that CPU is unlimited by default; these two sub-checks specifically exercise the split topology and needed the explicit opt-in to keep doing so.
+- **Test 15** (`15_per_session_cgroup_distinct.sh`) T4 updated from asserting a numeric `<quota> <period>` `cpu.max` format to asserting `max <period>` (mirroring T3's pre-existing `memory.max=max` assertion for the elastic-by-default memory model).
+
+**§11.4.114 regression isolation (known pre-existing, unrelated issues surfaced by this cycle's testing, confirmed via baseline A/B — NOT part of this fix, tracked separately):** see `Issues.md` §H — TMX-080 (test 27 sub-check "18" hook-record timing) and TMX-081 (test 87 G4 quiet-phase settle heuristic). Both reproduce identically on the v1.0.38 baseline.

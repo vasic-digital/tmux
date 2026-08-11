@@ -751,7 +751,7 @@ echo "  ✓ wrote scripts/tmx ($HOST_OS native wrapper, host-process isolation: 
 # works (the wrapper also calls it via `bash …` defensively). No generation.
 if [ -f scripts/tmx-recycler.sh ]; then
     chmod +x scripts/tmx-recycler.sh 2>/dev/null || true
-    echo "  ✓ scripts/tmx-recycler.sh present + executable (idle-session recycler, TMX_RECYCLE_IDLE_SECS=${TMX_RECYCLE_IDLE_SECS:-900}; 0 disables)"
+    echo "  ✓ scripts/tmx-recycler.sh present + executable (idle-session recycler, OFF by default — TMX_RECYCLE_IDLE_SECS=${TMX_RECYCLE_IDLE_SECS:-0}; set a positive value to opt in)"
 else
     echo "  ⓘ scripts/tmx-recycler.sh not present (pre-recycler tree); idle recycle disabled"
 fi
@@ -968,9 +968,9 @@ echo "  was on your PATH before."
 if [ "$HOST_OS" = "Darwin" ]; then
     echo ""
     echo "  macOS isolation: each session runs in the macOS host process"
-    echo "  tree with kernel-enforced POSIX rlimits applied per session:"
-    echo "    • RLIMIT_CPU  (CPU-time cap, ${TMX_CPU_HARD_SEC:-86400} s default)"
-    echo "    • RLIMIT_NPROC (per-user process count cap)"
+    echo "  tree with kernel-enforced POSIX rlimits, NO cap by default:"
+    echo "    • RLIMIT_CPU  (unlimited by default; TMX_CPU_HARD_SEC=<secs> opts in)"
+    echo "    • RLIMIT_NPROC (unlimited by default; TMX_PROC_MAX=<N> opts in)"
     echo "  ⓘ HONEST GAP: RLIMIT_AS (virtual memory) is NOT enforced by"
     echo "    the XNU kernel for unprivileged processes (returns EINVAL)."
     echo "    Memory containment on macOS requires launchd jobs with"
@@ -979,7 +979,10 @@ if [ "$HOST_OS" = "Darwin" ]; then
 elif [ "$HOST_OS" = "Linux" ]; then
     echo ""
     echo "  Linux isolation: each session in its own cgroup-v2 transient"
-    echo "  scope (tmx-NAME.scope) with MemoryMax / CPUQuota / TasksMax /"
-    echo "  Delegate=yes. OOM in one session contained to that scope only."
+    echo "  scope (tmx-NAME.scope), Delegate=yes. NO resource or lifetime"
+    echo "  cap by default (CPU/tasks/memory all unlimited, no idle-recycle) —"
+    echo "  TMX_CPU / TMX_TASKS / TMX_MEM / TMX_RECYCLE_IDLE_SECS opt IN to a"
+    echo "  cap when one is wanted. OOM in one session contained to that"
+    echo "  scope only."
 fi
 echo "════════════════════════════════════════════════════════════════"

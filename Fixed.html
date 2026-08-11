@@ -4274,5 +4274,236 @@ was never actually completed under any other ID (grepped
 it fresh as TMX-076, so the real remaining work is tracked, not silently
 lost.</li>
 </ul>
+<h3
+id="g1-wizard-suffix-001--wizard-created-sessions-get-a-random-4-digit-name-suffix--implemented">G1
+WIZARD-SUFFIX-001 — wizard-created sessions get a random 4-digit name
+suffix — <code>IMPLEMENTED</code></h3>
+<p><strong>TMX-ID:</strong> TMX-072 <strong>Status:</strong> Implemented
+(→ Fixed.md) <strong>Type:</strong> Feature <strong>Severity:</strong>
+MEDIUM</p>
+<p>Typing a session name at the interactive tmx wizard now always
+creates a brand-new session whose real name is the typed name plus a
+random 4-digit suffix (e.g. my-session-2507), so retyping the same base
+name later can never collide with or be confused for an earlier session.
+This makes every session created through the wizard genuinely unique by
+construction, while scripts and tests that need a deterministic exact
+name can set TMX_EXACT_NAME=1 to opt out. Implemented in
+scripts/tmx-shell-init.sh.template. Acceptance: test 78 passes, showing
+the created session name matches base-NNNN and that TMX_EXACT_NAME=1
+suppresses it.</p>
+<p><strong>Closure cycle:</strong> v1.0.34 <strong>Closure
+commit:</strong> cb3e96c <strong>Captured evidence (4-layer):</strong>
+(a) pre-build gate: test 78 validated in run_all.sh; (b) runtime: test
+78 PASS 3× deterministic (TMX_EXACT_NAME=1 suppressed, base-NNNN
+matched); (c) HelixQA Challenge: TMUX-CH-78; (d) paired mutation:
+meta-test <code>M-SUFFIX</code> neutralizes suffix generation — test 78
+FAILs. <strong>Regression-protection:</strong> test 78
+(<code>78_wizard_suffix.sh</code>), meta-test <code>M-SUFFIX</code> in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>.</p>
+<h3
+id="g2-password-mask-001--password-input-is-masked-with-asterisks-while-typing--implemented">G2
+PASSWORD-MASK-001 — password input is masked with asterisks while typing
+— <code>IMPLEMENTED</code></h3>
+<p><strong>TMX-ID:</strong> TMX-073 <strong>Status:</strong> Implemented
+(→ Fixed.md) <strong>Type:</strong> Feature <strong>Severity:</strong>
+MEDIUM</p>
+<p>Session passwords are no longer echoed in plaintext to the terminal
+while being typed. Every password prompt in the tmx wrapper now shows a
+single asterisk character for each keystroke, with backspace erasing one
+asterisk, so a password can never be read off the screen by someone
+glancing at it. Implemented via the shared _read_password_masked helper
+in scripts/tmx.template. Acceptance: test 77 passes, proving the pane
+buffer never contains the typed plaintext.</p>
+<p><strong>Closure cycle:</strong> v1.0.34 <strong>Closure
+commit:</strong> cb3e96c <strong>Captured evidence (4-layer):</strong>
+(a) pre-build gate: test 77 validated in run_all.sh; (b) runtime: test
+77 PASS 3× deterministic (masked input visible as <code>*</code>, pane
+buffer contains no plaintext); (c) HelixQA Challenge: TMUX-CH-77; (d)
+paired mutation: meta-test <code>M-MASK</code> neutralizes masking —
+test 77 FAILs. <strong>Regression-protection:</strong> test 77
+(<code>77_password_masked.sh</code>), meta-test <code>M-MASK</code> in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>.</p>
+<h3
+id="g3-double-prompt-001--reopening-a-password-protected-session-no-longer-asks-for-the-password-twice--fixed">G3
+DOUBLE-PROMPT-001 — reopening a password-protected session no longer
+asks for the password twice — <code>FIXED</code></h3>
+<p><strong>TMX-ID:</strong> TMX-074 <strong>Status:</strong> Fixed (→
+Fixed.md) <strong>Type:</strong> Bug <strong>Severity:</strong>
+MEDIUM</p>
+<p>Reopening a session that had been idle-recycled (its tmux process
+torn down for inactivity, but its password remembered) used to show a
+confusing second prompt that looked like it might be resetting the
+password, even though typing the same password both times always worked.
+The root cause was the attach command checking the remembered password
+before checking whether the session was actually still running, so a
+doomed attach attempt fell through to the create flow, which
+unconditionally asked to set a password again. Opening an
+already-protected session (live or recycled) now verifies the password
+exactly once; only a genuinely brand-new session name asks for a
+password and a confirmation. Fixed in scripts/tmx.template's attach and
+new command handling. Acceptance: test 81 reproduces the exact reported
+scenario end-to-end and proves exactly one prompt appears, with the
+stored password unchanged afterward.</p>
+<p><strong>Closure cycle:</strong> v1.0.34 <strong>Closure
+commit:</strong> cb3e96c <strong>Captured evidence (4-layer):</strong>
+(a) pre-build gate: test 81 validated in run_all.sh; (b) runtime: test
+81 PASS 3× deterministic (single prompt, stored password unchanged,
+scenario reproduced end-to-end); (c) HelixQA Challenge: TMUX-CH-81; (d)
+paired mutation: meta-test <code>M-DOUBLE</code> strips the
+<code>has-password</code> guard — test 81 FAILs.
+<strong>Regression-protection:</strong> test 81
+(<code>81_reopen_password_protected.sh</code>), meta-test
+<code>M-DOUBLE</code> in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>.</p>
+<h3
+id="g4-wizard-picker-001--wizard-offers-a-picker-of-existing-sessions-when-no-new-name-is-typed--implemented">G4
+WIZARD-PICKER-001 — wizard offers a picker of existing sessions when no
+new name is typed — <code>IMPLEMENTED</code></h3>
+<p><strong>TMX-ID:</strong> TMX-075 <strong>Status:</strong> Implemented
+(→ Fixed.md) <strong>Type:</strong> Feature <strong>Severity:</strong>
+MEDIUM</p>
+<p>Previously, pressing Enter without typing a session name at the
+interactive tmx wizard always dropped the operator into a plain shell
+with no other option. Now, if any sessions already exist, the operator
+sees a numbered list of them plus a 'None' option, and can pick a number
+to join that session directly (still prompted for its password exactly
+once if it is protected) instead of having to remember and retype its
+exact name. Choosing None, or pressing Enter again, behaves exactly as
+before (a plain shell). Implemented in
+scripts/tmx-shell-init.sh.template. Acceptance: test 79 passes, covering
+picking a plain session, picking a password-protected one, and choosing
+None.</p>
+<p><strong>Closure cycle:</strong> v1.0.34 <strong>Closure
+commit:</strong> cb3e96c <strong>Captured evidence (4-layer):</strong>
+(a) pre-build gate: test 79 validated in run_all.sh; (b) runtime: test
+79 PASS 3× deterministic (plain pick, password-protected pick, None
+fallback); (c) HelixQA Challenge: TMUX-CH-79; (d) paired mutation:
+meta-test <code>M-PICKER</code> neutralizes the existing-session picker
+— test 79 FAILs. <strong>Regression-protection:</strong> test 79
+(<code>79_wizard_session_picker.sh</code>), meta-test
+<code>M-PICKER</code> in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>.</p>
+<hr />
+<h2 id="h-no-resource-or-lifetime-limit-by-default-2026-08-10">H. No
+resource or lifetime limit by default (2026-08-10)</h2>
+<h3
+id="h1-no-limits-by-default-001--sessions-and-processes-no-longer-get-killedthrottledtask-capped-by-default--fixed">H1
+NO-LIMITS-BY-DEFAULT-001 — sessions and processes no longer get
+killed/throttled/task-capped by default — <code>FIXED</code></h3>
+<p><strong>TMX-ID:</strong> TMX-079 <strong>Status:</strong> Fixed (→
+Fixed.md) <strong>Type:</strong> Bug <strong>Severity:</strong>
+BLOCKER</p>
+<p>Root-cause forensic anchor (operator report, 2026-08-10): "sessions
+and processes get killed and wiped out ... on powerful hardware with
+enough resources". Systematic-debugging
+(<code>superpowers:systematic-debugging</code>) traced this to three
+unconditional-by-default caps in <code>scripts/tmx.template</code>: (1)
+the idle-timeout session recycler
+(<code>scripts/tmx-recycler.sh</code>), wired into every session by
+default, tore down (kill-session + Linux scope-stop) ANY session with no
+client attached for &gt;= 900 seconds — using
+<code>#{session_attached}==0</code> as its sole idle signal,
+deliberately NOT <code>#{session_activity}</code>, so a genuinely-active
+DETACHED background/autonomous job (the normal way to run long tmx work,
+per this project's own universal-Constitution
+§11.4.87/§11.4.89/§11.4.103 background-work mandates) was killed
+regardless of whether it was doing anything — the DOMINANT cause, and
+the ONLY mechanism in this codebase that actually kills an
+already-running session's processes irrespective of host capacity; (2)
+<code>CPUQuota</code> applied to every scope unconditionally
+(host-adaptive since v1.0.37, but with no off switch); (3) a hardcoded
+<code>TasksMax=4096</code> per scope with NO override knob at all,
+unlike <code>TMX_MEM</code>/<code>TMX_CPU</code> — a large multi-agent
+fleet on a powerful host can legitimately need many thousands of
+threads/processes (universal Constitution §12.12). Memory was ALREADY
+correctly "fully elastic" by default (<code>MemoryMax=infinity</code>,
+Constitution §105/§106) — all three of the above are now brought into
+that SAME opt-in-only model: <code>TMX_CPU</code>/<code>TMX_TASKS</code>
+unset default to unlimited (<code>=auto</code> opts IN to the previous
+host-adaptive/legacy-fixed value; an explicit numeric value opts IN to
+an explicit cap); <code>TMX_RECYCLE_IDLE_SECS</code>
+unset/<code>0</code> defaults to never-auto-recycled. Darwin's
+<code>TMX_CPU_HARD_SEC</code>/<code>TMX_PROC_MAX</code> default to
+<code>unlimited</code> for the same reason (were fixed 24h/4096 defaults
+with no way to remove them). Implemented in
+<code>scripts/tmx.template</code> +
+<code>scripts/tmx-recycler.sh</code>. Project Constitution §105/§106 and
+<code>docs/guide/README.md</code> §5.6 updated to document the new
+opt-in-only model.</p>
+<p><strong>Closure cycle:</strong> v1.0.39 <strong>Closure
+commit:</strong> 84d5201 <strong>Captured evidence (4-layer,
+§11.4.108):</strong></p>
+<ul>
+<li>(a) <strong>pre-build gate / source layer:</strong> test 88 static
+wiring checks (G1/G2/G3a/G3b/G4) — no unconditional CPUQuota,
+<code>TasksMax</code> configurable (no hardcoded 4096), idle-recycle
+default <code>0</code> in BOTH the wrapper's window resolution AND the
+recycler script's own internal default; functional truth-table for
+TMX_CPU/TMX_TASKS/recycler-window unset/auto/explicit expansion.</li>
+<li>(b) <strong>runtime layer (§11.4.108 clean-target):</strong> test 88
+G5a/G5b — a session spawned with
+<code>env -u TMX_CPU -u TMX_TASKS -u TMX_RECYCLE_IDLE_SECS -u TMX_MEM</code>
+reads back <code>cpu.max=max</code> AND <code>pids.max=max</code> on its
+live cgroup, AND <code>tmux show-hooks</code> proves NO idle-recycle
+hook was installed (positive evidence the session cannot be auto-killed
+by tmx itself); test 88 G6a/G6b — the SAME three knobs explicitly opted
+in (<code>TMX_CPU=auto TMX_TASKS=auto TMX_RECYCLE_IDLE_SECS=5</code>)
+still land the bounded values (<code>cpu.max</code> bounded,
+<code>pids.max=4096</code>) and the recycle hook IS installed
+(regression coverage for the preserved opt-in paths, §11.4.120).</li>
+<li>(c) <strong>HelixQA Challenge:</strong> <code>TMUX-CH-87</code>
+(new).</li>
+<li>(d) <strong>paired mutation (§1.1/§11.4.115(F)):</strong>
+<code>M-NOLIMITS</code> in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code> reverts the
+idle-recycle-off-by-default (back to 900s) and the <code>TasksMax</code>
+opt-in knob (back to hardcoded 4096) — test 88 G2 FAILs with the
+mutation applied. <code>M-CPUADAPT</code> (pre-existing, for test 86)
+was itself found to be a SILENTLY-ESCAPING mutation once this fix landed
+(its sed pattern could no longer match the changed default) — fixed in
+the same commit to target the new default, per §11.4.120.</li>
+<li>§11.4.115 RED/GREEN polarity:
+<code>RED_MODE=1 bash scripts/tests/88_no_limits_by_default.sh</code>
+PASSes (defect reproduced) on the pre-fix artifact and FAILs (defect
+absent, expected) on the fixed artifact; <code>RED_MODE=0</code> (GREEN)
+is PASS=9/FAIL=0/SKIP=0 on the fixed artifact including all live
+cgroup/hook readbacks.</li>
+</ul>
+<p><strong>Regression-protection:</strong> test 88
+(<code>88_no_limits_by_default.sh</code>), meta-test
+<code>M-NOLIMITS</code> + reconciled <code>M-CPUADAPT</code> in
+<code>scripts/tests/meta_test_false_positive_proof.sh</code>, Challenge
+<code>TMUX-CH-87</code>.</p>
+<p><strong>§11.4.120 reconciliation (fix legitimately broke pre-existing
+gates asserting the OLD default — RECONCILED, never
+fake-passed/reverted/deleted):</strong></p>
+<ul>
+<li><strong>Test 86</strong>
+(<code>86_cpu_quota_host_adaptive.sh</code>) G2/G4/G5/G6 updated from
+"CPUQuota is host-adaptive BY DEFAULT" to "CPUQuota is unlimited by
+default; <code>TMX_CPU=auto</code> opts in to the host-adaptive value" —
+the valuable <code>_default_cpu_pct()</code> truth-table +
+live-cgroup-readback coverage is fully preserved, only the
+default-vs-opt-in assumption changed.</li>
+<li><strong>Test 87</strong> (<code>87_server_scope_split.sh</code>) G6
+and G8 sub-spawns updated to pass <code>TMX_CPU=auto</code> explicitly —
+the opt-in server/workload scope-split topology
+(<code>TMX_SERVER_SPLIT=1</code>) requires an explicit, splittable
+<code>TMX_CPU</code> to engage at all now that CPU is unlimited by
+default; these two sub-checks specifically exercise the split topology
+and needed the explicit opt-in to keep doing so.</li>
+<li><strong>Test 15</strong>
+(<code>15_per_session_cgroup_distinct.sh</code>) T4 updated from
+asserting a numeric <code>&lt;quota&gt; &lt;period&gt;</code>
+<code>cpu.max</code> format to asserting <code>max &lt;period&gt;</code>
+(mirroring T3's pre-existing <code>memory.max=max</code> assertion for
+the elastic-by-default memory model).</li>
+</ul>
+<p><strong>§11.4.114 regression isolation (known pre-existing, unrelated
+issues surfaced by this cycle's testing, confirmed via baseline A/B —
+NOT part of this fix, tracked separately):</strong> see
+<code>Issues.md</code> §H — TMX-080 (test 27 sub-check "18" hook-record
+timing) and TMX-081 (test 87 G4 quiet-phase settle heuristic). Both
+reproduce identically on the v1.0.38 baseline.</p>
 </body>
 </html>

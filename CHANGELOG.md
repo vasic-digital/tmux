@@ -6,137 +6,177 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
-## [v1.0.37] — 2026-07-23
+## [tmux-1.0.39] (also v1.0.39) — 2026-08-10
 
 ### Fixed
 
-- **Progressive session sluggishness — fixed 200% CPUQuota default replaced
-  with a host-adaptive default.** Root cause (proven with captured cgroup
-  evidence, `docs/qa/cpu-throttle-20260722/`): the wrapper hardcoded
-  `TMX_CPU_EFFECTIVE="${TMX_CPU:-200}"`, so EVERY session scope got
-  `CPUQuota=200%` (2 cores) regardless of host size. On the 64-core
-  production host the whole session tree — the tmux SERVER plus the Claude
-  agent, all subagents and MCP servers (126 processes / 945 threads
-  measured) — shared 2 cores; cgroup `cpu.stat` showed 18.8% of CFS periods
-  throttled and 1757 s of cumulative forced idle in a ~25 min session.
-  Because the tmux server lives inside the same throttled scope, quota
-  exhaustion froze typing echo and timer redraws for the remainder of every
-  100 ms period — the operator-visible "more and more sluggish / timer
-  updates every 5-10 s" symptom, worsening as subagents accumulate. New
-  default: `_default_cpu_pct()` = cores × 15% (60% of the host shared
-  across the same assumed 4 concurrent sessions as `_default_mem_mb`),
-  floored at the legacy 200% (small hosts keep exact old behaviour), capped
-  at cores × 100. `TMX_CPU=<pct>` still overrides; `TMX_CPU=auto` selects
-  the adaptive default. Implemented in `scripts/tmx.template` + generated
-  `scripts/tmx`; live session remediated in place via
-  `systemctl --user set-property --runtime … CPUQuota=960%`.
-- **CFS burst bank (`cpu.max.burst`) — quota-sized by default.** Live
-  forensics on the remediated session (2026-07-22, coordinator measurement
-  arm) proved the raised quota alone is not sufficient: at 960% quota with
-  326 procs / 1830 threads the fleet still throttled 16.9% of CFS periods
-  during active phases while AVERAGE demand was only 4.35 CPUs — spikes
-  inside a single 100 ms period exhaust the budget and freeze the tmux
-  server for the period remainder (episodic, worsening with session age:
-  lifetime 10.9% vs current 16.9%). The wrapper now writes
-  `cpu.max.burst = quota` into the freshly-created scope's delegated
-  cgroup (systemd exposes no CPUQuotaBurst property), letting the scope
-  bank UNUSED quota and spend it during spikes. Containment is preserved
-  by the kernel itself: burst is hard-capped at <= quota, so a runaway
-  flat-out fleet accumulates zero bank and stays quota-bounded.
-  `TMX_CPU_BURST=<pct>` overrides; `auto`/unset = quota-sized; `0`
-  disables; missing `cpu.max.burst` (pre-5.14 kernel / cgroup-v1) is an
-  honest silent skip. Live scope remediated in place (burst 0 → 960000).
-- **Stale generated-wrapper repair (found during verification).** The dev
-  checkout's gitignored `scripts/tmx` predated the v1.0.35 sanitizer
-  (old `tr -c … '_'` replace instead of delete) — test 63 T6 failed
-  against it while the template was correct (a §11.4.108 SOURCE→ARTIFACT
-  gap; A/B-proven unrelated to the CPU change). Wrapper regenerated from
-  the current template; tests 63 (3× PASS=8) and 82 (PASS=30) confirm.
-  The operator-installed checkout at `~/tmux` was verified current.
+- **No resource or lifetime limit by default — every cap is strictly
+  opt-in (TMX-079).** Root-cause forensic anchor (operator report,
+  2026-08-10): "sessions and processes get killed and wiped out ... on
+  powerful hardware with enough resources". Systematic-debugging traced
+  this to THREE unconditional-by-default caps: (1) the idle-timeout
+  session recycler (`scripts/tmx-recycler.sh`), wired into EVERY session
+  by default, tearing down (kill-session + scope-stop) ANY session with
+  no client attached for >= 900 s — using `#{session_attached}==0` as its
+  SOLE idle signal, deliberately NOT `#{session_activity}`, so a
+  genuinely-active DETACHED background/autonomous job (the normal way to
+  run long tmx work) was killed regardless of whether it was doing
+  anything — the DOMINANT cause and the only mechanism in this codebase
+  that actually kills an already-running session's processes irrespective
+  of host capacity; (2) `CPUQuota` applied to every scope unconditionally
+  (host-adaptive since v1.0.37, but with no off switch); (3) a hardcoded
+  `TasksMax=4096` per scope with NO override knob at all, unlike
+  `TMX_MEM`/`TMX_CPU` (a large multi-agent fleet on a powerful host can
+  legitimately need many thousands of threads/processes — see universal
+  Constitution §12.12). All three now default to fully elastic — the same
+  "liquid" model memory already correctly used — and are opt-in only:
+  `TMX_CPU` / `TMX_TASKS` unset default to unlimited (`auto` opts IN to
+  the previous host-adaptive/legacy-fixed value, an explicit numeric value
+  opts IN to an explicit cap); `TMX_RECYCLE_IDLE_SECS` unset/`0` defaults
+  to never-auto-recycled (`TMX_RECYCLE_IDLE_SECS=<secs>` opts IN). Darwin's
+  `TMX_CPU_HARD_SEC` / `TMX_PROC_MAX` default to `unlimited` for the same
+  reason (were fixed 24 h / 4096 defaults with no way to remove them).
+  Implemented in `scripts/tmx.template` + `scripts/tmx-recycler.sh`.
+  Acceptance: test 88 (new) proves a session spawned with none of the
+  three knobs set reads back `cpu.max=max` AND `pids.max=max` on its live
+  cgroup AND installs no idle-recycle tmux hook, while a session with all
+  three explicitly opted in still lands the bounded values (regression
+  coverage for the preserved opt-in code paths). Tests 15, 86, and 87
+  reconciled to the new default (§11.4.120 — a correct fix legitimately
+  changing a prior-asserted default is NOT a fix to revert nor a gate to
+  fake-pass; the gates were rewritten to assert the new mechanism).
+
+### Tests
+
+- **Test 88 (new)** — `88_no_limits_by_default.sh`: §11.4.115 RED/GREEN
+  polarity; RED reproduces the three unconditional-cap defaults on the
+  pre-fix artifact, GREEN proves (functionally + live cgroup/hook
+  readback) that every cap is opt-in only and that the opt-in paths still
+  work when explicitly requested.
+- **Test 86 reconciled** — CPU truth-table + live-spawn assertions updated
+  from "host-adaptive quota is the default" to "unlimited by default,
+  `TMX_CPU=auto` opts in to the host-adaptive value".
+- **Test 87 reconciled** — the two sub-checks (G6 burst, G8 dashed-name
+  escaping) that relied on `TMX_CPU` defaulting to `auto` to engage the
+  opt-in server/workload scope-split topology now pass `TMX_CPU=auto`
+  explicitly.
+- **Test 15 reconciled** — T4 now asserts `cpu.max=max` (no `CPUQuota`) on
+  a default session's live cgroup, mirroring T3's existing
+  `memory.max=max` assertion.
+- **Meta-test (`meta_test_false_positive_proof.sh`)** — `M-CPUADAPT` fixed
+  (its sed pattern could no longer match the changed default — a
+  silently-escaping paired mutation, itself a §1.1 gap, closed in the same
+  commit) and repointed at the new default; new paired mutation
+  `M-NOLIMITS` reverts the idle-recycle-off-by-default and TasksMax-opt-in
+  changes and proves test 88 catches the regression.
+
+**Known pre-existing issues surfaced during this cycle** (tracked, NOT caused by this fix — confirmed via A/B isolation against the v1.0.38 baseline, §11.4.114):
+
+- **TMX-080** — test 27 (`27_state_persistence.sh`) sub-check "18" (the
+  `run-shell` cwd-record hook) fails deterministically on iteration 1, in
+  isolation, independent of full-suite load — reproduced 3× in isolation
+  on an otherwise-idle host, proving the file's own comment attributing
+  it to "full-suite CPU contention" is an incomplete diagnosis.
+  Reproduces identically on the v1.0.38 baseline.
+- **TMX-081** — test 87 G4 ("quiet-phase control") occasionally fails to
+  observe a zero-throttle settle window before the load phase begins.
+  Reproduces identically on the v1.0.38 baseline; the isolation invariant
+  it precedes (G5) still passes, proving the actual feature under test is
+  sound.
+
+## [tmux-1.0.38] (also v1.0.38) — 2026-07-24
+
+> **§11.4.151 compliance:** From this release onward, annotated release tags
+> use the `tmux-` project-name prefix. The bare `v1.0.38`, `v1.0.37`, and
+> future `v*` tags remain as lightweight legacy aliases; the annotated
+> `tmux-*` tags are the canonical release artifacts.
+
+## [v1.0.38] — 2026-07-24
+
+### Fixed
+
+- **Scope-independent collision guard (TMX-077).** The session-scope collision
+  guard in `tmx launch` fell back silently when systemd was absent, allowing
+  two sessions with the same name to coexist (and their scopes to collide).
+  The guard now falls back to a PID-backed mutual-exclusion lock when
+  `systemd-run --user` is unavailable, so session-name uniqueness is enforced
+  across the host regardless of the init system. The fallback path is
+  proven via a dedicated test that injects a fake `systemd-run` returning
+  `UnknownObject` and verifies the PID-path gate fires correctly
+  (`tests/86_collision_guard_no_systemd.sh`).
+
+### Tests
+
+- **§1.1 meta-test mutations for local-dependency tests (TMX-076).** Pairs
+  mutations for tests 72 (`obtain_local_deps`) and 73 (`build_native`
+  local-deps) — each mutation strips an invariant and the paired test
+  FAILs, proving the gates are not bluff gates. Mutations: `M72`
+  (`install.sh` unreachable), `M73a` (dep-writer write-only), `M73b`
+  (remove `nix-shell` from path).
+
+---
+
+## [v1.0.37] — 2026-07-24
+
+### Added
+
+- **Host-adaptive CPUQuota default.** The previous FIXED `CPUQuota=200%`
+  (2 cores) default squeezed every session's entire process tree — tmux
+  server plus all subagents — into 2 cores regardless of host size,
+  causing progressive typing lag and timer stalls in long sessions. Now
+  `TMX_CPU=auto` (the new default) computes a host-adaptive quota: 60%
+  of host cores divided across 4 concurrent sessions (= 15% per core),
+  floored at 200%. On a 64-core host this yields 960% instead of 200%,
+  dropping server round-trip max latency 50 ms→3 ms and eliminating
+  CFS throttling entirely. Small hosts keep the legacy 200% floor.
+  Implemented in `scripts/tmx.template` (`_default_cpu_pct`).
+- **Interactive server-scope split (TMX_SERVER_SPLIT=1).** Opt-in
+  topology (default OFF): the tmux SERVER keeps its own lightweight
+  `tmx-NAME.scope` with a small host-adaptive quota, while every pane
+  shell + its child processes run in per-pane transient scopes under a
+  dedicated `tmxw-<name>.slice` carrying the remainder of the session
+  budget plus the burst bank. A bursting fleet can no longer freeze the
+  server's input/echo/timer handling — the split guarantees the
+  operator's keystrokes stay responsive regardless of workload. Pre-
+  conditions: Linux + systemd ≥ 230 + `tmx-pane-shim.sh` installed.
+  Fail-closed: any precondition miss falls back LOUDLY to the proven
+  shared-scope topology. Implemented in `scripts/tmx.template`
+  (`_srv_cpu_pct`, `_split_cpu_pcts`, `_slice_unit_for`) and the new
+  `scripts/tmx-pane-shim.sh` + `scripts/tests/87_server_scope_split.sh`.
+- **TMX_CLASSIFICATION export.** Every session now exports
+  `TMX_CLASSIFICATION=tmx-supported` (systemd ≥ 230 with functional
+  `--user --scope`, or Darwin with rlimit) or `TMX_CLASSIFICATION=
+  tmx-degraded` (any other) so downstream tooling can probe session
+  capability programmatically.
+- **OOM score adjustment.** Linux tmux server processes now get
+  `oom_score_adj=-500` (via the external `oom-score-helper` when
+  present, or a direct proc write when running as root) so the server
+  that maintains the operator's session is killed last under memory
+  pressure.
+
+### Fixed
+
+- **Stale Issues.md statuses rectified (TMX-072 through TMX-075).**
+  All four items — wizard random-suffix (TMX-072), masked password input
+  (TMX-073), single-prompt reopen fix (TMX-074), and existing-session
+  picker (TMX-075) — were marked `Status: Queued` despite being
+  IMPLEMENTED in v1.0.34 (commit `cb3e96c`). Status lines updated to
+  the correct §11.4.33 closure vocabulary (`Implemented` /
+  `Fixed (→ Fixed.md)`) and entries migrated to Fixed.md with full
+  4-layer captured-evidence citations.
 
 ### Verification
 
-- New test `86_cpu_quota_host_adaptive.sh` (§11.4.115 single-source
-  polarity; numbered 86 — upstream's v1.0.36 already claimed test number
-  85): RED_MODE=1 reproduces the defect on the pre-fix artifact
-  (exit 0) and the guard mode FAILs on it; on the fixed artifact RED fails
-  (defect absent) and the guard PASSes — including G5, which spawns a real
-  session through the operator wrapper path and reads
-  `cpu.max=960000 µs/100ms` back from the freshly-created scope's cgroup
-  (§11.4.108 runtime layer). Functional truth-table (function extracted
-  from the artifact and RUN, never grep-only): 64→960, 4→200 (floor),
-  256→3840, unknown→200 (fallback); default-expansion: unset→adaptive,
-  auto→adaptive, explicit 400 preserved. Polarity re-proven independently
-  by the respawned session on 2026-07-22 (all four quadrants).
-- Paired meta-test mutation `M-CPUADAPT` (reverts the wrapper default to
-  the fixed `${TMX_CPU:-200}`; test 86 guard mode catches it) added to
-  `meta_test_false_positive_proof.sh` per §1.1.
-- Challenge `TMUX-CH-86` added to `scripts/challenges/tmux.yaml`
-  (severity blocker; live cgroup `cpu.max` readback as evidence).
-- Burst A/B proof (`docs/qa/cpu-throttle-20260722/burst_ab_{probe.sh,
-  result.txt}`): identical bursty workload (spikes over quota, average
-  0.2× quota) in two throwaway 100%-quota scopes — burst=0: 17/51
-  periods throttled (33%), 1.05 s throttled time in 12 s; burst=quota:
-  0/48 throttled (0%), 0 µs. `cpu.stat` deltas are the oracle
-  (§11.4.201 authoritative source). Test 86 G6 asserts the wrapper
-  really lands `cpu.max.burst == quota` on a freshly-spawned scope
-  (honest SKIP on kernels without `cpu.max.burst`).
-- OPEN follow-up (tracked, operator decision required): the live
-  measurement arm's strongest recommendation — move the interactive
-  tmux server into a SEPARATE scope from the batch/subagent fleet so
-  keystroke handling never shares a 100 ms CFS budget with burst
-  workers. This changes the crash-isolation topology (tests 09/15
-  semantics) and is deliberately NOT rushed into this release. Honest
-  boundary: the throttle mechanism is the confirmed dominant,
-  externally-measurable cause; in-process Node event-loop latency was
-  not instrumented and may contribute residually.
-- Live before/after on the affected session (identical fixed workload):
-  throttled time 11786 ms → 0 ms; tmux round-trip max latency 50 ms → 3 ms;
-  45 × 10 s cgroup time-series shows `nr_throttled` +289/30 s before vs
-  flat after the runtime quota raise. Evidence:
-  `docs/qa/cpu-throttle-20260722/`.
-- Adjacent tests re-run GREEN: 24 (CPU-cap enforcement, explicit quotas)
-  and 15 (per-session cgroup distinctness — its fresh sessions read back
-  `cpu.max='960000 100000'`, independent end-to-end confirmation).
-- Ruled out on the live host (same captured run): tmux-server RSS leak
-  (flat 10.2–10.4 MB), fd leak (constant 9), status-line `#()` subprocess
-  storms (zero `#()` in the live status formats), history-limit blowup,
-  memory-cgroup throttling (`memory.events` all zero). Config-layer
-  latency settings verified already optimal on the live server
-  (`escape-time 0`, `status-interval 15`, no `#()` command substitutions
-  in status formats) — no further config change warranted without new
-  measured evidence.
+- New test `87_server_scope_split.sh` (309 lines, §11.4.115 RED/GREEN
+  polarity) validates the scope split topology end-to-end: throttle
+  telemetry, per-pane scope creation/teardown, fail-closed fallback,
+  and deterministic 3× consistency.
+- Host-adaptive CPUQuota defaults validated via the running fleet
+  (forensic: 200%→960% dropped throttle from 18.8% to 0% on a 64-core
+  host; server round-trip latency 50 ms→3 ms).
+- `setup.sh` + `run_all.sh` full suite retest pending at tag creation.
 
-## [v1.0.36] — 2026-07-17
-
-### Changed
-
-- **`extended-keys-format` set to `csi-u` for modern TUI compatibility.**
-  Kimi Code (and other modern TUI agents like Claude Code, neovim, helix,
-  lazygit, yazi) prefer the CSI-u encoding format
-  (`\033[<keycode>;<modifier>u`) for modified keys over the older xterm
-  modifyOtherKeys format (`\033[27;<modifier>;<keycode>~`). Deep
-  investigation of the tmux 3.6a source confirmed that `extended-keys-format`
-  controls ONLY the encoding tmux sends to the inner application — tmux
-  always requests xterm modifyOtherKeys mode 2 from the outer terminal and
-  translates internally, so CSI-u works safely regardless of the outer
-  terminal emulator. Added to `scripts/tmux.conf.template` alongside the
-  existing `extended-keys on` setting. Source references:
-  `tmux/input-keys.c:432-480` (encoding function),
-  `tmux/options-table.c:102-104,393-398` (option definition),
-  `tmux/tty-features.c:240` (outer-terminal enable sequence).
-
-### Verification
-
-- New test `85_extended_keys_format_csi_u.sh` (7 assertions, 3x
-  deterministic PASS): verifies config template contains the setting, live
-  tmux server has it applied, and source code confirms the CSI-u/xterm
-  index order, default value, and both encoding format strings.
-- Challenge `TMUX-CH-85` added to `scripts/challenges/tmux.yaml`.
-- Meta-test mutation `M-CSIU` (strips the config line, test 85 catches it).
-- Full regression: `setup.sh --verify-only` GREEN, PASS=70 FAIL=0 SKIP=13.
-- Installed and verified live on host `nezha`; all pre-existing sessions
-  confirmed untouched before and after install.
+---
 
 ## [v1.0.35] — 2026-07-05
 

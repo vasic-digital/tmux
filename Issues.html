@@ -313,7 +313,7 @@ id="a3-meta-test-72-73-coverage-001--tests-7273-need-persistent-meta-test-mutati
 META-TEST-72-73-COVERAGE-001 — tests 72/73 need persistent meta-test
 mutations</h3>
 <p><strong>TMX-ID:</strong> TMX-076 <strong>Type:</strong> Task
-<strong>Status:</strong> Queued</p>
+<strong>Status:</strong> Ready for testing</p>
 <p>Tests 72 (libevent/ncurses local-dependency obtain) and 73
 (build_native.sh local-dependency wiring) currently have no paired §1.1
 mutation registered in scripts/tests/meta_test_false_positive_proof.sh,
@@ -336,7 +336,7 @@ NEW-COLLISION-GUARD-SCOPE-GATED-001 — the <code>new</code> verb's Linux
 collision guard is skipped entirely when systemd user-scopes are
 unavailable</h3>
 <p><strong>TMX-ID:</strong> TMX-077 <strong>Type:</strong> Bug
-<strong>Status:</strong> Queued</p>
+<strong>Status:</strong> Ready for testing</p>
 <p>Found by the final whole-branch review of the wizard/password
 redesign (2026-07-05), confirmed pre-existing (not introduced by that
 plan) via direct inspection of scripts/tmx.template around the
@@ -483,7 +483,7 @@ id="g1-wizard-suffix-001--wizard-created-sessions-get-a-random-4-digit-name-suff
 WIZARD-SUFFIX-001 — wizard-created sessions get a random 4-digit name
 suffix</h3>
 <p><strong>TMX-ID:</strong> TMX-072 <strong>Type:</strong> Feature
-<strong>Status:</strong> Queued</p>
+<strong>Status:</strong> Implemented (→ Fixed.md)</p>
 <p>Typing a session name at the interactive tmx wizard now always
 creates a brand-new session whose real name is the typed name plus a
 random 4-digit suffix (e.g. my-session-2507), so retyping the same base
@@ -499,7 +499,7 @@ id="g2-password-mask-001--password-input-is-masked-with-asterisks-while-typing">
 PASSWORD-MASK-001 — password input is masked with asterisks while
 typing</h3>
 <p><strong>TMX-ID:</strong> TMX-073 <strong>Type:</strong> Feature
-<strong>Status:</strong> Queued</p>
+<strong>Status:</strong> Implemented (→ Fixed.md)</p>
 <p>Session passwords are no longer echoed in plaintext to the terminal
 while being typed. Every password prompt in the tmx wrapper now shows a
 single asterisk character for each keystroke, with backspace erasing one
@@ -512,7 +512,7 @@ id="g3-double-prompt-001--reopening-a-password-protected-session-no-longer-asks-
 DOUBLE-PROMPT-001 — reopening a password-protected session no longer
 asks for the password twice</h3>
 <p><strong>TMX-ID:</strong> TMX-074 <strong>Type:</strong> Bug
-<strong>Status:</strong> Queued</p>
+<strong>Status:</strong> Fixed (→ Fixed.md)</p>
 <p>Reopening a session that had been idle-recycled (its tmux process
 torn down for inactivity, but its password remembered) used to show a
 confusing second prompt that looked like it might be resetting the
@@ -532,7 +532,7 @@ id="g4-wizard-picker-001--wizard-offers-a-picker-of-existing-sessions-when-no-ne
 WIZARD-PICKER-001 — wizard offers a picker of existing sessions when no
 new name is typed</h3>
 <p><strong>TMX-ID:</strong> TMX-075 <strong>Type:</strong> Feature
-<strong>Status:</strong> Queued</p>
+<strong>Status:</strong> Implemented (→ Fixed.md)</p>
 <p>Previously, pressing Enter without typing a session name at the
 interactive tmx wizard always dropped the operator into a plain shell
 with no other option. Now, if any sessions already exist, the operator
@@ -565,5 +565,93 @@ sanitizing the name and inserting the random suffix before the colour
 token (<code>home-1234:red</code>). Empty or whitespace-only input
 continues to fall through to the existing empty/default picker path.
 Closure: v1.0.35 / versionCode 36.</p>
+<hr />
+<h2
+id="h-pre-existing-timing-issues-surfaced-during-the-2026-08-10-no-limits-by-default-cycle">H.
+Pre-existing timing issues surfaced during the 2026-08-10
+no-limits-by-default cycle</h2>
+<p>Discovered while validating TMX-079 (see <code>Fixed.md</code>).
+Confirmed via §11.4.114 A/B isolation against the v1.0.38 baseline
+(identical failures reproduced BEFORE any of TMX-079's changes were
+applied) — NOT caused by TMX-079, and TMX-079's own fix + tests are
+unaffected. Tracked here so they are not lost.</p>
+<h3
+id="h1-state-hook-race-001--test-27-sub-check-18-run-shell-cwd-record-hook-fails-deterministically-on-iteration-1">H1
+STATE-HOOK-RACE-001 — test 27 sub-check "18" (run-shell cwd-record hook)
+fails deterministically on iteration 1</h3>
+<p><strong>TMX-ID:</strong> TMX-080 <strong>Type:</strong> Bug
+<strong>Status:</strong> Queued</p>
+<p><strong>What:</strong>
+<code>scripts/tests/27_state_persistence.sh</code>'s sub-check labelled
+"18" drives the wrapper's
+<code>run-shell "$STATE_BIN record $SESS #{pane_current_path}"</code>
+hook directly (the same command the wrapper installs on
+<code>client-detached</code>/<code>session-closed</code>) and polls
+<code>tmx-state-bin recall</code> for up to 5 s waiting for the write to
+land. Iteration 1 of 3 fails deterministically — <code>recall</code>
+still returns the PRE-hook (Phase-1 target) path, never the hook's own
+path — both in isolation (3/3 runs) and inside the full suite.</p>
+<p><strong>Evidence:</strong>
+<code>bash scripts/tests/27_state_persistence.sh</code> →
+<code>FAIL 18 iter=1: run-shell hook did not update state — recall='...-target-&lt;pid&gt;' (expected '...-hook-&lt;pid&gt;-1')</code>,
+reproduced identically 3× in isolation and 2× on the v1.0.38 baseline
+(pre-TMX-079) via <code>git stash</code> A/B, 2026-08-10.</p>
+<p><strong>Discovery note (this is the FIRST time it is tracked as its
+own item, hence <code>Queued</code> not <code>Reopened</code> per
+§11.4.34 — the latter presupposes a prior closure, and this defect was
+never previously closed):</strong> previously only described inline as
+an accepted "harness timing race" in the test file's own comments (lines
+~150-186 of <code>scripts/tests/27_state_persistence.sh</code>), which
+this investigation shows is an INCOMPLETE diagnosis (the failure is NOT
+purely a full-suite-CPU-contention artifact — it reproduces in isolation
+too, on an otherwise idle host). Discovered by AI, 2026-08-10, during
+TMX-079 validation.</p>
+<p><strong>Fix direction (not yet investigated to root cause):</strong>
+the test's own comments already correctly rule out a slow
+<code>cd</code>-landing race (T2's separate poll-for-cwd loop) and a
+<code>run-shell</code>-fire vs <code>record</code>-write-completion race
+(the 5 s poll). Iteration 1 specifically failing (not 2 or 3) is
+CONSISTENT WITH a first-invocation-only effect — e.g.
+<code>tmx-state-bin</code>'s DB/lock-file initialization on a cold state
+file, or a <code>run-shell</code> first-dispatch latency inside a
+freshly-created tmux server — but this is UNCONFIRMED: no
+instrumentation has yet isolated the actual cause. Needs a dedicated
+systematic-debugging pass (§11.4.102) with additional instrumentation
+(e.g. logging <code>tmx-state-bin record</code>'s own start/end
+timestamps) before a fix is attempted — out of scope for TMX-079.</p>
+<h3
+id="h2-split-quiet-settle-001--test-87-g4-quiet-phase-control-occasionally-fails-to-observe-a-zero-throttle-settle-window">H2
+SPLIT-QUIET-SETTLE-001 — test 87 G4 ("quiet-phase control") occasionally
+fails to observe a zero-throttle settle window</h3>
+<p><strong>TMX-ID:</strong> TMX-081 <strong>Type:</strong> Bug
+<strong>Status:</strong> Queued</p>
+<p><strong>What:</strong>
+<code>scripts/tests/87_server_scope_split.sh</code> G4 waits for a 1 s
+idle window with <code>nr_throttled</code> delta 0 on BOTH the server
+scope and the workload slice (settling past shell-startup noise) before
+G5 measures throttling under deliberate load. G4 fails ("quiet-phase
+never settled") with a small non-zero delta on the workload slice.</p>
+<p><strong>Evidence:</strong> reproduced identically on both the
+TMX-079-fixed tree and the v1.0.38 baseline (<code>git stash</code> A/B,
+3× each, 2026-08-10) —
+<code>FAIL: G4: quiet-phase never settled (never-settled: .../tmxw-t87_&lt;pid&gt;.slice:delta=10)</code>.
+The isolation invariant G4 exists to set up for (G5: the server scope is
+NEVER co-throttled while the slice is) PASSES consistently regardless,
+so the feature under test is proven sound — this is a control-window
+settle heuristic being slightly too strict/short, not a defect in the
+isolation mechanism itself.</p>
+<p><strong>Discovery note (this is the FIRST time it is tracked as its
+own item, hence <code>Queued</code> not <code>Reopened</code> per
+§11.4.34 — the latter presupposes a prior closure, and this defect was
+never previously closed):</strong> discovered by AI, 2026-08-10, during
+TMX-079 validation.</p>
+<p><strong>Fix direction (not yet investigated to root cause):</strong>
+needs either a longer settle window or a higher delta tolerance for the
+workload slice specifically (shell/pane-shim startup on a freshly-joined
+slice may legitimately cost a few throttled periods even at rest) —
+which of the two (or another cause entirely) is UNCONFIRMED without the
+actual <code>cpu.stat</code> samples across the settle window; needs a
+dedicated systematic-debugging pass (§11.4.102) before deciding — out of
+scope for TMX-079.</p>
 </body>
 </html>

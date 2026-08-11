@@ -1527,19 +1527,22 @@ v109_run_mutation \
     "scripts/tests/85_extended_keys_format_csi_u.sh" \
     "FAIL 85"
 
-# ── M-CPUADAPT: revert the host-adaptive CPUQuota default to the fixed
-# 200% (test 86 catches the regression). §11.4.115(F): the canonical
-# mutation for a landed fix is the fix-commit's revert — this restores the
-# exact pre-fix default `TMX_CPU_EFFECTIVE="${TMX_CPU:-200}"` that was the
-# proven root cause of progressive session sluggishness on many-core hosts
-# (2026-07-22 forensics, docs/qa/cpu-throttle-20260722/). Test 86 G2
-# asserts the auto-default wiring is present and the fixed-200 default is
-# gone; with the mutation applied G2 FAILs and the test exits non-zero.
+# ── M-CPUADAPT: revert CPU-unlimited-by-default back to the (still
+# broken, just differently-broken) "always apply a cap" behaviour (test 86
+# catches the regression). §11.4.115(F): the canonical mutation for a
+# landed fix is the fix-commit's revert. 2026-08-10 RECONCILED (§11.4.120)
+# — the 2026-08-10 fix changed the DEFAULT from `${TMX_CPU:-auto}`
+# (always-capped) to `${TMX_CPU:-}` (unlimited); this mutation now reverts
+# THAT change (re-introduces the unconditional cap), which the ORIGINAL
+# mutation's sed pattern could no longer even match once the fix landed
+# (a silently-escaping paired mutation is itself a §1.1 bluff — caught and
+# fixed in the same commit as the reconciliation). Test 86 G2 asserts CPU
+# is unlimited by default; with the mutation applied G2 FAILs.
 v109_run_mutation \
     "M-CPUADAPT" \
-    "revert host-adaptive CPUQuota default to fixed 200% in tmx.template (test 86)" \
+    "revert CPU-unlimited-by-default to an always-applied cap in tmx.template (test 86)" \
     "scripts/tmx.template" \
-    "inplace_sed 's|TMX_CPU_EFFECTIVE=\"\${TMX_CPU:-auto}\"|TMX_CPU_EFFECTIVE=\"\${TMX_CPU:-200}\"|' \"\$target_abs\"" \
+    "inplace_sed 's|TMX_CPU_EFFECTIVE=\"\${TMX_CPU:-}\"|TMX_CPU_EFFECTIVE=\"\${TMX_CPU:-auto}\"|' \"\$target_abs\"" \
     "scripts/tests/86_cpu_quota_host_adaptive.sh" \
     "FAIL: G2"
 
@@ -1569,9 +1572,59 @@ v109_run_mutation \
     "M-SPLIT-QUOTA" \
     "workload slice configured WITHOUT its CPUQuota — fleet unbounded (test 87)" \
     "scripts/tmx" \
-    "inplace_sed 's|_slice_props=( \"CPUQuota=\${TMX_WORK_CPU_EFFECTIVE}%\" \"TasksMax=4096\" )|_slice_props=( \"TasksMax=4096\" )|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
+    "inplace_sed 's|_slice_props=( \"CPUQuota=\${TMX_WORK_CPU_EFFECTIVE}%\" \"TasksMax=\${TMX_TASKS_EFFECTIVE}\" )|_slice_props=( \"TasksMax=\${TMX_TASKS_EFFECTIVE}\" )|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
     "scripts/tests/87_server_scope_split.sh" \
     "FAIL: G3"
+
+# ── M-NOLIMITS: revert the 2026-08-10 no-limits-by-default fix (test 88
+# catches the regression). §11.4.115(F) canonical mutation = the fix-
+# commit's revert. Forensic anchor: operator report "sessions and
+# processes get killed and wiped out ... on powerful hardware with enough
+# resources" — root-caused to the idle-recycler defaulting ON at 900s (the
+# dominant cause) plus a hardcoded, unconfigurable TasksMax=4096. This
+# mutation re-introduces BOTH: the recycler defaults back to 900s (in the
+# wrapper's own window resolution) and TasksMax is hardcoded again in the
+# shared-topology systemd-run invocation. Test 88 G2 asserts idle-recycle
+# is off by default AND TasksMax is configurable (no hardcoded 4096); with
+# the mutation applied G2 FAILs.
+v109_run_mutation \
+    "M-NOLIMITS" \
+    "revert idle-recycle-off-by-default (900s) and TasksMax hardcode in tmx.template (test 88)" \
+    "scripts/tmx.template" \
+    "inplace_sed 's|TMX_RECYCLE_WINDOW=\"\${TMX_RECYCLE_IDLE_SECS:-0}\"|TMX_RECYCLE_WINDOW=\"\${TMX_RECYCLE_IDLE_SECS:-900}\"|' \"\$target_abs\" && inplace_sed 's|-p \"TasksMax=\${TMX_TASKS_EFFECTIVE}\"|-p \"TasksMax=4096\"|' \"\$target_abs\"" \
+    "scripts/tests/88_no_limits_by_default.sh" \
+    "FAIL: G2"
+
+# ── M72: obtain_local_deps.sh — change libevent+ncurses envprefix so that
+#    resolved.env emits variables under WRONG names (§1.1 paired mutation
+#    for test 72). The dep still resolves correctly (exit 0), but the
+#    resolved.env has BROKEN_LE_M72_LIBDIR instead of LIBEVENT_LIBDIR, so test
+#    72's _assert_build_dep_wired finds no wiring → B1/B2 FAIL. This proves
+#    the GREEN guard catches a drift in the dep→envprefix mapping — the
+#    exact source-level error that would make tmux's ./configure link step
+#    miss a local dep while reporting success.
+v109_run_mutation \
+    "M72" \
+    "change libevent+ncurses envprefix in obtain_local_deps.sh dep catalog so resolved.env emits variables under wrong names (test 72 B1/B2 fails — no expected LIBEVENT_*/NCURSES_* wiring found)" \
+    "scripts/obtain_local_deps.sh" \
+    "inplace_sed '/libevent:envprefix)/s/LIBEVENT/BROKEN_LE_M72/' \"\$target_abs\" && inplace_sed '/ncurses:envprefix)/s/NCURSES/BROKEN_NC_M72/' \"\$target_abs\"" \
+    "scripts/tests/72_libevent_ncurses_obtain.sh" \
+    "^FAIL 72"
+
+# ── M73: build_native.sh — replace the libevent/ncurses -I/-L wiring values
+#    with bogus paths (§1.1 paired mutation for test 73). The LE_CPPFLAGS/LE_LDFLAGS
+#    and NC_CPPFLAGS/NC_LDFLAGS assignments still execute (guards still fire because
+#    resolved.env has the source variables), but produce -I/M73/broken instead of
+#    -I<INC_LE>. The D0 marker check still passes (LIBEVENT_INCDIR text is preserved
+#    in the guard), but D1/D2 FAIL because the computed CFLAGS/LDFLAGS lack the
+#    expected include+lib dirs.
+v109_run_mutation \
+    "M73" \
+    "replace libevent+ncurses -I/-L wiring values with bogus paths in build_native.sh (test 73 D1/D2 fails — no expected -I/-L flags in computed CFLAGS/LDFLAGS)" \
+    "scripts/build_native.sh" \
+    "inplace_sed 's#-I\${LIBEVENT_INCDIR}#-I/M73/broken#' \"\$target_abs\" && inplace_sed 's#-L\${LIBEVENT_LIBDIR}#-L/M73/broken#' \"\$target_abs\" && inplace_sed 's#-I\${NCURSES_INCDIR}#-I/M73/broken#' \"\$target_abs\" && inplace_sed 's#-L\${NCURSES_LIBDIR}#-L/M73/broken#' \"\$target_abs\"" \
+    "scripts/tests/73_build_native_localdeps_wiring.sh" \
+    "^FAIL 73"
 
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)

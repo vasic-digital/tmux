@@ -189,11 +189,16 @@ if [ ! -x "$WRAPPER" ]; then
     _skip "T2: tmx wrapper $WRAPPER not found/generated" "run setup.sh first"
 elif grep -q "systemd-run --user --scope" "$WRAPPER"; then
     _pass "T2.1: tmx wrapper at $WRAPPER invokes systemd-run --user --scope"
+    # 2026-08-10 wording note (§11.4.201 independent-review finding): this
+    # is a literal-presence check (the mechanism exists somewhere in the
+    # wrapper) — CPUQuota/TasksMax are OPT-IN since 2026-08-10 (no cap by
+    # default; see test 88), so "cap not enforced" would over-claim what a
+    # grep proves. MemoryMax/Delegate=yes ARE unconditional.
     for inv in "MemoryMax" "CPUQuota" "TasksMax" "Delegate=yes"; do
         if grep -q "$inv" "$WRAPPER"; then
-            _pass "T2.2: tmx wrapper sets $inv (cgroup invariant)"
+            _pass "T2.2: tmx wrapper mentions $inv (cgroup mechanism present — see test 88 for default-vs-opt-in coverage)"
         else
-            _fail "T2.2: tmx wrapper missing $inv — cap not enforced"
+            _fail "T2.2: tmx wrapper missing $inv entirely — mechanism absent"
         fi
     done
 else

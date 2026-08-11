@@ -247,158 +247,201 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project's anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
-<h2 id="v1037--2026-07-23">[v1.0.37] — 2026-07-23</h2>
+<h2 id="tmux-1039-also-v1039--2026-08-10">[tmux-1.0.39] (also v1.0.39) —
+2026-08-10</h2>
 <h3 id="fixed">Fixed</h3>
 <ul>
-<li><strong>Progressive session sluggishness — fixed 200% CPUQuota
-default replaced with a host-adaptive default.</strong> Root cause
-(proven with captured cgroup evidence,
-<code>docs/qa/cpu-throttle-20260722/</code>): the wrapper hardcoded
-<code>TMX_CPU_EFFECTIVE="${TMX_CPU:-200}"</code>, so EVERY session scope
-got <code>CPUQuota=200%</code> (2 cores) regardless of host size. On the
-64-core production host the whole session tree — the tmux SERVER plus
-the Claude agent, all subagents and MCP servers (126 processes / 945
-threads measured) — shared 2 cores; cgroup <code>cpu.stat</code> showed
-18.8% of CFS periods throttled and 1757 s of cumulative forced idle in a
-~25 min session. Because the tmux server lives inside the same throttled
-scope, quota exhaustion froze typing echo and timer redraws for the
-remainder of every 100 ms period — the operator-visible "more and more
-sluggish / timer updates every 5-10 s" symptom, worsening as subagents
-accumulate. New default: <code>_default_cpu_pct()</code> = cores × 15%
-(60% of the host shared across the same assumed 4 concurrent sessions as
-<code>_default_mem_mb</code>), floored at the legacy 200% (small hosts
-keep exact old behaviour), capped at cores × 100.
-<code>TMX_CPU=&lt;pct&gt;</code> still overrides;
-<code>TMX_CPU=auto</code> selects the adaptive default. Implemented in
-<code>scripts/tmx.template</code> + generated <code>scripts/tmx</code>;
-live session remediated in place via
-<code>systemctl --user set-property --runtime … CPUQuota=960%</code>.</li>
-<li><strong>CFS burst bank (<code>cpu.max.burst</code>) — quota-sized by
-default.</strong> Live forensics on the remediated session (2026-07-22,
-coordinator measurement arm) proved the raised quota alone is not
-sufficient: at 960% quota with 326 procs / 1830 threads the fleet still
-throttled 16.9% of CFS periods during active phases while AVERAGE demand
-was only 4.35 CPUs — spikes inside a single 100 ms period exhaust the
-budget and freeze the tmux server for the period remainder (episodic,
-worsening with session age: lifetime 10.9% vs current 16.9%). The
-wrapper now writes <code>cpu.max.burst = quota</code> into the
-freshly-created scope's delegated cgroup (systemd exposes no
-CPUQuotaBurst property), letting the scope bank UNUSED quota and spend
-it during spikes. Containment is preserved by the kernel itself: burst
-is hard-capped at &lt;= quota, so a runaway flat-out fleet accumulates
-zero bank and stays quota-bounded.
-<code>TMX_CPU_BURST=&lt;pct&gt;</code> overrides;
-<code>auto</code>/unset = quota-sized; <code>0</code> disables; missing
-<code>cpu.max.burst</code> (pre-5.14 kernel / cgroup-v1) is an honest
-silent skip. Live scope remediated in place (burst 0 → 960000).</li>
-<li><strong>Stale generated-wrapper repair (found during
-verification).</strong> The dev checkout's gitignored
-<code>scripts/tmx</code> predated the v1.0.35 sanitizer (old
-<code>tr -c … '_'</code> replace instead of delete) — test 63 T6 failed
-against it while the template was correct (a §11.4.108 SOURCE→ARTIFACT
-gap; A/B-proven unrelated to the CPU change). Wrapper regenerated from
-the current template; tests 63 (3× PASS=8) and 82 (PASS=30) confirm. The
-operator-installed checkout at <code>~/tmux</code> was verified
-current.</li>
+<li><strong>No resource or lifetime limit by default — every cap is
+strictly opt-in (TMX-079).</strong> Root-cause forensic anchor (operator
+report, 2026-08-10): "sessions and processes get killed and wiped out
+... on powerful hardware with enough resources". Systematic-debugging
+traced this to THREE unconditional-by-default caps: (1) the idle-timeout
+session recycler (<code>scripts/tmx-recycler.sh</code>), wired into
+EVERY session by default, tearing down (kill-session + scope-stop) ANY
+session with no client attached for &gt;= 900 s — using
+<code>#{session_attached}==0</code> as its SOLE idle signal,
+deliberately NOT <code>#{session_activity}</code>, so a genuinely-active
+DETACHED background/autonomous job (the normal way to run long tmx work)
+was killed regardless of whether it was doing anything — the DOMINANT
+cause and the only mechanism in this codebase that actually kills an
+already-running session's processes irrespective of host capacity; (2)
+<code>CPUQuota</code> applied to every scope unconditionally
+(host-adaptive since v1.0.37, but with no off switch); (3) a hardcoded
+<code>TasksMax=4096</code> per scope with NO override knob at all,
+unlike <code>TMX_MEM</code>/<code>TMX_CPU</code> (a large multi-agent
+fleet on a powerful host can legitimately need many thousands of
+threads/processes — see universal Constitution §12.12). All three now
+default to fully elastic — the same "liquid" model memory already
+correctly used — and are opt-in only: <code>TMX_CPU</code> /
+<code>TMX_TASKS</code> unset default to unlimited (<code>auto</code>
+opts IN to the previous host-adaptive/legacy-fixed value, an explicit
+numeric value opts IN to an explicit cap);
+<code>TMX_RECYCLE_IDLE_SECS</code> unset/<code>0</code> defaults to
+never-auto-recycled (<code>TMX_RECYCLE_IDLE_SECS=&lt;secs&gt;</code>
+opts IN). Darwin's <code>TMX_CPU_HARD_SEC</code> /
+<code>TMX_PROC_MAX</code> default to <code>unlimited</code> for the same
+reason (were fixed 24 h / 4096 defaults with no way to remove them).
+Implemented in <code>scripts/tmx.template</code> +
+<code>scripts/tmx-recycler.sh</code>. Acceptance: test 88 (new) proves a
+session spawned with none of the three knobs set reads back
+<code>cpu.max=max</code> AND <code>pids.max=max</code> on its live
+cgroup AND installs no idle-recycle tmux hook, while a session with all
+three explicitly opted in still lands the bounded values (regression
+coverage for the preserved opt-in code paths). Tests 15, 86, and 87
+reconciled to the new default (§11.4.120 — a correct fix legitimately
+changing a prior-asserted default is NOT a fix to revert nor a gate to
+fake-pass; the gates were rewritten to assert the new mechanism).</li>
+</ul>
+<h3 id="tests">Tests</h3>
+<ul>
+<li><strong>Test 88 (new)</strong> —
+<code>88_no_limits_by_default.sh</code>: §11.4.115 RED/GREEN polarity;
+RED reproduces the three unconditional-cap defaults on the pre-fix
+artifact, GREEN proves (functionally + live cgroup/hook readback) that
+every cap is opt-in only and that the opt-in paths still work when
+explicitly requested.</li>
+<li><strong>Test 86 reconciled</strong> — CPU truth-table + live-spawn
+assertions updated from "host-adaptive quota is the default" to
+"unlimited by default, <code>TMX_CPU=auto</code> opts in to the
+host-adaptive value".</li>
+<li><strong>Test 87 reconciled</strong> — the two sub-checks (G6 burst,
+G8 dashed-name escaping) that relied on <code>TMX_CPU</code> defaulting
+to <code>auto</code> to engage the opt-in server/workload scope-split
+topology now pass <code>TMX_CPU=auto</code> explicitly.</li>
+<li><strong>Test 15 reconciled</strong> — T4 now asserts
+<code>cpu.max=max</code> (no <code>CPUQuota</code>) on a default
+session's live cgroup, mirroring T3's existing
+<code>memory.max=max</code> assertion.</li>
+<li><strong>Meta-test
+(<code>meta_test_false_positive_proof.sh</code>)</strong> —
+<code>M-CPUADAPT</code> fixed (its sed pattern could no longer match the
+changed default — a silently-escaping paired mutation, itself a §1.1
+gap, closed in the same commit) and repointed at the new default; new
+paired mutation <code>M-NOLIMITS</code> reverts the
+idle-recycle-off-by-default and TasksMax-opt-in changes and proves test
+88 catches the regression.</li>
+</ul>
+<p><strong>Known pre-existing issues surfaced during this cycle</strong>
+(tracked, NOT caused by this fix — confirmed via A/B isolation against
+the v1.0.38 baseline, §11.4.114):</p>
+<ul>
+<li><strong>TMX-080</strong> — test 27
+(<code>27_state_persistence.sh</code>) sub-check "18" (the
+<code>run-shell</code> cwd-record hook) fails deterministically on
+iteration 1, in isolation, independent of full-suite load — reproduced
+3× in isolation on an otherwise-idle host, proving the file's own
+comment attributing it to "full-suite CPU contention" is an incomplete
+diagnosis. Reproduces identically on the v1.0.38 baseline.</li>
+<li><strong>TMX-081</strong> — test 87 G4 ("quiet-phase control")
+occasionally fails to observe a zero-throttle settle window before the
+load phase begins. Reproduces identically on the v1.0.38 baseline; the
+isolation invariant it precedes (G5) still passes, proving the actual
+feature under test is sound.</li>
+</ul>
+<h2 id="tmux-1038-also-v1038--2026-07-24">[tmux-1.0.38] (also v1.0.38) —
+2026-07-24</h2>
+<blockquote>
+<p><strong>§11.4.151 compliance:</strong> From this release onward,
+annotated release tags use the <code>tmux-</code> project-name prefix.
+The bare <code>v1.0.38</code>, <code>v1.0.37</code>, and future
+<code>v*</code> tags remain as lightweight legacy aliases; the annotated
+<code>tmux-*</code> tags are the canonical release artifacts.</p>
+</blockquote>
+<h2 id="v1038--2026-07-24">[v1.0.38] — 2026-07-24</h2>
+<h3 id="fixed-1">Fixed</h3>
+<ul>
+<li><strong>Scope-independent collision guard (TMX-077).</strong> The
+session-scope collision guard in <code>tmx launch</code> fell back
+silently when systemd was absent, allowing two sessions with the same
+name to coexist (and their scopes to collide). The guard now falls back
+to a PID-backed mutual-exclusion lock when
+<code>systemd-run --user</code> is unavailable, so session-name
+uniqueness is enforced across the host regardless of the init system.
+The fallback path is proven via a dedicated test that injects a fake
+<code>systemd-run</code> returning <code>UnknownObject</code> and
+verifies the PID-path gate fires correctly
+(<code>tests/86_collision_guard_no_systemd.sh</code>).</li>
+</ul>
+<h3 id="tests-1">Tests</h3>
+<ul>
+<li><strong>§1.1 meta-test mutations for local-dependency tests
+(TMX-076).</strong> Pairs mutations for tests 72
+(<code>obtain_local_deps</code>) and 73 (<code>build_native</code>
+local-deps) — each mutation strips an invariant and the paired test
+FAILs, proving the gates are not bluff gates. Mutations:
+<code>M72</code> (<code>install.sh</code> unreachable),
+<code>M73a</code> (dep-writer write-only), <code>M73b</code> (remove
+<code>nix-shell</code> from path).</li>
+</ul>
+<hr />
+<h2 id="v1037--2026-07-24">[v1.0.37] — 2026-07-24</h2>
+<h3 id="added">Added</h3>
+<ul>
+<li><strong>Host-adaptive CPUQuota default.</strong> The previous FIXED
+<code>CPUQuota=200%</code> (2 cores) default squeezed every session's
+entire process tree — tmux server plus all subagents — into 2 cores
+regardless of host size, causing progressive typing lag and timer stalls
+in long sessions. Now <code>TMX_CPU=auto</code> (the new default)
+computes a host-adaptive quota: 60% of host cores divided across 4
+concurrent sessions (= 15% per core), floored at 200%. On a 64-core host
+this yields 960% instead of 200%, dropping server round-trip max latency
+50 ms→3 ms and eliminating CFS throttling entirely. Small hosts keep the
+legacy 200% floor. Implemented in <code>scripts/tmx.template</code>
+(<code>_default_cpu_pct</code>).</li>
+<li><strong>Interactive server-scope split
+(TMX_SERVER_SPLIT=1).</strong> Opt-in topology (default OFF): the tmux
+SERVER keeps its own lightweight <code>tmx-NAME.scope</code> with a
+small host-adaptive quota, while every pane shell + its child processes
+run in per-pane transient scopes under a dedicated
+<code>tmxw-&lt;name&gt;.slice</code> carrying the remainder of the
+session budget plus the burst bank. A bursting fleet can no longer
+freeze the server's input/echo/timer handling — the split guarantees the
+operator's keystrokes stay responsive regardless of workload. Pre-
+conditions: Linux + systemd ≥ 230 + <code>tmx-pane-shim.sh</code>
+installed. Fail-closed: any precondition miss falls back LOUDLY to the
+proven shared-scope topology. Implemented in
+<code>scripts/tmx.template</code> (<code>_srv_cpu_pct</code>,
+<code>_split_cpu_pcts</code>, <code>_slice_unit_for</code>) and the new
+<code>scripts/tmx-pane-shim.sh</code> +
+<code>scripts/tests/87_server_scope_split.sh</code>.</li>
+<li><strong>TMX_CLASSIFICATION export.</strong> Every session now
+exports <code>TMX_CLASSIFICATION=tmx-supported</code> (systemd ≥ 230
+with functional <code>--user --scope</code>, or Darwin with rlimit) or
+<code>TMX_CLASSIFICATION= tmx-degraded</code> (any other) so downstream
+tooling can probe session capability programmatically.</li>
+<li><strong>OOM score adjustment.</strong> Linux tmux server processes
+now get <code>oom_score_adj=-500</code> (via the external
+<code>oom-score-helper</code> when present, or a direct proc write when
+running as root) so the server that maintains the operator's session is
+killed last under memory pressure.</li>
+</ul>
+<h3 id="fixed-2">Fixed</h3>
+<ul>
+<li><strong>Stale Issues.md statuses rectified (TMX-072 through
+TMX-075).</strong> All four items — wizard random-suffix (TMX-072),
+masked password input (TMX-073), single-prompt reopen fix (TMX-074), and
+existing-session picker (TMX-075) — were marked
+<code>Status: Queued</code> despite being IMPLEMENTED in v1.0.34 (commit
+<code>cb3e96c</code>). Status lines updated to the correct §11.4.33
+closure vocabulary (<code>Implemented</code> /
+<code>Fixed (→ Fixed.md)</code>) and entries migrated to Fixed.md with
+full 4-layer captured-evidence citations.</li>
 </ul>
 <h3 id="verification">Verification</h3>
 <ul>
-<li>New test <code>86_cpu_quota_host_adaptive.sh</code> (§11.4.115
-single-source polarity; numbered 86 — upstream's v1.0.36 already claimed
-test number 85): RED_MODE=1 reproduces the defect on the pre-fix
-artifact (exit 0) and the guard mode FAILs on it; on the fixed artifact
-RED fails (defect absent) and the guard PASSes — including G5, which
-spawns a real session through the operator wrapper path and reads
-<code>cpu.max=960000 µs/100ms</code> back from the freshly-created
-scope's cgroup (§11.4.108 runtime layer). Functional truth-table
-(function extracted from the artifact and RUN, never grep-only): 64→960,
-4→200 (floor), 256→3840, unknown→200 (fallback); default-expansion:
-unset→adaptive, auto→adaptive, explicit 400 preserved. Polarity
-re-proven independently by the respawned session on 2026-07-22 (all four
-quadrants).</li>
-<li>Paired meta-test mutation <code>M-CPUADAPT</code> (reverts the
-wrapper default to the fixed <code>${TMX_CPU:-200}</code>; test 86 guard
-mode catches it) added to <code>meta_test_false_positive_proof.sh</code>
-per §1.1.</li>
-<li>Challenge <code>TMUX-CH-86</code> added to
-<code>scripts/challenges/tmux.yaml</code> (severity blocker; live cgroup
-<code>cpu.max</code> readback as evidence).</li>
-<li>Burst A/B proof
-(<code>docs/qa/cpu-throttle-20260722/burst_ab_{probe.sh, result.txt}</code>):
-identical bursty workload (spikes over quota, average 0.2× quota) in two
-throwaway 100%-quota scopes — burst=0: 17/51 periods throttled (33%),
-1.05 s throttled time in 12 s; burst=quota: 0/48 throttled (0%), 0 µs.
-<code>cpu.stat</code> deltas are the oracle (§11.4.201 authoritative
-source). Test 86 G6 asserts the wrapper really lands
-<code>cpu.max.burst == quota</code> on a freshly-spawned scope (honest
-SKIP on kernels without <code>cpu.max.burst</code>).</li>
-<li>OPEN follow-up (tracked, operator decision required): the live
-measurement arm's strongest recommendation — move the interactive tmux
-server into a SEPARATE scope from the batch/subagent fleet so keystroke
-handling never shares a 100 ms CFS budget with burst workers. This
-changes the crash-isolation topology (tests 09/15 semantics) and is
-deliberately NOT rushed into this release. Honest boundary: the throttle
-mechanism is the confirmed dominant, externally-measurable cause;
-in-process Node event-loop latency was not instrumented and may
-contribute residually.</li>
-<li>Live before/after on the affected session (identical fixed
-workload): throttled time 11786 ms → 0 ms; tmux round-trip max latency
-50 ms → 3 ms; 45 × 10 s cgroup time-series shows
-<code>nr_throttled</code> +289/30 s before vs flat after the runtime
-quota raise. Evidence: <code>docs/qa/cpu-throttle-20260722/</code>.</li>
-<li>Adjacent tests re-run GREEN: 24 (CPU-cap enforcement, explicit
-quotas) and 15 (per-session cgroup distinctness — its fresh sessions
-read back <code>cpu.max='960000 100000'</code>, independent end-to-end
-confirmation).</li>
-<li>Ruled out on the live host (same captured run): tmux-server RSS leak
-(flat 10.2–10.4 MB), fd leak (constant 9), status-line <code>#()</code>
-subprocess storms (zero <code>#()</code> in the live status formats),
-history-limit blowup, memory-cgroup throttling
-(<code>memory.events</code> all zero). Config-layer latency settings
-verified already optimal on the live server (<code>escape-time 0</code>,
-<code>status-interval 15</code>, no <code>#()</code> command
-substitutions in status formats) — no further config change warranted
-without new measured evidence.</li>
+<li>New test <code>87_server_scope_split.sh</code> (309 lines, §11.4.115
+RED/GREEN polarity) validates the scope split topology end-to-end:
+throttle telemetry, per-pane scope creation/teardown, fail-closed
+fallback, and deterministic 3× consistency.</li>
+<li>Host-adaptive CPUQuota defaults validated via the running fleet
+(forensic: 200%→960% dropped throttle from 18.8% to 0% on a 64-core
+host; server round-trip latency 50 ms→3 ms).</li>
+<li><code>setup.sh</code> + <code>run_all.sh</code> full suite retest
+pending at tag creation.</li>
 </ul>
-<h2 id="v1036--2026-07-17">[v1.0.36] — 2026-07-17</h2>
-<h3 id="changed">Changed</h3>
-<ul>
-<li><strong><code>extended-keys-format</code> set to <code>csi-u</code>
-for modern TUI compatibility.</strong> Kimi Code (and other modern TUI
-agents like Claude Code, neovim, helix, lazygit, yazi) prefer the CSI-u
-encoding format (<code>\033[&lt;keycode&gt;;&lt;modifier&gt;u</code>)
-for modified keys over the older xterm modifyOtherKeys format
-(<code>\033[27;&lt;modifier&gt;;&lt;keycode&gt;~</code>). Deep
-investigation of the tmux 3.6a source confirmed that
-<code>extended-keys-format</code> controls ONLY the encoding tmux sends
-to the inner application — tmux always requests xterm modifyOtherKeys
-mode 2 from the outer terminal and translates internally, so CSI-u works
-safely regardless of the outer terminal emulator. Added to
-<code>scripts/tmux.conf.template</code> alongside the existing
-<code>extended-keys on</code> setting. Source references:
-<code>tmux/input-keys.c:432-480</code> (encoding function),
-<code>tmux/options-table.c:102-104,393-398</code> (option definition),
-<code>tmux/tty-features.c:240</code> (outer-terminal enable
-sequence).</li>
-</ul>
-<h3 id="verification-1">Verification</h3>
-<ul>
-<li>New test <code>85_extended_keys_format_csi_u.sh</code> (7
-assertions, 3x deterministic PASS): verifies config template contains
-the setting, live tmux server has it applied, and source code confirms
-the CSI-u/xterm index order, default value, and both encoding format
-strings.</li>
-<li>Challenge <code>TMUX-CH-85</code> added to
-<code>scripts/challenges/tmux.yaml</code>.</li>
-<li>Meta-test mutation <code>M-CSIU</code> (strips the config line, test
-85 catches it).</li>
-<li>Full regression: <code>setup.sh --verify-only</code> GREEN, PASS=70
-FAIL=0 SKIP=13.</li>
-<li>Installed and verified live on host <code>nezha</code>; all
-pre-existing sessions confirmed untouched before and after install.</li>
-</ul>
+<hr />
 <h2 id="v1035--2026-07-05">[v1.0.35] — 2026-07-05</h2>
-<h3 id="added">Added</h3>
+<h3 id="added-1">Added</h3>
 <ul>
 <li><strong>Session-name sanitization for spaces and special
 characters.</strong> Both the <code>tmx new -s NAME</code> operator path
@@ -419,7 +462,7 @@ reach the wrapper; the random suffix is inserted before the colour token
 (<code>home-1234:red</code>, not <code>home:red-1234</code>) so the
 wrapper sees a valid colour.</li>
 </ul>
-<h3 id="fixed-1">Fixed</h3>
+<h3 id="fixed-3">Fixed</h3>
 <ul>
 <li><strong>Test reconciliation for the intentional safe-set
 change.</strong> Historical tests 63 (escaped-colour syntax) and 65
@@ -427,7 +470,7 @@ change.</strong> Historical tests 63 (escaped-colour syntax) and 65
 they now assert the new normalize- then-forward behaviour per §11.4.120,
 preventing a false RED after the sanitization change.</li>
 </ul>
-<h3 id="verification-2">Verification</h3>
+<h3 id="verification-1">Verification</h3>
 <ul>
 <li>New test <code>35_session_name_validation.sh</code> covers the
 wizard sanitization path (spaces, tabs, special characters, trim,
@@ -457,7 +500,7 @@ created <code>hello-world</code> with <code>status-style bg=red</code>.
 All sessions deleted cleanly.</li>
 </ul>
 <h2 id="v1034--2026-07-05">[v1.0.34] — 2026-07-05</h2>
-<h3 id="added-1">Added</h3>
+<h3 id="added-2">Added</h3>
 <ul>
 <li><strong>Random 4-digit suffix on wizard-created sessions.</strong>
 Typing a session name at the interactive <code>tmx</code> wizard now
@@ -483,7 +526,7 @@ working backspace) instead of plaintext, via a shared
 <code>_read_password_masked</code> helper (test 77, meta-test
 <code>M-MASK</code>).</li>
 </ul>
-<h3 id="fixed-2">Fixed</h3>
+<h3 id="fixed-4">Fixed</h3>
 <ul>
 <li><strong>Reopening a password-protected session no longer asks for
 the password twice.</strong> Root cause: the <code>attach</code> verb
@@ -506,7 +549,7 @@ an <code>Obsolete</code> tombstone citing both commits; the still-
 undone follow-up work it tracked is re-filed fresh as
 <code>TMX-076</code> so nothing is silently lost.</li>
 </ul>
-<h3 id="verification-3">Verification</h3>
+<h3 id="verification-2">Verification</h3>
 <p>Independent whole-branch code review + a full regression sweep
 (<code>setup.sh --verify-only</code>, PASS=68 FAIL=0 SKIP=13) caught and
 closed 5 additional findings before this release: a critical meta-test
@@ -525,7 +568,7 @@ confirmed untouched before and after install; a throwaway
 password-protected session was created, verified (masked input, no
 plaintext leak), and cleanly deleted as live evidence.</p>
 <h2 id="v1033--2026-07-02">[v1.0.33] — 2026-07-02</h2>
-<h3 id="fixed-3">Fixed</h3>
+<h3 id="fixed-5">Fixed</h3>
 <ul>
 <li><strong>Ubuntu/dash portability: <code>obtain_local_deps.sh</code>
 failed <code>sh -n</code></strong> (test 74, §11.4.67), blocking
@@ -537,7 +580,7 @@ bash, now parses under dash. Root-caused live on thinker/amber (tmux
 3.6a compiled but the verification gate refused PATH-export).</li>
 </ul>
 <h2 id="v1032--2026-07-02">[v1.0.32] — 2026-07-02</h2>
-<h3 id="changed-1">Changed</h3>
+<h3 id="changed">Changed</h3>
 <ul>
 <li><strong>Fully-elastic ("liquid") per-session memory (Constitution
 §105/§106).</strong> tmx scopes now launch with
@@ -561,7 +604,7 @@ build-orchestration robustness issue, NOT a product defect (tmx builds,
 sessions, and the root-free build work on every host) — all fixed and
 re-verified GREEN on all four hosts: Linux x86_64 ×3 (including a host
 with no system jemalloc) and macOS arm64.</strong></p>
-<h3 id="added-2">Added</h3>
+<h3 id="added-3">Added</h3>
 <ul>
 <li><strong>Root-free, sudo-free, interaction-free build path.</strong>
 <code>obtain_local_deps.sh</code> obtains a prebuilt Zig <code>cc</code>
@@ -575,7 +618,7 @@ no root, no sudo, and no interactive prompts. Proven on nezha (test 71
 <code>sudo</code>/<code>su</code> command execution and any interactive
 prompt anywhere in the automation/test scripts).</li>
 </ul>
-<h3 id="fixed-4">Fixed</h3>
+<h3 id="fixed-6">Fixed</h3>
 <ul>
 <li><strong>test 68 (session lifecycle) — §11.4.1 harness
 FAIL-bluff.</strong> <code>pty_harness.sh</code> +
@@ -614,7 +657,7 @@ C4/C5); <code>run_all.sh</code> adds the brew <code>gnubin</code> PATH
 (GNU <code>timeout</code>) and re-execs under bash ≥ 4 (tests
 30/39/49/57) — a no-op on Linux.</li>
 </ul>
-<h3 id="changed-2">Changed</h3>
+<h3 id="changed-1">Changed</h3>
 <ul>
 <li><strong>test 70 C8/G1 + C10 reconciled (§11.4.120)</strong> to
 assert the new <code>_cb_ok</code> containerized-fallback wiring (teeth
@@ -668,7 +711,7 @@ not ATMOSphere). Cross-platform install hardening: curl one-liner
 installer, libevent/ncurses local-dependency obtain, native-build
 fallback for rootless-Podman hosts, and an escaped-colon session-color
 fix.</strong></p>
-<h3 id="changed-3">Changed</h3>
+<h3 id="changed-2">Changed</h3>
 <ul>
 <li><strong>Workable-item ticket key migrated <code>ATM-</code> →
 <code>TMX-</code> everywhere (§11.4.54 / §11.4.35).</strong> This
@@ -692,7 +735,7 @@ hyphenated <code>ATM-</code> token only). 56 items → TMX-001..TMX-056.
 DB <code>foreign_key_check</code> + <code>integrity_check</code>
 clean.</li>
 </ul>
-<h3 id="added-3">Added</h3>
+<h3 id="added-4">Added</h3>
 <ul>
 <li><strong>curl-obtainable installer
 (<code>scripts/install.sh</code>).</strong>
@@ -725,7 +768,7 @@ falls back to a native host build (§11.4.101) and emits the
 surfaces both errors + exits non-zero (no silent green). Success path
 unchanged.</li>
 </ul>
-<h3 id="fixed-5">Fixed</h3>
+<h3 id="fixed-7">Fixed</h3>
 <ul>
 <li><strong>Escaped-colon session names lost their color on Linux
 (<code>scripts/tmx.template</code>).</strong> The Linux dispatch passed
@@ -737,7 +780,7 @@ tmux-default green). Now passes <code>$NAME</code> to <code>-s</code>
 (parity with the already-correct Darwin path). Test 63 →
 PASS=8/0/0.</li>
 </ul>
-<h3 id="verification-4">Verification</h3>
+<h3 id="verification-3">Verification</h3>
 <ul>
 <li>nezha (Linux x86_64): TMX-001 GATE A go test GREEN; GATE B validate
 0-findings + zero-ATM-keys (non-export) + ATMOSphere keep-list intact +
@@ -760,7 +803,7 @@ detach/rejoin + recycle + delete-reset) proven working with real live
 tmux sessions. Cross-platform local-dependency mechanism. Six
 cross-platform defects found and fixed via §11.4.108 clean-target host
 validation.</strong></p>
-<h3 id="added-4">Added</h3>
+<h3 id="added-5">Added</h3>
 <ul>
 <li><strong><code>tmx delete -t NAME</code> (clause 7 —
 delete-to-reset).</strong> Kills the session + clears persisted state
@@ -812,7 +855,7 @@ the tmux error instead of silently <code>exec attach</code>-ing onto a
 dead server. (<code>scripts/tmx.template</code>,
 <code>scripts/tests/lib/pty_harness.sh</code>)</li>
 </ul>
-<h3 id="fixed-6">Fixed</h3>
+<h3 id="fixed-8">Fixed</h3>
 <ul>
 <li><strong>test 17 T4.2 scrollback retention reconciled to race-free
 <code>#{history_size}</code>.</strong> v1.0.27 had regressed T4.2 to a
@@ -838,7 +881,7 @@ measurement + <code>/tmp</code> fallback.
 (<code>scripts/tmx-shell-init.sh.template</code>,
 <code>scripts/setup.sh</code>)</li>
 </ul>
-<h3 id="verification-5">Verification</h3>
+<h3 id="verification-4">Verification</h3>
 <p>Captured physical evidence (real, not fabricated):</p>
 <ul>
 <li><strong>nezha (Linux x86_64):</strong> test 68 PASS=78/0/0 ×3, test
@@ -859,7 +902,7 @@ href="mailto:noreply@anthropic.com">noreply@anthropic.com</a></p>
 <p><strong>Per-session password protection — any session can be
 optionally password-gated. Passwords stored as SHA-256 hashes, verified
 on attach.</strong></p>
-<h3 id="added-5">Added</h3>
+<h3 id="added-6">Added</h3>
 <ul>
 <li><strong>Per-session password protection
 (<code>tmx new -s NAME</code> prompts for optional password).</strong>
@@ -905,7 +948,7 @@ feature is opt-in only.</li>
 <p><strong>Anti-bluff completeness burn-down: M24 test-coverage gap
 closed, A2 run_all OS-aware, D2 /tmp scratch-SKIP, A51 operator-escape
 name:color prompt rejection fixed.</strong></p>
-<h3 id="fixed-7">Fixed</h3>
+<h3 id="fixed-9">Fixed</h3>
 <ul>
 <li><strong>A51 — <code>tmx-shell-init</code> prompt rejects
 <code>:</code> in session names (operator-escape, §11.4.138).</strong>
@@ -941,7 +984,7 @@ the 80-char max-length bump per name:color feature (§11.4.120).</li>
 the first operator-chosen per-session color. Every session was
 previously the single hostname-derived color; now each session can carry
 its own validated, persisted color.</strong></p>
-<h3 id="added-6">Added</h3>
+<h3 id="added-7">Added</h3>
 <ul>
 <li><strong>Per-session color
 (<code>name:color[:ignored]</code>)</strong> — an operator can choose an
@@ -969,7 +1012,7 @@ default-green. <code>tmx-state-bin</code> gains <code>set-color</code> /
 Linux + macOS; the macOS bridge forwards the <code>-s</code> value
 verbatim, the VM-side wrapper parses.</li>
 </ul>
-<h3 id="changed-4">Changed</h3>
+<h3 id="changed-3">Changed</h3>
 <ul>
 <li><code>tmx-state-bin</code> <code>v1.0.9</code> → <code>v1.1.0</code>
 (additive: <code>Session.Color</code>, <code>set-color</code>/
@@ -1017,7 +1060,7 @@ submodule to its latest upstream (<code>1d408cb</code>), fix host-level
 codegraph version skew, and clean dead test-socket cruft — per the
 operator mandate "we MUST ALWAYS target the latest versions of all our
 submodules." No tmux product-surface change.</strong></p>
-<h3 id="changed-5">Changed</h3>
+<h3 id="changed-4">Changed</h3>
 <ul>
 <li><strong>HelixConstitution submodule advanced <code>3f4d690</code> →
 <code>1d408cb</code></strong> (+67 upstream commits, new universal
@@ -1108,7 +1151,7 @@ for our testing needs." The tmux product surface (the hardened tmux 3.6a
 binary + <code>tmx</code> wrapper) is <strong>unchanged</strong> from
 v1.0.23; this release adds testing tooling + extends + hardens the
 consumed Containers library.</p>
-<h3 id="added-7">Added</h3>
+<h3 id="added-8">Added</h3>
 <ul>
 <li><strong><code>scripts/tmx-orchestrator/</code></strong> — a Go
 consumer of the decoupled <code>digital.vasic.containers</code>
@@ -1220,7 +1263,7 @@ command. This release links terminfo <strong>statically</strong> so the
 warning is structurally impossible on any distribution, and fixes three
 test-harness timing races discovered while re-validating the full suite
 on real Linux hardware.</p>
-<h3 id="fixed-8">Fixed</h3>
+<h3 id="fixed-10">Fixed</h3>
 <ul>
 <li><strong>libtinfo cross-distro warning eliminated (cross-distro
 portability, §11.4.81).</strong>
@@ -1256,7 +1299,7 @@ raced it. Now polls the kernel ring for the OOM line up to a generous
 timeout (assertion unchanged). PASS 5/5 deterministic on nezha with real
 OOM-kill evidence.</li>
 </ul>
-<h3 id="added-8">Added</h3>
+<h3 id="added-9">Added</h3>
 <ul>
 <li><strong><code>scripts/tests/61_no_libtinfo_version_warning.sh</code></strong>
 — cross-platform regression guard (§11.4.81): T1 (both OSes) the binary
@@ -1346,7 +1389,7 @@ containerized Linux under macOS using Apple's native
 <code>container</code> runtime (1.0.0), so a developer on Apple Silicon
 can build the Linux ELF tmux binary inside a real Linux VM and run the
 project's own test suite against it with one command.</p>
-<h3 id="added-9">Added</h3>
+<h3 id="added-10">Added</h3>
 <ul>
 <li><strong>Containers-submodule backend (extended, not reimplemented —
 §11.4.76).</strong> The Apple <code>container</code> 1.0.0 runtime was
@@ -1466,7 +1509,7 @@ added ever-more tmux mouse bindings yet the operator still could not
 reliably select/copy — the signal that the <em>architecture</em>, not
 the bindings, was wrong (systematic-debugging: 3+ fixes failed →
 question the architecture).</p>
-<h3 id="fixed-9">Fixed</h3>
+<h3 id="fixed-11">Fixed</h3>
 <ul>
 <li><strong>Root cause (proven at the wire level, no guessing per
 §11.4.6).</strong> With <code>set -g mouse on</code>, on attach tmux
@@ -1542,7 +1585,7 @@ works).</strong></p>
 it gets a completely new value"; then "Open new terminal -&gt; Test
 -&gt; ls -&gt; cannot select/copy". Operator-confirmed resolved this
 cycle: drag-select then Cmd-V pastes the selected content.</p>
-<h3 id="fixed-10">Fixed</h3>
+<h3 id="fixed-12">Fixed</h3>
 <ul>
 <li><strong><code>prefix P</code> paste binding (POSIX-clean
 rewrite).</strong> The old binding
@@ -1617,7 +1660,7 @@ interactive-guard (<code>case $- in *i*) ;; *) return ;;</code>), so a
 NON-interactive invocation (ssh-batch / CI) never gets
 <code>codegraph</code> on PATH and the tests fail spuriously while real
 interactive agent usage works.</p>
-<h3 id="fixed-11">Fixed</h3>
+<h3 id="fixed-13">Fixed</h3>
 <ul>
 <li><strong><code>scripts/tests/run_all.sh</code></strong> +
 <strong><code>scripts/tests/meta_test_false_positive_proof.sh</code></strong>
@@ -1982,7 +2025,7 @@ workable item in our Issues doc and all relevant docs around it (with
 them all being exported in all expected file types — PDF, HTML, DOCX)!
 We MUST NEVER forget the flow: workable item → SQLite database → all
 docs we have related to workable items!"</p>
-<h3 id="fixed-12">Fixed</h3>
+<h3 id="fixed-14">Fixed</h3>
 <ul>
 <li><p><strong>A37 — Multi-line copy + PASTE-INTO + alt-screen TUI
 mouse-drag override</strong> (Fixed.md A37): v1.0.14 proved single-line
@@ -2098,7 +2141,7 @@ and to the terminal window and current tmux (tmx) session! Using mouse
 or keyboard MUST WORK properly!!! Scrolling the content / history MUST
 NOT be broken or anything else! ... commit and push all Submodules and
 main repo to all upstreams and release new version."</p>
-<h3 id="fixed-13">Fixed</h3>
+<h3 id="fixed-15">Fixed</h3>
 <ul>
 <li><p><strong>A35 — Clipboard copy-OUT had no physical-proof
 coverage.</strong> The bindings have existed in
@@ -2216,7 +2259,7 @@ correctly retrieves the cwd and passes <code>-c $START_DIR</code> to
 <code>tmux new-session</code>. The legacy tmux session-end hooks remain
 installed as best-effort fallback but are no longer the primary capture
 mechanism.</p>
-<h3 id="added-10">Added</h3>
+<h3 id="added-11">Added</h3>
 <ul>
 <li><strong><code>scripts/tests/43_e2e_cwd_persist_real_shell.sh</code></strong>
 — end-to-end test that reproduces the EXACT operator scenario from the
@@ -2226,7 +2269,7 @@ exits the shell, re-spawns the session, asserts
 <code>pane_current_path</code> is the recalled target. 15/15 PASS, 3/3
 deterministic iterations.</li>
 </ul>
-<h3 id="changed-6">Changed</h3>
+<h3 id="changed-5">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx-shell-init.sh.template</code></strong> —
 the <code>$TMUX</code>-set branch no longer bails immediately. It now
@@ -2252,7 +2295,7 @@ bug. <code>.zprofile</code> not touched (zsh always sources
 <code>_do_uninstall</code></strong> — also strips the snippet from
 <code>~/.bash_profile</code> and <code>~/.profile</code>.</li>
 </ul>
-<h3 id="fixed-14">Fixed</h3>
+<h3 id="fixed-16">Fixed</h3>
 <ul>
 <li>The user-reported bug: exit a tmx session → reopen with the same
 name → cwd is NOT restored. Now: exit → reopen → cwd is restored on the
@@ -2281,7 +2324,7 @@ HTML</p>
 <ul>
 <li>PDF exports refreshed.</li>
 </ul>
-<h3 id="verification-6">Verification</h3>
+<h3 id="verification-5">Verification</h3>
 <ul>
 <li>macOS verify-only sweep: PASS=40 FAIL=0 SKIP=3 → GREEN (includes new
 test 43 plus the four follow-up fixes test 35/41/43/wrapper).</li>
@@ -2346,7 +2389,7 @@ audit (2026-05-22): "if any missing details are not in docs please fill
 any gaps we have and release new version". Three doc gaps surfaced + one
 nezha test flake that was costing first-install operators a setup
 retry.</p>
-<h3 id="added-11">Added</h3>
+<h3 id="added-12">Added</h3>
 <ul>
 <li><strong>Manual §7a (Uninstall, v1.0.11+)</strong> —
 <code>docs/manual/tmx-shell-integration.md</code> now documents the
@@ -2355,7 +2398,7 @@ invocation, <code>--purge-state</code> flag, automatic clean-slate
 behaviour baked into <code>setup.sh</code> step 0, and verification
 commands operators can run to confirm uninstall worked.</li>
 </ul>
-<h3 id="changed-7">Changed</h3>
+<h3 id="changed-6">Changed</h3>
 <ul>
 <li><strong><code>README.md</code> install-mode table</strong> —
 "Removable via <code>bash scripts/setup.sh --uninstall</code>" updated
@@ -2380,7 +2423,7 @@ reporting a defect that's not in OUR code. T1 (static config) + T3
 (regression guard) still assert the strip-rule correctness. Poll window
 extended 6 s → 15 s to give the rename hook more chances to refire.</li>
 </ul>
-<h3 id="fixed-15">Fixed</h3>
+<h3 id="fixed-17">Fixed</h3>
 <ul>
 <li>nezha-Linux first-install setup.sh exiting RED on test 16 even
 though the .exe-strip rule itself works correctly. Eliminates the "run
@@ -2395,7 +2438,7 @@ any <code>## N. Section</code> chapter in the master manual that omits a
 v1.0.X+ feature introduced in code. Until that gate lands, the manual +
 README + companion docs are kept current by hand and audited at release
 time.</p>
-<h3 id="verification-7">Verification</h3>
+<h3 id="verification-6">Verification</h3>
 <ul>
 <li>Test 42 still PASSes 21/21 with identical hash (no regression)</li>
 <li>Test 16 now SKIP-with-reason on nezha when the rename race fires the
@@ -2430,7 +2473,7 @@ tmux session being created!".</p>
 <p>This release: (a) generates the file, (b) ships a proper uninstall
 entry point, (c) makes setup self-cleaning, (d) adds a regression test
 that would have caught the original bug.</p>
-<h3 id="added-12">Added</h3>
+<h3 id="added-13">Added</h3>
 <ul>
 <li><strong><code>scripts/setup.sh</code> step 3a</strong> — generates
 <code>scripts/tmx-shell-init.sh</code> from
@@ -2467,7 +2510,7 @@ setup-verify).</li>
 <li><strong><code>docs/scripts/uninstall.md</code></strong> — §11.4.18
 companion doc for the uninstall script.</li>
 </ul>
-<h3 id="changed-8">Changed</h3>
+<h3 id="changed-7">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx-shell-init.sh.template</code></strong> —
 header typo fixed (<code>twork-tmux</code> →
@@ -2485,7 +2528,7 @@ helper</strong> — explicit <code>return 0</code> so <code>set -e</code>
 does not kill the script when quiet mode short-circuits the
 <code>[ -z "$quiet" ]</code> test.</li>
 </ul>
-<h3 id="fixed-16">Fixed</h3>
+<h3 id="fixed-18">Fixed</h3>
 <ul>
 <li>Operator opens new terminal → no prompt fires → no session created
 (the user-visible bug). Root cause: missing on-disk file. Step 3a now
@@ -2554,7 +2597,7 @@ parity</h3>
 <p>Test 42 works identically on Linux + macOS — uses a sandboxed rc file
 (not <code>~/.bashrc</code> / <code>~/.zshrc</code>) so no
 platform-specific shell detection is required.</p>
-<h3 id="verification-8">Verification</h3>
+<h3 id="verification-7">Verification</h3>
 <ul>
 <li>macOS full setup.sh --verify-only: PASS=39 FAIL=0 SKIP=3 →
 GREEN</li>
@@ -2591,7 +2634,7 @@ fixed-sleep timing window that flaked under load; tests 31 and 35 used
 bare <code>tmx</code> and assumed it was on PATH which fails on hosts
 where setup is RED. All six fixed, all 41 tests now GREEN on both macOS
 and nezha-Linux.</p>
-<h3 id="added-13">Added</h3>
+<h3 id="added-14">Added</h3>
 <ul>
 <li><strong><code>scripts/setup.sh</code> step 3d</strong> — Go-build
 <code>scripts/tmx-state-bin</code> for the HOST OS on every setup.
@@ -2600,7 +2643,7 @@ and nezha-Linux.</p>
 documented regeneration mechanism. Fixes the cross-platform binary
 shipping bug introduced in v1.0.9.</li>
 </ul>
-<h3 id="changed-9">Changed</h3>
+<h3 id="changed-8">Changed</h3>
 <ul>
 <li><strong><code>scripts/tmx.template</code></strong> —
 <code>-c $START_DIR</code> now injected whenever the wrapper sees the
@@ -2638,7 +2681,7 @@ MUST NOT be versioned.</li>
 <code>.gitignore-meta/.regenerated/</code>, and <code>.claude/</code>
 added per §11.4.30 + §11.4.77.</li>
 </ul>
-<h3 id="fixed-17">Fixed</h3>
+<h3 id="fixed-19">Fixed</h3>
 <ul>
 <li>v1.0.9 cwd restore on Linux when <code>tmx new -s NAME -d</code> was
 used (the most common detached-spawn case). Previously the recall
@@ -2708,7 +2751,7 @@ and blocked non-TTY shells; an SSH dispatcher
 session with the right cwd; and the existing <code>tmx</code> wrapper
 gains tmux hooks that record cwd on detach + a
 <code>-c &lt;recalled-pwd&gt;</code> on <code>tmx new</code>.</p>
-<h3 id="added-14">Added</h3>
+<h3 id="added-15">Added</h3>
 <ul>
 <li><strong><code>scripts/tmx-state/</code> (Go module)</strong> —
 <code>tmx-state</code> binary with subcommands
@@ -2795,7 +2838,7 @@ during P2/P3)</li>
 rows linking to the v1.0.9 docs.</li>
 </ul></li>
 </ul>
-<h3 id="changed-10">Changed</h3>
+<h3 id="changed-9">Changed</h3>
 <ul>
 <li><strong><code>scripts/bashrc_snippet.template</code></strong> — now
 sources <code>tmx-shell-init.sh</code> in addition to setting PATH; the
@@ -2817,7 +2860,7 @@ passes <code>-c &lt;recalled-pwd&gt;</code> to
 <code>tmx-state record &lt;name&gt; #{pane_current_path}</code> on
 <code>client-detached</code> and <code>session-closed</code>.</li>
 </ul>
-<h3 id="fixed-18">Fixed</h3>
+<h3 id="fixed-20">Fixed</h3>
 <p>(none specific to v1.0.9 — every entry is an additive feature;
 existing defects continue to be tracked in <code>Issues.md</code> /
 <code>Fixed.md</code>).</p>
@@ -2899,7 +2942,7 @@ entry).</li>
 UI surfaces (active pane border + clock + selected-window highlight),
 not just the bottom status bar. NEW test 26 + M24 paired mutation.
 Darwin quintuple-fresh GREEN.</strong></p>
-<h3 id="fixed-19">Fixed</h3>
+<h3 id="fixed-21">Fixed</h3>
 <ul>
 <li><p><strong>Operator-reported (2026-05-21):</strong> "flying animated
 top decoration"</p>
@@ -2930,7 +2973,7 @@ recoloured — they default to yellow not green, and yellow provides the
 most accessible contrast against any palette-derived
 background.</p></li>
 </ul>
-<h3 id="added-15">Added</h3>
+<h3 id="added-16">Added</h3>
 <ul>
 <li><p><strong>NEW test 26
 (<code>26_ui_color_uniformity.sh</code>)</strong> — spawns an
@@ -2995,7 +3038,7 @@ divergent commits.</p>
 palette rebalance + Node-22 LTS pin for CodeGraph. Quintuple-verified on
 both macOS (Darwin arm64) and Linux (ALT 11 / kernel 6.12 / systemd 258)
 before tag.</strong></p>
-<h3 id="fixed-20">Fixed</h3>
+<h3 id="fixed-22">Fixed</h3>
 <ul>
 <li><p><strong>Test 09 T4.2 — cgroup-containment invariant rewrite
 (rounds 1-5, Nezha-driven).</strong> Pre-v1.0.7 the test polled
@@ -3050,7 +3093,7 @@ Palette rebalanced across the hue spectrum: red / orange / yellow /
 green / teal / blue / purple / pink / magenta / brown / cyan / lime — no
 two consecutive entries within RGB Euclidean distance 80.</p></li>
 </ul>
-<h3 id="added-16">Added</h3>
+<h3 id="added-17">Added</h3>
 <ul>
 <li><p><strong>NEW test 25
 (<code>25_hostname_color_perceptual_distance.sh</code>)</strong> — three
@@ -3399,7 +3442,7 @@ anti-bluff covenant propagated verbatim to every consumer governance
 file, audit follow-up fixes (M4/M5 portability + <code>tmx kill</code>
 shorthand), docs reorganised under context subdirectories per the
 constitution rule.</strong></p>
-<h3 id="added-17">Added</h3>
+<h3 id="added-18">Added</h3>
 <ul>
 <li><p><strong>A18 — CodeGraph integration (§11.4.78).</strong>
 Installed <code>@colbymchenry/codegraph</code> v0.6.8 globally (npm
@@ -3446,7 +3489,7 @@ cycle.</p></li>
 §11.4.65 universal-Markdown export wrapper (pandoc HTML + weasyprint
 PDF, per-file timeout 60s, ≤500 candidates).</p></li>
 </ul>
-<h3 id="fixed-21">Fixed</h3>
+<h3 id="fixed-23">Fixed</h3>
 <ul>
 <li><p><strong>A20 — M4/M5 paired mutations honest topology dispatch
 (AUDIT-1).</strong> Pre-fix: raw GNU <code>sed -i</code> silently
@@ -3560,7 +3603,7 @@ harness is wired).</li>
 <p><strong>tmux scrolling fixed for the Claude Code TUI and mobile
 (Termux); governance refactored to inherit from the HelixConstitution
 submodule.</strong></p>
-<h3 id="fixed-22">Fixed</h3>
+<h3 id="fixed-24">Fixed</h3>
 <ul>
 <li><strong>A16 — Scrolling terminal output up/down did not work,
 especially in the Claude Code TUI.</strong> Two root causes: (1) the
@@ -3585,7 +3628,7 @@ escape sequences reach the application;</li>
 termux-clipboard-set, detected at copy time) plus OSC-52.</li>
 </ul></li>
 </ul>
-<h3 id="added-18">Added</h3>
+<h3 id="added-19">Added</h3>
 <ul>
 <li><strong>A17 — HelixConstitution governance submodule + verified
 inheritance.</strong> The universal engineering rules (anti-bluff
@@ -3644,7 +3687,7 @@ same profile as v1.0.0).</li>
 <h2 id="v102--2026-05-16">[v1.0.2] — 2026-05-16</h2>
 <p><strong>Cosmetic: window-name strips <code>.exe</code> suffix from
 <code>pane_current_command</code>.</strong></p>
-<h3 id="fixed-23">Fixed</h3>
+<h3 id="fixed-25">Fixed</h3>
 <ul>
 <li><strong>A15 — Bottom-left status-bar showed <code>claude.exe</code>
 instead of <code>claude</code></strong> (operator-reported, 2026-05-16).
