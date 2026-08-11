@@ -44,6 +44,9 @@
 #   TMX_RC_SOCK       per-session socket label (tmx-NAME)          (required)
 #   TMX_RC_NAME       sanitised session name                       (required)
 #   TMX_RC_SCOPE      systemd scope unit (tmx-NAME.scope)          (Linux teardown)
+#   TMX_RC_SLICE      §11.4.225 workload slice (tmxw-NAME.slice)   (Linux teardown;
+#                     optional — empty/unset is fine: stopping is skipped, and a
+#                     never-started slice's stop would be a no-op anyway)
 #   TMX_RC_STATE_BIN  absolute path to tmx-state-bin               (record-before-kill)
 #   TMX_RC_MARKER     detach-since marker file path                (required)
 #   TMX_RC_WINDOW     idle window in seconds (default 900; 0 = off)
@@ -120,6 +123,7 @@ _watch() {
     SOCK="${TMX_RC_SOCK:-}"
     NAME="${TMX_RC_NAME:-}"
     SCOPE="${TMX_RC_SCOPE:-}"
+    SLICE="${TMX_RC_SLICE:-}"
     STATE_BIN="${TMX_RC_STATE_BIN:-}"
     WINDOW="${TMX_RC_WINDOW:-900}"
     MARKER="${TMX_RC_MARKER:-}"
@@ -218,6 +222,13 @@ _watch() {
             #    macOS: killing the session SIGHUPs the rlimit-wrapped shell,
             #    nothing extra to reap.
             if [ "$HOST_OS" = "Linux" ] && [ -n "$SCOPE" ]; then
+                # §11.4.225 split pair: workload slice first (fleet), then
+                # the scope (server). Skipped when TMX_RC_SLICE is unset;
+                # a shared-topology session's never-started slice would be
+                # a no-op stop anyway.
+                if [ -n "$SLICE" ]; then
+                    systemctl --user stop "$SLICE" 2>/dev/null || true
+                fi
                 systemctl --user stop "$SCOPE" 2>/dev/null || true
             fi
             _mark_attached "$MARKER"   # tidy marker; state row PRESERVED

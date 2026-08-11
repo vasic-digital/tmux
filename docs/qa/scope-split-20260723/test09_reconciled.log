@@ -1,0 +1,43 @@
+════════════════════════════════════════════════════════════════
+  Test 09 — crash isolation invariants (per-platform per §11.4.81)
+════════════════════════════════════════════════════════════════
+
+--- T1: systemd + cgroup v2 capability ---
+PASS: T1.1: systemd 255 supports --user --scope
+PASS: T1.2: systemd-run --user --scope functional (positive evidence: transient scope created)
+
+--- T2: tmx wrapper invariants ---
+PASS: T2.1: tmx wrapper at /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx invokes systemd-run --user --scope
+PASS: T2.2: tmx wrapper sets MemoryMax (cgroup invariant)
+PASS: T2.2: tmx wrapper sets CPUQuota (cgroup invariant)
+PASS: T2.2: tmx wrapper sets TasksMax (cgroup invariant)
+PASS: T2.2: tmx wrapper sets Delegate=yes (cgroup invariant)
+
+--- T3: transient scope cgroup interface files ---
+PASS: T3.0: scope tmx-test-2583092-t3.scope registered + active
+PASS: T3.1: cgroup memory.max=268435456 bytes matches set MemoryMax (positive evidence: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/tmx-test-2583092-t3.scope/memory.max)
+PASS: T3.2: cgroup cpu.max present: 50000 100000 (positive evidence: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/tmx-test-2583092-t3.scope/cpu.max)
+
+--- T4: SIGKILL containment (user@<uid>.service must survive scope death) ---
+PASS: T4.1: scope tmx-test-2583092-t4.scope MainPID=2583248 alive
+scripts/tests/09_crash_isolation_scope.sh: line 350: 2583248 Killed                  systemd-run --user --scope --collect --quiet --unit="${TEST_NAME_T4}.scope" -p "MemoryMax=128M" -p "TasksMax=64" bash -c "exec sleep 120"
+PASS: T4.2: scope tmx-test-2583092-t4.scope cgroup.procs drained after SIGKILL — containment achieved (positive evidence per §11.4.81: cgroup.procs empty/removed after 0.0s poll; OOM-kill semantics verified on this kernel without depending on systemd's unit-state transition timing)
+PASS: T4.3: user.slice survived scope death (default.target=active throughout — Constitution §1 invariant)
+
+--- T6: concurrent scopes are independent ---
+PASS: T6.1: all 3 concurrent scopes registered + active (positive evidence: systemctl --user is-active for each)
+
+--- T7: split-topology crash isolation (TMX_SERVER_SPLIT=1) ---
+PASS: T7a.0: split session up — server pid 2583722 in tmx-tmx_t09sa_2583092.scope + workload slice active
+PASS: T7a.1: WORKLOAD KILLED, server SURVIVED — pid 2583722 alive, tmux -L tmx-tmx_t09sa_2583092 responsive (split failure-domain separation: fleet death can no longer take the interactive server down)
+PASS: T7a.2: user@<uid>.service untouched by workload kill (default.target=active)
+PASS: T7b.1: server kill drained the workload slice (no orphan fleet pids in /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/tmxw.slice/tmxw-tmx_t09sb_2583092.slice)
+PASS: T7b.2: pair teardown clean after server kill — no scope/slice left active
+PASS: T7b.3: user@<uid>.service untouched by server kill (default.target=active)
+
+════════════════════════════════════════════════════════════════
+  09_crash_isolation_scope.sh summary
+════════════════════════════════════════════════════════════════
+  PASS:  20
+  FAIL:  0
+  SKIP:  0

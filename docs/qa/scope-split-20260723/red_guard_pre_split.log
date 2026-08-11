@@ -1,0 +1,15 @@
+── Test 87: interactive-server scope split (RED_MODE=0) ──
+  target: /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx.template
+FAIL: G0: split functions missing from /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx.template (srv=no split=no)
+FAIL: G1: split topology absent (scope=active slice=inactive srv_cg='/user.slice/user-1000.slice/user@1000.service/app.slice/tmx-t87_2400105.scope')
+FAIL: G2: no live pid under slice cgroup '' — pane not placed in the workload slice
+FAIL: G3: quota split wrong — srv='100000' slice='' expected 0/0 (artifact split '')
+scripts/tests/87_server_scope_split.sh: line 96: _q0["$cg"]: bad array subscript
+FAIL: G4: quiet-phase never settled ()
+FAIL: G5: load needle dead — slice nr_throttled delta=0 (fleet did not throttle; measurement proves nothing)
+FAIL: G6: burst wrong — srv='960000' (want 0) slice='' (want 0)
+PASS: G7: pair teardown clean — no scope/slice unit left active after kill-session
+FAIL: G8: escaped slice for dashed name wrong (unit=tmxw-t87\x2dx\x2d2400105.slice active='inactive' cg='')
+PASS: G8b: escaped slice torn down by kill-session
+
+  Tests: PASS=2 FAIL=8 SKIP=0

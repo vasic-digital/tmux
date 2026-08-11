@@ -1,0 +1,6 @@
+── Test 87: interactive-server scope split (RED_MODE=1) ──
+  target: /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx.template
+PASS: RED-R1: shared topology confirmed — server pid 2565872 cgroup /user.slice/user-1000.slice/user@1000.service/app.slice/tmx-t87_2565822.scope is the session scope (server co-resident with workload)
+PASS: RED-R2: quiet-phase control clean (a 1 s idle window with nr_throttled delta 0 observed)
+PASS: RED-R3: defect reproduced — SERVER's cgroup co-throttled with the fleet: nr_throttled delta=30 periods in 3 s (server frozen for each throttled period's remainder)
+  Tests: PASS=3 FAIL=0 SKIP=0

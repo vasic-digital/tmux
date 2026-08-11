@@ -1,0 +1,1031 @@
+════════════════════════════════════════════════════════════════
+  tmux validation suite (against /home/milos/Factory/projects/tools_and_research/tmux/tmux/build/bin/tmux)
+════════════════════════════════════════════════════════════════
+
+── Test 01: smoke ──
+  binary reports: tmux 3.6a
+PASS
+
+── Test 02: session lifecycle ──
+  listed: tmx_test_2725065: 1 windows (created Thu Jul 23 02:03:06 2026)
+PASS
+
+── Test 03: jemalloc loaded ──
+  using jemalloc preload: /lib64/libjemalloc.so.2
+  ✓ tmux server PID 2725440 has jemalloc mapped (positive evidence: /proc/.../maps)
+PASS
+
+── Test 04: history-limit respect ──
+  ✓ history-limit reports 1500 as configured
+PASS
+
+── Test 05: clear-history releases memory ──
+  RSS after history fill: 18264 kB
+  RSS after clear-history: 18164 kB
+  drop: 100 kB (0.5%)
+WARN: clear-history dropped only 100 kB (0.5%) — glibc may be holding fragments
+      (this is the article's 'apparent leak' — jemalloc significantly improves it)
+PASS
+
+── Test 06: 10 concurrent panes — RSS bounded ──
+  RSS with 1 pane: 5092 kB
+  RSS with 10 panes: 5276 kB
+  growth: 184 kB
+PASS (growth < 20 MB)
+
+── Test 07: 30s sustained session, no runaway growth ──
+  RSS at T+5s: 4984 kB
+  RSS at T+30s: 4988 kB
+  growth in 25 s: 4 kB (0%)
+PASS (growth < 50% over 25 s)
+
+── Test 08: wrapper sets oom_score_adj=-500 ──
+SKIP: oom_score_adj=-500 requires either (a) root, or (b) the setcap-enabled
+      /usr/local/bin/tmx-oom-set helper. Currently running as UID 1000 and helper is not installed.
+      To enable Test 08 PASS:  (as root) bash scripts/build_oom_set.sh --install
+      See docs/guides/TMUX_OPTIMIZED_BUILD.md §8 for full options.
+
+════════════════════════════════════════════════════════════════
+  Test 09 — crash isolation invariants (per-platform per §11.4.81)
+════════════════════════════════════════════════════════════════
+
+--- T1: systemd + cgroup v2 capability ---
+PASS: T1.1: systemd 255 supports --user --scope
+PASS: T1.2: systemd-run --user --scope functional (positive evidence: transient scope created)
+
+--- T2: tmx wrapper invariants ---
+PASS: T2.1: tmx wrapper at /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx invokes systemd-run --user --scope
+PASS: T2.2: tmx wrapper sets MemoryMax (cgroup invariant)
+PASS: T2.2: tmx wrapper sets CPUQuota (cgroup invariant)
+PASS: T2.2: tmx wrapper sets TasksMax (cgroup invariant)
+PASS: T2.2: tmx wrapper sets Delegate=yes (cgroup invariant)
+
+--- T3: transient scope cgroup interface files ---
+PASS: T3.0: scope tmx-test-2745138-t3.scope registered + active
+PASS: T3.1: cgroup memory.max=268435456 bytes matches set MemoryMax (positive evidence: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/tmx-test-2745138-t3.scope/memory.max)
+PASS: T3.2: cgroup cpu.max present: 50000 100000 (positive evidence: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/tmx-test-2745138-t3.scope/cpu.max)
+
+--- T4: SIGKILL containment (user@<uid>.service must survive scope death) ---
+PASS: T4.1: scope tmx-test-2745138-t4.scope MainPID=2747019 alive
+/home/milos/Factory/projects/tools_and_research/tmux/scripts/tests/09_crash_isolation_scope.sh: line 350: 2747019 Killed                  systemd-run --user --scope --collect --quiet --unit="${TEST_NAME_T4}.scope" -p "MemoryMax=128M" -p "TasksMax=64" bash -c "exec sleep 120"
+PASS: T4.2: scope tmx-test-2745138-t4.scope cgroup.procs drained after SIGKILL — containment achieved (positive evidence per §11.4.81: cgroup.procs empty/removed after 0.0s poll; OOM-kill semantics verified on this kernel without depending on systemd's unit-state transition timing)
+PASS: T4.3: user.slice survived scope death (default.target=active throughout — Constitution §1 invariant)
+
+--- T6: concurrent scopes are independent ---
+PASS: T6.1: all 3 concurrent scopes registered + active (positive evidence: systemctl --user is-active for each)
+
+--- T7: split-topology crash isolation (TMX_SERVER_SPLIT=1) ---
+PASS: T7a.0: split session up — server pid 2750150 in tmx-tmx_t09sa_2745138.scope + workload slice active
+PASS: T7a.1: WORKLOAD KILLED, server SURVIVED — pid 2750150 alive, tmux -L tmx-tmx_t09sa_2745138 responsive (split failure-domain separation: fleet death can no longer take the interactive server down)
+PASS: T7a.2: user@<uid>.service untouched by workload kill (default.target=active)
+PASS: T7b.1: server kill drained the workload slice (no orphan fleet pids in /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/tmxw.slice/tmxw-tmx_t09sb_2745138.slice)
+PASS: T7b.2: pair teardown clean after server kill — no scope/slice left active
+PASS: T7b.3: user@<uid>.service untouched by server kill (default.target=active)
+
+════════════════════════════════════════════════════════════════
+  09_crash_isolation_scope.sh summary
+════════════════════════════════════════════════════════════════
+  PASS:  20
+  FAIL:  0
+  SKIP:  0
+
+── Test 10: hostname→color algorithm ──
+PASS: T1: deterministic — 'testhost-001' → colour87 (twice)
+PASS: T2: 'colour46' is a valid tmux 256-colour
+PASS: T3: 16/16 hostnames produced unique colours (good spread)
+PASS: T4: 'colour201' is a member of the curated palette (27 colours)
+PASS: T5: empty argument uses system hostname (→ colour226)
+
+  Tests: PASS=5  FAIL=0
+
+── Test 11: hostname colour applied by wrapper (operator-path) ──
+PASS: T1: tmx wrapper includes _apply_host_color
+PASS: T2: tmx wrapper calls hostname_color.sh
+  expected status-bg: colour226 (host: the-factory)
+PASS: T4.0: status-style bg='colour226' read from session A's server (positive evidence: tmux -L tmx-tmx_t11_a_2769376 show -g status-style)
+PASS: T4.1: status-bg 'colour226' matches expected 'colour226' (hostname-derived colour applied)
+PASS: T5: second session on different socket has SAME colour 'colour226' (positive evidence: same-host-same-colour invariant holds across servers)
+PASS: T6: wrapper did not silently produce tmux's default bg=green (positive evidence: ACTUAL='colour226' from T4)
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+
+── Test 12: memory pressure under cgroup cap ──
+SKIP: TMX_TEST_DESTRUCTIVE=1 not set — this test OOM-kills a process
+      Set TMX_TEST_DESTRUCTIVE=1 on a dedicated test host to run.
+
+── Test 13: TasksMax fork-bomb resistance (Linux branch) ──
+SKIP: TMX_TEST_DESTRUCTIVE=1 not set — this test creates 4096 processes
+      Set TMX_TEST_DESTRUCTIVE=1 on a dedicated test host to run.
+
+── Test 14: concurrent OOM independence (Linux branch, operator-path) ──
+SKIP: TMX_TEST_DESTRUCTIVE=1 not set — this test OOM-kills processes
+      Set TMX_TEST_DESTRUCTIVE=1 on a dedicated test host to run.
+
+── Test 15: per-session isolation (Linux) ──
+
+--- T1: distinct scope units per session ---
+PASS: T1: tmx-tmx_t15_a_2772179.scope and tmx-tmx_t15_b_2772179.scope both active and distinct (positive evidence: systemctl --user is-active for each)
+
+--- T2: cgroup paths differ, each contains its session's PID ---
+PASS: T2: cgroup paths differ AND each contains its own pids (positive evidence: cgroup.procs A=[2772488 2772489 ] B=[2773155 2773159 2773795 2774998 ] read from /sys/fs/cgroup)
+
+--- T3: default session is fully elastic (memory.max=max) with a MemoryMin floor ---
+PASS: T3: memory.max A=max B=max (fully elastic — never per-scope OOM-killed)
+PASS: T3b: memory.min A=134217728 (128 MiB floor — session not reclaimed to death)
+
+--- T4: cpu.max present per session ---
+PASS: T4: cpu.max A='960000 100000' B='960000 100000' (positive evidence: cpu.max readback per session)
+
+--- T5: TMX_MEM=3G sets a soft memory.high=3 GiB (throttle); memory.max stays elastic ---
+PASS: T5: TMX_MEM=3G → memory.high=3221225472 (soft throttle = 3 GiB exactly)
+PASS: T5b: TMX_MEM=3G → memory.max=max (soft throttle only — never a hard kill)
+
+--- T6: scope unit names are predictable from session name ---
+PASS: T6: all 3 sessions produced scope units named tmx-<session>.scope (operator-targetable by name)
+
+--- T7: split topology — distinct scope+slice pair per session ---
+PASS: T7: both split sessions produced their own active scope+slice PAIR (4/4 units active, names derived from session names)
+
+--- T8: pair cgroups distinct; server in scope, pane shell in slice ---
+PASS: T8: 4 distinct pair cgroups; server pid 2776413 lives in D's scope cgroup and D's slice subtree holds the pane shell (positive evidence: /proc/<pid>/cgroup + cgroup.procs)
+
+--- T9: pair teardown via the operator path ---
+PASS: T9: tmx kill-session tore down BOTH pair units per session (no lingering scope/slice)
+
+  Tests: PASS=11  FAIL=0  SKIP=0
+
+── Test 16: window-name strips .exe suffix (operator-path) ──
+PASS: T1: tmux.conf.template carries literal-dot-anchored .exe strip ('\\.exe$')
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t16_a_2779904 ls' succeeded)
+  observed: pane_current_command='t16_target.exe'  #W='t16_target'
+PASS: T2.1: pane_current_command='t16_target.exe' confirmed (defect surface is reachable in this run)
+PASS: T2.2: window name 't16_target' has .exe stripped (positive evidence: live #W read from tmx-tmx_t16_a_2779904)
+PASS: T3.0: operator-path session B created
+  observed (no-dot): pane_current_command='t16_bashexe'  #W='t16_bashexe'
+PASS: T3.1: regression guard — 't16_bashexe' (no dot) preserved as-is (positive evidence: unescaped-dot bug NOT shipping)
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+
+── Test 17: scrollback + copy-mode scrolling (operator-path) ──
+  ✓ template: history-limit 50000
+  ✓ template: mode-keys vi
+  ✓ template: WheelUpPane -> copy-mode
+  ✓ template: WheelUpPane scroll-up cmd
+  ✓ template: allow-passthrough on
+  ✓ template: extended-keys on
+PASS: T1: tmux.conf.template carries all scrollback + copy-mode + passthrough settings
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t17_2783448 ls' succeeded)
+PASS: T2.1: live server history-limit = 50000 (readback from tmx-tmx_t17_2783448)
+PASS: T2.2: live server mode-keys = vi (readback from tmx-tmx_t17_2783448)
+PASS: T2.3: live server mouse = off by default — terminal owns the mouse (tmux mouse on demand via prefix m) (readback from tmx-tmx_t17_2783448)
+PASS: T2.4: live server allow-passthrough = on (Claude Code TUI passthrough)
+PASS: T2.5: live server extended-keys = on (Shift+Enter reaches the app)
+PASS: T3: live WheelUpPane binding drives copy-mode scroll-up (override active, not tmux default)
+PASS: T4.1: SCROLLMARK_FIRST scrolled off the visible screen (defect surface real; LAST is visible)
+PASS: T4.2: scrollback retained line 1 of 3000 — live history_size=2982 >= 2900 (history-limit 50000 functional; OLD 2000 cap pins history_size at 2000 and evicts line 1) [race-free #{history_size}]
+PASS: T4.3a: copy-mode entered (pane_in_mode=1)
+PASS: T4.3b: copy-mode search reached the old content (scroll_position=2982 lines up)
+PASS: T4.4: operator scrolled to + copied line 1 of 3000 via copy-mode (show-buffer carries SCROLLMARK_FIRST)
+
+  Tests: PASS=13  FAIL=0  SKIP=0
+
+── Test 18: HelixConstitution inheritance gate ──
+  constitution dir: /home/milos/Factory/projects/tools_and_research/tmux/constitution
+PASS: T1: constitution submodule populated (Constitution.md + CLAUDE.md + AGENTS.md present)
+PASS: T2: .gitmodules records constitution submodule with an SSH URL (no-HTTPS rule honored)
+PASS: T2b: constitution submodule initialized at 1d81ef07b4120aa7466129ea3f5d0d3279c3bec7
+PASS: T3: §11.4 End-user Quality Guarantee anchor present in constitution/Constitution.md
+PASS: T4: verbatim anti-bluff user mandate present in constitution/Constitution.md
+PASS: T5: project Constitution.md declares it extends constitution/Constitution.md
+PASS: T6: project CLAUDE.md carries the INHERITED-FROM block and @constitution/CLAUDE.md import
+PASS: T7: project AGENTS.md references constitution/AGENTS.md
+PASS: T8: project QWEN.md present and references constitution/QWEN.md
+PASS: T9: project Constitution.md §101 anti-bluff covenant binding intact
+
+  Tests: PASS=10  FAIL=0  SKIP=0
+
+PASS: T1: verbatim covenant present in /home/milos/Factory/projects/tools_and_research/tmux/Constitution.md
+PASS: T2: verbatim covenant present in /home/milos/Factory/projects/tools_and_research/tmux/CLAUDE.md
+PASS: T3: verbatim covenant present in /home/milos/Factory/projects/tools_and_research/tmux/AGENTS.md
+PASS: T4: verbatim covenant present in /home/milos/Factory/projects/tools_and_research/tmux/QWEN.md
+PASS: T5: §11.4 / §101 authority cross-reference present in all 4 files (positive evidence: 4/4 grep hits)
+PASS: T6: upstream constitution/Constitution.md retains verbatim covenant
+  §11.4.65 export-sync soft check (governance docs):
+PASS: T7: governance HTML+PDF exports in sync with their .md sources
+
+  Tests: PASS=7  FAIL=0  SKIP=0
+
+PASS: T1: codegraph CLI on PATH, version=1.4.1 ≥ 0.6.0 (positive evidence: codegraph --version)
+PASS: T2: /home/milos/Factory/projects/tools_and_research/tmux/.codegraph/config.json present and valid JSON (positive evidence: python3 json.load)
+PASS: T3: §11.4.10 secret/third-party patterns excluded; §11.4.79 own-org submodules NOT excluded (positive evidence: 12 must-exclude + 2 must-include patterns verified via python json parse)
+PASS: T4: .gitignore covers .codegraph/codegraph.db (positive evidence: grep hit on literal line)
+PASS: T5: §11.4.77 manifest + executable regen script scripts/codegraph_reindex.sh (positive evidence: file readable, declared script path resolves)
+
+  Tests: PASS=5  FAIL=0  SKIP=0
+
+PASS: T1: codegraph.db present (positive evidence: file exists)
+PASS: T2: codegraph.db size = 31637504 bytes > 4 KB SQLite minimum (positive evidence: wc -c readback)
+PASS: T3: codegraph status reports 13 nodes (positive runtime evidence per §11.4.5)
+PASS: T4: §11.4.77 regen stamp present, recorded node_count=13 (positive evidence: stamp file)
+
+  Tests: PASS=4  FAIL=0  SKIP=0
+
+=== CodeGraph MCP wiring per CLI agent (§11.4.78) ===
+PASS: T1 Claude Code (project): codegraph MCP server wired in /home/milos/Factory/projects/tools_and_research/tmux/.mcp.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T2 OpenCode (host): codegraph MCP server wired in /home/milos/.config/opencode/opencode.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T3 Kimi CLI (host): codegraph MCP server wired in /home/milos/.kimi/mcp.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T4 Crush (project): codegraph MCP server wired in /home/milos/Factory/projects/tools_and_research/tmux/.crush.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T5 Qwen Code (project): codegraph MCP server wired in /home/milos/Factory/projects/tools_and_research/tmux/.qwen/settings.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T6: bare 'codegraph' resolves on PATH to /home/milos/.nvm/versions/node/v24.18.0/bin/codegraph (positive evidence: command -v)
+PASS: T7: codegraph serve --mcp spawns + stays alive (positive evidence: process alive after 400ms then terminated cleanly)
+
+  Tests: PASS=7  FAIL=0  SKIP=0
+
+PASS: T1: tmx new -s t23_kill_2785648 -d succeeded
+PASS: T2: tmx ls shows 't23_kill_2785648' (positive evidence: tmx ls output)
+PASS: T3: tmx kill -t t23_kill_2785648 resolved (no 'ambiguous' stderr; AUDIT-2 fix active)
+PASS: T4: 't23_kill_2785648' removed from tmx ls within poll budget (positive evidence: post-kill listing absent)
+PASS: T5: tmux server on socket tmx-t23_kill_2785648 terminated within poll budget (positive evidence: direct -L socket query empty)
+
+  Tests: PASS=5  FAIL=0  SKIP=0
+
+── Test 24: Linux cgroup CPUQuota enforcement ──
+PASS: L-T1: CPUQuota=10% throttled loop (cap iters=133 < 2× unrestricted ref=472 over 4s — positive evidence: CPU bounded by cgroup)
+
+  Tests: PASS=1 FAIL=0 SKIP=0
+
+  nezha    → colour88 = [135, 0, 0]
+  Mistborn → colour44 = [0, 215, 215]
+PASS: T1: nezha=colour88 vs Mistborn=colour44 — RGB distance=332.7 ≥ 80 (positive evidence per §11.4.5: operator-reported pair now perceptually distinct)
+PASS: T2: 16-synthetic-hostname pairwise — min=0.0, mean=226.0, collisions=4/120 ≤ 6 pigeonhole tolerance (positive evidence: palette spreads ≤ ceil(C(16,2)/27)+margin)
+PASS: T3: palette adjacency — size=27, min-adjacent-distance=120.0 ≥ 80 (positive evidence: no consecutive palette entries collide)
+
+  Tests: PASS=3 FAIL=0 SKIP=0
+
+  expected colour: colour226 (from hostname )
+PASS: T1: status-style live carries bg=colour226 (positive evidence: 'bg=colour226')
+PASS: T2: pane-active-border-style live carries fg=colour226 (positive evidence: 'fg=colour226')
+PASS: T3: clock-mode-colour live = colour226 (positive evidence: prefix+t clock face matches hostname colour)
+PASS: T4: window-status-current-style live carries bg=colour226 (positive evidence: 'bg=colour226,fg=black')
+PASS: T5: ALL four default-green tmux UI surfaces carry the hostname-derived colour226 — UI uniformly recoloured per operator mandate (positive evidence: four independent show -gv readbacks above)
+
+  Tests: PASS=5 FAIL=0 SKIP=0
+
+[evidence] iter=1 iter=1 recall1=/tmp/.private/milos/tmx-test-18-target-2791625 pane_path=/tmp/.private/milos/tmx-test-18-target-2791625 recall2=/tmp/.private/milos/tmx-test-18-hook-2791625-1
+[evidence] iter=2 iter=2 recall1=/tmp/.private/milos/tmx-test-18-target-2791625 pane_path=/tmp/.private/milos/tmx-test-18-target-2791625 recall2=/tmp/.private/milos/tmx-test-18-hook-2791625-2
+[evidence] iter=3 iter=3 recall1=/tmp/.private/milos/tmx-test-18-target-2791625 pane_path=/tmp/.private/milos/tmx-test-18-target-2791625 recall2=/tmp/.private/milos/tmx-test-18-hook-2791625-3
+[evidence] HOST_OS=Linux reliability_hash=a76da7fe14f025c5fd38422af570b8cdde7d6315
+PASS 18 tmx-state cwd persistence end-to-end (3/3 iterations identical, hook updated state)
+
+[evidence] iter=1 rc=0 before=0 after=0 stdout_empty=no
+[evidence] iter=2 rc=0 before=0 after=0 stdout_empty=no
+[evidence] iter=3 rc=0 before=0 after=0 stdout_empty=no
+[evidence] reliability_hash=fa7d7f27d7d0b412acffa8472ba36d66e2cf040c
+PASS 19 tmx-shell-init: 'default' input skips tmx cleanly (3/3 iterations)
+
+[evidence] iter=1 rc=0 before=0 after=0 stdout_empty=no
+[evidence] iter=2 rc=0 before=0 after=0 stdout_empty=no
+[evidence] iter=3 rc=0 before=0 after=0 stdout_empty=no
+[evidence] reliability_hash=020584a6e481e39a9a929d7b98e318cfd8089555
+PASS 20 tmx-shell-init: blank input skips tmx cleanly (3/3 iterations)
+
+[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=1 elapsed_ms=28 rc=0 no_prompt=yes no_session=yes
+[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=2 elapsed_ms=29 rc=0 no_prompt=yes no_session=yes
+[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=3 elapsed_ms=27 rc=0 no_prompt=yes no_session=yes
+[evidence] HOST_OS=Linux reliability_hash=f47384843d753c1e15005ed10c2529a8d54f89ae
+PASS 21 tmx-shell-init: non-TTY stdin silent-skips fast (3/3 iterations, Linux)
+
+[evidence] iter=1 would_exec=ok session_listed='tmx-test-22-work-2803379: 1 windows (created Thu Jul 23 02:05:44 2026)' install_script_command_prefix=ok
+[evidence] iter=2 would_exec=ok session_listed='tmx-test-22-work-2803379: 1 windows (created Thu Jul 23 02:05:46 2026)' install_script_command_prefix=ok
+[evidence] iter=3 would_exec=ok session_listed='tmx-test-22-work-2803379: 1 windows (created Thu Jul 23 02:05:48 2026)' install_script_command_prefix=ok
+[evidence] HOST_OS=Linux reliability_hash=474b3eb68edaccaeff406df6a715386124c667d6
+PASS 22 tmx-ssh-dispatch: local loopback creates session (3/3 iterations)
+
+SKIP 23: remote tests require TMX_TEST_REMOTE=1 (opt-in, network-heavy)
+
+[evidence] iter=1 list_count=10 json_ok n=10 keys=k1,k10,k2,k3,k4,k5,k6,k7,k8,k9
+[evidence] iter=2 list_count=10 json_ok n=10 keys=k1,k10,k2,k3,k4,k5,k6,k7,k8,k9
+[evidence] iter=3 list_count=10 json_ok n=10 keys=k1,k10,k2,k3,k4,k5,k6,k7,k8,k9
+[evidence] HOST_OS=Linux reliability_hash=ed93e8e75fc1ffe923fabfddeef13c1fe0015f40
+PASS 24 tmx-state-bin: 10 concurrent record writes serialised, JSON intact (3/3 iterations)
+
+[evidence] iter=1 run1_bytes=2602 run2_bytes=2602 filtered_diff_empty=yes
+[evidence] iter=2 run1_bytes=2602 run2_bytes=2602 filtered_diff_empty=yes
+[evidence] iter=3 run1_bytes=2602 run2_bytes=2602 filtered_diff_empty=yes
+[evidence] reliability_hash=dace162d798dd063215ae5618f0491d80da30a57
+PASS 25 tmx-ssh-install --dry-run idempotent (3/3 iterations)
+
+[evidence] iter=1 cases_tested=10 all_sanitized=yes
+[evidence] iter=2 cases_tested=10 all_sanitized=yes
+[evidence] iter=3 cases_tested=10 all_sanitized=yes
+[evidence] reliability_hash=96f5f9424c5387dd3f39ecb9f66ba2fb7f547dee
+PASS 35 session-name sanitization normalizes 10 inputs (3/3 iterations)
+
+[evidence] iter=1 bad_cmds_tested=8 all_rejected=yes no_exec_branch=yes
+[evidence] iter=2 bad_cmds_tested=8 all_rejected=yes no_exec_branch=yes
+[evidence] iter=3 bad_cmds_tested=8 all_rejected=yes no_exec_branch=yes
+[evidence] reliability_hash=563077f91712a22417c0a80310406b7dd77bc605
+PASS 36 dispatcher rejects 8 multi-word/injection commands (3/3 iterations)
+
+[evidence] iter=1 rc=0 out_empty=yes session_count=0
+[evidence] iter=2 rc=0 out_empty=yes session_count=0
+[evidence] iter=3 rc=0 out_empty=yes session_count=0
+[evidence] reliability_hash=4fdee34ee3891761500433e7c3367a35263cbc68
+PASS 28 tmx-shell-init: $TMUX set → silent skip (3/3 iterations)
+
+[evidence] iter=1 stale_notice=present pane_path=/home/milos home_real=/home/milos match=yes
+[evidence] iter=2 stale_notice=present pane_path=/home/milos home_real=/home/milos match=yes
+[evidence] iter=3 stale_notice=present pane_path=/home/milos home_real=/home/milos match=yes
+[evidence] HOST_OS=Linux reliability_hash=45cb2863a3af254eb7245ed01af3191f908114cf
+PASS 29 wrapper falls back to $HOME when stale recalled cwd missing (3/3 iterations)
+
+[evidence] Linux: chmod 000 denies even owner read/write on ext4/btrfs iter=1 state_rc=1 state_err='tmx-state record: mkdir /home/milos/.tmx-test-30-guard-2814280/leaf: mkdir /home/milos/.tmx-test-30-guard-2814280/leaf: permission denied' wrapper_intact=yes
+[evidence] Linux: chmod 000 denies even owner read/write on ext4/btrfs iter=2 state_rc=1 state_err='tmx-state record: mkdir /home/milos/.tmx-test-30-guard-2814280/leaf: mkdir /home/milos/.tmx-test-30-guard-2814280/leaf: permission denied' wrapper_intact=yes
+[evidence] Linux: chmod 000 denies even owner read/write on ext4/btrfs iter=3 state_rc=1 state_err='tmx-state record: mkdir /home/milos/.tmx-test-30-guard-2814280/leaf: mkdir /home/milos/.tmx-test-30-guard-2814280/leaf: permission denied' wrapper_intact=yes
+[evidence] HOST_OS=Linux reliability_hash=bd19785fdde724f45ae3a7b698142da63a36dd75 iters_passed=3 iters_skipped=0
+PASS 30 tmx-state errors on unwritable dir, wrapper unaffected (3/3 iterations)
+
+[evidence] iter=1 HOST_OS=Linux Linux systemd_run=present state_bin_ver='tmx-state v1.2.0'
+[evidence] iter=2 HOST_OS=Linux Linux systemd_run=present state_bin_ver='tmx-state v1.2.0'
+[evidence] iter=3 HOST_OS=Linux Linux systemd_run=present state_bin_ver='tmx-state v1.2.0'
+[evidence] uname=Linux reliability_hash=936a0485c7fc750f17939a94dc6f7173c3a6eac9
+PASS 31 §11.4.81 cross-platform parity: per-OS positive evidence captured (3/3 iterations, Linux)
+
+[evidence] iter=1 doc=docs/guides/tmx-shell-integration.md md_mtime=1783239556 html_mtime=1784746248 pdf_mtime=1783239556 md_size=15704 html_size=35005 pdf_size=58316
+[evidence] iter=1 doc=docs/guides/tmx-state.md md_mtime=1782721243 html_mtime=1784746282 pdf_mtime=1782721243 md_size=9944 html_size=28009 pdf_size=48142
+[evidence] iter=1 doc=docs/guides/tmx-ssh-dispatch.md md_mtime=1782721243 html_mtime=1782721243 pdf_mtime=1782721243 md_size=15736 html_size=31504 pdf_size=53985
+[evidence] iter=1 doc=docs/manual/tmx-shell-integration.md md_mtime=1782721243 html_mtime=1782721243 pdf_mtime=1782721243 md_size=19907 html_size=46673 pdf_size=64735
+[evidence] iter=2 doc=docs/guides/tmx-shell-integration.md md_mtime=1783239556 html_mtime=1784746248 pdf_mtime=1783239556 md_size=15704 html_size=35005 pdf_size=58316
+[evidence] iter=2 doc=docs/guides/tmx-state.md md_mtime=1782721243 html_mtime=1784746282 pdf_mtime=1782721243 md_size=9944 html_size=28009 pdf_size=48142
+[evidence] iter=2 doc=docs/guides/tmx-ssh-dispatch.md md_mtime=1782721243 html_mtime=1782721243 pdf_mtime=1782721243 md_size=15736 html_size=31504 pdf_size=53985
+[evidence] iter=2 doc=docs/manual/tmx-shell-integration.md md_mtime=1782721243 html_mtime=1782721243 pdf_mtime=1782721243 md_size=19907 html_size=46673 pdf_size=64735
+[evidence] iter=3 doc=docs/guides/tmx-shell-integration.md md_mtime=1783239556 html_mtime=1784746248 pdf_mtime=1783239556 md_size=15704 html_size=35005 pdf_size=58316
+[evidence] iter=3 doc=docs/guides/tmx-state.md md_mtime=1782721243 html_mtime=1784746282 pdf_mtime=1782721243 md_size=9944 html_size=28009 pdf_size=48142
+[evidence] iter=3 doc=docs/guides/tmx-ssh-dispatch.md md_mtime=1782721243 html_mtime=1782721243 pdf_mtime=1782721243 md_size=15736 html_size=31504 pdf_size=53985
+[evidence] iter=3 doc=docs/manual/tmx-shell-integration.md md_mtime=1782721243 html_mtime=1782721243 pdf_mtime=1782721243 md_size=19907 html_size=46673 pdf_size=64735
+[evidence] HOST_OS=Linux doc_count=4 reliability_hash=f4b18207bec4854956314aed69d9f33aa6c50e76
+PASS 41 v1.0.9 user guides + master manual render (4 docs × {md,html,pdf} verified, 3/3 iterations identical, §11.4.65)
+
+PASS: iter=1 A1: tmx-shell-init.sh present + exec + placeholders resolved
+PASS: iter=1 A2: rc has exactly 1 source line for tmx-shell-init.sh
+PASS: iter=1 A3: rc has exactly 1 fenced block
+PASS: iter=1 A4: init reached tmx invocation (1 call(s) logged)
+PASS: iter=1 B1: rc fenced block removed
+PASS: iter=1 B2: legacy unfenced snippet removed
+PASS: iter=1 B3: init file removed
+PASS: iter=2 A1: tmx-shell-init.sh present + exec + placeholders resolved
+PASS: iter=2 A2: rc has exactly 1 source line for tmx-shell-init.sh
+PASS: iter=2 A3: rc has exactly 1 fenced block
+PASS: iter=2 A4: init reached tmx invocation (1 call(s) logged)
+PASS: iter=2 B1: rc fenced block removed
+PASS: iter=2 B2: legacy unfenced snippet removed
+PASS: iter=2 B3: init file removed
+PASS: iter=3 A1: tmx-shell-init.sh present + exec + placeholders resolved
+PASS: iter=3 A2: rc has exactly 1 source line for tmx-shell-init.sh
+PASS: iter=3 A3: rc has exactly 1 fenced block
+PASS: iter=3 A4: init reached tmx invocation (1 call(s) logged)
+PASS: iter=3 B1: rc fenced block removed
+PASS: iter=3 B2: legacy unfenced snippet removed
+PASS: iter=3 B3: init file removed
+[evidence] iters_completed=3 reliability_hash=9b49b4f1b37b94bdcbd58277a06f55fd33e2ebc4
+
+  Tests: PASS=21  FAIL=0  SKIP=0
+PASS 42 setup install/uninstall E2E — tmx-shell-init.sh present, rc snippet 1×, fake-tmx invoked, uninstall removes all 3 artefacts (3/3 iterations)
+
+PASS: iter=1 A1: tmx new spawned session, PID=2816603
+PASS: iter=1 A2+A3: cd took effect, PROMPT_COMMAND fired, tmx-state recall='/tmp/.private/milos/t43-target-2816515'
+PASS: iter=1 A4: shell exit destroyed the session as expected
+PASS: iter=1 A5: state file preserved cwd after session death (recall='/tmp/.private/milos/t43-target-2816515')
+PASS: iter=1 B1+B3: reopened session, pane_current_path='/tmp/.private/milos/t43-target-2816515' (cwd correctly restored)
+PASS: iter=2 A1: tmx new spawned session, PID=2817192
+PASS: iter=2 A2+A3: cd took effect, PROMPT_COMMAND fired, tmx-state recall='/tmp/.private/milos/t43-target-2816515'
+PASS: iter=2 A4: shell exit destroyed the session as expected
+PASS: iter=2 A5: state file preserved cwd after session death (recall='/tmp/.private/milos/t43-target-2816515')
+PASS: iter=2 B1+B3: reopened session, pane_current_path='/tmp/.private/milos/t43-target-2816515' (cwd correctly restored)
+PASS: iter=3 A1: tmx new spawned session, PID=2817541
+PASS: iter=3 A2+A3: cd took effect, PROMPT_COMMAND fired, tmx-state recall='/tmp/.private/milos/t43-target-2816515'
+PASS: iter=3 A4: shell exit destroyed the session as expected
+PASS: iter=3 A5: state file preserved cwd after session death (recall='/tmp/.private/milos/t43-target-2816515')
+PASS: iter=3 B1+B3: reopened session, pane_current_path='/tmp/.private/milos/t43-target-2816515' (cwd correctly restored)
+[evidence] HOST_OS=Linux iters_completed=3 reliability_hash=db9f614b4af984991745cbfbc61b2a13e3c8f8b2
+
+  Tests: PASS=15  FAIL=0  SKIP=0
+PASS 43 cwd persistence across exit+reopen — operator scenario verified end-to-end (3/3 iterations identical hash)
+
+── Test 44: clipboard copy-OUT physical proof (operator-path) ──
+  marker: CLIPMARK_2817913_1784754370
+  clipboard tool: (none)
+  ✓ template: @clip user option present
+  ✓ template: copy-mode-vi y -> copy-pipe
+  ✓ template: copy-mode-vi Enter -> copy-pipe
+  ✓ template: MouseDragEnd1Pane -> copy-pipe
+PASS: T1: tmux.conf.template carries @clip + y / Enter / MouseDragEnd1Pane bindings
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t44_2817913 ls' succeeded)
+PASS: T2.1: live copy-mode-vi y binding routes selection through @clip (operator key path active)
+PASS: T2.2: live MouseDragEnd1Pane routes selection through @clip (operator mouse path active)
+PASS: T3: direct @clip copy-pipe routed selection into tmux's own buffer (binding chain proven)
+PASS: T4: pressing the 'y' key in copy-mode routed the selection (bind table active end-to-end)
+SKIP: T5: no system clipboard tool reachable (host=Linux, no Wayland/X11/Termux); T3/T4 binding chain proof suffices for this environment
+
+  Tests: PASS=6  FAIL=0  SKIP=1
+
+── Test 45: MULTI-LINE copy physical proof (operator-path) ──
+  markers: MLMARK_2819793_1784754375_A MLMARK_2819793_1784754375_B MLMARK_2819793_1784754375_C MLMARK_2819793_1784754375_D MLMARK_2819793_1784754375_E MLMARK_2819793_1784754375_F
+  clipboard tool: (none)
+  ✓ template: @clip user option
+  ✓ template: copy-mode-vi v -> begin-sel
+  ✓ template: copy-mode-vi y -> copy-pipe
+PASS: T1: tmux.conf.template carries multi-line selection bindings (v + y + @clip)
+PASS: T2.0: operator-path session created
+PASS: T2.1: all 6 markers printed into the pane scrollback
+PASS: T3.1: copy-mode entered (pane_in_mode=1)
+PASS: T4: multi-line @clip copy-pipe routed all 6 markers into tmux buffer (binding chain proven)
+SKIP: T5: no system clipboard tool reachable (host=Linux, no Wayland/X11/Termux); T4 multi-line buffer proof suffices
+
+  Tests: PASS=5  FAIL=0  SKIP=1
+
+── Test 46: PASTE-INTO from OS clipboard physical proof (operator-path) ──
+SKIP: T0: no system clipboard tool reachable (host=Linux) — paste-IN cannot be physically validated; T1 binding-presence still tested below
+  marker: PASTEMARK_2821482_1784754380
+  clipboard tool: (none)
+  ✓ template: @clip-read user option
+  ✓ template: prefix+P bind to paste
+PASS: T1: tmux.conf.template carries @clip-read + prefix+P paste binding
+PASS: T2.0: operator-path session created
+PASS: T2.1: live server has @clip-read user-option set
+PASS: T2.2: live prefix+P binding present (paste-IN keystroke path active)
+SKIP: T3: no OS clipboard tool — paste-IN physical proof cannot run (T1/T2 binding-presence still verify the wiring)
+PASS: T4: prefix+P bind performs an OS-adaptive clipboard read (POSIX, no '<<<') and pastes via buffer
+
+  Tests: PASS=5  FAIL=0  SKIP=2
+
+── Test 47: scroll inside alt-screen + mouse-tracking TUI (operator-path) ──
+PASS: T1: synthetic_alt_screen_app.py compiles (helper structurally valid)
+PASS: T2: tmux.conf.template carries WheelUpPane copy-mode override
+PASS: T3.0: operator-path session created
+PASS: T3.1: synthetic alt-screen helper running (READY marker captured from alt buffer)
+PASS: T4.1: pane alternate_on=1 — alt-screen surface confirmed
+PASS: T4.2: pane mouse_any_flag=1 — Claude-Code-like mouse tracking surface confirmed
+PASS: T5: copy-mode engaged inside alt-screen+mouse-any-flag pane (WheelUp override action works in hostile environment)
+PASS: T6: live WheelUpPane binding overrides tmux default — drives copy-mode unconditionally even under mouse-tracking
+
+  Tests: PASS=8  FAIL=0  SKIP=0
+
+── Test 48: Alt-drag + Shift-drag override for selection (operator-path) ──
+  markers: DRAGMARK_2826170_1784754387_A DRAGMARK_2826170_1784754387_B DRAGMARK_2826170_1784754387_C DRAGMARK_2826170_1784754387_D DRAGMARK_2826170_1784754387_E DRAGMARK_2826170_1784754387_F
+  clipboard tool: (none)
+  ✓ template: M-MouseDrag1Pane override
+  ✓ template: S-MouseDrag1Pane override
+  ✓ template: M-MouseDragEnd1Pane pipe
+  ✓ template: S-MouseDragEnd1Pane pipe
+PASS: T1: tmux.conf.template carries Alt-drag + Shift-drag overrides (both modifier paths)
+PASS: T2.0: operator-path session created
+PASS: T2.1: live M-MouseDrag1Pane binding drives copy-mode
+PASS: T2.2: live S-MouseDrag1Pane binding drives copy-mode
+PASS: T2.3: live M-MouseDragEnd1Pane binding routes selection through @clip
+PASS: T2.4: live S-MouseDragEnd1Pane binding routes selection through @clip
+PASS: T3: keyboard-equivalent of modifier-drag (v + cursor-down -N 5 + copy-pipe @clip) routes 6 markers into tmux buffer
+PASS: T4: M-MouseDrag1Pane override survives mouse_any_flag=1 surface (Claude-Code-like)
+SKIP: T5: no system clipboard tool reachable (host=Linux); T3 multi-marker buffer proof suffices
+
+  Tests: PASS=8  FAIL=0  SKIP=1
+
+── Test 49: tmx-shell-init non-TTY guard SPECIFIC layer-4 isolation ──
+PASS 49: T0 template present at /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx-shell-init.sh.template
+PASS 49: T1 template guard + marker present
+[evidence 49] iter=1 rc=0 marker="tmx-shell-init: non-TTY guard fired (stdin/stdout not a TTY) — skipping interactive prompt"
+[evidence 49] iter=2 rc=0 marker="tmx-shell-init: non-TTY guard fired (stdin/stdout not a TTY) — skipping interactive prompt"
+[evidence 49] iter=3 rc=0 marker="tmx-shell-init: non-TTY guard fired (stdin/stdout not a TTY) — skipping interactive prompt"
+PASS 49: T2 + T3 marker fired on 3/3 iterations (identical evidence) on Linux
+── summary 49: PASS=3 FAIL=0 SKIP=0 ──
+
+── Test 50: cwd-capture hook AUTO-INSTALL via tmx.template ──
+PASS 50: T0 wrapper + tmux + tmx-state-bin all present
+PASS 50: T1 tmx.template auto-install block + tmx-state-bin record present
+PASS 50: T1 generated wrapper carries the auto-install block
+[evidence 50] iter=1 client-detached: client-detached[0] run-shell "/home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx-state-bin record tmx_t50_2828605 #{pane_current_path}"
+[evidence 50] iter=1 session-closed:  session-closed[0] run-shell "/home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx-state-bin record tmx_t50_2828605 #{pane_current_path}"
+[evidence 50] iter=2 client-detached: client-detached[0] run-shell "/home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx-state-bin record tmx_t50_2828605 #{pane_current_path}"
+[evidence 50] iter=2 session-closed:  session-closed[0] run-shell "/home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx-state-bin record tmx_t50_2828605 #{pane_current_path}"
+[evidence 50] iter=3 client-detached: client-detached[0] run-shell "/home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx-state-bin record tmx_t50_2828605 #{pane_current_path}"
+[evidence 50] iter=3 session-closed:  session-closed[0] run-shell "/home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx-state-bin record tmx_t50_2828605 #{pane_current_path}"
+PASS 50: T2 + T3 both hooks auto-installed on 3/3 iterations (identical evidence) on Linux
+── summary 50: PASS=4 FAIL=0 SKIP=0 ──
+
+── Test 51: workable-items DB integrity (§11.4.93 / §11.4.95) ──
+SKIP 51: T0 workable-items binary not built at /home/milos/Factory/projects/tools_and_research/tmux/cmd/workable-items/workable-items (run: cd cmd/workable-items && go build)
+── summary 51: PASS=0 FAIL=0 SKIP=1 ──
+
+── Test 52: §11.4.99 Sources-verified footer presence ──
+PASS 52: T0 docs/ root present
+PASS 52: T1 + T2 + T3 all 3 guarded docs carry valid Sources-verified footer (≤180d)
+[evidence 52] docs/guides/clipboard.md verified=2026-06-13 age=40d
+[evidence 52] docs/workable-items/README.md verified=2026-05-28 age=56d
+[evidence 52] docs/scripts/workable-items.md verified=2026-05-28 age=56d
+PASS 52: T4 §11.4.50 deterministic across 3 iterations (hash=5ab8b3ae38153e03cf35a8dc1c6b91794b06e15a)
+── summary 52: PASS=3 FAIL=0 SKIP=0 (threshold=2026-01-24) ──
+
+EVIDENCE prompt_count=1
+PASS: 54 double-prompt idempotent — exactly 1 prompt per shell process
+
+EVIDENCE: prefix+m mouse-toggle binding present
+EVIDENCE: mouse option flips ('mouse on' -> 'mouse off')
+EVIDENCE: Shift-drag root override present
+EVIDENCE: plain-drag override present (root MouseDrag1Pane -> copy-mode, not app-forward)
+EVIDENCE: copy-pipe delivered selection (ate.lock"echo MOUSE52_COPY_PROOF_8675309)
+PASS: 55 mouse toggle + copy usable (prefix+m flips mouse; Shift-drag override; copy-pipe delivers)
+
+EVIDENCE: mouse_any_flag=1 at drag time (mouse-tracking app active — Claude Code scenario)
+EVIDENCE: plain drag copied the token to @clip sink (AGPROOF_2834655_1784754406 DRAGPROOF_2834655_178)
+SKIP-layer: 56 GUI cliclick proof not run (opt-in TMX_GUI_TESTS=1 on macOS w/ cliclick); headless SGR proof is the cross-platform authority (§11.4.3)
+PASS: 56 plain mouse-drag selects+copies inside a mouse-tracking app (Claude Code scenario), cross-platform
+
+EVIDENCE (0): shipped conf defines the prefix-P paste binding ('bind P run ... load-buffer')
+EVIDENCE (A): STALE session (old binding) — plain drag copied NOTHING (reproduces the reported failure)
+EVIDENCE (B): after reload — plain drag SELECTED+COPIED (05 RELOADED_2836205 RELOADED_283); binding now copy-mode override
+EVIDENCE (C): PASTE — tmux buffer pasted into the live pane (capture-pane shows 'PASTEPROOF_2836205')
+SKIP-layer: 57(D) OS-clipboard prefix-P chain (needs a GUI clipboard; headless Linux has none) — §11.4.3; binding POSIX-correctness guarded in (E)
+EVIDENCE (E): paste binding is POSIX (pipe to load-buffer, no '<<<', no #{@clip-read} nesting)
+PASS: 57 reload + select + copy + paste — stale session repro, reload-fixes-copy, and paste all proven
+
+EVIDENCE (1): operator-path 'tmx new -s tmxcp58_2839923' PLAIN shell (mouse_any_flag=0) — real mouse drag over shell output SELECTED+COPIED (SCOPY58_2839923LSCOPY58_2839923LSCOPY58_)
+EVIDENCE (2): 'tmx attach' reloaded config — stale forwarding binding -> current copy-mode override (re-opening an old session is no longer stuck broken)
+PASS: 58 operator-path select+copy in a plain ls session + attach-reload of stale sessions
+
+EVIDENCE: shipped conf default is 'set -g mouse off' (terminal owns the mouse)
+EVIDENCE: default attach emitted 0 mouse-enable DECSET (?1000h/?1002h/?1006h) — native selection + right-click->Copy + native scroll UNOBSTRUCTED
+EVIDENCE: after 'prefix m' tmux emitted 3 mouse-enable DECSET — tmux scrollback + drag-copy available on demand
+PASS: 59 native terminal mouse is unobstructed by default (select + right-click->Copy + scroll), tmux mouse on demand via prefix m
+
+── Test 60: wrapper TMUX_BIN validity — §11.4.135 F1 regression guard ──
+[evidence 60-T1] TMUX_BIN=/home/milos/Factory/projects/tools_and_research/tmux/tmux/build/bin/tmux exists+executable
+PASS 60: T1 — scripts/tmx TMUX_BIN points at a valid executable
+[evidence 60-T2 iter=1] RED reproduced: wrapper exec hit MISSING TMUX_BIN — 'No such file or directory' naming /tmp/.private/milos/tmxg.2843875/definitely/missing/tmux-binary-xyz (rc=ALIVE)
+[evidence 60-T2 iter=1] captured="tmx: failed to create session "HelixCode" — the tmux server did not come up.\ntmx: tmux reported:\n      Failed to find executable /tmp/.private/milos/tmxg.2843875/definitely/missing/tmux-binary-xyz: No such file or di"
+[evidence 60-T2 iter=2] RED reproduced: wrapper exec hit MISSING TMUX_BIN — 'No such file or directory' naming /tmp/.private/milos/tmxg.2843875/definitely/missing/tmux-binary-xyz (rc=ALIVE)
+[evidence 60-T2 iter=2] captured="tmx: failed to create session "HelixCode" — the tmux server did not come up.\ntmx: tmux reported:\n      Failed to find executable /tmp/.private/milos/tmxg.2843875/definitely/missing/tmux-binary-xyz: No such file or di"
+[evidence 60-T2 iter=3] RED reproduced: wrapper exec hit MISSING TMUX_BIN — 'No such file or directory' naming /tmp/.private/milos/tmxg.2843875/definitely/missing/tmux-binary-xyz (rc=ALIVE)
+[evidence 60-T2 iter=3] captured="tmx: failed to create session "HelixCode" — the tmux server did not come up.\ntmx: tmux reported:\n      Failed to find executable /tmp/.private/milos/tmxg.2843875/definitely/missing/tmux-binary-xyz: No such file or di"
+PASS 60: T2 — RED: bad TMUX_BIN makes the wrapper exec a MISSING binary ('No such file or directory') — the F1 terminal-crash mechanism — 3/3 iters
+[evidence 60-T3 iter=1] GREEN: server up (session 'tmxg60_2843875_1' listed), operator path emitted NO 'No such file or directory' (rc=ALIVE)
+[evidence 60-T3 iter=2] GREEN: server up (session 'tmxg60_2843875_2' listed), operator path emitted NO 'No such file or directory' (rc=ALIVE)
+[evidence 60-T3 iter=3] GREEN: server up (session 'tmxg60_2843875_3' listed), operator path emitted NO 'No such file or directory' (rc=ALIVE)
+PASS 60: T3 — GREEN: real wrapper creates the session + operator path does NOT crash 3/3 iters
+── summary 60: PASS=3 FAIL=0 SKIP=0 ──
+
+── Test 61: no libtinfo symbol-version warning (cross-distro guard) ──
+EVIDENCE (T1): 'tmux 3.6a' invoked 3× — clean stderr, 0 loader version-warnings
+PASS: T1 — binary emits no dynamic-loader version/compat warning (Linux)
+EVIDENCE (T2): ldd shows 0 libtinfo.so deps; objdump shows 0 NCURSES6_TINFO versioned refs — tinfo linked statically
+PASS: T2 — tinfo is statically linked (no host libtinfo.so dependency)
+EVIDENCE (T3): DT_NEEDED still lists libjemalloc.so —  NEEDED libjemalloc.so.2
+PASS: T3 — jemalloc dynamic linkage preserved (static-tinfo fix did not regress it)
+
+  Tests: PASS=3  FAIL=0  SKIP=0
+
+SKIP: 62 remote distribution test requires TMX_TEST_REMOTE=1 (opt-in — deploys a real container on a remote host)
+
+── Test 63: per-session color (operator-path) ──
+PASS: T1 name:red → bg=red
+PASS: T2 name:#hex → bg=#3b82f6
+PASS: T3 all-4-surfaces blue
+PASS: T4 persisted color wins on bare re-run
+PASS: T5 invalid color rejected, no server created
+PASS: T6 escaped colon → t63w6x bg=cyan
+PASS: T7 extra fields ignored → bg=green
+PASS: T8 hostname fallback → bg=colour94
+── Test 63 result: PASS=8 FAIL=0 SKIP=0 ──
+
+── Test 64: session-color pure-fn unit tests ──
+PASS: parse 'work' → name='work' color=''
+PASS: parse 'work:red' → name='work' color='red'
+PASS: parse 'deploy:#3b82f6' → name='deploy' color='#3b82f6'
+PASS: parse 'a\:b:cyan' → name='a:b' color='cyan'
+PASS: parse 'work:red:x:y' → name='work' color='red'
+PASS: parse 'work:' → name='work' color=''
+PASS: valid 'red' → 0
+PASS: valid 'RED' → 0
+PASS: valid 'colour160' → 0
+PASS: valid 'color39' → 0
+PASS: valid '#3b82f6' → 0
+PASS: valid '#f0a' → 0
+PASS: valid 'purple' → 1
+PASS: valid 'colour256' → 1
+PASS: valid '#12' → 1
+PASS: valid '' → 1
+PASS: bash CANON_COLOR_NAMES matches Go twin
+── Test 64 result: PASS=17 FAIL=0 ──
+
+── Test 65: interactive prompt accepts name:color (operator-path) ──
+PASS: T1 'home:red' accepted → prompt invoked tmx: new -s home-0379:red
+PASS: T2 spec 'home:red' reaches wrapper (capture: new -s home-0390:red)
+PASS: T3 color preserved: 'new -s home-NNNN:red' captured
+PASS: T4 'bad name' sanitized to 'bad-name' and forwarded (capture: new -s bad-name-0410)
+PASS: T5 invalid color forwarded to wrapper (capture: new -s home-0421:notacolor!)
+PASS: T6 '#hex' color accepted (capture: new -s work-0432:#3b82f6)
+── Test 65 result: PASS=6 FAIL=0 ──
+
+── Test 66: per-session password protection ──
+PASS: T1 iter=1: set-password exit 0
+PASS: T2 iter=1: verify-password correct → exit 0
+PASS: T3 iter=1: verify-password wrong → exit 1
+PASS: T4 iter=1: no-password session → exit 0
+PASS: T5 iter=1: empty password clears → exit 0
+PASS: T6 iter=1: has-password no record → exit 2
+PASS: T7 iter=1: has-password record no password → exit 1
+PASS: T8 iter=1: has-password record with password → exit 0
+PASS: T1 iter=2: set-password exit 0
+PASS: T2 iter=2: verify-password correct → exit 0
+PASS: T3 iter=2: verify-password wrong → exit 1
+PASS: T4 iter=2: no-password session → exit 0
+PASS: T5 iter=2: empty password clears → exit 0
+PASS: T6 iter=2: has-password no record → exit 2
+PASS: T7 iter=2: has-password record no password → exit 1
+PASS: T8 iter=2: has-password record with password → exit 0
+PASS: T1 iter=3: set-password exit 0
+PASS: T2 iter=3: verify-password correct → exit 0
+PASS: T3 iter=3: verify-password wrong → exit 1
+PASS: T4 iter=3: no-password session → exit 0
+PASS: T5 iter=3: empty password clears → exit 0
+PASS: T6 iter=3: has-password no record → exit 2
+PASS: T7 iter=3: has-password record no password → exit 1
+PASS: T8 iter=3: has-password record with password → exit 0
+
+── Results: PASS=24 FAIL=0 SKIP=0 ──
+
+── Test 67: per-host local-dependency obtaining mechanism (§11.4.77/.81/.111) ──
+[evidence 67-C1] JEMALLOC_SO=/lib64/libjemalloc.so.2 source=host-system — ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=e9fb9a0e45e32abcfebec0f9632026c7a42003fc, stripped
+[evidence 67-C1] resolve driven 3× — JEMALLOC_SO byte-identical (§11.4.50)
+PASS 67: C1 — resolve-by-absolute-path: JEMALLOC_SO is an absolute, existing, real shared object (§11.4.111); deterministic 3×
+[evidence 67-C1b] PATH=/usr/bin:/bin still resolved JEMALLOC_SO=/lib64/libjemalloc.so.2 (absolute resolution, no ambient PATH dependency)
+PASS 67: C1b — resolution is independent of ambient PATH (§11.4.111; mistborn brew exit-3 fix)
+[evidence 67-C2] OBTAINED JEMALLOC_SO=/tmp/.private/milos/tmx67deps.2864911/r2/Linux_x86_64/lib/libjemalloc.so.2 source=local-build — ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=ecbf2dfdcb8fbed4206920d941ffffa5bd955fa2, with debug_info, not stripped
+PASS 67: C2 — obtain-when-missing produced a REAL local libjemalloc (local-build) via FORCE_OBTAIN (§11.4.115 GREEN)
+[evidence 67-C3] nm: resolved SO exports public symbol 'mallctl' — probe calls it (prefix-agnostic §11.4.111)
+[evidence 67-C3] probe 'jemalloc-version=5.3.0-0-g0' (exit 0) under LD_LIBRARY_PATH=/tmp/.private/milos/tmx67deps.2864911/r2/Linux_x86_64/lib — runtime proof: dynamic linker resolved obtained jemalloc via LD_LIBRARY_PATH
+PASS 67: C3 — binary links+runs the OBTAINED jemalloc (mallctl(version) returned a real version under LD_LIBRARY_PATH=/tmp/.private/milos/tmx67deps.2864911/r2/Linux_x86_64/lib)
+SKIP 67: C3b — patchelf absent: skipping the patchelf set-rpath sub-assertion; C3 used link-time rpath instead (§11.4.3)
+
+── summary 67: PASS=4 FAIL=0 SKIP=1 ──
+
+── Test 68: full tmx session-lifecycle scenario (PTY-driven, operator-path) ──
+── iter 1: session 't68_2970760_1' ──
+[evidence C2 iter=1] create password prompt observed; sending password via send-keys
+[evidence C2 iter=1] confirmation prompt observed; sending matching confirmation
+PASS 68: iter 1 C1: live status-style bg=red (RED applied)
+PASS 68: iter 1 C1: color RED persisted (get-color=red)
+PASS 68: iter 1 C2: password stored — verify accepts correct (exit 0)
+PASS 68: iter 1 C2: wrong password rejected (exit 1)
+[evidence C3 iter=1] pane cwd == /tmp/.private/milos/tmx68.2970760/home/Projects/work_1 (ls ran; pwd shows the dir)
+PASS 68: iter 1 C3: cd into ~/Projects dir + ls → pane cwd is the dir
+[evidence C4 iter=1] after kill -HUP 2970967: session_attached=0 AND has-session exit 0
+PASS 68: iter 1 C4: terminal-close (kill -HUP client) → session SURVIVES detached
+[evidence C5 iter=1] reattach re-prompted for password (password-protected)
+[evidence C5 iter=1] wrong password → driver pane EXITED (reject exit 1) AND session_attached=0
+PASS 68: iter 1 C5: wrong password REJECTED (not attached; reject pane exited)
+PASS 68: iter 1 C5: correct password ATTACHES (session_attached=1)
+PASS 68: iter 1 C5: still RED on reattach (bg=red)
+PASS 68: iter 1 C5: same directory on reattach (/tmp/.private/milos/tmx68.2970760/home/Projects/work_1)
+PASS 68: iter 1 C6: detached session RECYCLED after idle window (has-session gone)
+PASS 68: iter 1 C6: dir remembered (recall=/tmp/.private/milos/tmx68.2970760/home/Projects/work_1)
+PASS 68: iter 1 C6: color remembered (get-color=red)
+PASS 68: iter 1 C6: password remembered — verify accepts correct (exit 0)
+PASS 68: iter 1 C6: wrong password STILL rejected after recycle (exit 1 — hash not wiped)
+PASS 68: iter 1 C6: re-create RESTORED RED (bg=red)
+PASS 68: iter 1 C6: re-create RESTORED dir (/tmp/.private/milos/tmx68.2970760/home/Projects/work_1)
+PASS 68: iter 1 C6: re-create kept the password — verify accepts correct (exit 0)
+PASS 68: iter 1 C6: re-create wrong password STILL rejected (exit 1 — hash not wiped)
+PASS 68: iter 1 C7: 'tmx delete' tore the session down (has-session gone)
+PASS 68: iter 1 C7: 'tmx delete' cleared the dir (recall empty)
+PASS 68: iter 1 C7: 'tmx delete' cleared the color
+PASS 68: iter 1 C7: 'tmx delete' reset the password (record absent, exit 2 — old pw no longer accepted)
+[evidence C7 iter=1] FRESH create password prompt on post-delete re-create (the reset)
+PASS 68: iter 1 C7: post-delete re-create shows a FRESH password prompt (reset proven)
+PASS 68: iter 1 C7: DEFAULT color = host fallback (bg=colour201, not the deleted red)
+PASS 68: iter 1 C7: DEFAULT dir = $HOME (/tmp/.private/milos/tmx68.2970760/home)
+── iter 2: session 't68_2970760_2' ──
+[evidence C2 iter=2] create password prompt observed; sending password via send-keys
+[evidence C2 iter=2] confirmation prompt observed; sending matching confirmation
+PASS 68: iter 2 C1: live status-style bg=red (RED applied)
+PASS 68: iter 2 C1: color RED persisted (get-color=red)
+PASS 68: iter 2 C2: password stored — verify accepts correct (exit 0)
+PASS 68: iter 2 C2: wrong password rejected (exit 1)
+[evidence C3 iter=2] pane cwd == /tmp/.private/milos/tmx68.2970760/home/Projects/work_2 (ls ran; pwd shows the dir)
+PASS 68: iter 2 C3: cd into ~/Projects dir + ls → pane cwd is the dir
+[evidence C4 iter=2] after kill -HUP 2977031: session_attached=0 AND has-session exit 0
+PASS 68: iter 2 C4: terminal-close (kill -HUP client) → session SURVIVES detached
+[evidence C5 iter=2] reattach re-prompted for password (password-protected)
+[evidence C5 iter=2] wrong password → driver pane EXITED (reject exit 1) AND session_attached=0
+PASS 68: iter 2 C5: wrong password REJECTED (not attached; reject pane exited)
+PASS 68: iter 2 C5: correct password ATTACHES (session_attached=1)
+PASS 68: iter 2 C5: still RED on reattach (bg=red)
+PASS 68: iter 2 C5: same directory on reattach (/tmp/.private/milos/tmx68.2970760/home/Projects/work_2)
+PASS 68: iter 2 C6: detached session RECYCLED after idle window (has-session gone)
+PASS 68: iter 2 C6: dir remembered (recall=/tmp/.private/milos/tmx68.2970760/home/Projects/work_2)
+PASS 68: iter 2 C6: color remembered (get-color=red)
+PASS 68: iter 2 C6: password remembered — verify accepts correct (exit 0)
+PASS 68: iter 2 C6: wrong password STILL rejected after recycle (exit 1 — hash not wiped)
+PASS 68: iter 2 C6: re-create RESTORED RED (bg=red)
+PASS 68: iter 2 C6: re-create RESTORED dir (/tmp/.private/milos/tmx68.2970760/home/Projects/work_2)
+PASS 68: iter 2 C6: re-create kept the password — verify accepts correct (exit 0)
+PASS 68: iter 2 C6: re-create wrong password STILL rejected (exit 1 — hash not wiped)
+PASS 68: iter 2 C7: 'tmx delete' tore the session down (has-session gone)
+PASS 68: iter 2 C7: 'tmx delete' cleared the dir (recall empty)
+PASS 68: iter 2 C7: 'tmx delete' cleared the color
+PASS 68: iter 2 C7: 'tmx delete' reset the password (record absent, exit 2 — old pw no longer accepted)
+[evidence C7 iter=2] FRESH create password prompt on post-delete re-create (the reset)
+PASS 68: iter 2 C7: post-delete re-create shows a FRESH password prompt (reset proven)
+PASS 68: iter 2 C7: DEFAULT color = host fallback (bg=colour201, not the deleted red)
+PASS 68: iter 2 C7: DEFAULT dir = $HOME (/tmp/.private/milos/tmx68.2970760/home)
+── iter 3: session 't68_2970760_3' ──
+[evidence C2 iter=3] create password prompt observed; sending password via send-keys
+[evidence C2 iter=3] confirmation prompt observed; sending matching confirmation
+PASS 68: iter 3 C1: live status-style bg=red (RED applied)
+PASS 68: iter 3 C1: color RED persisted (get-color=red)
+PASS 68: iter 3 C2: password stored — verify accepts correct (exit 0)
+PASS 68: iter 3 C2: wrong password rejected (exit 1)
+[evidence C3 iter=3] pane cwd == /tmp/.private/milos/tmx68.2970760/home/Projects/work_3 (ls ran; pwd shows the dir)
+PASS 68: iter 3 C3: cd into ~/Projects dir + ls → pane cwd is the dir
+[evidence C4 iter=3] after kill -HUP 2979877: session_attached=0 AND has-session exit 0
+PASS 68: iter 3 C4: terminal-close (kill -HUP client) → session SURVIVES detached
+[evidence C5 iter=3] reattach re-prompted for password (password-protected)
+[evidence C5 iter=3] wrong password → driver pane EXITED (reject exit 1) AND session_attached=0
+PASS 68: iter 3 C5: wrong password REJECTED (not attached; reject pane exited)
+PASS 68: iter 3 C5: correct password ATTACHES (session_attached=1)
+PASS 68: iter 3 C5: still RED on reattach (bg=red)
+PASS 68: iter 3 C5: same directory on reattach (/tmp/.private/milos/tmx68.2970760/home/Projects/work_3)
+PASS 68: iter 3 C6: detached session RECYCLED after idle window (has-session gone)
+PASS 68: iter 3 C6: dir remembered (recall=/tmp/.private/milos/tmx68.2970760/home/Projects/work_3)
+PASS 68: iter 3 C6: color remembered (get-color=red)
+PASS 68: iter 3 C6: password remembered — verify accepts correct (exit 0)
+PASS 68: iter 3 C6: wrong password STILL rejected after recycle (exit 1 — hash not wiped)
+PASS 68: iter 3 C6: re-create RESTORED RED (bg=red)
+PASS 68: iter 3 C6: re-create RESTORED dir (/tmp/.private/milos/tmx68.2970760/home/Projects/work_3)
+PASS 68: iter 3 C6: re-create kept the password — verify accepts correct (exit 0)
+PASS 68: iter 3 C6: re-create wrong password STILL rejected (exit 1 — hash not wiped)
+PASS 68: iter 3 C7: 'tmx delete' tore the session down (has-session gone)
+PASS 68: iter 3 C7: 'tmx delete' cleared the dir (recall empty)
+PASS 68: iter 3 C7: 'tmx delete' cleared the color
+PASS 68: iter 3 C7: 'tmx delete' reset the password (record absent, exit 2 — old pw no longer accepted)
+[evidence C7 iter=3] FRESH create password prompt on post-delete re-create (the reset)
+PASS 68: iter 3 C7: post-delete re-create shows a FRESH password prompt (reset proven)
+PASS 68: iter 3 C7: DEFAULT color = host fallback (bg=colour201, not the deleted red)
+PASS 68: iter 3 C7: DEFAULT dir = $HOME (/tmp/.private/milos/tmx68.2970760/home)
+── Test 68 summary: PASS=78 FAIL=0 SKIP=0 ──
+
+── Test 69: curl installer (scripts/install.sh) ──
+PASS: A1 bash -n scripts/install.sh clean
+note: install.sh is a bash script (arrays) — sh -n N/A by design (§11.4.67 honest)
+PASS: B1 only-.zshrc present (SHELL=bash) → detected /tmp/.private/milos/tmx_install_test_2982433/home_zsh/.zshrc
+PASS: B2 only-.bashrc present (SHELL=zsh) → detected /tmp/.private/milos/tmx_install_test_2982433/home_bash/.bashrc
+PASS: B3 rc-detection deterministic across 3 runs (§11.4.50)
+PASS: C default install root = $HOME/tmux (lowercase snake_case, §11.4.29)
+PASS: D §9.2 refuses non-empty foreign dir (exit 4, did not clobber)
+PASS: D2 foreign file left intact (not clobbered)
+PASS: E offline recursive clone: /tmp/.private/milos/tmx_install_test_2982433/install_dst has .git + constitution/Constitution.md + setup.sh + tmx.template (exit 0)
+PASS: F idempotent re-run → update mode, constitution/ intact (exit 0)
+── Test 69 result: PASS=9 FAIL=0 SKIP=0 ──
+
+════════════════════════════════════════════════════════════════
+  test 70 — native-fallback C-link preflight + auto-install (RED_MODE=1)
+════════════════════════════════════════════════════════════════
+PASS 70: C1 cc_can_link detects link capability (healthy→0, non-linking→non-zero)
+PASS 70: C2 fault-injection valid — non-linking cc cannot create an executable
+PASS 70: C2 REPRODUCED the operator's cryptic death ('C compiler cannot create executables', no actionable hint)
+EVIDENCE 70: RED capture: qa-results/loop-20260629/native-fallback-fix/RED_autoconf_cc_cannot_create_executables.log
+PASS 70: C3 RED reproduced: preflight-neutered setup.sh gives NO honest refusal (operator hits the cryptic death)
+PASS 70: C3b current setup.sh carries the fix (honest refusal present under non-linking cc)
+PASS 70: C4 auto-install wired: preflight → install_deps.sh resolves the ALT toolchain (incl. glibc-devel)
+PASS 70: C5 install_deps.sh is INSTALL-ONLY — no remove/purge verbs (§11.4.122)
+PASS 70: C5 ALT mapping correct (glibc-devel + libncursesw-devel + bison + flex + shadow-submap newuidmap)
+PASS 70: C5 install_deps.sh idempotent skip-present implemented (DRY-RUN resolves only the missing subset)
+PASS 70: C6 consent gate: opt-out (=0) performs NO privileged install — honest message only (§11.4.101/§11.4.66)
+PASS 70: C7 §1.1 MUTATION CAUGHT — neutering cc_can_link removes the honest refusal (the guard has teeth)
+PASS 70: C8/G1 native-fallback wiring present (containerized-fail _cb_ok=0 → build_native.sh)
+PASS 70: C8/G3 build_native.sh invoked correctly behind the preflight (3 guards ≥ 3 invocations)
+PASS 70: C9a auto-default non-interactive non-root → honest message, no surprise install (§12 CI-safe)
+PASS 70: C9b auto-default as root → auto-installs with NO blocking prompt (operator mandate 2026-06-29)
+PASS 70: C10 install/build path (setup.sh + install_deps.sh + install.sh) is privilege-escalation-free AND human-wait-free (operator mandate 2026-06-29)
+EVIDENCE 70: GREEN capture: qa-results/loop-20260629/native-fallback-fix/GREEN_c10_no_sudo_no_interaction.log
+════════════════════════════════════════════════════════════════
+  test 70 SUMMARY: PASS=16 FAIL=0 SKIP=0 (RED_MODE=1)
+════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════
+  test 71 — root-free zig build (TMX-063) (RED_MODE=0, N=3)
+════════════════════════════════════════════════════════════════
+PASS 71: C10 touched scripts parse clean (bash -n) AND are sudo/su-free + human-wait-free (operator mandate 2026-06-29)
+PASS 71: C9a cc (zig) registry branch present in obtain_local_deps.sh (mutation target exists)
+PASS 71: C1 NORMAL-host no-regression: cc resolved to HOST (CC_KIND=host, CC_SOURCE=host-system) — no zig obtained, existing path untouched
+PASS 71: C2 neuter valid: host compilers/linkers/autotools/pkg-config unreachable; generic tools present (bare-host simulation real)
+PASS 71: C4 GREEN: REAL project scripts built tmux via the OBTAINED zig toolchain (no host cc, no root, no sudo)
+PASS 71: C4b confirmed CC_KIND=zig (local-toolchain) drove the build
+PASS 71: C5 tmux -V == 'tmux 3.6a' (user-visible build product)
+EVIDENCE 71: GREEN runtime: qa-results/loop-20260629/zig-impl/GREEN_tmux_runtime_proof.log
+PASS 71: C6 LIVE SESSION: zig-built tmux ran a real session (marker ZIG71_42 captured from the pane)
+EVIDENCE 71: GREEN live session: qa-results/loop-20260629/zig-impl/GREEN_tmux_live_session.log
+PASS 71: C7 LOCAL-LINK: tmux DT_NEEDED includes the LOCAL widec libncursesw.so (residual #2 fixed — local ncurses won AC_SEARCH_LIBS)
+PASS 71: C7b tmux DT_NEEDED includes libevent + libjemalloc (full hardened local chain linked)
+EVIDENCE 71: readelf NEEDED: qa-results/loop-20260629/zig-impl/GREEN_readelf_needed.log
+PASS 71: C8 determinism: 3 independent zig rebuilds all produced an identical 'tmux 3.6a' (§11.4.50)
+PASS 71: C9 §1.1 MUTATION CAUGHT: stripping the cc registry branch → no zig obtained (CC_KIND='') → build cannot proceed (the guard has teeth)
+════════════════════════════════════════════════════════════════
+  test 71 SUMMARY: PASS=12 FAIL=0 SKIP=0 (RED_MODE=0)
+════════════════════════════════════════════════════════════════
+
+── Test 72: libevent + ncurses local-dependency obtain (§11.4.77/.81/.111) [RED_MODE=0] ──
+[evidence 72-B1] LIBEVENT_SOURCE=host-system  LIBDIR=/usr/lib64  INCDIR=/usr/include
+[evidence 72-B1] lib: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=5f7a174e8b696dd8e2af9572e868136b49a739d0, stripped  (/usr/lib64/libevent-2.1.so.7)
+[evidence 72-B1] header: /usr/include/event2/event.h present
+PASS 72: B1 libevent — resolve-or-obtain emitted real build-dep wiring: LIBDIR has a real shared object + INCDIR has event2/event.h (source=host-system; §11.4.77/.111)
+[evidence 72-B1-link] /usr/bin/cc linked a TU calling event_base_new() against /usr/lib64/libevent-2.1.so.7 — ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=87df898112f36bce1460f67ccc321b965597c599, for GNU/Linux 3.2.0, with debug_info, not stripped
+PASS 72: B1-link libevent — obtained/resolved lib is COMPILER-CONSUMABLE: a C TU #include <event2/event.h> calling event_base_new() links against the resolved library (§11.4.5; the tmux ./configure requirement)
+[evidence 72-B2] NCURSES_SOURCE=host-system  LIBDIR=/lib64  INCDIR=/usr/include
+[evidence 72-B2] lib: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=67bc6ef87e36dcf658ab1d7140b319d200fe27e3, stripped  (/lib64/libncursesw.so.5)
+[evidence 72-B2] header: /usr/include/ncurses.h present
+PASS 72: B2 ncurses — resolve-or-obtain emitted real build-dep wiring: LIBDIR has a real shared object + INCDIR has ncurses.h (source=host-system; §11.4.77/.111)
+[evidence 72-B2-link] /usr/bin/cc linked a TU calling initscr() against /lib64/libncursesw.so.5 — ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=87df898112f36bce1460f67ccc321b965597c599, for GNU/Linux 3.2.0, with debug_info, not stripped
+PASS 72: B2-link ncurses — obtained/resolved lib is COMPILER-CONSUMABLE: a C TU #include <ncurses.h> calling initscr() links against the resolved library (§11.4.5; the tmux ./configure requirement)
+
+── summary 72: PASS=4 FAIL=0 SKIP=0 ──
+
+── Test 73: build_native.sh local-deps -I/-L/PKG_CONFIG_PATH wiring (§11.4.77) [RED_MODE=0] ──
+[evidence 73-D0] extracted 175 real wiring lines from build_native.sh (markers LIBEVENT_*/NCURSES_*/LOCAL_PKGCONFIG present)
+_: eval: line 180: syntax error: unexpected end of file
+[evidence 73-run] CFLAGS=-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2                 -Wno-unused-parameter -Wno-deprecated-declarations                  -I/tmp/.private/milos/tmx73wiring.3137406/ld/Linux_x86_64/inc_le -I/tmp/.private/milos/tmx73wiring.3137406/ld/Linux_x86_64/inc_nc  
+[evidence 73-run] LDFLAGS=-Wl,-z,relro,-z,now  -L/tmp/.private/milos/tmx73wiring.3137406/ld/Linux_x86_64/lib_le -L/tmp/.private/milos/tmx73wiring.3137406/ld/Linux_x86_64/lib_nc                  -Wl,--no-as-needed -ljemalloc -Wl,--as-needed 
+[evidence 73-run] LOCAL_PKGCONFIG=/tmp/.private/milos/tmx73wiring.3137406/ld/Linux_x86_64/lib/pkgconfig
+PASS 73: D1 libevent — build_native.sh wires -I/tmp/.private/milos/tmx73wiring.3137406/ld/Linux_x86_64/inc_le into CFLAGS and -L/tmp/.private/milos/tmx73wiring.3137406/ld/Linux_x86_64/lib_le into LDFLAGS for the obtained (local-build) libevent (§11.4.77)
+PASS 73: D2 ncurses — build_native.sh wires -I/tmp/.private/milos/tmx73wiring.3137406/ld/Linux_x86_64/inc_nc into CFLAGS and -L/tmp/.private/milos/tmx73wiring.3137406/ld/Linux_x86_64/lib_nc into LDFLAGS for the obtained (local-build) ncurses (§11.4.77)
+PASS 73: D3 PKG_CONFIG_PATH — build_native.sh resolves LOCAL_PKGCONFIG to /tmp/.private/milos/tmx73wiring.3137406/ld/Linux_x86_64/lib/pkgconfig (the obtained deps' .pc dir feeds tmux ./configure pkg-config; §11.4.77)
+[evidence 73-D4] wiring at line 243 precedes the CC_KIND="zig" branch at line 292; host ./configure consumes "$CFLAGS"/"$LDFLAGS" + LOCAL_PKGCONFIG PKG_CONFIG_PATH
+PASS 73: D4 independent-of-zig — the local-deps wiring is computed on the host-toolchain path (CC_KIND="", runtime-proven above) BEFORE the zig branch, and the host ./configure consumes it (§11.4.6)
+
+── summary 73: PASS=4 FAIL=0 SKIP=0 ──
+
+════════════════════════════════════════════════════════════════
+  test 74 — root-free go build of tmx-state (TMX-057) (RED_MODE=0, N=3)
+════════════════════════════════════════════════════════════════
+PASS 74: G10 obtain + this test parse clean (bash -n + sh -n) AND obtain is sudo/su-free (§11.4.67 + operator mandate)
+PASS 74: G0 go (kind=toolchain) registry branch present in obtain_local_deps.sh (mutation target exists)
+PASS 74: G1 NORMAL-host no-regression: go RESOLVED to host (/usr/lib/golang/bin/go, GO_SOURCE=host-system) — no toolchain obtained, existing path untouched (§11.4.111)
+PASS 74: G2 neuter valid: host go + C compilers unreachable; generic tools present (no-system-go simulation real)
+PASS 74: G4 GREEN: REAL obtain script obtained a ROOT-FREE go toolchain (FORCE_OBTAIN, no system go, no sudo) → /tmp/.private/milos/tmx74.3137511/ld/Linux_x86_64/go/bin/go
+PASS 74: G5 obtained go runs ('go version go1.25.11 linux/amd64') AND GO_SOURCE=local-toolchain (the obtain produced it, not a leaked host go)
+EVIDENCE 74: GREEN toolchain: qa-results/loop-20260629/tmx057-go-impl/GREEN_go_toolchain_proof.log
+PASS 74: G6 obtained-go-built tmx-state runs ('tmx-state v1.2.0') — user-visible build product (TMX-057 acceptance)
+EVIDENCE 74: GREEN runtime: qa-results/loop-20260629/tmx057-go-impl/GREEN_tmx_state_runtime_proof.log
+PASS 74: G7 FUNCTIONAL: obtained-go-built tmx-state genuinely works — record→recall returned '/run/media/tmx74/42' (not just a version string)
+EVIDENCE 74: GREEN functional: qa-results/loop-20260629/tmx057-go-impl/GREEN_tmx_state_functional.log
+PASS 74: G8 determinism: 3 independent obtained-go rebuilds all produced an identical 'tmx-state v1.2.0' (§11.4.50)
+PASS 74: G9 §1.1 MUTATION CAUGHT: stripping the go: registry branches → 'go not in registry' → no GO_BIN → tmx-state build cannot proceed (the guard has teeth)
+════════════════════════════════════════════════════════════════
+  test 74 SUMMARY: PASS=10 FAIL=0 SKIP=0 (RED_MODE=0)
+════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════
+  test 75 — jemalloc link-by-SONAME (§11.4.111) (RED_MODE=1)
+════════════════════════════════════════════════════════════════
+PASS 75: C1 runtime-only jemalloc: bare -ljemalloc FAILS (rc=1), -l:libjemalloc.so.2 LINKS (rc=0) — fix principle proven
+EVIDENCE 75: captured: qa-results/loop-20260630/jemalloc-link-soname/C1_bare_ljemalloc.log + C1_soname_link.log
+PASS 75: C2 RED reproduced on the neutered artifact: reverting ${JEM_LINK}→-ljemalloc leaves the host link line bare (the linker cannot resolve it on a runtime-only host)
+PASS 75: C2b current build_native.sh carries the fix (host line uses resolved -l:SONAME via ${JEM_LINK}; derivation present)
+PASS 75: C3 §1.1 MUTATION CAUGHT — neutering ${JEM_LINK}→-ljemalloc strips the host resolved-SONAME link (host ${JEM_LINK} lines=0) the GREEN guard requires (teeth)
+════════════════════════════════════════════════════════════════
+  test 75 SUMMARY: PASS=4 FAIL=0 SKIP=0 (RED_MODE=1)
+════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════
+  test 76 — terminfo database resolves at runtime (§11.4.108/§11.4.111) (RED_MODE=1)
+════════════════════════════════════════════════════════════════
+PASS 76: C1 nonexistent TERMINFO_DIRS reproduces 'can't find terminfo database'; host real dirs (/lib/terminfo:/usr/share/terminfo) resolve it — fix principle proven
+EVIDENCE 76: captured: qa-results/loop-20260630/terminfo-db-resolve/C1_terminfo_probe.log
+PASS 76: C2 tmx.template defines _ensure_terminfo_dirs, exports TERMINFO_DIRS, and calls it at load
+PASS 76: C3 obtain_local_deps.sh static-tinfo configure bakes in --with-terminfo-dirs (raw-binary fallback)
+PASS 76: C4 §1.1 MUTATION CAUGHT — removing the top-level _ensure_terminfo_dirs call leaves the wrapper without the TERMINFO_DIRS export the C2 guard requires (teeth)
+════════════════════════════════════════════════════════════════
+  test 76 SUMMARY: PASS=4 FAIL=0 SKIP=0 (RED_MODE=1)
+════════════════════════════════════════════════════════════════
+
+── Test 77: password input masked with '*' ──
+PASS 77: exactly two '*' characters shown after typing 2 chars, no plaintext
+PASS 77: backspace + retype shows exactly 2 masked stars, no plaintext leaked
+── Test 77 summary: PASS=2 FAIL=0 SKIP=0 ──
+
+── Test 78: wizard-created session gets a random 4-digit suffix ──
+[evidence] wizard transcript captured (954 bytes)
+PASS 78: wizard-created session name is 'wiztest78-7446' (base + 4-digit suffix)
+[evidence] TMX_EXACT_NAME wizard transcript captured (938 bytes)
+PASS 78: TMX_EXACT_NAME=1 → wizard created the literal name 'wiztest78exact', no suffix
+── Test 78 summary: PASS=2 FAIL=0 SKIP=0 ──
+
+── Test 79: wizard existing-session picker ──
+PASS 79: blank input lists both pre-created sessions + '0) None'
+PASS 79: selecting the plain session's number attaches it
+PASS 79: selecting a password-protected session prompts once and attaches on correct password
+PASS 79: no second create-style prompt on picker-selected password-protected attach
+PASS 79: '0' selection attached to neither pre-created session (attached-count 0/0)
+── Test 79 summary: PASS=5 FAIL=0 SKIP=0 ──
+
+── Test 80: new-session password create+confirm flow ──
+[evidence A] second 'Confirm password' prompt appeared after the first entry
+PASS 80: A: matching password+confirmation → session created and attached
+PASS 80: A: password persisted correctly (verify-password accepts it)
+[evidence B attempt=1] mismatch message shown, retrying
+[evidence B attempt=2] mismatch message shown, retrying
+PASS 80: B: 3rd mismatch aborted with an explicit 'not created' message
+PASS 80: B: no session left behind after 3x password mismatch (fail-closed honored)
+PASS 80: B: no password persisted after the abort
+── Test 80 summary: PASS=5 FAIL=0 SKIP=0 ──
+
+── Test 81: reopen recycled protected session shows exactly ONE prompt ──
+[evidence] session created, password set, hash captured: d1ac46053daf...
+[evidence] tmux server torn down (has-session fails), password state SURVIVES (has-password exit 0) — exact recycled-session shape reproduced
+[evidence] reopen shows the verify-style 'is password-protected' prompt
+PASS 81: reopen: correct password attaches
+PASS 81: exactly ONE password prompt shown on reopen (no phantom second create/confirm prompt)
+PASS 81: persisted password hash UNCHANGED after successful reopen (verified, not silently reset)
+PASS 81: wrong password on reopen is correctly rejected (session not attached)
+── Test 81 summary: PASS=4 FAIL=0 SKIP=0 ──
+
+── Test 82: live session-name sanitization ──
+PASS 82: iter=1 raw='t82_1_hello-world hello world' landed as 't82_1_hello-world-hello-world'
+PASS 82: iter=1 socket tmx-t82_1_hello-world-hello-world exists
+PASS 82: iter=1 raw='t82_1_leading-and-trailing   leading and trailing   ' landed as 't82_1_leading-and-trailing-leading-and-trailing'
+PASS 82: iter=1 socket tmx-t82_1_leading-and-trailing-leading-and-trailing exists
+PASS 82: iter=1 raw='t82_1_multi-spaces-and-tabs multi   spaces	and	tabs' landed as 't82_1_multi-spaces-and-tabs-multi-spaces-and-tabs'
+PASS 82: iter=1 socket tmx-t82_1_multi-spaces-and-tabs-multi-spaces-and-tabs exists
+PASS 82: iter=1 raw='t82_1_specialchars special!@#chars' landed as 't82_1_specialchars-specialchars'
+PASS 82: iter=1 socket tmx-t82_1_specialchars-specialchars exists
+PASS 82: iter=1 raw='t82_1_already-safe_name already-safe_name' landed as 't82_1_already-safe_name-already-safe_name'
+PASS 82: iter=1 socket tmx-t82_1_already-safe_name-already-safe_name exists
+[evidence] iter=1 cases_tested=5 live=yes
+PASS 82: iter=2 raw='t82_2_hello-world hello world' landed as 't82_2_hello-world-hello-world'
+PASS 82: iter=2 socket tmx-t82_2_hello-world-hello-world exists
+PASS 82: iter=2 raw='t82_2_leading-and-trailing   leading and trailing   ' landed as 't82_2_leading-and-trailing-leading-and-trailing'
+PASS 82: iter=2 socket tmx-t82_2_leading-and-trailing-leading-and-trailing exists
+PASS 82: iter=2 raw='t82_2_multi-spaces-and-tabs multi   spaces	and	tabs' landed as 't82_2_multi-spaces-and-tabs-multi-spaces-and-tabs'
+PASS 82: iter=2 socket tmx-t82_2_multi-spaces-and-tabs-multi-spaces-and-tabs exists
+PASS 82: iter=2 raw='t82_2_specialchars special!@#chars' landed as 't82_2_specialchars-specialchars'
+PASS 82: iter=2 socket tmx-t82_2_specialchars-specialchars exists
+PASS 82: iter=2 raw='t82_2_already-safe_name already-safe_name' landed as 't82_2_already-safe_name-already-safe_name'
+PASS 82: iter=2 socket tmx-t82_2_already-safe_name-already-safe_name exists
+[evidence] iter=2 cases_tested=5 live=yes
+PASS 82: iter=3 raw='t82_3_hello-world hello world' landed as 't82_3_hello-world-hello-world'
+PASS 82: iter=3 socket tmx-t82_3_hello-world-hello-world exists
+PASS 82: iter=3 raw='t82_3_leading-and-trailing   leading and trailing   ' landed as 't82_3_leading-and-trailing-leading-and-trailing'
+PASS 82: iter=3 socket tmx-t82_3_leading-and-trailing-leading-and-trailing exists
+PASS 82: iter=3 raw='t82_3_multi-spaces-and-tabs multi   spaces	and	tabs' landed as 't82_3_multi-spaces-and-tabs-multi-spaces-and-tabs'
+PASS 82: iter=3 socket tmx-t82_3_multi-spaces-and-tabs-multi-spaces-and-tabs exists
+PASS 82: iter=3 raw='t82_3_specialchars special!@#chars' landed as 't82_3_specialchars-specialchars'
+PASS 82: iter=3 socket tmx-t82_3_specialchars-specialchars exists
+PASS 82: iter=3 raw='t82_3_already-safe_name already-safe_name' landed as 't82_3_already-safe_name-already-safe_name'
+PASS 82: iter=3 socket tmx-t82_3_already-safe_name-already-safe_name exists
+[evidence] iter=3 cases_tested=5 live=yes
+[evidence] reliability_hash=21e8d28b46693b2284de4d5e77bd090c758c501a
+── Test 82 summary: PASS=30 FAIL=0 SKIP=0 ──
+
+── Test 84: attach on dead session with persisted password → no prompt ──
+[evidence] persisted password confirmed via has-password (exit 0), no live tmux session exists for t84_3187297
+PASS 84: attach on dead session printed a clean 'no session named' error, exit=1, no password mention
+── Test 84 summary: PASS=1 FAIL=0 SKIP=0 ──
+
+PASS 85: config template contains 'extended-keys-format csi-u'
+PASS 85: live tmux server has extended-keys-format csi-u applied
+PASS 85: source: csi-u is index 0, xterm is index 1 in options-table.c
+PASS 85: source: extended-keys-format default is xterm (default_num=1)
+PASS 85: source: input_key_extended() has csi-u format string (\033[K;Mu)
+PASS 85: source: input_key_extended() has xterm format string (\033[27;M;K~)
+PASS 85: source: input_key_extended() switches on extended-keys-format option
+── Test 85 summary: PASS=7 FAIL=0 SKIP=0 ──
+
+── Test 86: host-adaptive CPUQuota default (RED_MODE=0) ──
+  target: /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx.template
+PASS: G1: bash -n parse clean
+PASS: G2: _default_cpu_pct present, TMX_CPU:-auto wired, fixed-200 default removed
+PASS: G3: truth-table 64→960, 4→200(floor), 256→3840, unknown→200(fallback)
+PASS: G4: default expansion — unset→adaptive, auto→adaptive, explicit 400 preserved
+PASS: G5: live scope cpu.max=960000 µs/100ms == host-adaptive 960% (positive cgroup readback)
+PASS: G6: live scope cpu.max.burst=960000 µs == quota (burst bank absorbs intra-period spikes; long-term rate still quota-bounded)
+
+  Tests: PASS=6 FAIL=0 SKIP=0
+
+── Test 87: interactive-server scope split (RED_MODE=0) ──
+  target: /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx.template
+PASS: G0: _srv_cpu_pct + _split_cpu_pcts present in /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx.template
+PASS: G1: srv scope + workload slice both active; server pid 3188965 cgroup /user.slice/user-1000.slice/user@1000.service/app.slice/tmx-t87_3188816.scope is the srv scope (not the slice)
+PASS: G2: workload slice subtree holds a live pane pid (positive evidence: cgroup.procs under /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/tmxw.slice/tmxw-t87_3188816.slice)
+PASS: G3: live quota split — srv cpu.max=50000 slice cpu.max=50000 == artifact split 50%/50% of TMX_CPU=100 (srv+workload == total, §12.6 budget preserved)
+PASS: G4: quiet-phase control clean (a 1 s idle window with delta 0 on srv scope AND slice)
+PASS: G5: isolation proven — slice nr_throttled delta=30 (fleet really throttled against its own quota) while srv scope delta=0 (server NEVER co-throttled; §11.4.225 deltas-under-load + control needle)
+PASS: G6: burst banks live — srv cpu.max.burst=100000 slice cpu.max.burst=860000 == own quotas (100%/860% of adaptive 960%)
+PASS: G7: pair teardown clean — no scope/slice unit left active after kill-session
+PASS: G8: dashed name 't87-x-3188816' → flat escaped slice tmxw-t87\x2dx\x2d3188816.slice active with a live pane pid (no nested-slice quota coupling)
+PASS: G8b: escaped slice torn down by kill-session
+
+  Tests: PASS=10 FAIL=0 SKIP=0
+
+════════════════════════════════════════════════════════════════
+  SUMMARY: PASS=71  FAIL=0  SKIP=14
+  SKIPped: 08_oom_score_adj.sh 12_memory_pressure_under_cap.sh 13_tasksmax_stress.sh 14_concurrent_oom_independence.sh 32_ssh_dispatch_remote_nezha.sh 44_clipboard_copy_out_physical.sh 45_multiline_copy_physical.sh 46_paste_in_physical.sh 48_modifier_drag_override.sh 51_workable_items_db_integrity.sh 56_real_mouse_drag_copy.sh 57_reload_select_copy_paste.sh 62_distribution_orchestrator.sh 67_local_deps.sh
+════════════════════════════════════════════════════════════════

@@ -6,9 +6,10 @@
 # throttled_usec DELTAS over a fixed window (§11.4.201 authoritative source).
 #
 # Workload shape mirrors the live forensics (2026-07-22): average demand
-# well UNDER quota, spikes well OVER it — 4 workers each spinning ~60 ms
-# then sleeping 150 ms inside a 100%-quota (1 CPU) scope. Average ≈ 1 CPU,
-# spikes ≈ 4 CPUs.
+# well UNDER quota, spikes well OVER it — every 600 ms, TWO simultaneous
+# ~60 ms spinners (≈120 ms of CPU demanded inside one 100 ms period)
+# inside a 100%-quota (1 CPU) scope, then quiet. Average ≈ 0.2 CPUs,
+# spikes ≈ 2 CPUs (see the inline _run_phase comment — the two agree).
 #
 # Usage: bash burst_ab_probe.sh [window_seconds]   (default 12)
 set -u

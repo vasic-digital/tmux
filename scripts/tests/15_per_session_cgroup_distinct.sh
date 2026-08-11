@@ -30,6 +30,8 @@ SKIP=0
 A_NAME="tmx_t15_a_$$"
 B_NAME="tmx_t15_b_$$"
 C_NAME="tmx_t15_c_$$"
+D_NAME="tmx_t15_d_$$"
+E_NAME="tmx_t15_e_$$"
 A_SCOPE="tmx-${A_NAME}.scope"
 B_SCOPE="tmx-${B_NAME}.scope"
 C_SCOPE="tmx-${C_NAME}.scope"
@@ -39,10 +41,13 @@ _fail() { echo "FAIL: $*"; FAIL=$((FAIL + 1)); }
 _skip() { echo "SKIP: $*"; SKIP=$((SKIP + 1)); }
 
 _cleanup() {
-    for name in "$A_NAME" "$B_NAME" "$C_NAME"; do
+    for name in "$A_NAME" "$B_NAME" "$C_NAME" "$D_NAME" "$E_NAME"; do
         "$WRAPPER" kill-session -t "$name" 2>/dev/null || true
         systemctl --user stop "tmx-${name}.scope" 2>/dev/null || true
+        systemctl --user stop "tmxw-${name}.slice" 2>/dev/null || true
     done
+    rm -rf "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/systemd/user.control/tmxw-tmx_t15"* 2>/dev/null || true
+    systemctl --user daemon-reload 2>/dev/null || true
 }
 trap _cleanup EXIT
 
@@ -249,6 +254,61 @@ if [ "$NAMED_SCOPES" -eq 3 ]; then
     _pass "T6: all 3 sessions produced scope units named tmx-<session>.scope (operator-targetable by name)"
 else
     _fail "T6: expected 3 named scopes, found $NAMED_SCOPES"
+fi
+
+# ── T7-T9: §11.4.225 split topology — each session = ONE distinct
+#           scope+slice PAIR (TMX_SERVER_SPLIT=1) ────────────────────
+# §11.4.120 reconciliation (2026-07-23): with the opt-in split the
+# per-session isolation invariant becomes "each `tmx new` = exactly one
+# unit PAIR (server scope + workload slice), distinct from every other
+# session's pair". T1-T6 above keep asserting the DEFAULT shared topology
+# (flag OFF — the v1.0.37 path unchanged); T7-T9 assert the NEW mechanism
+# through the same operator path.
+echo ""
+echo "--- T7: split topology — distinct scope+slice pair per session ---"
+TMX_SERVER_SPLIT=1 TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$D_NAME" -d 2>/dev/null
+TMX_SERVER_SPLIT=1 TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$E_NAME" -d 2>/dev/null
+sleep 1
+PAIR_ACTIVE=0
+for u in "tmx-${D_NAME}.scope" "tmxw-${D_NAME}.slice" "tmx-${E_NAME}.scope" "tmxw-${E_NAME}.slice"; do
+    [ "$(systemctl --user is-active "$u" 2>/dev/null || true)" = "active" ] && PAIR_ACTIVE=$((PAIR_ACTIVE + 1))
+done
+if [ "$PAIR_ACTIVE" -eq 4 ]; then
+    _pass "T7: both split sessions produced their own active scope+slice PAIR (4/4 units active, names derived from session names)"
+else
+    _fail "T7: expected 4 active pair units, found $PAIR_ACTIVE"
+fi
+
+echo ""
+echo "--- T8: pair cgroups distinct; server in scope, pane shell in slice ---"
+D_SCG=$(systemctl --user show -p ControlGroup --value "tmx-${D_NAME}.scope" 2>/dev/null)
+D_WCG=$(systemctl --user show -p ControlGroup --value "tmxw-${D_NAME}.slice" 2>/dev/null)
+E_SCG=$(systemctl --user show -p ControlGroup --value "tmx-${E_NAME}.scope" 2>/dev/null)
+E_WCG=$(systemctl --user show -p ControlGroup --value "tmxw-${E_NAME}.slice" 2>/dev/null)
+D_SRV_PID=$("$TMUX_BIN" -L "tmx-${D_NAME}" display-message -p '#{pid}' 2>/dev/null)
+D_SRV_CG=$(sed -n 's/^0:://p' "/proc/${D_SRV_PID:-0}/cgroup" 2>/dev/null)
+DISTINCT=$(printf '%s\n%s\n%s\n%s\n' "$D_SCG" "$D_WCG" "$E_SCG" "$E_WCG" | sort -u | grep -c .)
+D_SLICE_HAS_PID=0
+[ -n "$D_WCG" ] && find "/sys/fs/cgroup${D_WCG}" -mindepth 2 -name cgroup.procs -exec cat {} + 2>/dev/null | grep -q '[0-9]' && D_SLICE_HAS_PID=1
+if [ "$DISTINCT" -eq 4 ] && [ "$D_SRV_CG" = "$D_SCG" ] && [ "$D_SLICE_HAS_PID" -eq 1 ]; then
+    _pass "T8: 4 distinct pair cgroups; server pid $D_SRV_PID lives in D's scope cgroup and D's slice subtree holds the pane shell (positive evidence: /proc/<pid>/cgroup + cgroup.procs)"
+else
+    _fail "T8: pair placement wrong (distinct=$DISTINCT srv_cg='$D_SRV_CG' scope_cg='$D_SCG' slice_has_pid=$D_SLICE_HAS_PID)"
+fi
+
+echo ""
+echo "--- T9: pair teardown via the operator path ---"
+"$WRAPPER" kill-session -t "$D_NAME" 2>/dev/null
+"$WRAPPER" kill-session -t "$E_NAME" 2>/dev/null
+sleep 1
+LEFT=""
+for u in "tmx-${D_NAME}.scope" "tmxw-${D_NAME}.slice" "tmx-${E_NAME}.scope" "tmxw-${E_NAME}.slice"; do
+    [ "$(systemctl --user is-active "$u" 2>/dev/null || true)" = "active" ] && LEFT="$LEFT $u"
+done
+if [ -z "$LEFT" ]; then
+    _pass "T9: tmx kill-session tore down BOTH pair units per session (no lingering scope/slice)"
+else
+    _fail "T9: units still active after kill-session:$LEFT"
 fi
 
 echo ""

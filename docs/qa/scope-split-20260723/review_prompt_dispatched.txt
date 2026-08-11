@@ -1,0 +1,108 @@
+INDEPENDENT CODE REVIEW (§11.4.142/§11.4.194/§11.4.209/§11.4.134) — tmux scope-split, PRE-COMMIT.
+
+You are the INDEPENDENT reviewer (you did NOT author this change). Review the UNCOMMITTED
+working-tree change in /home/milos/Factory/projects/tools_and_research/tmux (branch main,
+HEAD 777977a = v1.0.37). Do NOT modify anything — read/inspect only. Iterate-to-GO is the
+author's job; your job is the exhaustive verdict.
+
+CHANGE UNDER REVIEW — §11.4.225 interactive-server scope split (TMX_SERVER_SPLIT=1, opt-in,
+default OFF), operator-ordered ("build it now", overriding a prior DEFER recommendation):
+- scripts/tmx.template: NEW _srv_cpu_pct + _split_cpu_pcts + _slice_unit_for; split activation
+  (fail-closed fallbacks); slice set-property (CPUQuota/TasksMax/MemoryHigh) BEFORE server
+  spawn; server spawned in tmx-NAME.scope with the small srv quota + TasksMax=256 when split;
+  mode-aware scope burst; post-create §11.4.200 verify (poll slice for a live pane pid, abort
+  session on failure) + slice burst + default-command shim; pair teardown in
+  kill-session/delete/kill-server; collision check includes the slice; TMX_RC_SLICE passed to
+  the recycler. Also: _default_cpu_pct cap/floor comments made honest (v1.0.37 review MINOR —
+  comment-only, no behaviour change intended).
+- NEW scripts/tmx-pane-shim.sh: outer stage systemd-run --scope --slice + marker-file
+  placement detection; inner stage /proc/self/cgroup verification then exec $SHELL -l;
+  fail-closed (_die, exit 7) — a pane must NEVER silently run outside its slice.
+- scripts/tmx-recycler.sh: TMX_RC_SLICE stop in teardown (slice first, then scope).
+- scripts/setup.sh: chmod block for the shim (mirrors the recycler block).
+- scripts/tests/87_server_scope_split.sh (NEW): §11.4.115 polarity — RED_MODE=1 asserts the
+  SHARED-topology defect (server co-throttled under fleet load, real cpu.stat deltas);
+  RED_MODE=0 guard asserts the split (G0-G8b incl. §11.4.225 quiet-phase settle control, load
+  needle, artifact-derived quota expectations, burst read-backs, pair teardown, \x2d escaped
+  dashed-name slice).
+- scripts/tests/09_crash_isolation_scope.sh: +T7a/T7b split crash-isolation (§11.4.120
+  reconciliation; default sections untouched).
+- scripts/tests/15_per_session_cgroup_distinct.sh: +T7-T9 pair distinctness/teardown
+  (§11.4.120; default sections untouched).
+- scripts/tests/meta_test_false_positive_proof.sh: +M-SPLIT +M-SPLIT-QUOTA (both hand-proven
+  to bite before registration).
+- docs/scripts/tmx-pane-shim.md (NEW §11.4.18 companion), docs/qa/cpu-throttle-20260722/
+  burst_ab_probe.sh header fix (v1.0.37 review MINOR), docs/qa/scope-split-20260723/* evidence.
+- scripts/tmx is the regenerated GENERATED wrapper (gitignored) — same placeholder values.
+
+CAPTURED EVIDENCE (verify claims against these, §11.4.194(3)):
+- docs/qa/scope-split-20260723/red_mode1_shared_topology.log — RED PASS: server co-throttled
+  delta=30 periods/3 s (8-spinner fleet, TMX_CPU=100, burst=0).
+- docs/qa/scope-split-20260723/red_guard_pre_split.log — guard FAIL pre-implementation.
+- docs/qa/scope-split-20260723/green_guard_attempt{1,2,3}.log — guard 10/10 x3 (G5: slice
+  delta=30 vs srv delta=0 under the SAME fleet; G6 burst 100000/860000 == own quotas).
+- docs/qa/scope-split-20260723/test09_reconciled.log (20/0/0), test15_reconciled.log (11/0/0).
+- Phase-0 probe facts + full build ledger: ~/.claude-shared/session_ledgers/
+  tmux_scope_split_build_progress.md; design: tmux_server_scope_split_DESIGN.md (same dir).
+- Suite + meta logs (paths + exits are appended at dispatch time below).
+
+REVIEW BAR (§11.4.194 — ALL of):
+(1) ENUMERATE the full scenario space: both flag states x {new/attach/kill/kill-server/delete/
+    recycler-recycle/collision/re-create-after-crash}; session names with dashes/dots/
+    underscores; TMX_CPU explicit/auto/garbage; TMX_CPU_BURST 0/auto/explicit/oversized;
+    TMX_SRV_CPU override; TMX_MEM set/unset; small-host math (1/2/4-core: verify
+    _split_cpu_pcts never emits 0 or negative, srv<=total/2, srv+work==total); Darwin
+    (split must be inert); no-systemd hosts; shim failure modes (systemd-run absent/fails,
+    slice torn down mid-create, mktemp failure); first-pane vs later-window failures;
+    concurrent sessions; §12.6 budget (split never exceeds the single-scope figure);
+    §12.12 (+2 procs/pane); teardown ordering; drop-in residue semantics; escaped-name
+    collision check + kill path consistency (SLICE_UNIT derived identically everywhere?).
+(2) PROVE every assumption — anything "can't happen" must be shown from code/spec/evidence.
+(3) VERIFY the fix against the captured runtime evidence above (do the numbers support the
+    claims? is the RED's precondition provenance honestly labelled CONSTRUCTED-mirroring-
+    OBSERVED per §11.4.115(G)? does any doc overclaim what the split fixes — it must NOT
+    claim to fix HEL-003's workload-side exit-hang).
+(4) ALL ANGLES: default-path regression risk (flag OFF must be byte-equivalent behaviour to
+    v1.0.37 — check the burst-block restructure especially: auto/explicit/0/garbage values,
+    and that the moved block still only runs when a scope exists); test-side per-dimension
+    coverage; the two new mutations genuinely load-bearing (not tautologies); quoting of the
+    \x2d slice name through every layer (sh -c, systemctl, grep -F, find paths); the
+    default-command single-quoting; SC2093 disable justification.
+(5) State un-analysable dimensions as explicit gaps — never silently safe.
+
+VERDICT FORMAT (verbatim headers): "VERDICT: GO" or "VERDICT: NO-GO", then "FINDINGS:" with
+severity-tagged items (BLOCKING/IMPORTANT/MINOR/NIT), each with file:line + why + concrete fix.
+Zero-finding GO must state what was checked and found clean. Record which model + effort you
+are running as.
+
+────────────────────────────────────────────────────────────────
+DISPATCH-TIME APPENDIX (log paths + exits, appended by the conductor at review dispatch):
+
+FULL SUITE (pre-review, GREEN):
+  log: docs/qa/scope-split-20260723/suite_full_presubmit.log
+  SUMMARY: PASS=71  FAIL=0  SKIP=14  (baseline v1.0.37 = 70/0/14; the +1 is the new test 87)
+
+META HARNESS (pre-review, GREEN):
+  log: docs/qa/scope-split-20260723/meta_presubmit.log
+  MUTATIONS CAUGHT=68  ESCAPED=0  SKIPPED=12
+  The split's two NEW paired §1.1 mutations are BOTH caught:
+    - M-SPLIT       -> test 87 emits 'FAIL: G1' (activation reverted -> shared topology detected)
+    - M-SPLIT-QUOTA -> test 87 emits 'FAIL: G3' (workload slice has no CPUQuota -> needle dies loud)
+  SKIP notes you should sanity-check but NOT mis-flag as escapes:
+    - M-CPUADAPT, P5-M21, CM-LOCAL-DEPS-MECHANISM SKIP with reason "dirty working tree ... refusing
+      to mutate (§11.4.84 quiescence)" — these are HONEST pre-commit refusals because the split diff
+      is still uncommitted on scripts/tmx.template + scripts/setup.sh. The conductor will re-run the
+      meta harness on the CLEAN tree AFTER commit so M-CPUADAPT (test 86 host-adaptive CPUQuota) runs
+      and is observed to bite. Confirm this reasoning is sound; flag if you believe any of these
+      SKIPs hides a real regression in the split diff.
+    - P5-M23, P5-M24, M82 SKIP with "mutation command failed to apply" — these target UNRELATED
+      palette (tests 25/26) and test-82 code, NOT the split. They are pre-existing (present in the
+      v1.0.37 baseline meta run). Note if you disagree, but they are out of scope for this change.
+
+REVIEWER OUTPUT REQUIREMENTS:
+  - Record which MODEL and EFFORT you are running as (this review is dispatched on Fable at xhigh
+    effort per §11.4.209 — Fable was live-probed OPERATIONAL at dispatch, rc=0 / is_error=false /
+    no 429, so it is the PRIMARY substrate, not the Opus fallback).
+  - End with a line exactly "VERDICT: GO" or "VERDICT: NO-GO".
+  - Under "FINDINGS:" tag each item BLOCKING / IMPORTANT / MINOR / NIT with file:line, why, and a
+    concrete fix. A zero-finding GO must state what you checked and found clean.

@@ -1,0 +1,198 @@
+════════════════════════════════════════════════════════════════
+  §11.4.4 meta-test paired-mutation harness
+════════════════════════════════════════════════════════════════
+
+--- MUTATION: M1: hostname_color output format ---
+PASS: M1: hostname_color output format MUTATION CAUGHT — test output contains 'FAIL.*T2'
+PASS: M1: hostname_color output format FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M2: hostname_color hash forced to zero ---
+PASS: M2: hostname_color hash forced to zero MUTATION CAUGHT — test output contains 'FAIL.*T3'
+PASS: M2: hostname_color hash forced to zero FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M3: hostname_color palette index collapsed to one entry ---
+PASS: M3: hostname_color palette index collapsed to one entry MUTATION CAUGHT — test output contains 'FAIL.*T3'
+PASS: M3: hostname_color palette index collapsed to one entry FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M4: tmx wrapper remove systemd-run flag ---
+PASS: M4: tmx wrapper remove systemd-run flag MUTATION CAUGHT — test output contains 'SKIP.*T2'
+PASS: M4: tmx wrapper remove systemd-run flag FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M5: tmx wrapper corrupt MemoryMax ---
+PASS: M5: tmx wrapper corrupt MemoryMax MUTATION CAUGHT — test output contains 'FAIL.*T(1|3)'
+PASS: M5: tmx wrapper corrupt MemoryMax FEATURE RESTORED — test PASSes after revert
+SKIP: M7: RETIRED — targeted dead scripts/tmx-vm (legacy VM path). Replaced by M20+M21 (Darwin rlimit) + M4+M5 (Linux cgroup, topology-guarded).
+SKIP: M8: RETIRED — targeted dead scripts/tmx-vm (legacy VM path). Hostname-colour Darwin coverage retained by test 11 T4-T6.
+SKIP: M9: RETIRED — targeted dead scripts/tmx-vm (legacy VM path). Per-session isolation covered by M4 (Linux) + M20 (Darwin).
+SKIP: M10: RETIRED — targeted dead scripts/tmx-vm (legacy VM path). MemoryMax-disable covered by M5 (Linux); macOS has no equivalent (XNU gap per §11.4.81 (C) + docs/guide/README.md §5.6).
+SKIP: M20: scripts/tmx-rlimit-wrapper.sh is the Darwin isolation primitive — Linux uses cgroup (covered by M5). §11.4.3 / §11.4.81 topology dispatch.
+SKIP: M21: Darwin-only NPROC rlimit; Linux uses cgroup TasksMax (covered by M5).
+
+--- MUTATION: M22: own-org submodule re-excluded from CodeGraph ---
+PASS: M22: MUTATION CAUGHT — codegraph_validate V3 FAILed on re-excluded Containers/** (§11.4.79 violation detected)
+PASS: M22: FEATURE INTACT — validate V3 PASSes after revert
+
+--- MUTATION: M6: hostname_color non-deterministic via $$ injection ---
+PASS: M6: hostname_color non-deterministic via $$ injection MUTATION CAUGHT — test output contains 'FAIL.*T1'
+PASS: M6: hostname_color non-deterministic via $$ injection FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M11: tmux.conf.template strip `.exe` substitution from rename-format ---
+PASS: M11: tmux.conf.template strip `.exe` substitution from rename-format MUTATION CAUGHT — test output contains 'FAIL'
+PASS: M11: tmux.conf.template strip `.exe` substitution from rename-format FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M12: tmux.conf.template remove WheelUpPane copy-mode override ---
+PASS: M12: tmux.conf.template remove WheelUpPane copy-mode override MUTATION CAUGHT — test output contains 'FAIL'
+PASS: M12: tmux.conf.template remove WheelUpPane copy-mode override FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M13: tmux.conf.template revert history-limit to old 2000 default ---
+PASS: M13: tmux.conf.template revert history-limit to old 2000 default MUTATION CAUGHT — test output contains 'FAIL'
+PASS: M13: tmux.conf.template revert history-limit to old 2000 default FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M14: project Constitution.md strip inheritance pointer ---
+PASS: M14: project Constitution.md strip inheritance pointer MUTATION CAUGHT — test output contains 'FAIL.*T5'
+PASS: M14: project Constitution.md strip inheritance pointer FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M16: .codegraph/config.json strip secret exclusion ---
+PASS: M16: MUTATION CAUGHT — test 20 T3 FAILed on stripped secret exclusion
+PASS: M16: FEATURE INTACT — test 20 T3 PASSes after revert
+
+--- MUTATION: M17: .mcp.json strip codegraph entry ---
+PASS: M17: MUTATION CAUGHT — test 22 T1 FAILed on stripped .mcp.json codegraph
+PASS: M17: FEATURE INTACT — test 22 T1 PASSes after revert
+
+--- MUTATION: M19: scripts/tmx strip kill→kill-session shorthand ---
+PASS: M19: MUTATION CAUGHT — test 23 T3 FAILed on stripped kill-shorthand
+PASS: M19: FEATURE INTACT — test 23 PASSes after revert
+
+--- MUTATION: M15: project CLAUDE.md strip verbatim anti-bluff covenant (temp-copy) ---
+PASS: M15: MUTATION CAUGHT — test 19 T2 FAILed on the covenant-stripped CLAUDE.md copy
+PASS: M15: FEATURE INTACT — test 19 PASSes against the real CLAUDE.md
+
+--- MUTATION: CM-CONSTITUTION-INHERITANCE (temp-copy; constitution/ untouched) ---
+PASS: CM-CONSTITUTION-INHERITANCE MUTATION CAUGHT — test 18 T3 FAILed on the anchor-stripped copy
+PASS: CM-CONSTITUTION-INHERITANCE FEATURE INTACT — test 18 PASSes against the real constitution/
+
+--- MUTATION: M23: hostname_color.sh revert to orange-heavy palette ---
+PASS: M23: MUTATION CAUGHT — test 25 FAILed on orange-heavy palette (T1 or T3 caught the regression)
+PASS: M23: FEATURE INTACT — test 25 PASSes against the v1.0.7 balanced palette after revert
+
+--- MUTATION: M24: scripts/tmx narrow _apply_host_color to status-style only ---
+M24: stripped 6 set-lines across all color functions
+PASS: M24: MUTATION CAUGHT — test 26 T2/T3/T4 FAILed on the narrowed _apply_host_color (one or more default-green surfaces stayed green)
+PASS: M24: FEATURE INTACT — test 26 PASSes (all four UI surfaces uniform) after revert
+
+--- MUTATION: M44: tmux.conf.template strip @clip user-option definition ---
+PASS: M44: tmux.conf.template strip @clip user-option definition MUTATION CAUGHT — test output contains 'FAIL.*T1'
+PASS: M44: tmux.conf.template strip @clip user-option definition FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M46: tmux.conf.template strip @clip-read user-option (v1.0.15 paste-IN) ---
+PASS: M46: tmux.conf.template strip @clip-read user-option (v1.0.15 paste-IN) MUTATION CAUGHT — test output contains 'FAIL.*T1'
+PASS: M46: tmux.conf.template strip @clip-read user-option (v1.0.15 paste-IN) FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M48: tmux.conf.template strip M-MouseDrag1Pane override (v1.0.15 alt-drag selection) ---
+PASS: M48: tmux.conf.template strip M-MouseDrag1Pane override (v1.0.15 alt-drag selection) MUTATION CAUGHT — test output contains 'FAIL.*T1'
+PASS: M48: tmux.conf.template strip M-MouseDrag1Pane override (v1.0.15 alt-drag selection) FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M75: build_native.sh jemalloc link reverted to bare -ljemalloc (§11.4.111) ---
+PASS: M75: build_native.sh jemalloc link reverted to bare -ljemalloc (§11.4.111) MUTATION CAUGHT — test output contains 'FAIL.*C2b'
+PASS: M75: build_native.sh jemalloc link reverted to bare -ljemalloc (§11.4.111) FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: M76: tmx.template strip top-level _ensure_terminfo_dirs call (§11.4.111 terminfo) ---
+PASS: M76: tmx.template strip top-level _ensure_terminfo_dirs call (§11.4.111 terminfo) MUTATION CAUGHT — test output contains 'FAIL.*C2'
+PASS: M76: tmx.template strip top-level _ensure_terminfo_dirs call (§11.4.111 terminfo) FEATURE RESTORED — test PASSes after revert
+
+--- MUTATION: P5-M20: strip the distinctive 'non-TTY guard fired' marker line from tmx-shell-init.sh.template (v1.0.16: test 49 catches universally) ---
+PASS: P5-M20 MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: P5-M21: strip cwd-capture tmux hook block (client-detached + session-closed) from scripts/tmx.template (v1.0.16: test 50 catches via show-hooks readback, not manual injection) ---
+  >>> ABORT: scripts/tmx.template has uncommitted changes (git status):
+     M scripts/tmx.template
+SKIP: P5-M21: dirty working tree on scripts/tmx.template — refusing to mutate
+
+--- MUTATION: P5-M22: strip command= prefix from tmx-ssh-install.sh authorized_keys line ---
+PASS: P5-M22 MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: M-DBLPROMPT: strip per-process idempotency guard from generated tmx-shell-init.sh (test 54 catches the bash-login double-prompt) ---
+PASS: M-DBLPROMPT MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: M-MOUSETOGGLE: strip the 'prefix m' mouse-toggle binding from tmux.conf.template (test 55 catches loss of the copy escape hatch) ---
+PASS: M-MOUSETOGGLE MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: M-MOUSEDEFAULT: flip the mouse default off->on in tmux.conf.template (test 59 wire-level proof catches re-suppression of native terminal select + right-click->Copy) ---
+PASS: M-MOUSEDEFAULT MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: M-PLAINDRAG: strip plain-drag copy-mode override from tmux.conf.template (test 56 real SGR mouse-drag catches loss of select+copy in mouse-tracking apps) ---
+PASS: M-PLAINDRAG MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: M-PASTE: strip the POSIX prefix-P paste binding from tmux.conf.template (test 57 catches loss of OS-clipboard paste-into-pane) ---
+PASS: M-PASTE MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: M-TMX-ATTACH-RELOAD: strip source-file-on-attach from scripts/tmx (test 58 catches stale bindings on re-attach of an old session) ---
+PASS: M-TMX-ATTACH-RELOAD MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: M-WRAPPER-TMUXBIN: point scripts/tmx TMUX_BIN at a missing path (test 60 catches the F1 terminal-crash wrapper-points-at-missing-binary surface) ---
+PASS: M-WRAPPER-TMUXBIN MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: P5-M23: strip session-name regex validation case-block from tmx-ssh-dispatch.sh.template ---
+SKIP: P5-M23: mutation command failed to apply
+
+--- MUTATION: P5-M24: strip Darwin) case-arm from scripts/tests/40_macos_linux_parity.sh (cross-platform parity per §11.4.81) ---
+SKIP: P5-M24: mutation command failed to apply
+
+--- MUTATION: M25: strip _apply_color from scripts/tmx (test 63 T1/T2/T3 read live status-style == chosen color) ---
+PASS: M25 MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: M26: neutralize set-color call in scripts/tmux (test 63 T4 persisted-color-wins fails) ---
+PASS: M26 MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: M27: make verifyPassword always return true (test 66 T3 wrong-password accepted) ---
+PASS: M27 MUTATION CAUGHT — test output contains 'FAIL'
+
+--- MUTATION: M82: remove whitespace trim/collapse from scripts/tmx _sanitise (test 82 live readback fails) ---
+SKIP: M82: mutation command failed to apply
+
+--- MUTATION: M-test67: make obtain_local_deps.sh resolved.env emit a nonexistent JEMALLOC_SO (test 67 catches the resolved-lib-does-not-exist bluff) ---
+PASS: M-test67 MUTATION CAUGHT — test output contains '^FAIL 67'
+
+--- MUTATION: M-CM-LOCAL-DEPS-MECHANISM (verify.sh gate; setup.sh invocation removed) ---
+SKIP: CM-LOCAL-DEPS-MECHANISM: scripts/setup.sh has uncommitted changes — refusing to mutate (§11.4.84 quiescence)
+
+--- MUTATION: M-CM-NO-SUDO-NO-INTERACTION (verify.sh gate (C); project-wide privilege-escalation EXECUTION detector) ---
+  [evidence] [FAIL] CM-NO-SUDO-NO-INTERACTION sudo/su EXECUTION (command position) in scripts/tests/nsni_exec_probe.sh:
+PASS: CM-NO-SUDO-NO-INTERACTION MUTATION CAUGHT — gate (C) [FAIL]s on a command-position privilege-escalation EXECUTION injected anywhere under scripts/ (operator mandate 2026-06-29)
+PASS: CM-NO-SUDO-NO-INTERACTION FEATURE RESTORED — gate [PASS]es on the cleaned tree (print-only advice does not trip it)
+
+--- MUTATION: M-MASK: password masking echoes plaintext instead of '*' (test 77) ---
+PASS: M-MASK MUTATION CAUGHT — test output contains 'FAIL 77'
+
+--- MUTATION: M-LIVEFIRST: attach verb no longer checks liveness before password prompt (test 84) ---
+PASS: M-LIVEFIRST MUTATION CAUGHT — test output contains 'FAIL 84'
+
+--- MUTATION: M-CONFIRM: new-password flow accepts without confirmation (test 80) ---
+PASS: M-CONFIRM MUTATION CAUGHT — test output contains 'FAIL 80'
+
+--- MUTATION: M-SUFFIX: wizard suffix generation forced to empty string (test 78) ---
+PASS: M-SUFFIX MUTATION CAUGHT — test output contains 'FAIL 78'
+
+--- MUTATION: M-CSIU: strip extended-keys-format csi-u from tmux.conf.template (test 85) ---
+PASS: M-CSIU MUTATION CAUGHT — test output contains 'FAIL 85'
+
+--- MUTATION: M-CPUADAPT: revert host-adaptive CPUQuota default to fixed 200% in tmx.template (test 86) ---
+  >>> ABORT: scripts/tmx.template has uncommitted changes (git status):
+     M scripts/tmx.template
+SKIP: M-CPUADAPT: dirty working tree on scripts/tmx.template — refusing to mutate
+
+--- MUTATION: M-SPLIT: split activation reverted: TMX_SERVER_SPLIT=1 silently runs the shared topology (test 87) ---
+PASS: M-SPLIT MUTATION CAUGHT — test output contains 'FAIL: G1'
+
+--- MUTATION: M-SPLIT-QUOTA: workload slice configured WITHOUT its CPUQuota — fleet unbounded (test 87) ---
+PASS: M-SPLIT-QUOTA MUTATION CAUGHT — test output contains 'FAIL: G3'
+
+════════════════════════════════════════════════════════════════
+  meta-test summary
+════════════════════════════════════════════════════════════════
+  MUTATIONS CAUGHT (PASS): 68
+  MUTATIONS ESCAPED (FAIL): 0
+  MUTATIONS SKIPPED:       12
+
+  GREEN: all tested mutations caught (layer 4 coverage active)

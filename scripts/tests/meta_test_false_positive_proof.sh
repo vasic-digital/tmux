@@ -1543,6 +1543,36 @@ v109_run_mutation \
     "scripts/tests/86_cpu_quota_host_adaptive.sh" \
     "FAIL: G2"
 
+# ── M-SPLIT: silently disable the §11.4.225 server/workload scope split
+# while TMX_SERVER_SPLIT=1 is set (test 87 catches the missing topology).
+# §11.4.115(F): this is the split feature's activation revert — with the
+# mutation applied the wrapper takes the shared-scope path, no workload
+# slice ever starts, and test 87's guard G1 (srv scope + slice both
+# active, server pid in the srv scope) FAILs at the RUNTIME layer (real
+# systemctl is-active + /proc/<pid>/cgroup read-backs, never a grep).
+# Targets the GENERATED wrapper — the artifact test 87 actually executes.
+v109_run_mutation \
+    "M-SPLIT" \
+    "split activation reverted: TMX_SERVER_SPLIT=1 silently runs the shared topology (test 87)" \
+    "scripts/tmx" \
+    "inplace_sed 's|TMX_SPLIT_EFFECTIVE=1|TMX_SPLIT_EFFECTIVE=0|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
+    "scripts/tests/87_server_scope_split.sh" \
+    "FAIL: G1"
+
+# ── M-SPLIT-QUOTA: drop the CPUQuota from the workload slice's
+# set-property call — the fleet would run UNBOUNDED inside the slice (the
+# exact silent-evasion hazard §11.4.201 forbids). Test 87 G3 FAILs on the
+# live cpu.max read-back (slice reports 'max' instead of the artifact-
+# derived split value) and G5's load needle dies (no throttling without a
+# quota) — caught by the AUTHORITATIVE cgroup readings, never a grep.
+v109_run_mutation \
+    "M-SPLIT-QUOTA" \
+    "workload slice configured WITHOUT its CPUQuota — fleet unbounded (test 87)" \
+    "scripts/tmx" \
+    "inplace_sed 's|_slice_props=( \"CPUQuota=\${TMX_WORK_CPU_EFFECTIVE}%\" \"TasksMax=4096\" )|_slice_props=( \"TasksMax=4096\" )|' \"\$target_abs\" && chmod 755 \"\$target_abs\"" \
+    "scripts/tests/87_server_scope_split.sh" \
+    "FAIL: G3"
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════

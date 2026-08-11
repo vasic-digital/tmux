@@ -756,6 +756,19 @@ else
     echo "  ⓘ scripts/tmx-recycler.sh not present (pre-recycler tree); idle recycle disabled"
 fi
 
+# §11.4.225: the split-topology pane shim (scripts/tmx-pane-shim.sh) is a
+# STATIC script like the recycler (no __PLACEHOLDER__ substitution — the
+# wrapper passes the slice unit as an argument). It lives beside the
+# generated scripts/tmx and is resolved at "$TMX_DIR/tmx-pane-shim.sh".
+# Only consulted when TMX_SERVER_SPLIT=1 (default OFF); the wrapper falls
+# back LOUDLY to the shared topology if it is absent.
+if [ -f scripts/tmx-pane-shim.sh ]; then
+    chmod +x scripts/tmx-pane-shim.sh 2>/dev/null || true
+    echo "  ✓ scripts/tmx-pane-shim.sh present + executable (§11.4.225 split-topology pane shim; TMX_SERVER_SPLIT=1 opt-in)"
+else
+    echo "  ⓘ scripts/tmx-pane-shim.sh not present (pre-split tree); TMX_SERVER_SPLIT unavailable"
+fi
+
 # Step 3a — generate the tmx-shell-init.sh from its template (v1.0.9+).
 # CRITICAL: the bashrc snippet sources scripts/tmx-shell-init.sh; without
 # this step, the snippet's `[ -r ... ] && . ...` guard silently skips

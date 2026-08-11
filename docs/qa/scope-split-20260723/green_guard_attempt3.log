@@ -1,0 +1,14 @@
+── Test 87: interactive-server scope split (RED_MODE=0) ──
+  target: /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx.template
+PASS: G0: _srv_cpu_pct + _split_cpu_pcts present in /home/milos/Factory/projects/tools_and_research/tmux/scripts/tmx.template
+PASS: G1: srv scope + workload slice both active; server pid 2559934 cgroup /user.slice/user-1000.slice/user@1000.service/app.slice/tmx-t87_2559777.scope is the srv scope (not the slice)
+PASS: G2: workload slice subtree holds a live pane pid (positive evidence: cgroup.procs under /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/tmxw.slice/tmxw-t87_2559777.slice)
+PASS: G3: live quota split — srv cpu.max=50000 slice cpu.max=50000 == artifact split 50%/50% of TMX_CPU=100 (srv+workload == total, §12.6 budget preserved)
+PASS: G4: quiet-phase control clean (a 1 s idle window with delta 0 on srv scope AND slice)
+PASS: G5: isolation proven — slice nr_throttled delta=30 (fleet really throttled against its own quota) while srv scope delta=0 (server NEVER co-throttled; §11.4.225 deltas-under-load + control needle)
+PASS: G6: burst banks live — srv cpu.max.burst=100000 slice cpu.max.burst=860000 == own quotas (100%/860% of adaptive 960%)
+PASS: G7: pair teardown clean — no scope/slice unit left active after kill-session
+PASS: G8: dashed name 't87-x-2559777' → flat escaped slice tmxw-t87\x2dx\x2d2559777.slice active with a live pane pid (no nested-slice quota coupling)
+PASS: G8b: escaped slice torn down by kill-session
+
+  Tests: PASS=10 FAIL=0 SKIP=0
