@@ -4576,8 +4576,8 @@ had wired on this same host. Added via OpenCode's own local-MCP schema
 verified by a JSON round-trip proving none of the file's other 132
 entries were disturbed. Test 22 now PASS=7/FAIL=0/SKIP=0.</p>
 <p><strong>Closure cycle:</strong> v1.0.40 <strong>Closure
-commit:</strong> (this commit) <strong>Captured evidence (4-layer,
-§11.4.108):</strong></p>
+commit:</strong> <code>74b35bd</code> <strong>Captured evidence
+(4-layer, §11.4.108):</strong></p>
 <ul>
 <li>(a) <strong>pre-build gate / source layer:</strong> the fix is a
 4-line addition (<code>TMX_CPU=auto</code>) to two test files;
@@ -4586,6 +4586,27 @@ commit:</strong> (this commit) <strong>Captured evidence (4-layer,
 fixed tests shows the split topology genuinely engaging (test 09
 T7a.0/T7b.1-3 all PASS with real cgroup/PID readback; test 15 T7/T8 PASS
 with real distinct cgroup pair verification).</li>
+<li>(b2) <strong>real-live-session layer (not just the test
+harness):</strong> after a clean <code>scripts/install.sh</code> run
+(<code>SUMMARY: PASS=72 FAIL=0 SKIP=14</code>), created a real
+<code>TMX_SERVER_SPLIT=1 TMX_CPU=auto</code> session directly via the
+installed <code>tmx</code> CLI (outside any test script) and confirmed
+via <code>/proc/&lt;pid&gt;/cgroup</code> — the kernel's own
+authoritative record, per §11.4.201's "match structure, not a proxy"
+discipline — that the pane's actual interactive login shell (not just
+the outer shim) is genuinely placed under
+<code>tmxw.slice/tmxw-&lt;name&gt;.slice/run-*.scope</code>, distinct
+from the tmux server's own <code>tmx-&lt;name&gt;.scope</code>. An
+initial <code>systemctl --user is-active tmxw-&lt;name&gt;.slice</code>
+check (unescaped unit name) had incorrectly read "inactive" — the real,
+correctly-escaped unit is
+<code>tmxw-&lt;name&gt;\x2d&lt;rest&gt;.slice</code> per systemd's
+standard hyphen-escaping for slice-hierarchy path components (confirmed
+against other legitimate, unrelated systemd device units on the same
+host showing the identical <code>\x2d</code> display pattern) — a
+verification-command bug on the investigator's side, not a defect in the
+wrapper. <code>kill-session</code> was confirmed to tear down both the
+scope and the (correctly-escaped) slice cleanly.</li>
 <li>(c) <strong>HelixQA Challenge:</strong> not added separately — tests
 09/15 (<code>TMUX-CH-09</code>/<code>TMUX-CH-15</code>) already cover
 this surface; their existing pass_condition already requires the full

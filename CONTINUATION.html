@@ -178,7 +178,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-08-10T00:00:00Z</p>
+<p><strong>Last updated:</strong> 2026-08-11T00:00:00Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -215,33 +215,41 @@ current state. Update this document as you work.</p>
 </tr>
 <tr>
 <td>Version</td>
-<td><strong>1.0.39</strong> (versionCode 40) — NO resource or lifetime
-limit by default: CPU/tasks/session-lifetime brought into the same
-fully-elastic-by-default, opt-in-only model memory already used (root
-cause of "sessions/processes killed despite ample host capacity" —
-dominant cause was the idle-recycler defaulting ON at 900s). See §3 top
-entry + <code>Fixed.md</code> §H (TMX-079). Previous: v1.0.38
+<td><strong>1.0.40</strong> (versionCode 41) — TMX-082: reconciled the
+split-topology crash-isolation test coverage (tests 09/15 T7-T9, landed
+by a separate autonomous auto-commit one day after v1.0.39) to the
+v1.0.39 opt-in-only <code>TMX_CPU</code> default, per the same §11.4.120
+pattern already applied to test 87's G6/G8. Verified on a REAL live
+session (not just the test harness): kernel
+<code>/proc/&lt;pid&gt;/cgroup</code> confirms the pane's actual shell
+is correctly placed under
+<code>tmxw.slice/tmxw-&lt;name&gt;.slice/</code>. See §3.31 +
+<code>Fixed.md</code> §I (TMX-082). Previous: v1.0.39 (TMX-079, no
+resource or lifetime limit by default — root cause of
+"sessions/processes killed despite ample host capacity"); v1.0.38
 (TMX-076/077, scope-independent collision guard + meta-test mutations);
 v1.0.37 (host-adaptive CPUQuota default, interactive server-scope split
 TMX_SERVER_SPLIT=1, TMX_CLASSIFICATION export, OOM score
 adjustment).</td>
 </tr>
 <tr>
-<td>Verification (this cycle, v1.0.39)</td>
-<td>No-limits-by-default fix validated: new test 88 (§11.4.115
-RED/GREEN, live cgroup + tmux-hook readback) PASS=9/FAIL=0/SKIP=0; tests
-09/13/15/86/87 reconciled (§11.4.120); final clean full-suite retest
-PASS=66/FAIL=6/SKIP=14 (all 6 failures independently confirmed
-pre-existing/unrelated via baseline A/B — §11.4.114); meta-test
-mutations <code>M-NOLIMITS</code> (new) + <code>M-CPUADAPT</code>
-(fixed) both proven to bite live; 4-round independent code review (Fable
-model) reached clean GO (round 1: 1 critical + 2 test/doc findings
-fixed; round 2: 4 doc/export-sync findings fixed; round 3: 3 small
-findings fixed; round 4: clean GO). Full detail: <code>Fixed.md</code>
-§H (TMX-079). (Prior cycle, v1.0.37: host-adaptive CPUQuota validated
-live on the 64-core fleet, 200%→960% dropped CFS throttle 18.8%→0%,
-server RT latency 50 ms→3 ms; interactive server-scope split
-TMX_SERVER_SPLIT=1 landed in v1.0.38.)</td>
+<td>Verification (this cycle, v1.0.40)</td>
+<td><code>install.sh</code> clean
+(<code>SUMMARY: PASS=72 FAIL=0 SKIP=14</code>), PATH-exported; real
+live-session test created directly via the installed CLI
+(<code>TMX_SERVER_SPLIT=1 TMX_CPU=auto</code>) and root-verified against
+<code>/proc/&lt;pid&gt;/cgroup</code> — the pane's actual login shell
+sits under <code>tmxw.slice/tmxw-&lt;name&gt;.slice/</code>, distinct
+from the server's own scope; <code>kill-session</code> confirmed to tear
+down cleanly. Also fixed test 22 (host-local
+<code>~/.config/opencode/opencode.json</code> missing the
+<code>codegraph</code> MCP entry). Full detail: <code>Fixed.md</code> §I
+(TMX-082). (Prior cycle, v1.0.39: no-limits-by-default fix validated via
+new test 88 (§11.4.115 RED/GREEN), final clean full-suite retest
+PASS=66/FAIL=6/SKIP=14 — all 6 failures independently confirmed
+pre-existing/unrelated via baseline A/B, §11.4.114 — 4-round independent
+code review reached clean GO. Full detail: <code>Fixed.md</code> §H,
+TMX-079.)</td>
 </tr>
 <tr>
 <td>Governance docs</td>
@@ -280,11 +288,61 @@ sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
 <h3
+id="331--v1040-split-topology-test-reconciliation-tmx-082--2026-08-11">§3.31
+— v1.0.40: split-topology test reconciliation (TMX-082) →
+2026-08-11</h3>
+<p><strong>Status:</strong> DONE (fix landed <code>74b35bd</code>,
+real-live-session verified, release-tag publish in progress this
+commit).</p>
+<p><strong>Trigger:</strong> operator-reported <code>install.sh</code>
+verification RED (<code>SUMMARY: PASS=68 FAIL=3 SKIP=15</code>, failing
+tests
+<code>09_crash_isolation_scope.sh 15_per_session_cgroup_distinct.sh 22_codegraph_mcp_wired.sh</code>),
+investigated via <code>/superpowers:systematic-debugging</code>.</p>
+<p><strong>Root cause:</strong> new split-topology crash-isolation test
+coverage (test 09's T7, test 15's T7-T9) landed on <code>main</code> via
+a separate work stream (<code>adf46d5</code>, "Auto-commit", 2026-08-11)
+one day after v1.0.39 shipped, without the <code>TMX_CPU=auto</code>
+opt-in the v1.0.39 default change requires to engage the split topology
+— the same class of gap already reconciled in test 87's G6/G8 during the
+v1.0.39 review cycle, not yet propagated to this independently-landed
+coverage. Full detail + captured evidence: <code>Fixed.md</code> §I
+(TMX-082).</p>
+<p><strong>Fix:</strong> added <code>TMX_CPU=auto</code> to the four
+affected <code>TMX_SERVER_SPLIT=1</code> spawns in tests 09 and 15. Also
+fixed test 22 (host-local <code>opencode.json</code> MCP wiring gap,
+this host only, not tracked in git).</p>
+<p><strong>Real-session verification (this cycle):</strong>
+<code>install.sh</code> clean install, then a real
+<code>tmx new -s &lt;name&gt; -d</code> session created directly via the
+installed CLI with <code>TMX_SERVER_SPLIT=1 TMX_CPU=auto</code> —
+root-verified via <code>/proc/&lt;pid&gt;/cgroup</code> (kernel ground
+truth, not a tool's exit status) that the pane's actual shell lands
+under <code>tmxw.slice/tmxw-&lt;name&gt;.slice/</code>. An initial
+<code>systemctl is-active</code> check against an unescaped unit name
+had misreported "inactive"; resolved as a verification-command bug
+(missing <code>\x2d</code> hyphen-escaping), not a wrapper defect —
+confirmed by cross-checking systemd's identical escaping behaviour on
+unrelated, known-good device units on the same host.</p>
+<p>Also confirmed, during this investigation, that the operator's 3
+pre-existing real sessions (<code>atmosphere-4224</code>,
+<code>btop-0626</code>, <code>tmx-7268</code>) had already died —
+journal timestamps show their scopes started and (for one) stopped
+entirely on 2026-08-10, hours before this cycle's
+<code>install.sh</code> run, with no reboot since
+(<code>uptime -s</code> = 2026-08-10 11:33:12) and no
+OOM-killer/recycler/crontab activity found in that window.
+Pre-existing/unrelated to this cycle's work, not a regression it
+introduced.</p>
+<p><strong>Next in this commit:</strong> version tag
+<code>tmux-1.0.40</code> published to GitHub + GitLab with
+changelog.</p>
+<h3
 id="330--v1039-no-resource-or-lifetime-limit-by-default-tmx-079--2026-08-10">§3.30
 — v1.0.39: no resource or lifetime limit by default (TMX-079) →
 2026-08-10</h3>
-<p><strong>Status:</strong> DONE (fix + tests + docs landed; full-suite
-retest + release-tag publish in progress this commit).</p>
+<p><strong>Status:</strong> DONE (fix + tests + docs landed, released as
+<code>tmux-1.0.39</code> on GitHub + GitLab).</p>
 <p><strong>Trigger (verbatim operator report, 2026-08-10):</strong>
 "sessions and processes get killed and wiped out ... on powerful
 hardware with enough resources — it MUST NOT happen".</p>
