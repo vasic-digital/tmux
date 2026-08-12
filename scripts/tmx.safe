@@ -418,9 +418,23 @@ case "$SUBCMD" in
                 fi
 
                 if [ "$_scope_ok" -eq 1 ]; then
+                    # TMX-083: systemd-oomd victim-avoidance for parity
+                    # with scripts/tmx / scripts/tmx.template (see those
+                    # files for the full forensic anchor). tmx.safe is
+                    # the fallback variant; the same defense applies —
+                    # systemd-oomd on user-<uid>.slice with
+                    # ManagedOOM{Swap,MemoryPressure}=kill SIGKILLs
+                    # candidate cgroups orthogonally to MemoryMax=,
+                    # taking tmux + every process in the session with
+                    # it under user-slice memory-pressure spikes.
+                    # Version-guarded — property landed in systemd 249.
+                    TMX_OOMD_ARGS=()
+                    [ "${sd_ver:-0}" -ge 249 ] 2>/dev/null && \
+                        TMX_OOMD_ARGS=( -p "ManagedOOMPreference=avoid" )
                     systemd-run --user --scope --quiet \
                         --unit="$SCOPE_UNIT" \
                         "${TMX_MEM_ARGS[@]}" \
+                        "${TMX_OOMD_ARGS[@]}" \
                         -p "CPUQuota=${TMX_CPU_EFFECTIVE}%" \
                         -p "TasksMax=4096" \
                         -p "Delegate=yes" \
