@@ -6,6 +6,86 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [tmux-1.0.41] (also v1.0.41) — 2026-08-12
+
+### Fixed
+
+- **systemd-oomd victim-avoidance on session scopes — sessions no longer
+  SIGKILLd by `systemd-oomd` under user-slice memory pressure spikes
+  even though every cgroup cap is unlimited (TMX-083).** Root-cause
+  forensic anchor (operator report on the boba project, 2026-08-12 —
+  universal Constitution §11.4.238 coverage escape: bug was found
+  manually, NOT by any automated QA gate this project or its consumers
+  ship): tmux sessions still crashed "as soon as we continue work" on
+  v1.0.40 despite the entire TMX-079 series landing
+  `MemoryMax=infinity` / `TasksMax=infinity` / `CPUQuota` OMITTED /
+  recycler-off-by-default. Systematic-debugging
+  (`superpowers:systematic-debugging`) live probes REFUTED every
+  documented killer in TMX-079 (live tmx-boba-<pid>.scope scopes
+  confirmed `infinity` everywhere; recycler `pgrep` returned zero
+  hits; `nr_throttled=0` on the user scope; no kernel OOM in
+  `journalctl -k --since '6 hours ago'`), then surfaced the residual
+  killer: `systemd-oomd.service` was active on the host with
+  `ManagedOOMSwap=kill` AND `ManagedOOMMemoryPressure=kill` set on
+  `user-1000.slice`. `systemd-oomd` operates orthogonally to cgroup
+  `Max=` limits — it selects victims by PSI-pressure / swap-usage,
+  NOT by scope memory ceiling — so under any real memory-pressure
+  spike (a heavy compose start + Angular / Gradle daemons +
+  parallel-subagent fleet on a shared user-slice, exactly the
+  Claude-Code-in-tmux workload the operator was running) it targets
+  candidate cgroups of `user-<uid>.slice` and SIGKILLs the whole
+  `tmx-<NAME>.scope`, taking tmux + every process in the session
+  with it in one shot. The `MemoryMax=infinity` from TMX-079 is
+  correct AND ineffective against oomd — a §11.4.108 layer-3
+  runtime-signature gap the fix now closes. Fix: add `-p
+  ManagedOOMPreference=avoid` to every `systemd-run --scope`
+  invocation that creates a tmx scope (shared topology at scripts/
+  tmx line 864, split topology at line 847), AND to the `systemctl
+  --user set-property --runtime` call that configures the split-
+  topology workload slice at line 823 (so the fleet in the slice
+  gets the same protection). Version-guarded by `sd_ver >= 249`
+  (the systemd release that introduced the property, 2021-06); older
+  hosts silently skip the property — the wrapper stays functional,
+  Constitution §11.4.6 honest-boundary posture. The tmx scope is
+  now DEPRIORITIZED as an oomd victim (`avoid` means "target this
+  only if no other candidate is available", NOT "never target" —
+  system safety is preserved for a genuine runaway that has no
+  better victim). Landed in `scripts/tmx.template` (source of
+  truth), `scripts/tmx` (live-generated wrapper), and the fixed-
+  Wrapper stays identical after the next `scripts/setup.sh` run.
+
+### Verification
+
+- Landed test 59 (`scripts/tests/59_oomd_preference_avoid.sh`) with
+  the §11.4.115 RED/GREEN polarity switch (`RED_MODE=1` — reproduces
+  defect on pre-fix; `RED_MODE=0` — permanent regression guard).
+  §11.4.3 honest SKIP-with-reason on non-Linux hosts (oomd is Linux-
+  only) and on systemd < 249 (property unsupported).
+- §11.4.115 RED verification against the UNMODIFIED wrapper (before
+  applying the fix): `RED_MODE=1` PASSed reporting `scope tmx-... has
+  ManagedOOMPreference=none (not avoid) — defect reproduced`;
+  `RED_MODE=0` FAILed reporting the same, confirming the test
+  captures the defect on the pre-fix artifact.
+- §11.4.115 GREEN verification against the FIXED wrapper: `RED_MODE=0`
+  PASSes reporting `scope tmx-... has ManagedOOMPreference=avoid —
+  TMX-083 regression guard confirmed`; `RED_MODE=1` FAILs reporting
+  the property is already `avoid` on what should be pre-fix code —
+  the perfect §11.4.115 polarity flip.
+- §11.4.108 four-layer runtime signature: (a) pre-build gate — `bash
+  -n` clean on both `scripts/tmx.template` and `scripts/tmx`; (b)
+  artifact layer — `scripts/tmx` bytes contain `ManagedOOMPreference=
+  avoid` at each of the three edit sites; (c) runtime-on-clean-target
+  — a session created by the fixed wrapper reads back `avoid` from
+  the live systemd scope via `systemctl --user show`; (d) user-
+  visible — sessions no longer eligible for oomd SIGKILL under any
+  pressure regime where a lower-preference candidate exists.
+- Universal Constitution §11.4.238 coverage-escape audit filed in
+  the boba project (the consumer where the defect was found): the
+  automated QA regime for tmux never covered "session scope survives
+  systemd-oomd pressure spike". Test 59 closes the gap in tmx; the
+  boba project adds a stress+chaos challenge simulating pressure on
+  the whole session tree.
+
 ## [tmux-1.0.40] (also v1.0.40) — 2026-08-11
 
 ### Fixed

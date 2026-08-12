@@ -822,6 +822,18 @@ case "$SUBCMD" in
                     #    §11.4.201).
                     _slice_props=( "CPUQuota=${TMX_WORK_CPU_EFFECTIVE}%" "TasksMax=${TMX_TASKS_EFFECTIVE}" )
                     [ -n "$TMX_MEM_EFFECTIVE" ] && _slice_props+=( "MemoryHigh=$TMX_MEM_EFFECTIVE" )
+                    # TMX-083 (§11.4.108/§11.4.115): systemd-oomd
+                    # victim-avoidance for the split-topology workload
+                    # slice. Under user-<uid>.slice PSI-pressure spikes
+                    # systemd-oomd targets candidate cgroups regardless
+                    # of their MemoryHigh/MemoryMax setting — the whole
+                    # fleet in this slice gets SIGKILLd, including tmux
+                    # clients attached to it. Version-guarded because
+                    # ManagedOOMPreference landed in systemd 249 (older
+                    # hosts silently skip; the property is unknown but
+                    # the wrapper stays functional).
+                    [ "${sd_ver:-0}" -ge 249 ] 2>/dev/null && \
+                        _slice_props+=( "ManagedOOMPreference=avoid" )
                     if ! systemctl --user set-property --runtime "$SLICE_UNIT" "${_slice_props[@]}" 2>/dev/null; then
                         echo "tmx: could not configure workload slice $SLICE_UNIT — falling back to the shared-scope topology." >&2
                         TMX_SPLIT_EFFECTIVE=0
@@ -844,9 +856,17 @@ case "$SUBCMD" in
                     if [ "$SAW_NEW" -eq 1 ]; then
                         NEW_ARGS+=("bash '$TMX_DIR/tmx-pane-shim.sh' '$SLICE_UNIT'")
                     fi
+                    # TMX-083: systemd-oomd victim-avoidance for the
+                    # split-topology SERVER scope (see the shared-scope
+                    # block below for the full forensic anchor).
+                    # Version-guarded — property landed in systemd 249.
+                    TMX_OOMD_ARGS=()
+                    [ "${sd_ver:-0}" -ge 249 ] 2>/dev/null && \
+                        TMX_OOMD_ARGS=( -p "ManagedOOMPreference=avoid" )
                     systemd-run --user --scope --quiet \
                         --unit="$SCOPE_UNIT" \
                         "${TMX_MEM_ARGS[@]}" \
+                        "${TMX_OOMD_ARGS[@]}" \
                         -p "CPUQuota=${TMX_SRV_CPU_EFFECTIVE}%" \
                         -p "TasksMax=256" \
                         -p "Delegate=yes" \
@@ -861,10 +881,37 @@ case "$SUBCMD" in
                     # defaults (§11.4.6 — no reliance on unverified config).
                     TMX_CPU_ARGS=()
                     [ -n "$TMX_CPU_EFFECTIVE" ] && TMX_CPU_ARGS=( -p "CPUQuota=${TMX_CPU_EFFECTIVE}%" )
+                    # TMX-083 (§11.4.108/§11.4.115) systemd-oomd
+                    # victim-avoidance. Forensic anchor 2026-08-12
+                    # (operator report on the boba project, universal
+                    # Constitution §11.4.238 coverage escape — bug was
+                    # found manually, NOT by automated QA): tmux
+                    # sessions still crashed on v1.0.40 despite
+                    # MemoryMax=infinity + TasksMax=infinity because
+                    # systemd-oomd is active on user-<uid>.slice with
+                    # ManagedOOMSwap=kill AND ManagedOOMMemoryPressure=
+                    # kill, and it operates orthogonally to cgroup Max=
+                    # limits — it selects victims by PSI pressure and
+                    # swap usage, not by scope ceiling — so under any
+                    # real memory-pressure spike it SIGKILLs whole
+                    # tmx-<NAME>.scope units, taking tmux + every
+                    # process in the session with it. Setting
+                    # ManagedOOMPreference=avoid tells oomd to
+                    # deprioritize this scope as a victim, honoring the
+                    # "sessions must NOT get killed" mandate that the
+                    # entire TMX-079 series is built to protect
+                    # (Constitution §105/§106 — sessions are fully
+                    # elastic). Version-guarded because the property
+                    # landed in systemd 249 (2021-06); older hosts
+                    # silently skip. RED/GREEN guard: test 59.
+                    TMX_OOMD_ARGS=()
+                    [ "${sd_ver:-0}" -ge 249 ] 2>/dev/null && \
+                        TMX_OOMD_ARGS=( -p "ManagedOOMPreference=avoid" )
                     systemd-run --user --scope --quiet \
                         --unit="$SCOPE_UNIT" \
                         "${TMX_MEM_ARGS[@]}" \
                         "${TMX_CPU_ARGS[@]}" \
+                        "${TMX_OOMD_ARGS[@]}" \
                         -p "TasksMax=${TMX_TASKS_EFFECTIVE}" \
                         -p "Delegate=yes" \
                         "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
