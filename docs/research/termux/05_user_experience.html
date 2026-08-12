@@ -2,95 +2,244 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.10" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>05_user_experience</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-color: #aaaaaa;
-}
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
-div.sourceCode
-{ background-color: #f8f8f8; }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ef2929; } 
-code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.at { color: #204a87; } 
-code span.bn { color: #0000cf; } 
-code span.cf { color: #204a87; font-weight: bold; } 
-code span.ch { color: #4e9a06; } 
-code span.cn { color: #8f5902; } 
-code span.co { color: #8f5902; font-style: italic; } 
-code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.dt { color: #204a87; } 
-code span.dv { color: #0000cf; } 
-code span.er { color: #a40000; font-weight: bold; } 
-code span.ex { } 
-code span.fl { color: #0000cf; } 
-code span.fu { color: #204a87; font-weight: bold; } 
-code span.im { } 
-code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.kw { color: #204a87; font-weight: bold; } 
-code span.op { color: #ce5c00; font-weight: bold; } 
-code span.ot { color: #8f5902; } 
-code span.pp { color: #8f5902; font-style: italic; } 
-code span.sc { color: #ce5c00; font-weight: bold; } 
-code span.ss { color: #4e9a06; } 
-code span.st { color: #4e9a06; } 
-code span.va { color: #000000; } 
-code span.vs { color: #4e9a06; } 
-code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="05--end-user-experience-on-termux">§05 — End-User Experience on
 Termux</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
@@ -103,14 +252,16 @@ project (research-only) <strong>Maintainer:</strong> milosvasic
 from</h2>
 <p><strong>Use F-Droid. Not Google Play.</strong></p>
 <p>The Play Store version of Termux is <strong>frozen at 2022</strong>
-and unmaintained. From the official announcement (<a href="https://github.com/termux/termux-app/discussions/4000">https://github.com/termux/termux-app/discussions/4000</a>):
-Google&#39;s Play policies in 2022 began requiring
-<code>targetSdkVersion=30+</code>, which (combined with Google&#39;s W^X
+and unmaintained. From the official announcement (<a
+href="https://github.com/termux/termux-app/discussions/4000">https://github.com/termux/termux-app/discussions/4000</a>):
+Google's Play policies in 2022 began requiring
+<code>targetSdkVersion=30+</code>, which (combined with Google's W^X
 mitigation in Android 10+) prevents Termux from executing files in its
-private data directory. Termux&#39;s only viable path forward was to abandon
+private data directory. Termux's only viable path forward was to abandon
 the Play release and update only via F-Droid + GitHub.</p>
-<p>The XDA write-up confirms: <em>&quot;The last version was released in 2022
-due to Google Play policy requirements&quot;</em> (<a href="https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/">https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/</a>).</p>
+<p>The XDA write-up confirms: <em>"The last version was released in 2022
+due to Google Play policy requirements"</em> (<a
+href="https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/">https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/</a>).</p>
 <table>
 <thead>
 <tr>
@@ -121,12 +272,14 @@ due to Google Play policy requirements&quot;</em> (<a href="https://www.xda-deve
 </thead>
 <tbody>
 <tr>
-<td>F-Droid (<a href="https://f-droid.org/en/packages/com.termux/">https://f-droid.org/en/packages/com.termux/</a>)</td>
+<td>F-Droid (<a
+href="https://f-droid.org/en/packages/com.termux/">https://f-droid.org/en/packages/com.termux/</a>)</td>
 <td>actively maintained</td>
 <td><strong>use this</strong></td>
 </tr>
 <tr>
-<td>GitHub releases (<a href="https://github.com/termux/termux-app/releases">https://github.com/termux/termux-app/releases</a>)</td>
+<td>GitHub releases (<a
+href="https://github.com/termux/termux-app/releases">https://github.com/termux/termux-app/releases</a>)</td>
 <td>actively maintained</td>
 <td>also acceptable; direct APK download</td>
 </tr>
@@ -138,12 +291,14 @@ due to Google Play policy requirements&quot;</em> (<a href="https://www.xda-deve
 </tbody>
 </table>
 <p>A migration guide for operators who have the Play version installed:
-<a href="https://docs.andronix.app/termux/migrating-to-f-droid">https://docs.andronix.app/termux/migrating-to-f-droid</a>
+<a
+href="https://docs.andronix.app/termux/migrating-to-f-droid">https://docs.andronix.app/termux/migrating-to-f-droid</a>
 — uninstall Play version, install F-Droid version. Configuration is lost
 (it lives in app data) so the operator should back up
 <code>~/.ssh/</code> and other personal state first.</p>
 <h2 id="2-first-time-install-steps">2. First-time install steps</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Install Termux from F-Droid.</span></span>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Install Termux from F-Droid.</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Open Termux.</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Update the system:</span></span>
@@ -179,24 +334,27 @@ due to Google Play policy requirements&quot;</em> (<a href="https://www.xda-deve
 <p>A tmux prefix is hard to type on a touch keyboard. Termux provides
 several mitigations:</p>
 <ul>
-<li><strong>Volume Down = Ctrl emulation.</strong> &quot;VOLUME DOWN + L&quot;
-sends Ctrl+L. Built-in, works everywhere. Source: <a href="https://www.learntermux.tech/2024/02/blog-post.html">https://www.learntermux.tech/2024/02/blog-post.html</a>.</li>
-<li><strong>Volume Up = Esc / function-keys.</strong> &quot;VOLUME UP + Q&quot;
-toggles the extra-keys row visibility; &quot;VOLUME UP + K&quot; same. Source: <a href="https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/">https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/</a>.</li>
+<li><strong>Volume Down = Ctrl emulation.</strong> "VOLUME DOWN + L"
+sends Ctrl+L. Built-in, works everywhere. Source: <a
+href="https://www.learntermux.tech/2024/02/blog-post.html">https://www.learntermux.tech/2024/02/blog-post.html</a>.</li>
+<li><strong>Volume Up = Esc / function-keys.</strong> "VOLUME UP + Q"
+toggles the extra-keys row visibility; "VOLUME UP + K" same. Source: <a
+href="https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/">https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/</a>.</li>
 <li><strong>Extra Keys row.</strong> A configurable bottom-of-screen row
 of keys (Ctrl, Alt, Esc, arrows, Tab, function keys) — visible by
 default. Customisable via <code>~/.termux/termux.properties</code> since
 Termux v0.66. Each key supports a popup (swipe-up gesture) since Termux
-v0.95. Source: <a href="https://mobile-coding-hub.github.io/termux/customisation/extra_keys/">https://mobile-coding-hub.github.io/termux/customisation/extra_keys/</a>.</li>
+v0.95. Source: <a
+href="https://mobile-coding-hub.github.io/termux/customisation/extra_keys/">https://mobile-coding-hub.github.io/termux/customisation/extra_keys/</a>.</li>
 <li><strong>External keyboard.</strong> Bluetooth + USB-OTG keyboards
 work natively; if the operator has one, the experience approaches a
 Linux desktop.</li>
 </ul>
-<p>For our <code>tmx</code>&#39;s default behaviour, no special config is
+<p>For our <code>tmx</code>'s default behaviour, no special config is
 needed. The standard tmux prefix <code>Ctrl-b</code> is typed as
-VolDown+b. For heavier users we&#39;d recommend
+VolDown+b. For heavier users we'd recommend
 <code>unbind C-b ; set -g prefix C-a ; bind a send-prefix</code>
-(already a common community choice) — but that&#39;s NOT a Termux-specific
+(already a common community choice) — but that's NOT a Termux-specific
 change. Project default stays.</p>
 <h2 id="4-scrollback--copy-mode">4. Scrollback / copy mode</h2>
 <p>The existing scrolling work (project Applied Fix A16) explicitly
@@ -212,7 +370,8 @@ guidance:</p>
 <li>Enter copy-mode with <code>Prefix + [</code>.</li>
 <li>Arrow keys + PgUp/PgDn navigate the scrollback buffer.</li>
 <li>Mouse support (<code>set -g mouse on</code>) lets the operator
-scroll with two-finger swipe on the touchscreen. Source: <a href="https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/">https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/</a>.</li>
+scroll with two-finger swipe on the touchscreen. Source: <a
+href="https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/">https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/</a>.</li>
 </ul>
 <p><code>A16</code> should already give us a baseline operator
 experience. A Termux test run of <code>scripts/tests/17_*.sh</code>
@@ -231,17 +390,20 @@ once per Termux session (or once at boot via
 <code>~/.termux/boot/start-sshd</code>).</li>
 <li><strong>Battery optimization → Unrestricted.</strong> Phone Settings
 → Apps → Termux → Battery → Unrestricted. This excludes Termux from
-Doze. (Path varies by OEM but the option exists everywhere.) Source: <a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>.</li>
+Doze. (Path varies by OEM but the option exists everywhere.) Source: <a
+href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>.</li>
 <li><strong>Disable Phantom Process Killer (Android 12+).</strong>
-Either via Developer Options &quot;Disable child process restrictions&quot;
+Either via Developer Options "Disable child process restrictions"
 (Android 14+ has the toggle) or ADB:
-<code>adb shell &quot;settings put global settings_enable_monitor_phantom_procs false&quot;</code>.
-Source: <a href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a>.</li>
+<code>adb shell "settings put global settings_enable_monitor_phantom_procs false"</code>.
+Source: <a
+href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a>.</li>
 <li><strong>OEM-specific.</strong> Xiaomi MIUI, Oppo ColorOS, Vivo
 FunTouchOS, Huawei HarmonyOS each have their own aggressive memory
-managers stacked on top of stock Android. Adding Termux to &quot;Autostart&quot; /
-&quot;Locked apps&quot; / &quot;Allowed in background&quot; in the OEM settings is a
-per-vendor incantation. <a href="https://dontkillmyapp.com">https://dontkillmyapp.com</a> is a
+managers stacked on top of stock Android. Adding Termux to "Autostart" /
+"Locked apps" / "Allowed in background" in the OEM settings is a
+per-vendor incantation. <a
+href="https://dontkillmyapp.com">https://dontkillmyapp.com</a> is a
 community-maintained directory of these workarounds.</li>
 </ol>
 <p>Our wrapper should DETECT Termux and print a one-time first-run
@@ -262,18 +424,18 @@ colour schemes (<code>~/.termux/colors.properties</code>). Defaults are
 sane and our hostname-colour palette (Applied Fix A12 family) renders
 correctly — confirmed by the existing scrolling/colour work that ALREADY
 mentions Termux.</p>
-<p>UNCONFIRMED: whether <code>scripts/hostname_color.sh</code>&#39;s
+<p>UNCONFIRMED: whether <code>scripts/hostname_color.sh</code>'s
 deterministic palette assignment produces enough contrast against
-Termux&#39;s default dark background for every hostname. Resolution: visual
+Termux's default dark background for every hostname. Resolution: visual
 check on actual device once a port lands.</p>
 <h2 id="7-filesystem-visibility">7. Filesystem visibility</h2>
-<p>Termux&#39;s <code>$HOME</code> is isolated — other Android apps cannot
+<p>Termux's <code>$HOME</code> is isolated — other Android apps cannot
 read it (SELinux denies). For the operator this means:</p>
 <ul>
 <li>Project files cloned with <code>git clone</code> live in
 <code>~/tmux-project</code> and are SAFE from accidental phone-app data
 corruption.</li>
-<li>BUT: Android&#39;s external storage (<code>/sdcard</code>,
+<li>BUT: Android's external storage (<code>/sdcard</code>,
 <code>/storage/emulated/0</code>) is shared with other apps. Termux can
 request access via <code>termux-setup-storage</code> (creates
 <code>~/storage/</code> symlinks). Useful for sharing files with editor
@@ -286,7 +448,7 @@ the phone reachable?</h2>
 <p>Three options for the SSH dispatch use case:</p>
 <ol type="1">
 <li><strong>Same Wi-Fi LAN.</strong> Phone gets an IP from the router;
-laptop ssh&#39;s <code>-p 8022</code> to it. Easiest setup. Phone IP changes
+laptop ssh's <code>-p 8022</code> to it. Easiest setup. Phone IP changes
 on reconnect (DHCP) → use mDNS (<code>&lt;phone-name&gt;.local</code>
 works on most home routers) or fixed reservation.</li>
 <li><strong>Tailscale.</strong> Install Tailscale on phone (Play Store
@@ -379,21 +541,31 @@ breaking shell startup.</p>
 </table>
 <h2 id="sources">Sources</h2>
 <ul>
-<li><a href="https://github.com/termux/termux-app/discussions/4000">https://github.com/termux/termux-app/discussions/4000</a>
+<li><a
+href="https://github.com/termux/termux-app/discussions/4000">https://github.com/termux/termux-app/discussions/4000</a>
 — official Termux Play Store frozen announcement</li>
-<li><a href="https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/">https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/</a></li>
-<li><a href="https://f-droid.org/en/packages/com.termux/">https://f-droid.org/en/packages/com.termux/</a></li>
-<li><a href="https://docs.andronix.app/termux/migrating-to-f-droid">https://docs.andronix.app/termux/migrating-to-f-droid</a></li>
-<li><a href="https://github.com/termux/termux-boot">https://github.com/termux/termux-boot</a></li>
-<li><a href="https://www.learntermux.tech/2024/02/blog-post.html">https://www.learntermux.tech/2024/02/blog-post.html</a>
+<li><a
+href="https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/">https://www.xda-developers.com/termux-terminal-linux-google-play-updates-stopped/</a></li>
+<li><a
+href="https://f-droid.org/en/packages/com.termux/">https://f-droid.org/en/packages/com.termux/</a></li>
+<li><a
+href="https://docs.andronix.app/termux/migrating-to-f-droid">https://docs.andronix.app/termux/migrating-to-f-droid</a></li>
+<li><a
+href="https://github.com/termux/termux-boot">https://github.com/termux/termux-boot</a></li>
+<li><a
+href="https://www.learntermux.tech/2024/02/blog-post.html">https://www.learntermux.tech/2024/02/blog-post.html</a>
 — touch keyboard guide</li>
-<li><a href="https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/">https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/</a>
+<li><a
+href="https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/">https://termuxtools.com/tmux-screen-terminal-multiplexing-termux/</a>
 — tmux on Termux specifics</li>
-<li><a href="https://mobile-coding-hub.github.io/termux/customisation/extra_keys/">https://mobile-coding-hub.github.io/termux/customisation/extra_keys/</a>
+<li><a
+href="https://mobile-coding-hub.github.io/termux/customisation/extra_keys/">https://mobile-coding-hub.github.io/termux/customisation/extra_keys/</a>
 — extra-keys row</li>
-<li><a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>
+<li><a
+href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>
 — Doze + wake-lock interaction</li>
-<li><a href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a></li>
+<li><a
+href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a></li>
 <li><a href="https://dontkillmyapp.com">https://dontkillmyapp.com</a> —
 OEM-specific battery-killer workarounds</li>
 </ul>

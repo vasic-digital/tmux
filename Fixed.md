@@ -3196,7 +3196,12 @@ The residual killer, surfaced by a targeted probe of `systemctl show user-1000.s
 
 Sites patched (identical in `scripts/tmx.template` — SOURCE — and `scripts/tmx` — LIVE-GENERATED): (1) shared-topology scope creation around line 864 (`systemd-run --scope` — this is the DEFAULT topology where all Claude Code + subagents + tmux server live in one scope, the exact configuration the operator was running); (2) split-topology server scope around line 847 (server protection when `TMX_SERVER_SPLIT=1`); (3) split-topology workload slice `_slice_props` around line 823 (`set-property --runtime` on the not-yet-started slice; a runtime drop-in the slice picks up when the first pane scope joins it, per systemd 255+ probed behavior — landed with the split-topology feature earlier).
 
-**Closure cycle:** v1.0.41
+**Closure cycle:** v1.0.42 (see CHANGELOG.md — the concurrent `main`
+branch shipped a separate v1.0.41 install-verification-RED batch while
+this TMX-083 work was in flight, integrated as the merge base per
+§11.4.113 merge-onto-latest-main; TMX-083 takes v1.0.42 to preserve
+monotonic versionCode per §11.4.151, never force-pushing over the
+published v1.0.41).
 **Closure commit:** (this commit)
 **Captured evidence (4-layer, §11.4.108):**
 - (a) **pre-build gate / source layer:** `bash -n scripts/tmx.template` clean, `bash -n scripts/tmx` clean, `bash -n scripts/tests/59_oomd_preference_avoid.sh` clean; source-layer grep-verification that `ManagedOOMPreference=avoid` appears exactly three times in each of `scripts/tmx.template` and `scripts/tmx` at the three fix sites, under the `${sd_ver:-0} -ge 249` guard.

@@ -103,7 +103,30 @@ MAF=$("$BIN" -L "$SOCK" display-message -p -t "$NAME" '#{mouse_any_flag}')
 # the drag hit the oh-my-bash banner.
 LSTOK="LSCOPY58_$$"
 "$BIN" -L "$SOCK" send-keys -t "$NAME" "ls -la / >/dev/null 2>&1; clear; for i in 1 2 3 4 5 6 7 8; do echo ${LSTOK}; done" Enter
-sleep 1.0
+# CONDITION-BASED WAIT, not a fixed sleep. Forensic (FACT, 2026-08-12): with a
+# flat `sleep 1.0` the drag fired while the pane still showed the shell's
+# startup banner — the clipboard captured "h-my-bash/check_for_upgrade", and
+# since the command above itself runs `clear`, the banner's PRESENCE is
+# positive proof the command had not executed yet. oh-my-bash's upgrade check
+# pushes the first prompt past 1s on this host, so any fixed timeout is a coin
+# flip (§11.4.50 determinism). Poll the LIVE pane until the token is actually
+# on screen, then drag against a target we have OBSERVED, never assumed.
+_tok_deadline=$(( $(date +%s) + 20 ))
+_tok_seen=0
+while [ "$(date +%s)" -lt "$_tok_deadline" ]; do
+    if "$BIN" -L "$SOCK" capture-pane -p -t "$NAME" 2>/dev/null | grep -q "$LSTOK"; then
+        _tok_seen=1; break
+    fi
+    sleep 0.2
+done
+if [ "$_tok_seen" -ne 1 ]; then
+    # The drag target never rendered, so the copy path was never exercised.
+    # PASS would be a §11.4 bluff; FAIL would be a §11.4.1 FAIL-bluff (the copy
+    # mechanism is not implicated at all) — SKIP with the real reason (§11.4.3).
+    echo "SKIP: 58 — drag-target token never rendered within 20s (shell startup did not reach a deterministic screen); copy path not exercised — §11.4.3"
+    exit 0
+fi
+sleep 0.3   # let the remaining token rows finish painting after the first hit
 : > "$SINK"
 inject_drag "$SOCK" "$NAME"
 sleep 0.3

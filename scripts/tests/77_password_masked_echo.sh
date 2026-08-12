@@ -24,6 +24,12 @@ set -uo pipefail
 
 SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SELF_DIR/../.." && pwd)"
+# §11.4.3/§11.4.50: keep the pane free of wrapper diagnostics driven by the
+# operator's ambient knobs. With TMX_SERVER_SPLIT=1 exported, the wrapper
+# prints "...TMX_CPU='' is not splittable..." into this very pane, and the
+# plaintext assertions below then match the needle inside "splitt-AB-le"
+# (a §11.4.201(7)(a) carrier) -> a §11.4.1 FAIL-bluff on healthy masking.
+. "$SELF_DIR/lib/hermetic_env.sh"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 STATE_BIN="$REPO_ROOT/scripts/tmx-state-bin"
 HOST_OS="$(uname -s)"
@@ -111,14 +117,21 @@ fi
 pth_send "drv_${NAME}" "ab"
 sleep 0.3
 _buf1="$(pth_capture "drv_${NAME}")"
-if printf '%s' "$_buf1" | grep -qF "ab"; then
-    _fail "plaintext 'ab' visible in pane buffer — masking not applied"
+# §11.4.201(7)(a) — match STRUCTURE, not a bare substring over the whole
+# screen. The leak sentinel "ab" is only meaningful ON THE PROMPT LINE: that
+# is where the wrapper echoes what the operator typed. Scanning the entire
+# pane makes ANY unrelated text that merely CONTAINS "ab" a false leak — e.g.
+# the wrapper's own "...TMX_CPU='' is not splittable..." diagnostic, whose
+# "splitt-AB-le" FAILed this test on provably-correct masking (2026-08-12).
+# An absent/empty prompt line fails safe: the star count below is then 0.
+_prompt_line1="$(printf '%s\n' "$_buf1" | grep "Enter password for session")"
+if printf '%s' "$_prompt_line1" | grep -qF "ab"; then
+    _fail "plaintext 'ab' visible on the password prompt line — masking not applied: $_prompt_line1"
 else
     # capture-pane -p is a live screen SNAPSHOT (one line per row, not an
     # accumulating log), so the prompt line's star count is exact at this
     # instant — count EXACTLY 2, not merely "contains **" (which would also
     # accept a stray-extra-star echo bug for 2 typed chars).
-    _prompt_line1="$(printf '%s\n' "$_buf1" | grep "Enter password for session")"
     _star_count1=$(printf '%s' "$_prompt_line1" | tr -dc '*' | wc -c)
     if [ "$_star_count1" -eq 2 ]; then
         _pass "exactly two '*' characters shown after typing 2 chars, no plaintext"
@@ -143,13 +156,15 @@ pth_send "drv_${NAME}" $'\x7f'
 pth_send "drv_${NAME}" "c"
 sleep 0.3
 _buf2="$(pth_capture "drv_${NAME}")"
-if printf '%s' "$_buf2" | grep -qF "ab" || printf '%s' "$_buf2" | grep -qF "ac"; then
-    _fail "plaintext still visible after backspace+retype: $_buf2"
+# Scoped to the prompt line for the same §11.4.201(7)(a) carrier reason as
+# assertion 1 — a leak echoes HERE, so this is where the sentinel belongs.
+_prompt_line2="$(printf '%s\n' "$_buf2" | grep "Enter password for session")"
+if printf '%s' "$_prompt_line2" | grep -qF "ab" || printf '%s' "$_prompt_line2" | grep -qF "ac"; then
+    _fail "plaintext still visible on the password prompt line after backspace+retype: $_prompt_line2"
 else
     # logical password is "ac" (2 chars) after "ab" -> backspace -> "c";
     # exact star count on the live snapshot must be 2, not merely "contains
     # **" (which would also accept a stray-extra-star backspace-erase bug).
-    _prompt_line2="$(printf '%s\n' "$_buf2" | grep "Enter password for session")"
     _star_count2=$(printf '%s' "$_prompt_line2" | tr -dc '*' | wc -c)
     if [ "$_star_count2" -eq 2 ]; then
         _pass "backspace + retype shows exactly 2 masked stars, no plaintext leaked"

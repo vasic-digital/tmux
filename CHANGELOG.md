@@ -6,7 +6,7 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
-## [tmux-1.0.41] (also v1.0.41) — 2026-08-12
+## [tmux-1.0.42] (also v1.0.42) — 2026-08-12
 
 ### Fixed
 
@@ -51,8 +51,8 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
   only if no other candidate is available", NOT "never target" —
   system safety is preserved for a genuine runaway that has no
   better victim). Landed in `scripts/tmx.template` (source of
-  truth), `scripts/tmx` (live-generated wrapper), and the fixed-
-  Wrapper stays identical after the next `scripts/setup.sh` run.
+  truth), `scripts/tmx` (live-generated wrapper); the wrapper
+  stays identical after the next `scripts/setup.sh` run.
 
 ### Verification
 
@@ -85,6 +85,82 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
   systemd-oomd pressure spike". Test 59 closes the gap in tmx; the
   boba project adds a stress+chaos challenge simulating pressure on
   the whole session tree.
+- Version renumbering (§11.4.113 merge-onto-latest-main): the
+  concurrent `main` branch shipped a separate v1.0.41 while this
+  fix was in flight (install-verification-RED fixes across tests
+  22/58/77/86/88); this TMX-083 work integrates that v1.0.41 as
+  the merge base and takes v1.0.42, monotonic versionCode 43
+  (§11.4.151), never force-pushing over the published v1.0.41.
+
+---
+
+## [tmux-1.0.41] (also v1.0.41) — 2026-08-12
+
+### Fixed
+
+- **`install.sh` verification gate RED with 5 failing tests — four distinct
+  root causes, only ONE of which was a real defect.** Operator report:
+  `SUMMARY: PASS=65 FAIL=5 SKIP=16`, failing `22_codegraph_mcp_wired.sh`,
+  `58_operator_path_select_copy_ls.sh`, `77_password_masked_echo.sh`,
+  `86_cpu_quota_host_adaptive.sh`, `88_no_limits_by_default.sh`.
+  Systematic-debugging (§11.4.102) established each cause as FACT before any
+  fix was written; the five failures did NOT share a cause and deliberately
+  did NOT receive a uniform fix.
+
+  1. **Ambient operator knobs decided three test verdicts (§11.4.3 /
+     §11.4.50 / §11.4.1 FAIL-bluff).** This host exports
+     `TMX_SERVER_SPLIT=1` from `~/.bashrc:96` + `~/.zshrc:126`, so every
+     `tmx new` attempted the split topology. Tests 86/88 then read the
+     **server scope's** cgroup (`cpu.max=100000`, `pids.max=256`) instead of
+     the whole session's, and test 77's plaintext sentinel matched inside the
+     wrapper's own `"...is not splittable..."` diagnostic (`splitt-AB-le` — a
+     §11.4.201(7)(a) carrier). All three were failing on **provably healthy
+     code**: the operator's opt-in `TasksMax=4096` had correctly landed on the
+     workload SLICE, and password masking was genuinely rendering `**`.
+     Proof: with `TMX_SERVER_SPLIT` unset and nothing else changed, 77/86/88
+     went GREEN (2/0, 6/0, 9/0). Fixed at the source layer with a new
+     `scripts/tests/lib/hermetic_env.sh` that neutralises the ambient TMX_*
+     knob set (enumerated FROM `scripts/tmx.template`, never guessed) and
+     reports what it neutralised as positive evidence; sourced by tests
+     58/77/86/88. Per-sub-test opt-ins still set their knobs explicitly, so
+     no assertion lost teeth — verified by re-applying the M-NOLIMITS
+     mutation, which still drives test 88 G2 to FAIL.
+  2. **Test 77 matched a 2-char plaintext sentinel as a bare substring over
+     the WHOLE pane buffer.** Latent even with a clean environment: any pane
+     text containing `ab` was a false leak. Scoped both assertions to the
+     password prompt line — where a real leak actually echoes — per
+     §11.4.201(7)(a) (match structure, not substring). Fails safe: an absent
+     prompt line yields a star count of 0 and still FAILs.
+  3. **Test 58 dragged against an unrendered screen (fixed timeout).** After
+     `send-keys` it slept a flat `1.0s` then injected the mouse drag; on this
+     host oh-my-bash's `check_for_upgrade` pushes the first prompt past 1s,
+     so the drag fired while the startup banner was still displayed and the
+     clipboard captured `h-my-bash/check_for_upgrade`. Since the sent command
+     itself runs `clear`, the banner's PRESENCE is positive proof the command
+     had not executed yet. Replaced the fixed sleep with condition-based
+     polling of the live pane (bounded 20s) so the drag targets a screen we
+     have OBSERVED; if the token never renders the copy path was never
+     exercised, so it SKIPs-with-reason (§11.4.3) rather than emitting either
+     a PASS-bluff or a §11.4.1 FAIL-bluff.
+  4. **`~/.config/opencode/opencode.json` genuinely lacked the codegraph MCP
+     server — a TRUE failure, and a v1.0.40 documentation-layer bluff.** The
+     v1.0.40 CHANGELOG describes this exact host-config fix as applied, but
+     the file's mtime was `2026-08-08 16:17` — untouched on the 2026-08-11
+     release date, proving the claimed write never landed (the file is
+     outside the repo, so no commit could have made it). Test 22's T2 caught
+     it correctly. Now actually applied, using OpenCode's own local-MCP schema
+     `{"type": "local", "command": ["codegraph", "serve", "--mcp"],
+     "enabled": true}`, backed up first and verified by re-running the real
+     test (T2 PASS, suite 7/0). A running `opencode serve` was ruled out as
+     the cause by the same mtime evidence.
+
+  Verified end-to-end: `bash scripts/install.sh` GREEN on the operator's own
+  checkout with the ambient `TMX_SERVER_SPLIT=1` still exported —
+  `SUMMARY: PASS=70 FAIL=0 SKIP=16` (was 65/5/16), zero FAIL lines across the
+  full run, verification gate GREEN, wrapper generated + PATH wired. Test 88
+  G6a now reads `cpu.max=960000 (bounded, opt-in) AND pids.max=4096`.
+
+---
 
 ## [tmux-1.0.40] (also v1.0.40) — 2026-08-11
 
