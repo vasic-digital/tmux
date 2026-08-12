@@ -32,6 +32,12 @@ set -uo pipefail
 
 RED_MODE="${RED_MODE:-0}"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# §11.4.3/§11.4.50: this test asserts DEFAULT wrapper behaviour and reads the
+# session cgroup back, so it MUST NOT inherit the operator's ambient TMX_*
+# knobs. An exported TMX_SERVER_SPLIT=1 makes G5/G6 read the SERVER scope's
+# quota instead of the whole session's -> a §11.4.1 FAIL-bluff on healthy
+# code. Per-sub-test opt-ins are still set explicitly on their invocations.
+. "$(cd "$(dirname "$0")" && pwd)/lib/hermetic_env.sh"
 TARGET="${T86_TARGET:-$REPO_ROOT/scripts/tmx.template}"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 T86_LIVE="${T86_LIVE:-1}"

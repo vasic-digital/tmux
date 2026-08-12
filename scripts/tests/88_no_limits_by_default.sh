@@ -56,6 +56,12 @@ set -uo pipefail
 
 RED_MODE="${RED_MODE:-0}"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# §11.4.3/§11.4.50: this test asserts NO-LIMITS-BY-DEFAULT and reads session
+# cgroups back, so ambient operator knobs would decide its verdict. With an
+# exported TMX_SERVER_SPLIT=1, G6a reads the server scope's TasksMax=256
+# instead of the opt-in 4096 (which correctly lands on the WORKLOAD SLICE)
+# -> a §11.4.1 FAIL-bluff. Opt-in sub-tests set their knobs explicitly.
+. "$(cd "$(dirname "$0")" && pwd)/lib/hermetic_env.sh"
 TARGET="${T88_TARGET:-$REPO_ROOT/scripts/tmx.template}"
 RC_TARGET="${T88_RC_TARGET:-$REPO_ROOT/scripts/tmx-recycler.sh}"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
