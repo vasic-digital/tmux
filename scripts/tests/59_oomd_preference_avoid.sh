@@ -26,17 +26,28 @@
 # deprioritize this scope as a victim.
 #
 # ─── RED_MODE POLARITY (universal Constitution §11.4.115) ──────────────
-# RED_MODE=1 (default) — asserts the scope does NOT carry
-#                       ManagedOOMPreference=avoid. PASSes on the
-#                       pre-fix artifact (evidence the defect is real);
-#                       FAILs on the post-fix artifact (evidence the
-#                       fix genuinely propagated the property). This
-#                       polarity captures the defect on a broken tmx
-#                       and is UNSAFE to run permanently as a guard.
-# RED_MODE=0            — asserts the scope DOES carry
+# RED_MODE=0 (default) — asserts the scope DOES carry
 #                       ManagedOOMPreference=avoid. This is the
 #                       permanent regression guard: PASSes on the
 #                       post-fix artifact, FAILs on any regression.
+#                       run_all.sh/verify.sh invoke every test with NO
+#                       env override, so a test's OWN default IS its
+#                       standing verification behaviour — this MUST be
+#                       the GREEN/regression-guard polarity (TMX-085,
+#                       2026-08-13: the original RED_MODE=1 default
+#                       made this test FAIL 100% deterministically
+#                       under `install.sh` on ANY host where the
+#                       TMX-083 fix is genuinely present, because RED
+#                       mode's whole point is to assert the OLD, BROKEN
+#                       value is still there).
+# RED_MODE=1            — reproduce-and-assert-DEFECT-PRESENT: asserts
+#                       the scope does NOT carry
+#                       ManagedOOMPreference=avoid. PASSes on the
+#                       pre-fix artifact (evidence the defect is real);
+#                       FAILs on the post-fix artifact. Explicit-opt-in
+#                       only — used for the original TDD-RED step and
+#                       forensic re-verification, never as the bare
+#                       harness-invocation default.
 #
 # ─── SKIPS (§11.4.3 honest topology-appropriate SKIP-with-reason) ──────
 # - Non-Linux hosts: systemd-oomd is Linux-only; the Darwin parallel
@@ -49,20 +60,22 @@
 #   the fix under a `sd_ver >= 249` guard).
 # - scripts/tmx.template (the SOURCE of truth; scripts/tmx is
 #   regenerated from it by scripts/setup.sh).
-# - Fixed.md §J1 TMX-083.
-# - CHANGELOG.md v1.0.41.
+# - Fixed.md §J1 TMX-083, §K1 TMX-085.
+# - CHANGELOG.md v1.0.41, v1.0.43.
 #
 # ─── LAST VERIFIED ─────────────────────────────────────────────────────
-# 2026-08-12 on nezha (systemd 258, tmx v1.0.41-pre): RED_MODE=1 PASSes
-# on the pre-edit tmx (property unset), RED_MODE=0 PASSes on the
-# post-edit tmx (property =avoid).
+# 2026-08-13 on nezha (systemd 258): RED_MODE=0 (default, bare
+# invocation) correctly PASSes against the current, fixed
+# scripts/tmx; RED_MODE=1 (explicit opt-in) correctly PASSes only
+# against a pre-fix artifact and FAILs against the current one —
+# exactly the polarity a standing regression guard requires.
 
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TMX_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 TMX_BIN="$TMX_DIR/tmx"
-RED_MODE="${RED_MODE:-1}"
+RED_MODE="${RED_MODE:-0}"
 HOST_OS="$(uname -s)"
 
 # ─── SKIP: non-Linux ────────────────────────────────────────────────────

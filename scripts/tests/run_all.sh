@@ -2,10 +2,14 @@
 # run_all.sh — execute all tmux validation tests in sequence.
 # Reports PASS / FAIL / SKIP totals; exits non-zero on any FAIL.
 #
-# Classification: scans test output for ANY line beginning with PASS/FAIL/SKIP.
+# Classification: delegates to scripts/tests/lib/classify_verdict.sh, which
+# scans test output for a genuine verdict-line ("PASS:"/"FAIL:"/"SKIP:" or
+# "... (RED)"-style, never a bare keyword substring — §11.4.201(7)(a)).
 # Priority: FAIL > SKIP > PASS (a test that FAILs anywhere counts as FAIL even
 # if a later line says PASS). This catches early-exit failures correctly AND
-# multi-line SKIP messages that have trailing context lines.
+# multi-line SKIP messages that have trailing context lines, WITHOUT
+# mis-firing on an informational "SKIP-layer:" sub-check note or a test's own
+# internal "PASS=N FAIL=N SKIP=N" summary counters (TMX-084, 2026-08-13).
 
 set -uo pipefail
 
@@ -104,6 +108,9 @@ if [ ! -x "$TMUX_BIN" ]; then
     exit 2
 fi
 
+# shellcheck disable=SC1091
+. "$REPO_ROOT/scripts/tests/lib/classify_verdict.sh"
+
 PASS=0
 FAIL=0
 SKIP=0
@@ -125,17 +132,16 @@ for t in "$REPO_ROOT/scripts/tests/"[0-9][0-9]_*.sh; do
     # explicitly and SKIP-with-reason when absent; closing stdin is orthogonal.
     out=$(bash "$t" </dev/null 2>&1)
     echo "$out"
-    # Classify: scan for first match of PASS/FAIL/SKIP at start of any line.
-    # Priority: FAIL > SKIP > PASS.
-    if echo "$out" | grep -qE '^FAIL'; then
-        FAIL=$((FAIL+1)); FAIL_NAMES="$FAIL_NAMES $name"
-    elif echo "$out" | grep -qE '^SKIP'; then
-        SKIP=$((SKIP+1)); SKIP_NAMES="$SKIP_NAMES $name"
-    elif echo "$out" | grep -qE '^PASS'; then
-        PASS=$((PASS+1))
-    else
-        FAIL=$((FAIL+1)); FAIL_NAMES="$FAIL_NAMES $name(unclassified)"
-    fi
+    # Classify via the shared, independently-tested helper (§11.4.201(7)(a)
+    # — match a genuine verdict-line delimiter, not a bare keyword prefix
+    # that also matches informational "SKIP-layer:" notes or a test's own
+    # internal "PASS=N FAIL=N SKIP=N" counters). Priority: FAIL > SKIP > PASS.
+    case "$(tmx_classify_verdict "$out")" in
+        FAIL) FAIL=$((FAIL+1)); FAIL_NAMES="$FAIL_NAMES $name" ;;
+        SKIP) SKIP=$((SKIP+1)); SKIP_NAMES="$SKIP_NAMES $name" ;;
+        PASS) PASS=$((PASS+1)) ;;
+        UNCLASSIFIED) FAIL=$((FAIL+1)); FAIL_NAMES="$FAIL_NAMES $name(unclassified)" ;;
+    esac
 done
 
 echo ""

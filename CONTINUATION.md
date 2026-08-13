@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-08-11T00:00:00Z
+**Last updated:** 2026-08-13T00:00:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -15,8 +15,8 @@ Paste this prompt:
 | Repo | vasic-digital/tmux on GitHub + GitLab |
 | Origin | Migrated from ATMOSphere project (`scripts/tmux/`, `docker/Dockerfile.tmux-build`, `docs/guides/TMUX_OPTIMIZED_BUILD.md`) on 2026-05-07 |
 | Pinned tmux | upstream tag `3.6a` |
-| Version | **1.0.40** (versionCode 41) — TMX-082: reconciled the split-topology crash-isolation test coverage (tests 09/15 T7-T9, landed by a separate autonomous auto-commit one day after v1.0.39) to the v1.0.39 opt-in-only `TMX_CPU` default, per the same §11.4.120 pattern already applied to test 87's G6/G8. Verified on a REAL live session (not just the test harness): kernel `/proc/<pid>/cgroup` confirms the pane's actual shell is correctly placed under `tmxw.slice/tmxw-<name>.slice/`. See §3.31 + `Fixed.md` §I (TMX-082). Previous: v1.0.39 (TMX-079, no resource or lifetime limit by default — root cause of "sessions/processes killed despite ample host capacity"); v1.0.38 (TMX-076/077, scope-independent collision guard + meta-test mutations); v1.0.37 (host-adaptive CPUQuota default, interactive server-scope split TMX_SERVER_SPLIT=1, TMX_CLASSIFICATION export, OOM score adjustment). |
-| Verification (this cycle, v1.0.40) | `install.sh` clean (`SUMMARY: PASS=72 FAIL=0 SKIP=14`), PATH-exported; real live-session test created directly via the installed CLI (`TMX_SERVER_SPLIT=1 TMX_CPU=auto`) and root-verified against `/proc/<pid>/cgroup` — the pane's actual login shell sits under `tmxw.slice/tmxw-<name>.slice/`, distinct from the server's own scope; `kill-session` confirmed to tear down cleanly. Also fixed test 22 (host-local `~/.config/opencode/opencode.json` missing the `codegraph` MCP entry). Full detail: `Fixed.md` §I (TMX-082). (Prior cycle, v1.0.39: no-limits-by-default fix validated via new test 88 (§11.4.115 RED/GREEN), final clean full-suite retest PASS=66/FAIL=6/SKIP=14 — all 6 failures independently confirmed pre-existing/unrelated via baseline A/B, §11.4.114 — 4-round independent code review reached clean GO. Full detail: `Fixed.md` §H, TMX-079.) |
+| Version | **1.0.43** (versionCode 44) — TMX-084 + TMX-085: two false-result defects in the verification HARNESS itself (not the wrapper) — `run_all.sh`'s verdict classifier misread an honest `SKIP-layer:` sub-check note (and any test's own internal `PASS=N FAIL=N SKIP=N` counters) as the test's overall verdict, and test 59's `RED_MODE` default made it fail 100% deterministically against a genuinely-fixed wrapper under a bare harness invocation. See §3.33 + `Fixed.md` §K (TMX-084/085). Previous: v1.0.42 (TMX-083, systemd-oomd victim-avoidance on session scopes — `ManagedOOMPreference=avoid` added to every scope/slice creation site, closing a §11.4.108 layer-3 gap where `MemoryMax=infinity` was correct but ineffective against oomd's orthogonal PSI-pressure victim selection; renumbered from v1.0.41 to v1.0.42 per §11.4.113 merge-onto-latest-main after a concurrent `main` branch shipped a separate v1.0.41 install-verification-RED batch — see `Fixed.md` §J, TMX-083); v1.0.41 (install-verification-RED fix — 4 distinct root causes across tests 22/58/77/86/88, including a v1.0.40 documentation-layer bluff where the opencode.json fix was CLAIMED but never actually landed — self-caught and corrected); v1.0.40 (TMX-082, split-topology test reconciliation); v1.0.39 (TMX-079, no resource or lifetime limit by default — root cause of "sessions/processes killed despite ample host capacity"); v1.0.38 (TMX-076/077, scope-independent collision guard + meta-test mutations); v1.0.37 (host-adaptive CPUQuota default, interactive server-scope split TMX_SERVER_SPLIT=1, TMX_CLASSIFICATION export, OOM score adjustment). |
+| Verification (this cycle, v1.0.43) | Investigated all 5 operator-reported failures (`27_state_persistence.sh 56_real_mouse_drag_copy.sh 57_reload_select_copy_paste.sh 59_oomd_preference_avoid.sh 87_server_scope_split.sh`) via `/superpowers:systematic-debugging`; 27/87 confirmed unchanged instances of the already-tracked TMX-080/TMX-081 (no action, still Queued); 56/57/59 root-caused to two harness-side classification bugs (TMX-084/085) — NEITHER was a defect in `scripts/tmx`/`scripts/tmx.template`. New regression test `89_classify_verdict_carrier.sh` (§11.4.115 RED/GREEN, 6 fixtures) + paired mutations `M-CLASSIFY-CARRIER`/`M-RED-DEFAULT-59`. Full detail: `Fixed.md` §K. (Prior cycle, v1.0.40: `install.sh` clean `PASS=72 FAIL=0 SKIP=14`, real live-session split-topology verification via kernel `/proc/<pid>/cgroup`. Full detail: `Fixed.md` §I, TMX-082.) |
 | Governance docs | `constitution/` submodule (HelixConstitution, pinned `1d81ef0`); `Containers/` submodule (pinned `18ed03d`); project `Constitution.md` (Project Articles §101–§109 extends the submodule), `CLAUDE.md`, `AGENTS.md`, `QWEN.md`, `GEMINI.md` (all lockstep), `Issues.md`, `Fixed.md`, this document |
 
 ## §2 — Mandates (canonical authority)
@@ -34,9 +34,41 @@ Paste this prompt:
 
 ## §3 — Active work
 
+### §3.33 — v1.0.43: verification-harness false-result classification (TMX-084/TMX-085) → 2026-08-13
+
+**Status:** DONE (both fixes landed + verified, release-tag publish in progress this commit).
+
+**Trigger:** operator-reported `install.sh` verification RED (`SUMMARY: PASS=66 FAIL=5 SKIP=16`, failing tests `27_state_persistence.sh 56_real_mouse_drag_copy.sh 57_reload_select_copy_paste.sh 59_oomd_preference_avoid.sh 87_server_scope_split.sh`), investigated via `/superpowers:systematic-debugging`.
+
+**Root cause (two DISTINCT, unrelated defects, both in the verification HARNESS, neither in the wrapper):**
+- **TMX-084:** `scripts/tests/run_all.sh` classified each test file's verdict via a bare `grep -qE '^FAIL'`/`'^SKIP'`/`'^PASS'` (no delimiter check). Tests 56/57 print an honest `SKIP-layer: <reason>` informational note for one optional GUI-only sub-check while genuinely PASSing overall (real drag/copy/paste evidence) — the bare-prefix regex misread `"SKIP-layer:"` as a top-level SKIP verdict. The same carrier shape exists unfixed in many other tests' own internal `"PASS=$PASS FAIL=$FAIL SKIP=$SKIP"` counters (a healthy `FAIL=0` line would ALSO mis-fire).
+- **TMX-085:** `scripts/tests/59_oomd_preference_avoid.sh` (the TMX-083 regression guard) defaulted to `RED_MODE=1` (reproduce-the-historical-defect polarity) — since `run_all.sh`/`verify.sh` never override `RED_MODE`, a bare invocation FAILed 100% deterministically against the genuinely-fixed wrapper, the opposite of what a standing regression guard needs.
+
+27 and 87 were independently re-confirmed as the already-tracked TMX-080/TMX-081 (Issues.md §H, unchanged, Status still `Queued`) — no new action.
+
+**Fix:** TMX-084 — extracted classification into a new, independently-tested `scripts/tests/lib/classify_verdict.sh` requiring a genuine verdict-line delimiter (`: `, ` `, or `(`) after the keyword, matching every real verdict line already used across the suite. TMX-085 — flipped test 59's default to `RED_MODE="${RED_MODE:-0}"`, matching the already-working convention 7 of the suite's other 11 RED_MODE-polarity tests already use.
+
+**Tests:** new test 89 (`89_classify_verdict_carrier.sh`, §11.4.115 RED/GREEN, 6 fixtures — 3 carrier, 3 non-carrier); paired mutations `M-CLASSIFY-CARRIER` + `M-RED-DEFAULT-59` in `meta_test_false_positive_proof.sh`.
+
+**Also backfilled:** TMX-083's `Fixed.md` §J1 `Closure commit:` placeholder (was `(this commit)`, now `6f9eaeb`) — the same never-backfilled-placeholder class already fixed for TMX-079/TMX-082, discovered while investigating this cycle.
+
+**§12.10 note:** this document had gone stale across the ENTIRE TMX-083/v1.0.41/v1.0.42 cycle (the autonomous process that landed commits `76f3433`/`6f9eaeb`/`92ef3a0`/`b29b9e1` never updated it) — backfilled retroactively in §3.32 below so the resumption record is complete.
+
+**Next in this commit:** version tag `tmux-1.0.43` published to GitHub + GitLab with changelog.
+
+### §3.32 — v1.0.41 / v1.0.42: install-verification-RED fix + systemd-oomd victim-avoidance (TMX-083) → 2026-08-12 (retroactively documented 2026-08-13)
+
+**Status:** DONE (released as `tmux-1.0.41` then `tmux-1.0.42` on GitHub + GitLab; this entry backfills the §12.10 gap left when those commits landed without a CONTINUATION.md update).
+
+**v1.0.41 — install-verification-RED fix, 4 distinct root causes across tests 22/58/77/86/88:** (1) ambient `TMX_SERVER_SPLIT=1` from this host's `.bashrc`/`.zshrc` decided 3 test verdicts on provably-healthy code (fixed via new `scripts/tests/lib/hermetic_env.sh`, neutralising ambient `TMX_*` knobs at test entry — sourced by 58/77/86/88); (2) test 77 matched a 2-char plaintext sentinel as a bare substring over the whole pane buffer (scoped to the password-prompt line, §11.4.201(7)(a)); (3) test 58 raced a fixed 1.0s sleep against a slower first-prompt render (replaced with condition-based polling); (4) `~/.config/opencode/opencode.json` genuinely still lacked the codegraph MCP entry — the v1.0.40 CHANGELOG's claim that this was already fixed was a **documentation-layer bluff** (the file's mtime proved the write never landed) — now actually applied + verified.
+
+**v1.0.42 — TMX-083, systemd-oomd victim-avoidance:** operator-reported (on the boba consumer project) "sessions get killed ... on strong hardware" despite the full TMX-079 series landing `MemoryMax=infinity`/`TasksMax=infinity`. Systematic-debugging refuted every TMX-079-series killer and surfaced the residual: `systemd-oomd.service` operates ORTHOGONALLY to cgroup `Max=` limits (PSI-pressure + swap-usage victim selection, not scope ceiling) — under a real memory-pressure spike it SIGKILLs the whole `tmx-<NAME>.scope`. Fix: `-p ManagedOOMPreference=avoid` added to all 3 scope/slice creation sites in `scripts/tmx.template`, version-guarded `sd_ver >= 249`. New test 59 (`59_oomd_preference_avoid.sh`, §11.4.115 RED/GREEN). Renumbered from v1.0.41 to v1.0.42 per §11.4.113 merge-onto-latest-main (a concurrent `main` branch had already shipped v1.0.41 while this work was in flight).
+
+Full detail + captured evidence: `Fixed.md` §J (TMX-083); CHANGELOG.md v1.0.41 + v1.0.42.
+
 ### §3.31 — v1.0.40: split-topology test reconciliation (TMX-082) → 2026-08-11
 
-**Status:** DONE (fix landed `74b35bd`, real-live-session verified, release-tag publish in progress this commit).
+**Status:** DONE (fix landed `74b35bd`, real-live-session verified, released as `tmux-1.0.40` on GitHub + GitLab).
 
 **Trigger:** operator-reported `install.sh` verification RED (`SUMMARY: PASS=68 FAIL=3 SKIP=15`, failing tests `09_crash_isolation_scope.sh 15_per_session_cgroup_distinct.sh 22_codegraph_mcp_wired.sh`), investigated via `/superpowers:systematic-debugging`.
 

@@ -1626,6 +1626,45 @@ v109_run_mutation \
     "scripts/tests/73_build_native_localdeps_wiring.sh" \
     "^FAIL 73"
 
+# ── M-CLASSIFY-CARRIER: revert classify_verdict.sh's delimiter-aware
+#    regex back to the pre-fix bare-keyword-prefix match (§11.4.115(F)
+#    canonical mutation = the fix-commit's revert). Forensic anchor
+#    (TMX-084, 2026-08-13): run_all.sh's aggregator scanned for ANY line
+#    starting with the bare keyword PASS/FAIL/SKIP — no delimiter check —
+#    so tests 56/57's honest "SKIP-layer: <reason>" sub-check note (and
+#    ANY other test's own internal "PASS=N FAIL=N SKIP=N" summary
+#    counters) got misread as a top-level verdict, silently
+#    misclassifying entirely-passing tests as SKIP or FAIL. Test 89's
+#    GREEN fixtures F1/F2/F3 assert every carrier line is correctly
+#    ignored; with the mutation applied (delimiter requirement stripped)
+#    they mis-classify again and F1/F2/F3 FAIL.
+v109_run_mutation \
+    "M-CLASSIFY-CARRIER" \
+    "revert classify_verdict.sh delimiter requirement to the pre-fix bare-keyword prefix match (test 89 F1/F2/F3 fail — carrier lines mis-classified again)" \
+    "scripts/tests/lib/classify_verdict.sh" \
+    "inplace_sed 's#\^FAIL(\[: (\]|\\\$)#^FAIL#' \"\$target_abs\" && inplace_sed 's#\^SKIP(\[: (\]|\\\$)#^SKIP#' \"\$target_abs\" && inplace_sed 's#\^PASS(\[: (\]|\\\$)#^PASS#' \"\$target_abs\"" \
+    "scripts/tests/89_classify_verdict_carrier.sh" \
+    "FAIL 89"
+
+# ── M-RED-DEFAULT-59: revert test 59's RED_MODE default from 0 back to 1
+#    (§11.4.115(F) canonical mutation = the fix-commit's revert).
+#    Forensic anchor (TMX-085, 2026-08-13): run_all.sh/verify.sh invoke
+#    every test with NO env override, so a test's OWN default becomes its
+#    standing verification behaviour. RED_MODE=1 asserts the HISTORICAL
+#    defect (ManagedOOMPreference=none) is still present — the opposite
+#    of what a standing regression guard needs — so a bare `bash
+#    scripts/tests/59_oomd_preference_avoid.sh` invocation against a
+#    genuinely-fixed wrapper FAILed 100% deterministically. With the
+#    mutation applied, a bare (no-env-override) invocation of test 59
+#    FAILs again.
+v109_run_mutation \
+    "M-RED-DEFAULT-59" \
+    "revert test 59's RED_MODE default from 0 (GREEN/regression-guard) back to 1 (RED/reproduce-defect) — bare invocation fails against the fixed wrapper again" \
+    "scripts/tests/59_oomd_preference_avoid.sh" \
+    "inplace_sed 's|RED_MODE=\"\${RED_MODE:-0}\"|RED_MODE=\"\${RED_MODE:-1}\"|' \"\$target_abs\"" \
+    "scripts/tests/59_oomd_preference_avoid.sh" \
+    "FAIL (RED)"
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════

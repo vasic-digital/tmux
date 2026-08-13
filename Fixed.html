@@ -4626,5 +4626,404 @@ reproduction that the v1.0.39 default-change mechanism (the
 <code>TMX_CPU='' is not splittable</code> fallback) behaves exactly as
 intended — the defect was entirely in the newer tests' missing opt-in,
 never in the wrapper.</p>
+<hr />
+<h2 id="j-systemd-oomd-victim-avoidance-on-session-scopes-2026-08-12">J.
+systemd-oomd victim-avoidance on session scopes (2026-08-12)</h2>
+<h3
+id="j1-oomd-avoid-001--session-scopes-sigkilld-by-systemd-oomd-under-user-slice-pressure-despite-v1039v1040-elastic-scope-caps--fixed">J1
+OOMD-AVOID-001 — session scopes SIGKILLd by systemd-oomd under
+user-slice pressure despite v1.0.39/v1.0.40 elastic-scope caps —
+<code>FIXED</code></h3>
+<p><strong>TMX-ID:</strong> TMX-083 <strong>Status:</strong> Fixed (→
+Fixed.md) <strong>Type:</strong> Bug <strong>Severity:</strong> BLOCKER
+(operator-reported: "as soon as we continue work with this project, all
+tmx sessions get killed or crash ... on strong hardware and powerful
+workstations and current host both")</p>
+<p>Root-cause forensic anchor (operator report on the boba project,
+2026-08-12 — this project's Constitution binds universal §11.4.238:
+automated QA MUST be the discoverer, and any defect found out-of-band is
+itself a coverage-escape release blocker — this bug was found MANUALLY
+by the operator, not by any automated QA gate this project or its
+consumers ship, so §11.4.238 applies).</p>
+<p>Systematic-debugging (<code>superpowers:systematic-debugging</code>)
+live probes on the operator's host (nezha, systemd 258, tmx v1.0.40)
+REFUTED every documented killer in the entire TMX-079 series: live
+<code>tmx-boba-&lt;pid&gt;.scope</code> scope showed
+<code>MemoryMax=infinity</code>, <code>MemoryHigh=infinity</code>,
+<code>TasksMax=infinity</code>, <code>Delegate=yes</code> (the v1.0.39
+fix verifiably active); <code>pgrep -af tmx-recycler</code> returned
+zero hits (recycler dormant, <code>TMX_RECYCLE_IDLE_SECS=0</code>
+default); <code>cpu.stat nr_throttled=0 nr_periods=0</code> on
+<code>user@1000.service</code> AND <code>user-1000.slice</code> (no CPU
+quota throttling of the interactive scope, §11.4.225-class killer
+refuted);
+<code>journalctl -k --since '6 hours ago' | grep -iE 'oom-kill|killed process'</code>
+returned zero matches (kernel OOM refuted); <code>ulimit -u</code> =
+65536 with 1386 live threads for the operator (98% RLIMIT_NPROC
+headroom, §12.12 killer refuted); <code>uptime</code> continuous 2 days
+(no host suspend, no CONST-033 event).</p>
+<p>The residual killer, surfaced by a targeted probe of
+<code>systemctl show user-1000.slice -p ManagedOOMMemoryPressure -p ManagedOOMSwap</code>:
+<code>systemd-oomd.service</code> was active on the host with
+<code>ManagedOOMSwap=kill</code> AND
+<code>ManagedOOMMemoryPressure=kill</code> set on
+<code>user-1000.slice</code>. <code>systemd-oomd</code> operates
+<strong>orthogonally to cgroup <code>Max=</code> limits</strong> — it
+selects victims by PSI-pressure (memory pressure over configurable
+duration) and swap-used percentage, NOT by scope memory ceiling — so
+under any real memory-pressure spike on the shared user slice (a heavy
+compose start + Angular / Gradle daemons + parallel-subagent fleet,
+exactly the Claude-Code-in-tmux workload the operator was running on the
+boba project), oomd targets candidate child cgroups of
+<code>user-1000.slice</code> and issues <code>SIGKILL</code> to every
+process in the whole <code>tmx-&lt;NAME&gt;.scope</code>, taking tmux +
+every shell + every child process in the session with it in one shot.
+The <code>MemoryMax=infinity</code> from TMX-079 is correct AND
+ineffective against oomd — a §11.4.108 layer-3 runtime-signature gap
+that this fix now closes.</p>
+<p><strong>Fix (single systemd property added to three call
+sites):</strong> add <code>-p ManagedOOMPreference=avoid</code> to every
+<code>systemd-run --user --scope</code> invocation that creates a tmx
+scope, and to the <code>systemctl --user set-property --runtime</code>
+call that configures the split-topology workload slice.
+<code>ManagedOOMPreference=avoid</code> tells systemd-oomd to
+deprioritize this cgroup as a victim (target only if no other candidate
+is available, NOT never target — system safety is preserved for a
+genuine runaway that has no better victim). Version-guarded by
+<code>sd_ver &gt;= 249</code> (the systemd release that introduced the
+property, 2021-06); older hosts silently skip — the wrapper stays
+functional and the caps that DO apply on older hosts (§11.4.6
+honest-boundary posture).</p>
+<p>Sites patched (identical in <code>scripts/tmx.template</code> —
+SOURCE — and <code>scripts/tmx</code> — LIVE-GENERATED): (1)
+shared-topology scope creation around line 864
+(<code>systemd-run --scope</code> — this is the DEFAULT topology where
+all Claude Code + subagents + tmux server live in one scope, the exact
+configuration the operator was running); (2) split-topology server scope
+around line 847 (server protection when
+<code>TMX_SERVER_SPLIT=1</code>); (3) split-topology workload slice
+<code>_slice_props</code> around line 823
+(<code>set-property --runtime</code> on the not-yet-started slice; a
+runtime drop-in the slice picks up when the first pane scope joins it,
+per systemd 255+ probed behavior — landed with the split-topology
+feature earlier).</p>
+<p><strong>Closure cycle:</strong> v1.0.42 (see CHANGELOG.md — the
+concurrent <code>main</code> branch shipped a separate v1.0.41
+install-verification-RED batch while this TMX-083 work was in flight,
+integrated as the merge base per §11.4.113 merge-onto-latest-main;
+TMX-083 takes v1.0.42 to preserve monotonic versionCode per §11.4.151,
+never force-pushing over the published v1.0.41). <strong>Closure
+commit:</strong> <code>6f9eaeb</code> <strong>Captured evidence
+(4-layer, §11.4.108):</strong></p>
+<ul>
+<li>(a) <strong>pre-build gate / source layer:</strong>
+<code>bash -n scripts/tmx.template</code> clean,
+<code>bash -n scripts/tmx</code> clean,
+<code>bash -n scripts/tests/59_oomd_preference_avoid.sh</code> clean;
+source-layer grep-verification that
+<code>ManagedOOMPreference=avoid</code> appears exactly three times in
+each of <code>scripts/tmx.template</code> and <code>scripts/tmx</code>
+at the three fix sites, under the <code>${sd_ver:-0} -ge 249</code>
+guard.</li>
+<li>(b) <strong>artifact layer:</strong> the fixed
+<code>scripts/tmx</code> bytes contain the property at all three sites
+(a live <code>grep</code> confirmation on the live-generated wrapper
+immediately after the Edit landed).</li>
+<li>(c) <strong>runtime-on-clean-target layer (§11.4.108 layer 3 — the
+load-bearing one):</strong> a session created by the FIXED wrapper
+(<code>tmx new -s &lt;test&gt; -d</code>) reads back
+<code>ManagedOOMPreference=avoid</code> from the live systemd scope via
+<code>systemctl --user show tmx-&lt;test&gt;.scope -p ManagedOOMPreference --value</code>
+— proven by test 59 <code>RED_MODE=0</code> PASSing
+<code>scope tmx-... has ManagedOOMPreference=avoid — TMX-083 regression guard confirmed</code>.</li>
+<li>(d) <strong>user-visible / paired mutation
+(§1.1/§11.4.115(F)):</strong> test 59 IS the paired-mutation-shaped
+RED+GREEN pair — one file, one polarity switch. Pre-fix RED verification
+(against the UNMODIFIED wrapper): <code>RED_MODE=1</code> PASSed
+reporting the property is <code>none</code> (not <code>avoid</code>) —
+defect reproduced on the pre-fix artifact per §11.4.115. Pre-fix GREEN
+verification: <code>RED_MODE=0</code> FAILed reporting the missing
+<code>avoid</code> — control needle proving the test is not a
+false-passer. Post-fix GREEN: <code>RED_MODE=0</code> PASSes. Post-fix
+RED: <code>RED_MODE=1</code> FAILs (defect correctly detected as gone).
+The perfect §11.4.115 polarity flip: pre-fix (RED=PASS, GREEN=FAIL) →
+post-fix (RED=FAIL, GREEN=PASS).</li>
+<li>§11.4.115 RED/GREEN evidence:
+<code>RED_MODE=1 bash scripts/tests/59_oomd_preference_avoid.sh</code>
+PASSes on the pre-fix artifact
+(<code>scope tmx-... has ManagedOOMPreference=none (not avoid) — defect reproduced</code>)
+and FAILs on the fixed artifact; <code>RED_MODE=0</code> (GREEN) PASSes
+on the fixed artifact and FAILs on the pre-fix artifact.</li>
+<li>Universal Constitution §11.4.238 coverage-escape audit for this bug
+is filed in the boba project (the consumer where the escape was recorded
+— the operator found the defect there, not any automated gate); test 59
+closes the tmx-side coverage gap, and the boba project adds a
+stress+chaos challenge that intentionally spikes user-slice memory
+pressure and verifies the tmx scope survives.</li>
+</ul>
+<p><strong>Regression-protection:</strong> test 59
+(<code>59_oomd_preference_avoid.sh</code>) — RED/GREEN polarity switch
+guarding all three fix sites via the runtime-readback of
+<code>ManagedOOMPreference</code> on a freshly-created scope. §11.4.3
+honest SKIP-with-reason on non-Linux (oomd is Linux-only) and on systemd
+&lt; 249 (property unsupported).</p>
+<p><strong>§11.4.120 reconciliation:</strong> the fix does NOT break any
+pre-existing gate. It ADDS a property to the systemd-run call without
+removing or modifying any existing property; the split-topology
+<code>TMX_SPLIT_EFFECTIVE=0</code> fallback path (fail-closed when
+scopes are unsupported or the topology cannot engage) is untouched.
+Tests that read cgroup properties other than
+<code>ManagedOOMPreference</code> (tests 09, 12, 13, 14, 15, 24, 86, 87,
+88) continue to read the same values they read before.</p>
+<p><strong>§11.4.114 regression isolation:</strong> none — this is a NEW
+protection that adds a systemd property; it neither weakens nor removes
+any behavior TMX-079 landed. The v1.0.39 elastic-scope defaults remain
+fully in effect; <code>avoid</code> on top of <code>infinity</code> is
+defense in depth against a mechanism that runs orthogonally to
+<code>Max=</code> limits.</p>
+<p><strong>Cross-project coverage-escape follow-up:</strong> universal
+Constitution §11.4.238 audit filed in the boba consumer project (which
+is where the defect was discovered manually, not in the tmx tree itself
+— the primary escape). Boba adds
+<code>challenges/scripts/tmux_survives_oomd_pressure.sh</code> (an
+intentional memory-pressure stress+chaos test that PASSes only when
+<code>ManagedOOMPreference=avoid</code> is honored AND the tmux server
+survives the spike). Consumer container orchestration in
+<code>constitution/submodules/containers</code> is separately audited to
+ensure boba's compose services do NOT contribute to slice-level pressure
+beyond their own containers.</p>
+<hr />
+<h2 id="k-verification-suite-false-result-classification-2026-08-13">K.
+Verification-suite false-result classification (2026-08-13)</h2>
+<p>Discovered via <code>/superpowers:systematic-debugging</code>
+triggered by an operator-reported <code>install.sh</code> verification
+RED (<code>SUMMARY: PASS=66 FAIL=5 SKIP=16</code>, failing tests
+<code>27_state_persistence.sh 56_real_mouse_drag_copy.sh 57_reload_select_copy_paste.sh 59_oomd_preference_avoid.sh 87_server_scope_split.sh</code>).
+Investigated all five; two (27/87) confirmed unchanged instances of the
+already-tracked TMX-080/TMX-081 (Issues.md §H, Status=Queued — no action
+needed here). The remaining three resolved to TWO distinct, unrelated
+root causes, neither of which was a defect in the underlying wrapper
+code — both were <strong>false results from the verification harness
+itself</strong>, the exact class of defect this project's entire
+anti-bluff covenant exists to eliminate, this time on the harness side
+rather than the product side.</p>
+<h3
+id="k1-runall-verdict-carrier-001--run_allshs-verdict-classifier-misreads-an-honest-sub-check-skip-note-or-a-tests-own-internal-passfailskip-counters-as-the-tests-overall-verdict--fixed">K1
+RUNALL-VERDICT-CARRIER-001 — <code>run_all.sh</code>'s verdict
+classifier misreads an honest sub-check SKIP note (or a test's own
+internal PASS/FAIL/SKIP counters) as the test's overall verdict —
+<code>FIXED</code></h3>
+<p><strong>TMX-ID:</strong> TMX-084 <strong>Status:</strong> Fixed (→
+Fixed.md) <strong>Type:</strong> Bug <strong>Severity:</strong> HIGH
+(misclassified entirely-passing tests as FAILED or SKIPped, causing
+<code>install.sh</code> to refuse PATH-export on healthy code — the
+exact "tests fail on healthy code" §11.4.1 FAIL-bluff class)</p>
+<p><strong>Root cause:</strong> <code>scripts/tests/run_all.sh</code>
+classified each test file's overall verdict by scanning its captured
+stdout+stderr for the FIRST line matching a bare
+<code>grep -qE '^FAIL'</code> / <code>'^SKIP'</code> /
+<code>'^PASS'</code> (priority FAIL &gt; SKIP &gt; PASS), with NO
+delimiter check after the keyword.
+<code>scripts/tests/56_real_mouse_drag_copy.sh</code> and
+<code>57_reload_select_copy_paste.sh</code> print an honest,
+informational <code>SKIP-layer: &lt;reason&gt;</code> note when one
+OPTIONAL GUI-only sub-check is unavailable (headless Linux has no
+<code>cliclick</code>), while their real final verdict — genuinely
+proven with real drag/copy/paste evidence — is <code>PASS: 56 ...</code>
+/ <code>PASS: 57 ...</code>. Because <code>"SKIP-layer:"</code> starts
+with the literal substring <code>"SKIP"</code>, the bare-prefix regex
+matched it as if it were a top-level SKIP verdict, and the aggregator's
+FAIL-then-SKIP priority ordering (checked before the later genuine
+<code>PASS:</code> line) mis-classified two fully-passing tests. The
+SAME carrier shape is present, unfixed, in DOZENS of other test files
+that print their own internal
+<code>"PASS=$PASS FAIL=$FAIL SKIP=$SKIP"</code> summary counters — a
+counter line reading <code>FAIL=0</code> (reporting the healthiest
+possible outcome, zero failures) would ALSO mis-fire the
+<code>^FAIL</code> regex and misclassify a genuinely PASSING test as
+FAILED, a strictly worse failure mode than the SKIP case actually
+observed.</p>
+<p>This is exactly the §11.4.201(7)(a) "match structure, not a bare
+substring" defect class this project has already fixed once, narrowly,
+in test 77's own plaintext-leak assertion (v1.0.41, TMX-081-adjacent) —
+this time the SAME defect class was latent in the AGGREGATOR itself,
+undiscovered until it mis-classified 56/57.</p>
+<p><strong>Evidence:</strong> direct reproduction —
+<code>bash scripts/tests/56_real_mouse_drag_copy.sh</code> and
+<code>57_reload_select_copy_paste.sh</code>, run standalone AND inside a
+real full <code>scripts/setup.sh</code> verification pass, both print a
+genuine <code>PASS: 56 ...</code> / <code>PASS: 57 ...</code> verdict
+line with real EVIDENCE lines (drag-copy token proof,
+reload/select/copy/paste proof) — yet the SAME full run's top-level
+<code>SUMMARY:</code> classified them as SKIPped (a DIFFERENT
+misclassification than the operator's original FAILED report, both
+traced to the identical carrier-matching defect reacting to incidental
+content differences across runs — see also §11.4.7 same-conditions
+caveat: neither misclassification reflects the tests' true,
+consistently-PASSing behaviour). New regression test
+<code>scripts/tests/89_classify_verdict_carrier.sh</code> proves the
+pre-fix bare-prefix classifier genuinely mis-fires on three synthetic
+carrier fixtures (an honest <code>SKIP-layer:</code> note, a healthy
+<code>FAIL=0</code> counter, and a <code>SKIP=2</code>-with-overall-PASS
+counter) while three non-carrier fixtures (genuine <code>FAIL:</code>,
+<code>SKIP:</code>, and <code>PASS (GREEN):</code> verdict lines)
+classify correctly even pre-fix — isolating the defect to the carrier
+collision specifically, not a wholesale classifier failure.</p>
+<p><strong>Fix:</strong> extracted the classification logic into a new
+shared, independently-tested library
+<code>scripts/tests/lib/classify_verdict.sh</code>
+(<code>tmx_classify_verdict()</code>), requiring a genuine verdict-line
+delimiter — colon, space, open-paren, or END-OF-LINE
+(<code>([: (]|$)</code>) — immediately after the keyword, matching every
+genuine verdict shape used across the entire test suite:
+colon/space/paren-delimited (<code>"PASS: ..."</code>,
+<code>"FAIL (RED): ..."</code>, <code>"SKIP: ..."</code>) AND
+bare-keyword-only lines (<code>echo "PASS"</code>, used by tests 01/02)
+— while excluding <code>"SKIP-layer:"</code>, <code>"PASS=0"</code>, and
+<code>"FAIL=0"</code>-shaped carrier lines.
+<code>scripts/tests/run_all.sh</code> now sources this library and calls
+it instead of inlining the three bare <code>grep</code> calls; the
+"(unclassified)" diagnostic distinction for a genuine early-exit/crash
+with no verdict line at all is preserved (still counts toward FAIL for
+gating, but is reported distinctly from a real FAIL verdict).</p>
+<p><strong>Self-caught regression during this fix's own pre-commit
+full-suite verification (§11.4.194 exhaustive review in
+action):</strong> the FIRST version of the delimiter fix
+(colon/space/paren only, no end-of-line alternative) broke tests 01–05,
+whose entire verdict line is the bare keyword with nothing following
+(<code>echo "PASS"</code>) — a genuine convention test 89's original 6
+fixtures never covered. Caught by running the FULL suite (not just test
+89 in isolation) before committing, per this project's own §11.4.40
+full-suite-retest-before-release discipline; fixed by widening the
+delimiter alternation to include end-of-line, and a 7th fixture (F7, a
+bare <code>"PASS"</code> line) added to test 89 as a permanent
+regression guard for this specific case.</p>
+<p><strong>Closure cycle:</strong> v1.0.43 <strong>Closure
+commit:</strong> (this commit) <strong>Captured evidence (4-layer,
+§11.4.108):</strong></p>
+<ul>
+<li>(a) <strong>pre-build gate / source layer:</strong>
+<code>bash -n</code> clean on
+<code>scripts/tests/lib/classify_verdict.sh</code>,
+<code>scripts/tests/run_all.sh</code>, and
+<code>scripts/tests/89_classify_verdict_carrier.sh</code>.</li>
+<li>(b) <strong>runtime layer:</strong>
+<code>bash scripts/tests/89_classify_verdict_carrier.sh</code>
+(RED_MODE=0, default) — <code>PASS=7 FAIL=0</code>, all seven fixtures
+(three carrier, four non-carrier including the bare-keyword F7
+regression guard) classify correctly against the fixed library.</li>
+<li>(c) <strong>§11.4.115 RED/GREEN polarity:</strong>
+<code>RED_MODE=1 bash scripts/tests/89_classify_verdict_carrier.sh</code>
+reproduces the pre-fix bare-prefix classifier's mis-classification on
+the three carrier fixtures
+(<code>PASS 89: F1 RED: pre-fix classifier mis-classified as 'SKIP' (expected 'PASS')</code>,
+etc.) while confirming the four non-carrier fixtures classify correctly
+even pre-fix (proving the defect is genuinely scoped to the carrier
+collision, never a blanket "everything was broken" overclaim).</li>
+<li>(d) <strong>paired mutation (§1.1/§11.4.115(F)):</strong>
+<code>M-CLASSIFY-CARRIER</code> in
+<code>meta_test_false_positive_proof.sh</code> reverts
+<code>classify_verdict.sh</code>'s delimiter requirement to the pre-fix
+bare-keyword prefix — test 89's F1/F2/F3 fixtures FAIL with the mutation
+applied, confirming the gate genuinely depends on the delimiter fix and
+is not a tautology.</li>
+</ul>
+<p><strong>Regression-protection:</strong> test 89
+(<code>89_classify_verdict_carrier.sh</code>) +
+<code>M-CLASSIFY-CARRIER</code> paired mutation. Every future test file
+may freely print an internal
+<code>SKIP-layer:</code>/<code>PASS=N</code>/<code>FAIL=N</code>-shaped
+informational line without risking a top-level misclassification, as
+long as its genuine final verdict uses the established
+<code>KEYWORD: ...</code> / <code>KEYWORD (...): ...</code> delimiter
+convention.</p>
+<p><strong>§11.4.120 reconciliation:</strong> none required — no
+existing gate asserted the OLD bare-prefix behaviour as correct; this is
+a pure bug fix with no legitimate assertion to reconcile.</p>
+<h3
+id="k2-red-mode-default-polarity-001--test-59s-red_mode-default-1--reproduce-the-historical-defect-made-it-fail-100-deterministically-under-a-bare-harness-invocation-even-against-a-genuinely-fixed-wrapper--fixed">K2
+RED-MODE-DEFAULT-POLARITY-001 — test 59's <code>RED_MODE</code> default
+(1 = reproduce-the-historical-defect) made it FAIL 100%
+deterministically under a bare harness invocation, even against a
+genuinely-fixed wrapper — <code>FIXED</code></h3>
+<p><strong>TMX-ID:</strong> TMX-085 <strong>Status:</strong> Fixed (→
+Fixed.md) <strong>Type:</strong> Bug <strong>Severity:</strong> HIGH
+(same class of harness-side false result as TMX-084 — caused
+<code>install.sh</code> to report RED on healthy, already-fixed
+code)</p>
+<p><strong>Root cause:</strong> <code>scripts/tests/run_all.sh</code>
+(and <code>verify.sh</code>, which invokes it) runs every test file with
+NO <code>RED_MODE</code> environment override, so each test's OWN
+internal default becomes its de facto standing verification behaviour.
+<code>scripts/tests/59_oomd_preference_avoid.sh</code> (TMX-083's
+regression guard) defaulted to <code>RED_MODE="${RED_MODE:-1}"</code> —
+the REPRODUCE-THE-HISTORICAL-DEFECT polarity, whose entire purpose is to
+assert the OLD, BROKEN value (<code>ManagedOOMPreference=none</code>) is
+still present. Once the TMX-083 fix is genuinely deployed, that
+assertion is — correctly — no longer satisfiable, so a bare
+<code>bash scripts/tests/59_oomd_preference_avoid.sh</code> invocation
+FAILs 100% deterministically on ANY host where the fix is genuinely
+present, which is precisely the opposite of what a standing regression
+guard is for. This is unrelated to TMX-084 (a different file, a
+different mechanism — a polarity-default choice, not a substring-carrier
+collision) discovered in the same investigation cycle. Seven of the
+suite's eleven <code>RED_MODE</code>-polarity tests already default to
+<code>RED_MODE=0</code> (the GREEN/regression-guard polarity) for
+exactly this reason; test 59 was the outlier.</p>
+<p><strong>Evidence:</strong> direct reproduction — bare
+<code>bash scripts/tests/59_oomd_preference_avoid.sh</code> (no env
+override) against the genuinely-fixed <code>scripts/tmx</code> FAILs:
+<code>FAIL (RED): scope tmx-... has ManagedOOMPreference=avoid on what should be pre-fix code</code>.
+§11.4.199 exact-reproduction-sequence: the SAME invocation, explicitly
+<code>RED_MODE=0</code>, PASSes:
+<code>PASS (GREEN): scope tmx-... has ManagedOOMPreference=avoid — TMX-083 regression guard confirmed</code>.</p>
+<p><strong>Fix:</strong> flipped the default to
+<code>RED_MODE="${RED_MODE:-0}"</code>, matching the established,
+already-working convention used by tests 71/72/73/74/86/87/88.
+<code>RED_MODE=1</code> remains fully available as an explicit,
+deliberate opt-in for the original TDD-RED step or forensic
+re-verification — never the bare-invocation default.</p>
+<p><strong>Verification of BOTH polarities on BOTH artifacts (full
+§11.4.115 matrix, all four cells confirmed by direct A/B against the
+pre-fix and post-fix wrapper):</strong> bare/default invocation on the
+fixed artifact → PASS (GREEN); explicit <code>RED_MODE=1</code> on the
+fixed artifact → FAIL (correctly cannot reproduce a defect that is
+genuinely gone); explicit <code>RED_MODE=1</code> on the pre-TMX-083
+(stale) artifact → PASS
+(<code>ManagedOOMPreference=none (not avoid) — defect reproduced</code>,
+the historical-reproduction capability is fully intact).</p>
+<p><strong>Closure cycle:</strong> v1.0.43 <strong>Closure
+commit:</strong> (this commit) <strong>Captured evidence (4-layer,
+§11.4.108):</strong></p>
+<ul>
+<li>(a) <strong>pre-build gate / source layer:</strong>
+<code>bash -n scripts/tests/59_oomd_preference_avoid.sh</code>
+clean.</li>
+<li>(b) <strong>runtime layer:</strong> bare invocation against the
+live, fixed <code>scripts/tmx</code> —
+<code>PASS (GREEN): ... TMX-083 regression guard confirmed</code>.</li>
+<li>(c) <strong>§11.4.115 full polarity matrix:</strong> all four
+(RED_MODE × pre/post-fix-artifact) cells directly verified — see
+above.</li>
+<li>(d) <strong>paired mutation (§1.1/§11.4.115(F)):</strong>
+<code>M-RED-DEFAULT-59</code> in
+<code>meta_test_false_positive_proof.sh</code> reverts the default from
+0 back to 1 — a bare (no-env-override) invocation of test 59 FAILs again
+with the mutation applied.</li>
+</ul>
+<p><strong>Regression-protection:</strong> <code>M-RED-DEFAULT-59</code>
+paired mutation asserts the default stays <code>0</code>; test 59 itself
+remains the standing TMX-083 regression guard, now correctly wired to
+fire in its GREEN polarity under a bare
+<code>run_all.sh</code>/<code>verify.sh</code>/<code>install.sh</code>
+invocation.</p>
+<p><strong>§11.4.120 reconciliation:</strong> none required — no other
+gate asserted the old default as correct.</p>
+<p><strong>Discovery-pressure note (§11.4.118):</strong> the
+investigation triggering both K1 and K2 covered all five tests the
+operator reported (27, 56, 57, 59, 87); 27 and 87 were independently
+re-confirmed as the already-tracked TMX-080/TMX-081 (unchanged, no new
+action). K1 and K2 are the complete account of the remaining three — no
+further undiagnosed failures remain from this report.</p>
 </body>
 </html>

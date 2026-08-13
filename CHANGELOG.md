@@ -6,6 +6,69 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [tmux-1.0.43] (also v1.0.43) — 2026-08-13
+
+### Fixed
+
+- **`run_all.sh`'s verdict classifier mis-read an honest sub-check SKIP
+  note (or a test's own internal PASS/FAIL/SKIP counters) as the whole
+  test's verdict (TMX-084).** Operator report: `install.sh` verification
+  RED with `SUMMARY: PASS=66 FAIL=5 SKIP=16`, failing tests
+  `27_state_persistence.sh 56_real_mouse_drag_copy.sh
+  57_reload_select_copy_paste.sh 59_oomd_preference_avoid.sh
+  87_server_scope_split.sh`. Tests 27/87 were confirmed unchanged
+  instances of the already-tracked TMX-080/TMX-081 (no action).
+  `run_all.sh` classified each test file's overall verdict via a bare
+  `grep -qE '^FAIL'` / `'^SKIP'` / `'^PASS'` (no delimiter check).
+  Tests 56/57 print an honest `SKIP-layer: <reason>` note for one
+  optional GUI-only sub-check while genuinely PASSing overall (real
+  drag/copy/paste evidence, verdict line `PASS: 56 ...` / `PASS: 57
+  ...`) — but `"SKIP-layer:"` starts with the literal substring
+  `"SKIP"`, so it was misread as a top-level SKIP verdict. The SAME
+  carrier shape exists, unfixed, in dozens of other tests' own internal
+  `"PASS=$PASS FAIL=$FAIL SKIP=$SKIP"` summary counters — a healthy
+  `FAIL=0` counter line would ALSO mis-fire and misclassify a genuinely
+  PASSING test as FAILED. Fixed by extracting classification into a
+  new, independently-tested `scripts/tests/lib/classify_verdict.sh`
+  requiring a genuine verdict delimiter (`: `, ` `, `(`, or end-of-line)
+  after the keyword — matching every real verdict shape already used
+  across the suite (colon/space/paren-delimited AND the bare
+  `echo "PASS"` convention tests 01/02 use) while excluding
+  `SKIP-layer:`/`PASS=0`/`FAIL=0`-shaped carrier lines. The
+  end-of-line case was itself a self-caught regression during this
+  fix's own pre-commit full-suite verification (the first delimiter-
+  only version broke tests 01–05). New regression test
+  `89_classify_verdict_carrier.sh` (§11.4.115 RED/GREEN, 7 fixtures) +
+  paired mutation `M-CLASSIFY-CARRIER`.
+- **Test 59's `RED_MODE` default (1 = reproduce-the-historical-defect)
+  made it FAIL 100% deterministically under a bare harness invocation,
+  even against the genuinely-fixed TMX-083 wrapper (TMX-085).**
+  `run_all.sh`/`verify.sh` invoke every test with no `RED_MODE`
+  override, so a test's own default becomes its standing verification
+  behaviour; test 59 defaulted to the RED (reproduce-the-defect)
+  polarity — the opposite of what a bare, no-argument invocation of a
+  regression guard needs. Fixed by flipping the default to
+  `RED_MODE="${RED_MODE:-0}"`, matching the already-working convention
+  used by 7 of the suite's other 11 RED_MODE-polarity tests.
+  `RED_MODE=1` remains available as an explicit, deliberate opt-in.
+  Verified against the FULL §11.4.115 polarity matrix (bare/RED_MODE=1
+  × fixed/pre-fix artifact, all four cells). Paired mutation
+  `M-RED-DEFAULT-59`.
+
+### Verification
+
+Both defects were **false results from the verification harness
+itself**, not the underlying wrapper — the exact class of defect this
+project's anti-bluff covenant exists to eliminate, this time on the
+harness side. Reproduced via direct standalone invocation AND inside a
+real full `scripts/setup.sh` run (matching the operator's exact
+`install.sh` path); root-caused with `/superpowers:systematic-debugging`
+before any fix was written; full `scripts/verify.sh` gate re-run clean
+after both fixes landed. See `Fixed.md` §K (TMX-084, TMX-085) for full
+detail + captured evidence.
+
+---
+
 ## [tmux-1.0.42] (also v1.0.42) — 2026-08-12
 
 ### Fixed
