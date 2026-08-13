@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-08-13T00:00:00Z
+**Last updated:** 2026-08-13T12:00:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,20 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.34 — TMX-080/TMX-081 deep-dive investigation (no fix landed; documentation-only) → 2026-08-13
+
+**Status:** IN PROGRESS / Operator-facing next-step needed. No code changed this entry — `scripts/tmx.template` and `scripts/tmx-recycler.sh` are IDENTICAL to before this investigation (two fix attempts were made, both reverted after proving insufficient — see below). Only `Issues.md` (§H1/§H2) was updated with corrected, more complete findings.
+
+**Trigger:** operator request "Investigate TMX-080 and TMX-081 next", continuing directly from the TMX-084/TMX-085 cycle.
+
+**TMX-080 (test 27 sub-check 18, run-shell cwd-record hook):** the original 2026-08-10 diagnosis ("iteration 1 specifically, deterministically") is CORRECTED — 8 fresh instrumented runs show the failure lands on VARYING iterations (2, 3 — never iteration 1 in this cycle's sample), confirming it is genuinely intermittent. A real, confirmed race was found (the wrapper's `kill-session` verb calls `systemctl --user stop` with `KillMode=control-group` immediately after `tmux kill-session`, which can SIGTERM an in-flight `run-shell`-spawned async child — reproduced directly in isolation) and two fix attempts were made (delaying the `systemctl stop` until the scope's cgroup is observed empty) — **both made the test's failure rate WORSE (100% reproducible, vs. ~20-25% before) rather than better, and were reverted per the Iron Law rather than left in place.** A SECOND, deeper, source-code-confirmed mechanism was then found: tmux's `#{pane_current_path}` (`tmux/osdep-linux.c` `osdep_get_cwd`) resolves via `tcgetpgrp(fd)` (the PTY's current foreground process group), NOT the shell's tracked PID — so if the pane's shell (oh-my-bash, confirmed in use via this operator's `.bashrc`) spawns prompt-render subprocesses, different queries moments apart can read different processes' cwd. This is NOT yet confirmed against a live failure (today's non-reproduction prevented that), but is the strongest lead.
+
+**TMX-081 (test 87 G4, quiet-phase settle):** could NOT be reproduced today — 24/24 standalone runs (4 individual + a 20-run background batch, full per-try `nr_throttled` deltas instrumented) all settled cleanly, typically on the first 1 s window. Per §11.4.7 this does NOT close the item — today's host conditions differ from 2026-08-10's. The SAME oh-my-bash/`tcgetpgrp` mechanism found for TMX-080 is offered as a shared-cause hypothesis (oh-my-bash's own CPU usage during prompt-render, under G4's tight quota, could extend past the 12 s settle bound) but is likewise unconfirmed against a live failure.
+
+**Recommended next step (not yet done):** an experiment disabling oh-my-bash for test-created sessions specifically, to see if BOTH TMX-080's stale-path reads and TMX-081's settle timeouts stop reproducing — this would confirm or refute the shared-cause hypothesis directly. Needs either genuine host load, a cold oh-my-bash cache, or an artificially-injected slow prompt hook to force a live reproduction, since today's host conditions did not naturally produce one for either issue despite substantial effort (8 + 24 = 32 total instrumented runs across both).
+
+Full detail + captured evidence: `Issues.md` §H1 (TMX-080) + §H2 (TMX-081), both updated 2026-08-13.
 
 ### §3.33 — v1.0.43: verification-harness false-result classification (TMX-084/TMX-085) → 2026-08-13
 

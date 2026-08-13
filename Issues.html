@@ -576,49 +576,140 @@ Confirmed via §11.4.114 A/B isolation against the v1.0.38 baseline
 applied) — NOT caused by TMX-079, and TMX-079's own fix + tests are
 unaffected. Tracked here so they are not lost.</p>
 <h3
-id="h1-state-hook-race-001--test-27-sub-check-18-run-shell-cwd-record-hook-fails-deterministically-on-iteration-1">H1
+id="h1-state-hook-race-001--test-27-sub-check-18-run-shell-cwd-record-hook-intermittently-fails-to-observe-the-hooks-write">H1
 STATE-HOOK-RACE-001 — test 27 sub-check "18" (run-shell cwd-record hook)
-fails deterministically on iteration 1</h3>
+intermittently fails to observe the hook's write</h3>
 <p><strong>TMX-ID:</strong> TMX-080 <strong>Type:</strong> Bug
-<strong>Status:</strong> Queued</p>
-<p><strong>What:</strong>
-<code>scripts/tests/27_state_persistence.sh</code>'s sub-check labelled
-"18" drives the wrapper's
+<strong>Status:</strong> Reopened</p>
+<p><strong>Reopened-Details:</strong> By: AI. On: 2026-08-13. Reason:
+cycle-re-discovered. Evidence: dedicated
+<code>/superpowers:systematic-debugging</code> pass (this cycle) — see
+below. This is a correction of the ORIGINAL diagnosis, not a new defect:
+the underlying failure is the same one first observed 2026-08-10, but
+this investigation disproves its central claim ("iteration 1
+specifically, deterministically") and supersedes it with corrected, more
+complete evidence. Reopened per §11.4.34 rather than left as
+<code>Queued</code> because the entry's OWN content materially
+changed.</p>
+<p><strong>What (CORRECTED — the "iteration 1 specifically,
+deterministically" framing in the original 2026-08-10 report was
+WRONG):</strong> <code>scripts/tests/27_state_persistence.sh</code>'s
+sub-check labelled "18" drives the wrapper's
 <code>run-shell "$STATE_BIN record $SESS #{pane_current_path}"</code>
 hook directly (the same command the wrapper installs on
 <code>client-detached</code>/<code>session-closed</code>) and polls
 <code>tmx-state-bin recall</code> for up to 5 s waiting for the write to
-land. Iteration 1 of 3 fails deterministically — <code>recall</code>
-still returns the PRE-hook (Phase-1 target) path, never the hook's own
-path — both in isolation (3/3 runs) and inside the full suite.</p>
-<p><strong>Evidence:</strong>
-<code>bash scripts/tests/27_state_persistence.sh</code> →
-<code>FAIL 18 iter=1: run-shell hook did not update state — recall='...-target-&lt;pid&gt;' (expected '...-hook-&lt;pid&gt;-1')</code>,
-reproduced identically 3× in isolation and 2× on the v1.0.38 baseline
-(pre-TMX-079) via <code>git stash</code> A/B, 2026-08-10.</p>
-<p><strong>Discovery note (this is the FIRST time it is tracked as its
-own item, hence <code>Queued</code> not <code>Reopened</code> per
-§11.4.34 — the latter presupposes a prior closure, and this defect was
-never previously closed):</strong> previously only described inline as
-an accepted "harness timing race" in the test file's own comments (lines
-~150-186 of <code>scripts/tests/27_state_persistence.sh</code>), which
-this investigation shows is an INCOMPLETE diagnosis (the failure is NOT
-purely a full-suite-CPU-contention artifact — it reproduces in isolation
-too, on an otherwise idle host). Discovered by AI, 2026-08-10, during
-TMX-079 validation.</p>
-<p><strong>Fix direction (not yet investigated to root cause):</strong>
-the test's own comments already correctly rule out a slow
-<code>cd</code>-landing race (T2's separate poll-for-cwd loop) and a
-<code>run-shell</code>-fire vs <code>record</code>-write-completion race
-(the 5 s poll). Iteration 1 specifically failing (not 2 or 3) is
-CONSISTENT WITH a first-invocation-only effect — e.g.
-<code>tmx-state-bin</code>'s DB/lock-file initialization on a cold state
-file, or a <code>run-shell</code> first-dispatch latency inside a
-freshly-created tmux server — but this is UNCONFIRMED: no
-instrumentation has yet isolated the actual cause. Needs a dedicated
-systematic-debugging pass (§11.4.102) with additional instrumentation
-(e.g. logging <code>tmx-state-bin record</code>'s own start/end
-timestamps) before a fix is attempted — out of scope for TMX-079.</p>
+land. A dedicated instrumented investigation this cycle (adding
+timestamped diagnostic prints around the fire/kill/poll sequence, run 8×
+standalone across two separate probe sessions) shows the failure is
+<strong>genuinely intermittent and NOT tied to any specific iteration
+number</strong> — one run failed on iteration 2, a separate run failed
+on iteration 3, and several runs passed cleanly 3/3. The original
+report's "iteration 1, deterministically, 3/3 isolation runs" was based
+on an insufficient sample (apparently 1-3 trials that happened to land
+on iteration 1 by chance) and is corrected here.</p>
+<p><strong>Evidence (this cycle, 2026-08-13):</strong></p>
+<ul>
+<li>8 fresh, timestamped standalone runs: 2 showed a genuine FAIL,
+landing on iteration 2 and iteration 3 respectively (never iteration 1)
+— <code>FAIL 18 iter=2: ...</code> and <code>FAIL 18 iter=3: ...</code>,
+both with <code>poll_iterations_used=25</code> (the FULL 5 s poll
+elapsed and the state file NEVER updated to the hook's value — not
+merely late, genuinely never-written within the bound).</li>
+<li>On a failing iteration, <code>recall</code> immediately after
+<code>run-shell</code> fires AND immediately after
+<code>kill-session</code> returns BOTH already show the stale (pre-hook)
+value — the loss is not something the 5 s poll would have caught even
+with a longer bound.</li>
+<li>Root-cause CANDIDATE, partially confirmed: the wrapper's
+<code>kill-session</code> verb calls
+<code>systemctl --user stop "$SCOPE_UNIT"</code> immediately after
+<code>tmux kill-session</code>; the scope's
+<code>KillMode=control-group</code> (confirmed via
+<code>systemctl --user show</code>) SIGTERMs EVERY process in the
+cgroup, including an in-flight <code>run-shell</code>-spawned async
+child (confirmed via direct process-tree observation: the child DOES
+land in the SERVER's own scope, in both shared AND split topology, never
+the workload slice). A direct reproduction with an artificially-slowed
+hook command (<code>sleep 0.05; tmx-state-bin record ...</code>)
+reliably loses the write when immediately followed by
+<code>systemctl stop</code>, and reliably SUCCEEDS when
+<code>systemctl stop</code> is skipped entirely — confirming this
+mechanism is real and NOT a test artifact (a real operator running
+<code>tmx kill-session -t NAME</code> is exposed to the identical
+race).</li>
+<li><strong>However, a first fix attempt (delaying
+<code>systemctl stop</code> until the scope's cgroup is observed empty,
+via a new <code>_wait_scope_quiescent</code> helper in
+<code>scripts/tmx.template</code> + an analogous change in
+<code>scripts/tmx-recycler.sh</code>) did NOT resolve the test's actual
+failure — it made it WORSE (5/5 reproducible failures, always landing on
+iteration 1, up from the original ~20-25% intermittent rate).</strong> A
+corrected version of the same fix (resolving the cgroup path ONCE rather
+than re-querying <code>systemctl show</code> on every poll iteration,
+which itself has a race — <code>ControlGroup</code> reports empty almost
+immediately once the tracked main PID exits, before a still-running
+child has necessarily finished) ALSO failed to resolve the real test,
+despite BOTH fix attempts working correctly in isolated, simplified
+manual reproductions. Per the Iron Law (3+ fix attempts / worsening
+symptom → question the diagnosis, don't keep patching), <strong>both fix
+attempts were reverted; <code>scripts/tmx.template</code> and
+<code>scripts/tmx-recycler.sh</code> are unchanged from before this
+cycle.</strong></li>
+<li><strong>A second, deeper anomaly surfaced and is NOT yet
+explained:</strong> in the same instrumented investigation,
+<code>tmux display-message -t "$SESS" -p '#{pane_current_path}'</code>
+(what the test's own CD-landing poll checks, lines ~162-169) was
+observed to show STALE data (the Phase-1 target directory, never the
+freshly-<code>cd</code>'d hook target) in EVERY iteration of EVERY run
+tested — meaning that poll's OWN 5 s wait never actually succeeds and is
+effectively a no-op today — while a SEPARATE, immediately-following bare
+(<code>-t</code>-less)
+<code>run-shell "echo #{pane_current_path} &gt; file"</code> diagnostic
+showed the CORRECT, freshly-<code>cd</code>'d value in some iterations
+and the SAME stale value in others, with no pattern yet identified tying
+this to the kill-timing race above. This suggests
+<code>#{pane_current_path}</code> may resolve differently (possibly via
+different tmux-internal code paths, or genuinely different cached/live
+state) depending on how it is queried, which the kill-session-timing
+hypothesis does NOT explain and needs its own investigation — most
+likely requiring direct study of tmux's own
+<code>#{pane_current_path}</code> resolution logic (not yet done; this
+cycle's investigation treated tmux as a black box via empirical probing
+only).</li>
+</ul>
+<p><strong>Fix direction (still not fully root-caused; genuinely more
+complex than originally scoped):</strong> at minimum TWO distinct
+phenomena are in play — (1) the <code>KillMode=control-group</code> race
+against an in-flight <code>run-shell</code> child (mechanism confirmed,
+but the attempted fix did not resolve the real test, meaning either the
+fix itself has a remaining bug, or this is not actually the dominant
+cause of the REAL test's failures despite being real and reproducible in
+isolation), and (2) an unexplained discrepancy between
+<code>display-message</code>'s and a bare <code>run-shell</code>'s view
+of <code>#{pane_current_path}</code> for the same pane at nearly the
+same moment — <strong>source-confirmed mechanism found for (2) this
+cycle: <code>tmux/osdep-linux.c</code>'s
+<code>osdep_get_cwd</code>/<code>osdep_get_name</code> resolve via
+<code>tcgetpgrp(fd)</code> (the PTY's CURRENT foreground process group
+at query time), not the shell's own tracked PID; if the pane's shell
+(oh-my-bash, per this operator's <code>.bashrc</code>) spawns
+prompt-render subprocesses that transiently become the foreground
+process group, different queries issued moments apart can read different
+processes' cwd.</strong> Needs a fresh, dedicated systematic-debugging
+pass to CONFIRM this mechanism against a live failure (not yet done —
+see below) with either (a) a subagent given a clean context and
+unlimited focus on this single question, or (b) an experiment disabling
+oh-my-bash for test-created sessions to see if the divergence
+disappears. Out of scope to force a fix this cycle given the Iron Law
+guidance against continuing to patch a worsening symptom.</p>
+<p><strong>Cross-reference:</strong> TMX-081 (<code>Issues.md</code>
+§H2) is hypothesised to share this SAME root-cause mechanism (oh-my-bash
+prompt-render subprocess activity racing tmux's
+<code>tcgetpgrp</code>-based pane-state resolution), manifesting there
+as a CPU-throttle settle-window timeout rather than a stale-path read.
+See §H2 for the shared-cause hypothesis and the recommended confirming
+experiment.</p>
 <h3
 id="h2-split-quiet-settle-001--test-87-g4-quiet-phase-control-occasionally-fails-to-observe-a-zero-throttle-settle-window">H2
 SPLIT-QUIET-SETTLE-001 — test 87 G4 ("quiet-phase control") occasionally
@@ -653,5 +744,70 @@ which of the two (or another cause entirely) is UNCONFIRMED without the
 actual <code>cpu.stat</code> samples across the settle window; needs a
 dedicated systematic-debugging pass (§11.4.102) before deciding — out of
 scope for TMX-079.</p>
+<p><strong>2026-08-13 investigation update (dedicated
+<code>/superpowers:systematic-debugging</code> pass — non-reproduction +
+a new, evidence-backed root-cause CANDIDATE, not a fix):</strong></p>
+<ul>
+<li><strong>Could NOT reproduce today: 24/24 standalone runs of test 87
+(4 individual + a 20-run background batch, with per-try
+<code>nr_throttled</code> deltas instrumented) all show G4 settling
+cleanly, typically on the FIRST 1 s window.</strong> Per §11.4.7
+(demotion requires evidence under the SAME conditions that originally
+exposed the defect), this does NOT close or downgrade TMX-081 — today's
+host conditions (this session has spun up and torn down a very large
+number of tmux sessions already, plausibly warming filesystem/package
+caches oh-my-bash's own startup checks read from) evidently differ from
+2026-08-10's, and the defect is expected to still be real and
+reproducible under the original conditions (or under genuine host load /
+a cold shell-framework cache).</li>
+<li><strong>New root-cause CANDIDATE, source-confirmed (shared with
+TMX-080 — see H1's 2026-08-13 update): tmux's
+<code>#{pane_current_path}</code>/<code>#{pane_current_command}</code>
+(<code>osdep_get_cwd</code>/<code>osdep_get_name</code> in
+<code>tmux/osdep-linux.c</code>) resolve via <code>tcgetpgrp(fd)</code>
+— the PTY's CURRENT FOREGROUND PROCESS GROUP at query time — not the
+shell's own tracked PID.</strong> If the pane's shell (this project's
+own <code>.bashrc</code>, confirmed to source oh-my-bash, is the
+operator's <code>$SHELL</code> used for <code>USER_SHELL</code> in
+<code>scripts/tmx.template</code>) spawns subprocesses as part of
+rendering its prompt (version-control status checks,
+<code>check_for_upgrade</code>, etc. — already independently documented
+as slow/complex by this project's own v1.0.41 test-58 fix), those
+subprocesses transiently BECOME the foreground process group and consume
+REAL CPU time while doing so. Under G4's tight, quota-constrained cgroup
+(server+slice split to 50%/50% of an already-small <code>TMX_CPU</code>
+test budget), that subprocess activity can itself be CFS-throttled,
+extending well past the test's 12 × 1 s = 12 s settle bound if it runs
+long enough or is delayed enough by the quota.</li>
+<li><strong>This is a genuine CANDIDATE, not yet directly witnessed
+causing a G4 failure</strong> — today's non-reproduction means the
+mechanism could not be confirmed live against an actual
+<code>nr_throttled</code>-non-zero window this cycle. It is offered as
+the most evidence-backed lead for whoever continues this investigation,
+not as a closure.</li>
+</ul>
+<p><strong>Cross-reference:</strong> TMX-080 (<code>Issues.md</code>
+§H1) is hypothesised to share the SAME underlying mechanism (oh-my-bash
+prompt-render subprocess activity racing tmux's
+<code>tcgetpgrp</code>-based pane-state resolution) manifesting as a
+DIFFERENT symptom — a stale/wrong <code>#{pane_current_path}</code> read
+there, vs. a settle-window timeout here. Confirming or refuting this
+shared-cause hypothesis (e.g., by testing whether disabling oh-my-bash
+for test-created sessions makes BOTH TMX-080 and TMX-081 stop
+reproducing) is the recommended next step for either investigation.</p>
+<p><strong>Fix direction (still not attempted — no live reproduction to
+validate a fix against this cycle):</strong> if the shared-cause
+hypothesis holds, candidate fixes include (a) a settle heuristic that
+specifically recognises oh-my-bash startup activity and excludes it from
+the "must be zero" requirement (e.g., waiting for
+<code>#{pane_current_command}</code> to stably show the shell itself,
+not a transient subprocess, before starting the settle-count), or (b)
+scoping test-created sessions to a minimal, non-framework shell so tests
+are not coupled to the operator's own interactive shell configuration.
+Needs a fresh reproduction (possibly requiring genuine host load, a cold
+oh-my-bash cache, or an artificially-injected slow prompt hook) before
+any fix can be validated per the project's own TDD-RED-first discipline
+(§11.4.43/§11.4.115) — forcing a fix without a live failing case to
+prove it against would itself be a bluff.</p>
 </body>
 </html>

@@ -178,7 +178,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-08-13T00:00:00Z</p>
+<p><strong>Last updated:</strong> 2026-08-13T12:00:00Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -296,6 +296,63 @@ user-mandate quote)</li>
 sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
+<h3
+id="334--tmx-080tmx-081-deep-dive-investigation-no-fix-landed-documentation-only--2026-08-13">§3.34
+— TMX-080/TMX-081 deep-dive investigation (no fix landed;
+documentation-only) → 2026-08-13</h3>
+<p><strong>Status:</strong> IN PROGRESS / Operator-facing next-step
+needed. No code changed this entry — <code>scripts/tmx.template</code>
+and <code>scripts/tmx-recycler.sh</code> are IDENTICAL to before this
+investigation (two fix attempts were made, both reverted after proving
+insufficient — see below). Only <code>Issues.md</code> (§H1/§H2) was
+updated with corrected, more complete findings.</p>
+<p><strong>Trigger:</strong> operator request "Investigate TMX-080 and
+TMX-081 next", continuing directly from the TMX-084/TMX-085 cycle.</p>
+<p><strong>TMX-080 (test 27 sub-check 18, run-shell cwd-record
+hook):</strong> the original 2026-08-10 diagnosis ("iteration 1
+specifically, deterministically") is CORRECTED — 8 fresh instrumented
+runs show the failure lands on VARYING iterations (2, 3 — never
+iteration 1 in this cycle's sample), confirming it is genuinely
+intermittent. A real, confirmed race was found (the wrapper's
+<code>kill-session</code> verb calls <code>systemctl --user stop</code>
+with <code>KillMode=control-group</code> immediately after
+<code>tmux kill-session</code>, which can SIGTERM an in-flight
+<code>run-shell</code>-spawned async child — reproduced directly in
+isolation) and two fix attempts were made (delaying the
+<code>systemctl stop</code> until the scope's cgroup is observed empty)
+— <strong>both made the test's failure rate WORSE (100% reproducible,
+vs. ~20-25% before) rather than better, and were reverted per the Iron
+Law rather than left in place.</strong> A SECOND, deeper,
+source-code-confirmed mechanism was then found: tmux's
+<code>#{pane_current_path}</code> (<code>tmux/osdep-linux.c</code>
+<code>osdep_get_cwd</code>) resolves via <code>tcgetpgrp(fd)</code> (the
+PTY's current foreground process group), NOT the shell's tracked PID —
+so if the pane's shell (oh-my-bash, confirmed in use via this operator's
+<code>.bashrc</code>) spawns prompt-render subprocesses, different
+queries moments apart can read different processes' cwd. This is NOT yet
+confirmed against a live failure (today's non-reproduction prevented
+that), but is the strongest lead.</p>
+<p><strong>TMX-081 (test 87 G4, quiet-phase settle):</strong> could NOT
+be reproduced today — 24/24 standalone runs (4 individual + a 20-run
+background batch, full per-try <code>nr_throttled</code> deltas
+instrumented) all settled cleanly, typically on the first 1 s window.
+Per §11.4.7 this does NOT close the item — today's host conditions
+differ from 2026-08-10's. The SAME oh-my-bash/<code>tcgetpgrp</code>
+mechanism found for TMX-080 is offered as a shared-cause hypothesis
+(oh-my-bash's own CPU usage during prompt-render, under G4's tight
+quota, could extend past the 12 s settle bound) but is likewise
+unconfirmed against a live failure.</p>
+<p><strong>Recommended next step (not yet done):</strong> an experiment
+disabling oh-my-bash for test-created sessions specifically, to see if
+BOTH TMX-080's stale-path reads and TMX-081's settle timeouts stop
+reproducing — this would confirm or refute the shared-cause hypothesis
+directly. Needs either genuine host load, a cold oh-my-bash cache, or an
+artificially-injected slow prompt hook to force a live reproduction,
+since today's host conditions did not naturally produce one for either
+issue despite substantial effort (8 + 24 = 32 total instrumented runs
+across both).</p>
+<p>Full detail + captured evidence: <code>Issues.md</code> §H1 (TMX-080)
++ §H2 (TMX-081), both updated 2026-08-13.</p>
 <h3
 id="333--v1043-verification-harness-false-result-classification-tmx-084tmx-085--2026-08-13">§3.33
 — v1.0.43: verification-harness false-result classification
