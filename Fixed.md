@@ -3243,7 +3243,7 @@ This is exactly the §11.4.201(7)(a) "match structure, not a bare substring" def
 **Self-caught regression during this fix's own pre-commit full-suite verification (§11.4.194 exhaustive review in action):** the FIRST version of the delimiter fix (colon/space/paren only, no end-of-line alternative) broke tests 01–05, whose entire verdict line is the bare keyword with nothing following (`echo "PASS"`) — a genuine convention test 89's original 6 fixtures never covered. Caught by running the FULL suite (not just test 89 in isolation) before committing, per this project's own §11.4.40 full-suite-retest-before-release discipline; fixed by widening the delimiter alternation to include end-of-line, and a 7th fixture (F7, a bare `"PASS"` line) added to test 89 as a permanent regression guard for this specific case.
 
 **Closure cycle:** v1.0.43
-**Closure commit:** (this commit)
+**Closure commit:** `e6c0c1c`
 **Captured evidence (4-layer, §11.4.108):**
 - (a) **pre-build gate / source layer:** `bash -n` clean on `scripts/tests/lib/classify_verdict.sh`, `scripts/tests/run_all.sh`, and `scripts/tests/89_classify_verdict_carrier.sh`.
 - (b) **runtime layer:** `bash scripts/tests/89_classify_verdict_carrier.sh` (RED_MODE=0, default) — `PASS=7 FAIL=0`, all seven fixtures (three carrier, four non-carrier including the bare-keyword F7 regression guard) classify correctly against the fixed library.
@@ -3270,7 +3270,7 @@ This is exactly the §11.4.201(7)(a) "match structure, not a bare substring" def
 **Verification of BOTH polarities on BOTH artifacts (full §11.4.115 matrix, all four cells confirmed by direct A/B against the pre-fix and post-fix wrapper):** bare/default invocation on the fixed artifact → PASS (GREEN); explicit `RED_MODE=1` on the fixed artifact → FAIL (correctly cannot reproduce a defect that is genuinely gone); explicit `RED_MODE=1` on the pre-TMX-083 (stale) artifact → PASS (`ManagedOOMPreference=none (not avoid) — defect reproduced`, the historical-reproduction capability is fully intact).
 
 **Closure cycle:** v1.0.43
-**Closure commit:** (this commit)
+**Closure commit:** `e6c0c1c`
 **Captured evidence (4-layer, §11.4.108):**
 - (a) **pre-build gate / source layer:** `bash -n scripts/tests/59_oomd_preference_avoid.sh` clean.
 - (b) **runtime layer:** bare invocation against the live, fixed `scripts/tmx` — `PASS (GREEN): ... TMX-083 regression guard confirmed`.
