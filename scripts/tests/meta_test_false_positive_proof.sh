@@ -1665,6 +1665,18 @@ v109_run_mutation \
     "scripts/tests/59_oomd_preference_avoid.sh" \
     "FAIL (RED)"
 
+# ── M-ZIG-YACC-BARE-WORD: build_native.sh zig-path YACC value (TMX-088) ─────
+# Reverting the bare ylwrap-correct word to the absolute path reintroduces BOTH
+# measured breakages: configure's AC_CHECK_PROG cannot resolve a slash-bearing
+# ac_word, and ylwrap emits cmd-parse.tab.c while exiting 0. Test 91 C1+C2 FAIL.
+v109_run_mutation \
+    "M-ZIG-YACC-BARE-WORD" \
+    "revert build_native.sh's zig-path YACC from the bare 'bison -y' to an absolute \$(command -v bison) path — breaks configure's AC_CHECK_PROG and silently breaks the ylwrap output-filename contract" \
+    "scripts/build_native.sh" \
+    "inplace_sed 's|ZYACC=\"bison -y\"|ZYACC=\"\$(command -v bison)\"|' \"\$target_abs\"" \
+    "scripts/tests/91_zig_yacc_contract.sh" \
+    "FAIL: C1"
+
 # ── M-INSTALL-SSH-ONLY family: install.sh credential-prompt hang (TMX-086) ──
 # §1.1 paired mutations for scripts/tests/90_install_ssh_only_no_credential_prompt.sh.
 # Forensic anchor (2026-09-01): install.sh hung asking for GitHub credentials

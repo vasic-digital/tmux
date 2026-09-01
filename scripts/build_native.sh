@@ -389,7 +389,10 @@ case "$HOST_OS" in
                     exit 1
                 fi
                 echo "[build_native] generating ./configure from the submodule (autogen.sh)..."
-                ( cd "$TMUX_SRC" && sh autogen.sh ) 2>&1 | tail -5
+                # `|| true`: under `set -euo pipefail` a failing autogen.sh would
+                # abort here and the actionable refusal below would never print
+                # (measured). Let it fall through to the explicit check.
+                ( cd "$TMUX_SRC" && sh autogen.sh ) 2>&1 | tail -5 || true
                 [ -f "$TMUX_SRC/configure" ] || {
                     echo "[build_native] ✗ autogen.sh did not produce ./configure"; exit 1; }
             fi
@@ -405,7 +408,19 @@ case "$HOST_OS" in
             if [ -f "$TMUX_SRC/cmd-parse.c" ]; then
                 touch "$TMUX_SRC/cmd-parse.c"
             else
-                ZYACC="$(command -v bison 2>/dev/null || command -v yacc 2>/dev/null || true)"
+                # BARE word, never an absolute path, and `-y` is mandatory:
+                #   * tmux/configure's AC_CHECK_PROG concatenates a $PATH entry
+                #     with $ac_word, so a slash-bearing value can never resolve
+                #     ("/usr/bin//usr/bin/bison") and configure aborts with
+                #     "yacc not found" -- on a host that HAS bison. Measured.
+                #   * tmux/Makefile.in's .y.c rule drives etc/ylwrap, which
+                #     requires the program to emit y.tab.c. Plain `bison` emits
+                #     cmd-parse.tab.c and ylwrap still EXITS 0 -- a silent failure
+                #     leaving make with no cmd-parse.c. `bison -y` emits the
+                #     expected name. Measured both ways with a control needle.
+                if command -v bison >/dev/null 2>&1; then ZYACC="bison -y"
+                elif command -v yacc >/dev/null 2>&1; then ZYACC="yacc"
+                else ZYACC=""; fi
                 [ -n "$ZYACC" ] || {
                     echo "[build_native] ✗ cmd-parse.c is not pre-generated and no yacc/bison found."
                     echo "    Forcing YACC=true here would build a tmux with no command parser."
