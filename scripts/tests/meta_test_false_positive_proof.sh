@@ -1663,7 +1663,7 @@ v109_run_mutation \
     "scripts/tests/59_oomd_preference_avoid.sh" \
     "inplace_sed 's|RED_MODE=\"\${RED_MODE:-0}\"|RED_MODE=\"\${RED_MODE:-1}\"|' \"\$target_abs\"" \
     "scripts/tests/59_oomd_preference_avoid.sh" \
-    "FAIL (RED)"
+    "FAIL \\(RED\\)"
 
 # ── M-T68-ECHO-SATISFIED-NEEDLE: test 68 dir assertions (TMX-092) ───────────
 # Reverting C3's split-literal sentinel to the inline form puts the needle in the
@@ -1675,7 +1675,7 @@ v109_run_mutation \
     "M-T68-ECHO-SATISFIED-NEEDLE" \
     "revert test 68's C3 output-only sentinel to the echo-satisfied inline needle — restores a sub-check that passes on a deleted directory" \
     "scripts/tests/68_session_lifecycle.sh" \
-    "inplace_sed 's|&& pth_wait_text \"drv_\${NAME}_c\" \"C3PWD:\$PROJ\" 10|\&\& pth_capture \"drv_\${NAME}_c\" | grep -qF \"\$PROJ\"|' \"\$target_abs\"" \
+    "inplace_sed 's@pth_wait_text \"drv_\${NAME}_c\" \"C3PWD:\$PROJ\" 10@pth_capture \"drv_\${NAME}_c\" | grep -qF \"\$PROJ\"@' \"\$target_abs\"" \
     "scripts/tests/68_session_lifecycle.sh" \
     "FAIL"
 
