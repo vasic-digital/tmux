@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-09-01T19:38:09Z
+**Last updated:** 2026-09-01T19:45:59Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -95,9 +95,11 @@ round 3 NO-GO (defect 5 above, found in the seam I had asked the reviewer to att
 round 4 **GO**; delta review of the two filed items **GO**; delta review of this entry
 + the evidence file NO-GO on 3 MINOR documentation-accuracy findings, all three
 remediated here. Round-numbering note (§11.4.6): no per-round artifact was kept on
-disk, so I could not reconstruct the round boundary independently — the numbering
-above is the reviewer's record, corroborated by this entry's own earlier
-internal inconsistency (it claimed 4 rounds while enumerating only 3).
+disk, so I could not reconstruct the round boundary from local state — the numbering
+above is the reviewer's record, which it then corroborated decisively: R1 and R5 ARE
+round 2's own findings, and a mutation that became a round-2 finding cannot have
+survived round 1. Only M-A survived round 1; an earlier correction of mine
+over-rotated and moved all three, and is itself corrected here.
 Two of my own new tests were BLIND on first write (one had an inverted condition that
 skipped every assertion; one asserted an outcome identical under both code paths) —
 both found by running the mutations rather than trusting the green, and rewritten.

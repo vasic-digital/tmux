@@ -40,6 +40,34 @@ That figure reproduces under no definition of "sentinel" the current DB supports
 sentinels = 14) and it contradicted this document's own adjacent "14 newly-visible
 blocks" figure. The table above is the re-measured, reproducible replacement.
 
+## Why the DB holds 94 rows while `sync` parses 92 blocks (measured, reproducible)
+
+| | count |
+|---|---|
+| DB rows | 94 |
+| parsed blocks | 92 |
+| DISTINCT block identities `(location, CAT, ORD)` | 91 |
+
+94 = 91 distinct identities + 2 rows that SHARE an identity with a live successor
+(TMX-001 shares Fixed `B3` with TMX-054; TMX-071 shares Fixed `A52` with TMX-062) + 1 row
+whose claimed identity has no block at all (TMX-050 at Fixed `F1`). 92 = 91 distinct +
+1 DUPLICATE markdown heading — `### A52.` occurs twice in `Fixed.md`, at line 2890
+(TMX-062) and line 3027 (TMX-071).
+
+All three extra rows carry status `Obsolete (→ Fixed.md)`, which is precisely the case
+`validate_identity.go`'s Obsolete guard skips (§11.4.90 — a superseded record may
+legitimately share its successor's block), so `validate` correctly reports 0 findings.
+
+RETRACTION (§11.4.6): an earlier account of this gap attributed it to the two headings the
+tightened regex refuses (`### TMX-051 — …`, `### NEZHA-INSTALL-… —`). That mechanism is
+WRONG and is withdrawn — measured, NO DB row corresponds to either heading, so they
+contribute ZERO rows. The error was reading the id literal in `### TMX-051 —` as the row
+whose `atm_id` is TMX-051; that row is a different item entirely (Copy/paste mouse
+ownership, `A43`). That is the §11.4.201(9) field-identity class — an id literal matched as
+a row key — the same shape as the discarded 62-row instrument below. The conclusions were
+unaffected (gap = 2, no live collision, `validate` 0 findings) but they were reached via
+the wrong rows, and the arithmetic above is the reproducible replacement.
+
 ## Corpus duplication
 
 Cross-tracker duplicates BEFORE: 5 (G1..G4 in both trackers; A50 claimed by two
@@ -54,8 +82,8 @@ items). AFTER: 0 — enforced at the sync seam, which now refuses on the union o
 | M-D | desync `blockCodeRE` from `headingRE` | `TestHeadingRE_AndBlockCodeRE_AgreeOnAcceptance` | me |
 | M-A | restrict the duplicate guard to same-code pairs | `…RefusesSameIDUnderDifferentBlockCodes` | reviewer (SURVIVED round 1) |
 | M-B | restrict the duplicate guard to cross-file pairs | `…RefusesSameIDTwiceWithinOneFile` | me |
-| R1 | disable the byHash key | `…RefusesIdLessDuplicateAcrossTrackers` | reviewer (SURVIVED round 1) |
-| R5 | swap identity-resolution precedence | `…HeadingHashWinsAndNoSpuriousRebindIsRecorded` | reviewer (SURVIVED round 1) |
+| R1 | disable the byHash key | `…RefusesIdLessDuplicateAcrossTrackers` | reviewer (SURVIVED round 2 — it IS round 2's IMPORTANT-N1) |
+| R5 | swap identity-resolution precedence | `…HeadingHashWinsAndNoSpuriousRebindIsRecorded` | reviewer (SURVIVED round 2 — it IS round 2's MINOR-N4) |
 | R17 | suppress the rebind counter, keep the history row | `…IdentityRebindIsRecordedInHistory` | reviewer |
 | R23 | strip the prior identity from the history `Reason` | `…IdentityRebindIsRecordedInHistory` | reviewer |
 | — | persist `document_sources` before the guard | `…RefusalLeavesDocumentSourcesUntouched` | me |
@@ -89,7 +117,11 @@ of `CONTINUATION.md` §3.37 + this file NO-GO on 3 MINOR documentation-accuracy
 findings (round attribution, the sentinel figures, and a superseded gitignored copy of
 this file) — all three remediated.
 
-Round-numbering note (§11.4.6): no per-round review artifact was written to disk, so
-the boundary between rounds 1 and 2 could not be reconstructed independently here. The
-numbering is the reviewer's own record; an earlier revision of this file folded round 1
-into round 2 and mis-attributed the BLOCKING to round 2.
+Round-numbering note (§11.4.6): no per-round review artifact was written to disk, so I
+could not reconstruct the round-1/2 boundary from local state. The numbering is the
+reviewer's record, now stated explicitly by it with a decisive argument: R1 and R5 ARE
+round 2's own findings (IMPORTANT-N1 and MINOR-N4), and a mutation that BECAME a round-2
+finding cannot have survived round 1 — round 1's suite had never seen it. Only M-A
+survived round 1. Two revisions of this file got this wrong in opposite directions: the
+first folded round 1 into round 2 and mis-dated the BLOCKING; the second over-rotated and
+moved all three surviving mutations to round 1. This revision is the settled record.

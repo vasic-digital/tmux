@@ -263,6 +263,57 @@ ordinal-0 = 4; <code>code_ordinal &lt;= 0</code> = 17; true sentinels =
 14) and it contradicted this document's own adjacent "14 newly-visible
 blocks" figure. The table above is the re-measured, reproducible
 replacement.</p>
+<h2
+id="why-the-db-holds-94-rows-while-sync-parses-92-blocks-measured-reproducible">Why
+the DB holds 94 rows while <code>sync</code> parses 92 blocks (measured,
+reproducible)</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DB rows</td>
+<td>94</td>
+</tr>
+<tr>
+<td>parsed blocks</td>
+<td>92</td>
+</tr>
+<tr>
+<td>DISTINCT block identities <code>(location, CAT, ORD)</code></td>
+<td>91</td>
+</tr>
+</tbody>
+</table>
+<p>94 = 91 distinct identities + 2 rows that SHARE an identity with a
+live successor (TMX-001 shares Fixed <code>B3</code> with TMX-054;
+TMX-071 shares Fixed <code>A52</code> with TMX-062) + 1 row whose
+claimed identity has no block at all (TMX-050 at Fixed <code>F1</code>).
+92 = 91 distinct + 1 DUPLICATE markdown heading — <code>### A52.</code>
+occurs twice in <code>Fixed.md</code>, at line 2890 (TMX-062) and line
+3027 (TMX-071).</p>
+<p>All three extra rows carry status <code>Obsolete (→ Fixed.md)</code>,
+which is precisely the case <code>validate_identity.go</code>'s Obsolete
+guard skips (§11.4.90 — a superseded record may legitimately share its
+successor's block), so <code>validate</code> correctly reports 0
+findings.</p>
+<p>RETRACTION (§11.4.6): an earlier account of this gap attributed it to
+the two headings the tightened regex refuses
+(<code>### TMX-051 — …</code>, <code>### NEZHA-INSTALL-… —</code>). That
+mechanism is WRONG and is withdrawn — measured, NO DB row corresponds to
+either heading, so they contribute ZERO rows. The error was reading the
+id literal in <code>### TMX-051 —</code> as the row whose
+<code>atm_id</code> is TMX-051; that row is a different item entirely
+(Copy/paste mouse ownership, <code>A43</code>). That is the §11.4.201(9)
+field-identity class — an id literal matched as a row key — the same
+shape as the discarded 62-row instrument below. The conclusions were
+unaffected (gap = 2, no live collision, <code>validate</code> 0
+findings) but they were reached via the wrong rows, and the arithmetic
+above is the reproducible replacement.</p>
 <h2 id="corpus-duplication">Corpus duplication</h2>
 <p>Cross-tracker duplicates BEFORE: 5 (G1..G4 in both trackers; A50
 claimed by two items). AFTER: 0 — enforced at the sync seam, which now
@@ -310,13 +361,13 @@ before running</h2>
 <td>R1</td>
 <td>disable the byHash key</td>
 <td><code>…RefusesIdLessDuplicateAcrossTrackers</code></td>
-<td>reviewer (SURVIVED round 1)</td>
+<td>reviewer (SURVIVED round 2 — it IS round 2's IMPORTANT-N1)</td>
 </tr>
 <tr>
 <td>R5</td>
 <td>swap identity-resolution precedence</td>
 <td><code>…HeadingHashWinsAndNoSpuriousRebindIsRecorded</code></td>
-<td>reviewer (SURVIVED round 1)</td>
+<td>reviewer (SURVIVED round 2 — it IS round 2's MINOR-N4)</td>
 </tr>
 <tr>
 <td>R17</td>
@@ -425,9 +476,14 @@ documentation-accuracy findings (round attribution, the sentinel
 figures, and a superseded gitignored copy of this file) — all three
 remediated.</p>
 <p>Round-numbering note (§11.4.6): no per-round review artifact was
-written to disk, so the boundary between rounds 1 and 2 could not be
-reconstructed independently here. The numbering is the reviewer's own
-record; an earlier revision of this file folded round 1 into round 2 and
-mis-attributed the BLOCKING to round 2.</p>
+written to disk, so I could not reconstruct the round-1/2 boundary from
+local state. The numbering is the reviewer's record, now stated
+explicitly by it with a decisive argument: R1 and R5 ARE round 2's own
+findings (IMPORTANT-N1 and MINOR-N4), and a mutation that BECAME a
+round-2 finding cannot have survived round 1 — round 1's suite had never
+seen it. Only M-A survived round 1. Two revisions of this file got this
+wrong in opposite directions: the first folded round 1 into round 2 and
+mis-dated the BLOCKING; the second over-rotated and moved all three
+surviving mutations to round 1. This revision is the settled record.</p>
 </body>
 </html>
