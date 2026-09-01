@@ -7,7 +7,7 @@
 | Last modified | 2026-09-01 |
 | Status | active |
 | Extends | `constitution/Constitution.md` — Helix Universal Constitution, pinned `7f738df` |
-| Status summary | R5 (2026-09-01): §107 rewritten — the `tmux/` submodule pin is now recorded as commit `40381bdc` (`3.7b-808-g40381bdc`, version string `next-3.8`), adopted by an EXPLICIT operator decision of 2026-09-01 after the pointer was found to have drifted off tag `3.6a` silently. Honest costs recorded: `next-3.8` is an UNTAGGED upstream master commit 1339 commits past `3.6a` (pure fast-forward, nothing lost), so there is no upstream release tarball and the build is a non-release build. Both silent drifts remain on the record — 2026-05-13 `f4132aa` (reverted by `2836956`) and 2026-08-31 `1344dba` (regularised by the 2026-09-01 decision, but recorded as the §11.4.6 violation it was). Immutability discipline preserved verbatim: never modified, never advanced again without a new documented decision. R4 (2026-08-10): §105/§106 updated — no CPU/task/lifetime cap by default (matching the already-correct "liquid" memory model); root-cause fix for sessions/processes being killed despite ample host capacity (idle-recycler default-on kill + unconditional CPUQuota/TasksMax with no full opt-out). R3 (2026-05-21): full refactor to the HelixConstitution extends-template form. Universal clauses now inherited from the `constitution/` submodule; this file holds only Project Articles §101–§109. No universal clause weakened — inheritance is verified by `scripts/tests/test_constitution_inheritance.sh` + its paired mutation. |
+| Status summary | R6 (2026-09-01): §107 rewritten AGAIN — the 2026-09-01 `next-3.8` adoption was REVISED by the operator the same day and the `tmux/` submodule is now pinned to upstream RELEASE TAG `3.7b` (annotated; `3.7b^{}` = commit `e802909`). Reason recorded as captured fact, not opinion: the untagged `next-3.8` master commit has no upstream release tarball, so it withdrew the root-free zig build path — test 71 check C4 FAILED — and tag `3.7b` HAS a tarball (ships pre-generated `configure` + `cmd-parse.c`), restoring that path AND making the built binary's version equal its pin (`tmux 3.7b`). The rewind `40381bdc`→`3.7b` is pure (`3.7b` IS an ancestor, 808 commits back); relative to `3.6a` it is still a 531-commit forward move. Stated plainly per §11.4.6: `3.7b` is NOT the newest upstream tag (`3.7c` exists) — it is a deliberate known-good release pin. The full timeline is on the record, including BOTH silent drifts — 2026-05-13 `f4132aa` (reverted by `2836956`) and 2026-08-31 `1344dba` "Auto-commit" (regularised by the 2026-09-01 decision, still recorded as the §11.4.6 violation it was, and now also recorded as the drift that caused the measured C4 capability loss). Immutability preserved verbatim: never modified (the submodule tree carries zero tracked modifications — the `3.7b` version string is upstream's own), never advanced again without a new documented decision. R4 (2026-08-10): §105/§106 updated — no CPU/task/lifetime cap by default (matching the already-correct "liquid" memory model); root-cause fix for sessions/processes being killed despite ample host capacity (idle-recycler default-on kill + unconditional CPUQuota/TasksMax with no full opt-out). R3 (2026-05-21): full refactor to the HelixConstitution extends-template form. Universal clauses now inherited from the `constitution/` submodule; this file holds only Project Articles §101–§109. No universal clause weakened — inheritance is verified by `scripts/tests/test_constitution_inheritance.sh` + its paired mutation. |
 
 This constitution **extends** the Helix Universal Constitution at
 [`constitution/Constitution.md`](constitution/Constitution.md). Every
@@ -215,35 +215,79 @@ On macOS the memory cap is informational only regardless of `TMX_MEM`
 
 ### §107 — Upstream tmux submodule pinned + immutable
 
-`tmux/` references `tmux/tmux` at commit `40381bdc`
-(`git -C tmux describe --tags` → `3.7b-808-g40381bdc`; `configure.ac`
-version string `next-3.8`). It is a third-party upstream submodule:
-**never modified**, and never advanced off the pinned commit without an
-explicit, documented decision recorded in this section + `Fixed.md` +
-a governance-doc update in the same commit. Silent pin-drift is a §101 /
+`tmux/` references `tmux/tmux` at upstream release tag **`3.7b`**
+(annotated tag; `3.7b^{}` = commit `e802909de06012a4df6209d55e86487c56223163`,
+`git -C tmux describe --tags` → `3.7b`; upstream's own `configure.ac`
+carries `AC_INIT([tmux], 3.7b)`, so `tmux -V` prints `tmux 3.7b`). It is
+a third-party upstream submodule: **never modified** — the checkout
+carries ZERO tracked modifications (`git -C tmux status --porcelain`
+shows only untracked build outputs; `git diff HEAD -- configure.ac` is
+empty, i.e. the `3.7b` version string is UPSTREAM's content, not an edit
+of ours) — and never advanced off the pinned commit without an explicit,
+documented decision recorded in this section + `Fixed.md` + a
+governance-doc update in the same commit. Silent pin-drift is a §101 /
 universal §11.4.6 violation.
 
-**Adoption decision — 2026-09-01 (operator, explicit).** The pin was
-advanced from tag `3.6a` (commit `cc117b5`) to commit `40381bdc`. The
-operator was shown the drift and the two available options, and chose to
-**adopt the newer tmux deliberately** rather than revert. The honest
-facts of what was adopted, per §11.4.6 — each measured, none assumed:
+**Adoption decision — 2026-09-01 (operator, explicit), in TWO steps the
+same day. Both are recorded; the second REVISES the first.**
 
-- `40381bdc` is an **UNTAGGED upstream master commit**, `1339` commits
-  past `3.6a` (`git -C tmux rev-list --count 3.6a..HEAD` → `1339`).
-  `3.6a` (`cc117b5`) IS an ancestor of it (`git merge-base
-  --is-ancestor` exits 0), so the move is a pure fast-forward — no
-  upstream commit was rewritten, dropped, or lost.
-- The adopted version string is **`next-3.8`** — upstream's development
-  line, **NOT a released tag**. There is therefore **no upstream release
-  tarball** for it, and what this project ships is a **non-release build
-  from a moving upstream branch**. That cost is accepted by the
-  operator's decision, not hidden by it.
-- What the project GIVES UP relative to a tagged pin: upstream release
-  tarballs, upstream release notes, and any claim that the binary is
-  built from a "known-good upstream *tag*". What it KEEPS: exact
-  reproducibility from the recorded commit SHA — the SHA, not a tag
-  name, is the binding pin, and it is recorded in the parent index.
+*Step 1 — adopt `next-3.8` (superseded).* The pin was advanced from tag
+`3.6a` (commit `cc117b5`) to commit `40381bdc`, an **UNTAGGED upstream
+master commit** whose `configure.ac` version string is `next-3.8`
+(`git describe --tags` → `3.7b-808-g40381bdc`). The operator was shown
+the drift and the available options and chose to adopt the newer tmux
+deliberately rather than revert. The move was a pure fast-forward
+(`3.6a` IS an ancestor of `40381bdc`) — nothing rewritten, dropped, or
+lost.
+
+*Step 2 — REVISE to tag `3.7b` (current, binding).* Adopting the
+untagged master commit **withdrew a real, previously-working capability
+and this was PROVEN, not suspected**: the root-free zig build path
+(`scripts/tests/71_root_free_zig_build.sh`) needs an upstream **release
+tarball**, because the tarball ships the pre-generated `configure` and
+`cmd-parse.c` that a bare git checkout does not contain and that cannot
+be regenerated without autotools/bison on a bare host. `next-3.8` is a
+development-line commit with **no release tarball**, so check **C4** of
+test 71 **FAILED** — captured evidence, a genuine §11.4.115-class
+defect-present observation on the adopted artifact, not a prediction.
+The operator therefore revised the decision the SAME day and re-pinned
+to upstream release tag **`3.7b`**.
+
+The honest facts of the CURRENT pin, per §11.4.6 — each measured, none
+assumed:
+
+- **`3.7b` is a real upstream RELEASE tag**, not a master commit. A
+  published release tarball exists — `tmux-3.7b.tar.gz`, sha256
+  `87f2e99e3b685973f2ca002ffd6ed7e51a5744f7009daae5a15670b6d532db96`
+  (its download URL was independently re-confirmed reachable, HTTP 200,
+  at revision time) — and it ships `configure` + `cmd-parse.c`. That is
+  precisely the property `next-3.8` lacked, so the root-free build path
+  is RESTORED by this pin, not merely asserted to be.
+- **The built artifact now MATCHES the pin.** Upstream `3.7b`'s own
+  `configure.ac` declares `3.7b`, so the binary reports `tmux 3.7b` —
+  the version string, the tag, and the recorded commit all name the same
+  thing. Under the `next-3.8` pin they did not: the tag-describe said
+  `3.7b-808-g40381bdc` while the binary said `next-3.8`.
+- **The move from the step-1 pin is a pure REWIND, not a divergence.**
+  `3.7b` IS an ancestor of `40381bdc` (`git merge-base --is-ancestor`
+  exits 0; `git rev-list --count 3.7b..40381bdc` → `808`). No upstream
+  history was rewritten and nothing was lost — the project simply stops
+  808 commits earlier, on the last tagged release boundary before them.
+- **Relative to the ORIGINAL `3.6a` pin this is still a forward move**:
+  `3.6a` (`cc117b5`) IS an ancestor of `3.7b`, `531` commits back
+  (`git rev-list --count 3.6a..3.7b` → `531`).
+- **`3.7b` is NOT the newest tag upstream carries** — `3.7c` exists
+  (`git -C tmux tag --list | sort -V | tail`). Stating this plainly is
+  required by §11.4.6: `3.7b` is a deliberate known-good release pin,
+  and it MUST NOT be described as "the latest upstream tag". Moving to
+  `3.7c` or beyond needs a new documented decision under this section.
+- **What the project GAINS back over the step-1 pin**: an upstream
+  release tarball, upstream release notes, a build that is genuinely
+  from a known-good upstream *tag*, a root-free build path that works,
+  and a binary whose reported version equals its pin. **What it gives
+  up**: the 808 post-`3.7b` upstream commits — accepted deliberately,
+  since the capability they cost was load-bearing and the defect was
+  captured, not hypothesised.
 
 **Forensic history — recorded, never erased (§11.4.6).** This pin has
 drifted SILENTLY twice. Both drifts remain on the record:
@@ -261,20 +305,32 @@ drifted SILENTLY twice. Both drifts remain on the record:
    anywhere in this repository** at the time it landed, or afterwards,
    until the 2026-09-01 decision above.
 
-The 2026-09-01 operator decision **retroactively regularises the outcome
-of drift 2 — it does NOT retroactively legitimise the way it arrived.**
-The pin change was silent, undocumented, and carried by an opaque
-`Auto-commit` message: a §101 / universal §11.4.6 violation that was
-caught AFTER the fact rather than prevented, and it is recorded here as
-such. What changed on 2026-09-01 is the pin's authorisation, not its
-history.
+The 2026-09-01 operator decision **regularises the outcome of drift 2 —
+it does NOT retroactively legitimise the way it arrived.** The pin change
+was silent, undocumented, and carried by an opaque `Auto-commit` message:
+a §101 / universal §11.4.6 violation that was caught AFTER the fact
+rather than prevented, and it is recorded here as such. What changed on
+2026-09-01 is the pin's authorisation, not its history. Note the drift
+was NOT harmless: it is the drift that carried the project onto the
+untagged master commit whose captured test-71 C4 failure forced the
+same-day revision above — the cost of the silent drift was a real,
+measured capability loss, discovered by a test rather than by the commit
+that caused it.
+
+**The full pin timeline, for the record:** pinned `3.6a` → silently
+drifted to `3f651d9f` (2026-05-13, reverted) → silently drifted to
+`40381bdc` (2026-08-31, `Auto-commit`) → `next-3.8` adopted by explicit
+operator decision (2026-09-01, step 1) → **re-pinned to release tag
+`3.7b` by the operator's same-day revision (2026-09-01, step 2 —
+current)**.
 
 **The immutability discipline is UNCHANGED and still binding.** The
-`tmux/` submodule is still never modified, and the new pin `40381bdc` is
-still never advanced again — to a tag, to a newer master commit, or
-anywhere else — without a NEW explicit, documented operator decision
-recorded in this section + `Fixed.md` in the same commit. Adopting an
-untagged commit once does not licence future silent drift.
+`tmux/` submodule is still never modified, and the current pin — tag
+`3.7b` (`e802909`) — is still never advanced again, to `3.7c`, to a
+newer master commit, or anywhere else, without a NEW explicit,
+documented operator decision recorded in this section + `Fixed.md` in
+the same commit. Neither adopting an untagged commit once, nor revising
+that adoption the same day, licences any future silent drift.
 
 ### §108 — Native dual-OS build discipline
 
@@ -312,9 +368,10 @@ constitution   git@github.com:HelixDevelopment/HelixConstitution.git   (governan
 ```
 
 `tmux/` is a **third-party upstream** submodule (`tmux/tmux` pinned at
-commit `40381bdc` = `next-3.8`, an UNTAGGED upstream master commit
-adopted by explicit operator decision 2026-09-01, §107) — excluded from
-the owned set; immutable per §107.
+upstream release tag `3.7b` = commit `e802909`, adopted by explicit
+operator decision 2026-09-01 — the same-day revision of that day's
+earlier untagged-master pin, §107) — excluded from the owned set;
+immutable per §107.
 
 ---
 

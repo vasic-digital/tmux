@@ -151,9 +151,9 @@ After `setup.sh` reports GREEN: open a new shell, or source the rc for your shel
    │  ├ CPUQuota  = unset (unlimited)│         │  │             by default, opt-in)       │
    │  ├ TasksMax  = infinity         │         │  ├ ulimit -u  ← RLIMIT_NPROC (unlimited  │
    │  ├ Delegate  = yes              │         │  │             by default, opt-in)       │
-   │  └ tmux next-3.8 (Linux ELF)    │         │  └ ulimit -v  ← RLIMIT_AS NOT enforced   │
+   │  └ tmux 3.7b (Linux ELF)        │         │  └ ulimit -v  ← RLIMIT_AS NOT enforced   │
    │  status-bar = DJB2(host)        │         │                  by XNU (documented gap) │
-   │  oom_score_adj = -500           │         │  tmux next-3.8 (Mach-O)                  │
+   │  oom_score_adj = -500           │         │  tmux 3.7b (Mach-O)                      │
    │  idle-recycle = OFF by default  │         │  status-bar = DJB2(host)                 │
    │  (TMX_RECYCLE_IDLE_SECS opt-in) │         │  (oom_score_adj N/A on Darwin)           │
    └─────────────────────────────────┘         └──────────────────────────────────────────┘
@@ -173,7 +173,7 @@ Both OS paths deliver the **same operator UX**: plain-vanilla tmux behaviour, th
 
 | Component | Why |
 |---|---|
-| **tmux `next-3.8`** (upstream master — NOT a release) | Pinned to upstream commit `40381bdc`, an UNTAGGED master commit adopted by explicit operator decision 2026-09-01 (Constitution §107). No upstream release tarball exists for it; this is a non-release build. |
+| **tmux `3.7b`** (upstream release tag) | Pinned to upstream tag `3.7b` = commit `e802909`, adopted by explicit operator decision 2026-09-01 (Constitution §107). A real upstream **release** tag with a published release tarball (`tmux-3.7b.tar.gz`, sha256 `87f2e99e…db96`), which is what the root-free zig build path needs — it ships the pre-generated `configure` + `cmd-parse.c`. It is **not** the newest tag upstream carries (`3.7c` exists); it is a deliberate known-good pin, and moving off it requires a new documented decision (§107). |
 | **Hardened compile flags** | `-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2`, RELRO + immediate-binding link |
 | **Build-time `-ljemalloc`** | jemalloc linked at the binary level (more aggressive RAM return than glibc malloc) |
 | **Runtime `LD_PRELOAD=libjemalloc.so`** | Wrapper preloads jemalloc even on hosts where the linker resolved a different malloc |

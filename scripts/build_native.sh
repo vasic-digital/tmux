@@ -345,6 +345,57 @@ case "$HOST_OS" in
             }
             PIN_VER="$(sed -n 's/^AC_INIT(\[tmux\], *\([^)]*\)).*/\1/p' \
                         "$REPO_ROOT/tmux/configure.ac" | head -1)"
+
+            # ── tarball FAST-PATH, derived from the pin and sha-verified ──────
+            # Restored 2026-09-01 after the operator re-pinned to TAG 3.7b.
+            # The root-free property this path exists for is "zig + make only":
+            # an upstream RELEASE tarball ships a pre-generated ./configure AND
+            # cmd-parse.c, so no autotools and no bison are needed. Building from
+            # the submodule instead requires both, which measurably broke test 71
+            # C4 on a deliberately-neutered bare host.
+            #
+            # WHY THIS IS NOW SAFE (it was not, under the untagged next-3.8 pin):
+            # TMUX_REL_VER is DERIVED from the submodule's own configure.ac, never
+            # hardcoded, and the download is refused unless a sha256 is pinned for
+            # exactly that version. So the tarball can only ever be the SAME
+            # version as the pin. If someone re-pins to a version with no pinned
+            # sha (e.g. back to an untagged master commit), this path REFUSES and
+            # falls through to the submodule build rather than silently shipping a
+            # binary whose -V disagrees with the pin (§11.4.108 SOURCE->ARTIFACT).
+            TMUX_REL_VER="$PIN_VER"
+            TMUX_REL_SHA=""
+            case "$TMUX_REL_VER" in
+                3.7b) TMUX_REL_SHA="87f2e99e3b685973f2ca002ffd6ed7e51a5744f7009daae5a15670b6d532db96" ;;
+                3.6a) TMUX_REL_SHA="b6d8d9c76585db8ef5fa00d4931902fa4b8cbe8166f528f44fc403961a3f3759" ;;
+            esac
+            _tarball_ok=0
+            if [ -n "$TMUX_REL_SHA" ] && command -v curl >/dev/null 2>&1; then
+                TMUX_REL_URL="https://github.com/tmux/tmux/releases/download/${TMUX_REL_VER}/tmux-${TMUX_REL_VER}.tar.gz"
+                CACHE="$LOCAL_DEPS_ROOT/.tarballs"; mkdir -p "$CACHE"
+                TARBALL="$CACHE/tmux-${TMUX_REL_VER}.tar.gz"
+                if [ ! -f "$TARBALL" ]; then
+                    echo "[build_native] fetching pinned tmux ${TMUX_REL_VER} release tarball..."
+                    curl -fsSL --connect-timeout 30 --max-time 600 -o "$TARBALL" "$TMUX_REL_URL" || rm -f "$TARBALL"
+                fi
+                if [ -f "$TARBALL" ]; then
+                    _got="$(sha256sum "$TARBALL" 2>/dev/null | cut -d' ' -f1)"
+                    if [ "$_got" = "$TMUX_REL_SHA" ]; then
+                        rm -rf "$SRCROOT"; mkdir -p "$SRCROOT"
+                        if tar xzf "$TARBALL" -C "$SRCROOT" 2>/dev/null; then
+                            TMUX_SRC="$SRCROOT/tmux-${TMUX_REL_VER}"
+                            # keep the no-bison property: make must not re-run yacc
+                            [ -f "$TMUX_SRC/cmd-parse.c" ] && touch "$TMUX_SRC/cmd-parse.c"
+                            _tarball_ok=1
+                            echo "[build_native] ROOT-FREE zig build from the sha256-pinned ${TMUX_REL_VER} RELEASE TARBALL (matches the submodule pin): CC=$ZCC"
+                        fi
+                    else
+                        echo "[build_native] ! tarball sha256 mismatch for ${TMUX_REL_VER} (got ${_got:-none}) — ignoring it, falling back to the submodule"
+                        rm -f "$TARBALL"
+                    fi
+                fi
+            fi
+
+            if [ "$_tarball_ok" != "1" ]; then
             echo "[build_native] ROOT-FREE zig build from the PINNED SUBMODULE (${PIN_VER:-unknown}): CC=$ZCC"
 
             # Build from an ISOLATED COPY of the submodule, never in-tree. This
@@ -402,6 +453,8 @@ case "$HOST_OS" in
             # never invokes the yacc rule (YACC=true is then a never-called no-op
             # — this preserves the old tarball path's "no bison needed" property
             # whenever the worktree happens to be already generated). When it is
+            fi   # end submodule-build fallback (tarball fast-path skipped it)
+
             # ABSENT a real yacc/bison is REQUIRED: forcing YACC=true there would
             # silently build a tmux with no command parser.
             ZYACC="true"

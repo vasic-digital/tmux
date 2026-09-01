@@ -4,9 +4,10 @@
 	# Suppress "untracked content" parent-status noise from our build/
 	# and build-darwin/ artifacts (containerised Linux + native macOS
 	# builds via scripts/setup.sh). We do NOT modify the pinned tmux
-	# submodule (commit 40381bdc = next-3.8, an UNTAGGED upstream
-	# master commit adopted by operator decision 2026-09-01, Constitution
-	# §107). Per §11.4.6 this is honest: the build
+	# submodule (commit e802909 = upstream release tag `3.7b`, adopted
+	# by operator decision 2026-09-01 — the same-day revision of that
+	# day's earlier untagged-master pin, Constitution §107). Per
+	# §11.4.6 this is honest: the build
 	# artifacts are expected outputs of our build pipeline, not
 	# regressions in the submodule's tracked state.
 	ignore = untracked

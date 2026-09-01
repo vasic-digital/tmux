@@ -26,9 +26,10 @@ FAIL=0
 SKIP=0
 SESSION="tmx_e2e_$$"
 MARKER="tmx-e2e-marker-$$-$(date +%s)"
-# Adopted upstream tmux version (operator decision 2026-09-01: next-3.8 pin).
+# Adopted upstream tmux version (operator decision 2026-09-01, REVISED same
+# day: tag `3.7b` pin — see Constitution §107).
 # Single edit point for a future version bump; env-overridable.
-EXPECTED_VERSION="${EXPECTED_VERSION:-next-3.8}"
+EXPECTED_VERSION="${EXPECTED_VERSION:-3.7b}"
 
 _pass() { echo "PASS: $*"; PASS=$((PASS + 1)); }
 _fail() { echo "FAIL: $*"; FAIL=$((FAIL + 1)); }

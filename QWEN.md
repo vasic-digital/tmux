@@ -45,9 +45,10 @@ Non-compliance is a release blocker regardless of context.
 
 ## Project overview
 
-Verified hardened tmux `next-3.8` build — upstream commit `40381bdc`,
-an UNTAGGED upstream master commit adopted by explicit operator
-decision 2026-09-01 (Project §107) — with jemalloc, OOM protection, and
+Verified hardened tmux `3.7b` build — upstream RELEASE TAG `3.7b`
+(commit `e802909`), adopted by explicit operator decision 2026-09-01
+(the same-day revision of that day's earlier untagged-master pin,
+Project §107) — with jemalloc, OOM protection, and
 per-session isolation via the `tmx` wrapper. Native dual-OS: each
 `tmx new -s NAME` spawns its own tmux server with OS-native isolation
 — cgroup-v2 scope on Linux, POSIX rlimit wrapper on macOS. Session
@@ -95,8 +96,8 @@ shell is the operator's host shell with full PATH. No VM.
   `tmux/build*/`).
 - Direct `git push` on the main repo — use `commit_all.sh`.
 - CI/CD pipeline files; HTTPS Git remotes (SSH only).
-- Advancing the `tmux/` submodule off pinned commit `40381bdc`
-  (`next-3.8`) without an explicit documented decision (Project §107).
+- Advancing the `tmux/` submodule off pinned release tag `3.7b`
+  (commit `e802909`) without an explicit documented decision (Project §107).
 
 ### Project-specific workflow
 
