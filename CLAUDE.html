@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc 3.10" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>CLAUDE</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -172,7 +171,6 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
 </head>
 <body>
@@ -229,10 +227,13 @@ Articles §101–§109) which extends
 </blockquote>
 <hr />
 <h2 id="project-overview">Project overview</h2>
-<p>Verified hardened tmux 3.6a build with jemalloc, OOM protection, and
-per-session isolation via the <code>tmx</code> wrapper. Built around a
-hard verification gate that refuses to expose the binary unless
-functional tests pass. <strong>Native dual-OS</strong> (since
+<p>Verified hardened tmux <code>3.7b</code> build — upstream RELEASE TAG
+<code>3.7b</code> (commit <code>e802909</code>), adopted by explicit
+operator decision 2026-09-01 (the same-day revision of that day's
+earlier untagged-master pin, Project §107) — with jemalloc, OOM
+protection, and per-session isolation via the <code>tmx</code> wrapper.
+Built around a hard verification gate that refuses to expose the binary
+unless functional tests pass. <strong>Native dual-OS</strong> (since
 2026-05-13): runs as a host process on Linux AND macOS — no VM in the
 daily-use path. Each <code>tmx new -s NAME</code> creates its own tmux
 server with OS-native isolation: cgroup-v2 transient scope
@@ -361,8 +362,8 @@ bare-name re-run (§5.8 README)</td>
 </tr>
 <tr>
 <td><code>tmux/</code></td>
-<td>upstream submodule (tag <code>3.6a</code>) — <strong>do not
-modify</strong></td>
+<td>upstream submodule (pinned to release tag <code>3.7b</code> = commit
+<code>e802909</code>) — <strong>do not modify</strong></td>
 </tr>
 <tr>
 <td><code>Containers/</code></td>
@@ -502,8 +503,8 @@ from window name</td>
 <code>scripts/tmx.template</code></li>
 <li><code>tmux/build*/</code> — build output (in
 <code>.gitignore</code>)</li>
-<li><code>tmux/</code> — upstream submodule pinned to tag
-<code>3.6a</code></li>
+<li><code>tmux/</code> — upstream submodule pinned to release tag
+<code>3.7b</code> (commit <code>e802909</code>)</li>
 <li><code>constitution/</code> — HelixConstitution submodule (governance
 authority)</li>
 </ul>

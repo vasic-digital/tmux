@@ -2,31 +2,178 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>01_environment_overview</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="01--termux-environment-overview">§01 — Termux Environment
 Overview</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
@@ -40,19 +187,21 @@ constraints relevant to porting the <code>tmx</code> wrapper</p>
 Linux-userspace add-on app. It does NOT virtualise Linux (no chroot, no
 namespaces, no PRoot in the default install) — instead it ships a
 packaged collection of Linux userland binaries (bash, coreutils, tmux,
-openssh, …) compiled against <strong>Android&#39;s own bionic libc</strong>,
-installed inside the Termux app&#39;s private data directory.</p>
-<p>Architecturally Termux is &quot;Linux userland running as a regular
-unprivileged Android app.&quot; Every Termux process is a child of the
+openssh, …) compiled against <strong>Android's own bionic libc</strong>,
+installed inside the Termux app's private data directory.</p>
+<p>Architecturally Termux is "Linux userland running as a regular
+unprivileged Android app." Every Termux process is a child of the
 Android <code>app_process</code> for <code>com.termux</code>, runs as
 the same Linux UID Android assigns the Termux app, inherits its app
 sandbox, and sees the same <code>/proc</code> view any other
 unprivileged Android app sees.</p>
-<p>The project is hosted at <a href="https://github.com/termux/termux-app">https://github.com/termux/termux-app</a>
-(the app) and <a href="https://github.com/termux/termux-packages">https://github.com/termux/termux-packages</a>
+<p>The project is hosted at <a
+href="https://github.com/termux/termux-app">https://github.com/termux/termux-app</a>
+(the app) and <a
+href="https://github.com/termux/termux-packages">https://github.com/termux/termux-packages</a>
 (the package recipes).</p>
 <h2 id="2-filesystem-layout">2. Filesystem layout</h2>
-<p>The Termux app&#39;s private data directory is
+<p>The Termux app's private data directory is
 <code>/data/data/com.termux/</code>. Two well-known children are
 exported as environment variables:</p>
 <table>
@@ -82,17 +231,20 @@ exported as environment variables:</p>
 </tr>
 </tbody>
 </table>
-<p>Source: <a href="https://github.com/termux/termux-packages/wiki/Termux-file-system-layout">https://github.com/termux/termux-packages/wiki/Termux-file-system-layout</a>
-and <a href="https://github.com/termux/termux-packages/wiki/Termux-execution-environment">https://github.com/termux/termux-packages/wiki/Termux-execution-environment</a>.</p>
+<p>Source: <a
+href="https://github.com/termux/termux-packages/wiki/Termux-file-system-layout">https://github.com/termux/termux-packages/wiki/Termux-file-system-layout</a>
+and <a
+href="https://github.com/termux/termux-packages/wiki/Termux-execution-environment">https://github.com/termux/termux-packages/wiki/Termux-execution-environment</a>.</p>
 <p>The Android security model prohibits Termux from writing to
 <code>/bin</code>, <code>/etc</code>, <code>/usr</code>,
 <code>/var</code>, etc. at the actual filesystem root — these are part
 of the read-only <code>/system</code> partition and belong to Android
-itself. Every Linux-userland convention you&#39;d expect at
+itself. Every Linux-userland convention you'd expect at
 <code>/etc</code> lives under <code>$PREFIX/etc</code>,
 <code>/var</code> under <code>$PREFIX/var</code>, <code>/tmp</code>
 under <code>$PREFIX/tmp</code>. Programs that hardcode absolute Linux
-paths require porting patches per the <a href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">Common
+paths require porting patches per the <a
+href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">Common
 porting problems wiki</a>.</p>
 <p>The <code>$PREFIX</code> paths are <strong>baked into binaries at
 compile time</strong> — if you copy a Termux binary to a phone whose
@@ -100,16 +252,17 @@ Termux app is installed under a different package name (e.g. forked
 builds like Termux:Float), the binary will not find its libraries or
 config. There is no <code>$PREFIX</code> relocation at runtime.</p>
 <h2 id="3-libc-bionic-not-glibc">3. libc: bionic, not glibc</h2>
-<p>Termux binaries link against <strong>Android&#39;s bionic libc</strong>,
-not glibc. Bionic is Google&#39;s minimalist BSD-licensed C library, written
+<p>Termux binaries link against <strong>Android's bionic libc</strong>,
+not glibc. Bionic is Google's minimalist BSD-licensed C library, written
 specifically for embedded / mobile use.</p>
 <p>Practical consequences for our port:</p>
 <ul>
 <li><strong>Missing or non-conformant POSIX/GNU APIs.</strong> The
 bionic status doc enumerates which standard APIs are available at which
-Android API level — see <a href="https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md">https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md</a>.
+Android API level — see <a
+href="https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md">https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md</a>.
 Notable: <code>pthread_cancel</code> is missing and explicitly flagged
-as &quot;unlikely to ever be implemented.&quot;</li>
+as "unlikely to ever be implemented."</li>
 <li><strong>DNS resolver path.</strong> Bionic does NOT use
 <code>/etc/resolv.conf</code>; DNS goes through the Android system
 service. A pure-Go binary built with <code>CGO_ENABLED=0</code> will hit
@@ -139,7 +292,8 @@ as a maintained package).</p>
 <tr>
 <td><code>systemd</code> / <code>systemctl</code></td>
 <td>absent</td>
-<td>Android doesn&#39;t use systemd. No <code>--user</code> instance. <a href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a></td>
+<td>Android doesn't use systemd. No <code>--user</code> instance. <a
+href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a></td>
 </tr>
 <tr>
 <td><code>init.d</code> / <code>rc.d</code></td>
@@ -151,7 +305,8 @@ app.</td>
 <td>cgroups v1 / v2 writable from userspace</td>
 <td>absent for unprivileged user</td>
 <td>Kernel may have cgroup-v2 but the Termux UID has no write access to
-<code>cgroup.procs</code>. <a href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a></td>
+<code>cgroup.procs</code>. <a
+href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a></td>
 </tr>
 <tr>
 <td><code>setuid()</code> / setuid binaries</td>
@@ -161,7 +316,7 @@ app.</td>
 <tr>
 <td><code>journalctl</code></td>
 <td>absent</td>
-<td>No systemd → no journal. Use <code>logcat</code> or Termux&#39;s own
+<td>No systemd → no journal. Use <code>logcat</code> or Termux's own
 stderr.</td>
 </tr>
 <tr>
@@ -200,12 +355,13 @@ depends on Android version + target SDK). Key consequences:</p>
 <li><strong>App-data-exec restriction (Android 10+).</strong> Per the
 Termux execution-environment wiki: apps targeting
 <code>targetSdkVersion ≥29</code> <em>cannot</em> exec arbitrary files
-from <code>/data/data/&lt;package&gt;</code> — Google&#39;s W^X mitigation.
+from <code>/data/data/&lt;package&gt;</code> — Google's W^X mitigation.
 Termux works around this by targeting an older SDK + a custom dynamic
 linker bridge (<code>libtermux-exec.so</code>, preloaded via
 <code>$LD_PRELOAD</code>). Operators who sideload a Termux binary
-outside Termux&#39;s own preload setup hit <code>Permission denied</code>
-(logged as <code>avc: denied</code> in <code>logcat</code>). Source: <a href="https://github.com/termux/termux-packages/wiki/Termux-execution-environment">https://github.com/termux/termux-packages/wiki/Termux-execution-environment</a>.</li>
+outside Termux's own preload setup hit <code>Permission denied</code>
+(logged as <code>avc: denied</code> in <code>logcat</code>). Source: <a
+href="https://github.com/termux/termux-packages/wiki/Termux-execution-environment">https://github.com/termux/termux-packages/wiki/Termux-execution-environment</a>.</li>
 <li><strong><code>/system/bin</code> exec is allowed</strong> under the
 <code>app_data_file</code> → <code>system_file</code> transition, so
 calling out to Android system binaries (<code>getprop</code>,
@@ -238,11 +394,11 @@ discipline gives us Termux for free.</p>
 daemon, the SSH dispatcher) MUST resolve at runtime via
 <code>$PREFIX</code> / <code>$HOME</code>, not via hardcoded
 <code>/usr/local/bin/...</code>. Our existing wrapper already does this
-(<code>TMX_DIR=&quot;$(cd &quot;$(dirname &quot;$0&quot;)&quot; &amp;&amp; pwd)&quot;</code>) —
+(<code>TMX_DIR="$(cd "$(dirname "$0")" &amp;&amp; pwd)"</code>) —
 good.</li>
 <li>We cannot rely on systemd / cgroups / setuid / mount namespaces for
 isolation — those gates simply do not exist for an unprivileged Termux
-process. The substitute is POSIX <code>setrlimit</code> + Android&#39;s own
+process. The substitute is POSIX <code>setrlimit</code> + Android's own
 lmkd OOM killer. Details in §03.</li>
 <li>The shell-init prompt + <code>[ -t 0 ]</code> guard from the v1.0.9
 spec works as-is on Termux: stdin and stdout are TTYs when the operator
@@ -251,22 +407,29 @@ opens the Termux terminal window; they are not TTYs when an
 non-interactively.</li>
 <li>The <code>command=</code> directive +
 <code>SSH_ORIGINAL_COMMAND</code> machinery in
-<code>tmx-ssh-dispatch.sh</code> should work because Termux&#39;s OpenSSH is
+<code>tmx-ssh-dispatch.sh</code> should work because Termux's OpenSSH is
 a standard build with only Termux-prefix path changes. Verified in
 §04.</li>
 </ul>
 <h2 id="sources">Sources</h2>
 <ul>
-<li><a href="https://github.com/termux/termux-packages/wiki/Termux-file-system-layout">https://github.com/termux/termux-packages/wiki/Termux-file-system-layout</a></li>
-<li><a href="https://github.com/termux/termux-packages/wiki/Termux-execution-environment">https://github.com/termux/termux-packages/wiki/Termux-execution-environment</a></li>
-<li><a href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">https://github.com/termux/termux-packages/wiki/Common-porting-problems</a></li>
-<li><a href="https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md">https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md</a></li>
-<li><a href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a>
+<li><a
+href="https://github.com/termux/termux-packages/wiki/Termux-file-system-layout">https://github.com/termux/termux-packages/wiki/Termux-file-system-layout</a></li>
+<li><a
+href="https://github.com/termux/termux-packages/wiki/Termux-execution-environment">https://github.com/termux/termux-packages/wiki/Termux-execution-environment</a></li>
+<li><a
+href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">https://github.com/termux/termux-packages/wiki/Common-porting-problems</a></li>
+<li><a
+href="https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md">https://android.googlesource.com/platform/bionic/+/HEAD/docs/status.md</a></li>
+<li><a
+href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a>
 (systemctl failure discussion)</li>
-<li><a href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a>
+<li><a
+href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a>
 (cgroup unavailability)</li>
-<li><a href="https://lwn.net/Articles/936953/">https://lwn.net/Articles/936953/</a>
-(LWN&#39;s overview of Termux internals)</li>
+<li><a
+href="https://lwn.net/Articles/936953/">https://lwn.net/Articles/936953/</a>
+(LWN's overview of Termux internals)</li>
 </ul>
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>v1.0.24</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -156,8 +155,12 @@
       text-decoration: none;
     }
     span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
     /* The extra [class] is a hack that increases specificity enough to
        override a similar rule in reveal.js */
@@ -168,11 +171,10 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
 </head>
 <body>
-<h1 id="vasic-digital-tmux-v1.0.24-release-notes">vasic-digital tmux —
+<h1 id="vasic-digital-tmux--v1024-release-notes">vasic-digital tmux —
 v1.0.24 Release Notes</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
 2026-06-16T18:00:00Z <strong>Version:</strong> 1.0.24 / versionCode 25
@@ -210,7 +212,7 @@ cannot be confirmed</strong>.</li>
 auto-included in <code>run_all.sh</code>.</li>
 </ul>
 <h2
-id="fixed-containers-library-extendedhardened-upstream-per-11.4.76">Fixed
+id="fixed-containers-library--extendedhardened-upstream-per-11476">Fixed
 (Containers library — extended/hardened upstream per §11.4.76)</h2>
 <ul>
 <li>Remote deploy port publishing
@@ -225,7 +227,7 @@ regression test on nezha — <code>a856865</code>; same-class
 <li><code>tmx-orchestrator down</code> FAIL-bluff (reported success on
 an unreachable host).</li>
 </ul>
-<h2 id="tests-release-gate-real-captured">Tests — release gate (real
+<h2 id="tests--release-gate-real-captured">Tests — release gate (real
 captured)</h2>
 <ul>
 <li><strong>nezha</strong> <code>verify.sh</code>
@@ -245,12 +247,6 @@ major + 4 minor → all fixed → re-review <strong>GO</strong>.</li>
 </ul>
 <h2 id="validation-dual-host">Validation (dual-host)</h2>
 <table>
-<colgroup>
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 25%" />
-</colgroup>
 <thead>
 <tr>
 <th>Host</th>
@@ -288,10 +284,9 @@ commits, github + gitlab).</li>
 <h2 id="sources-verified-2026-06-16">Sources verified 2026-06-16</h2>
 <ul>
 <li><a
-href="https://docs.podman.io/en/latest/markdown/podman-run.1.html"
-class="uri">https://docs.podman.io/en/latest/markdown/podman-run.1.html</a></li>
-<li><a href="https://www.man7.org/linux/man-pages/man8/ss.8.html"
-class="uri">https://www.man7.org/linux/man-pages/man8/ss.8.html</a></li>
+href="https://docs.podman.io/en/latest/markdown/podman-run.1.html">https://docs.podman.io/en/latest/markdown/podman-run.1.html</a></li>
+<li><a
+href="https://www.man7.org/linux/man-pages/man8/ss.8.html">https://www.man7.org/linux/man-pages/man8/ss.8.html</a></li>
 </ul>
 </body>
 </html>

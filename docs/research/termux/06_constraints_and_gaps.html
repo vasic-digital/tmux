@@ -2,31 +2,178 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>06_constraints_and_gaps</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="06--honest-constraints-and-gaps">§06 — Honest Constraints and
 Gaps</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
@@ -39,8 +186,8 @@ degradation, on Termux</p>
 honest gap citation), this file enumerates the things that DEMONSTRABLY
 do not work or degrade on Termux. Each item maps to a specific §11.4.3
 topology SKIP-with-reason or to a documented user-action workaround. No
-speculation. No &quot;should work&quot; — only &quot;verified works&quot;, &quot;verified does
-not work&quot;, or <code>UNCONFIRMED:</code> with a resolution path.</p>
+speculation. No "should work" — only "verified works", "verified does
+not work", or <code>UNCONFIRMED:</code> with a resolution path.</p>
 <h2 id="1-will-not-work--full-skip-with-reason">1. WILL NOT WORK — full
 SKIP-with-reason</h2>
 <h3 id="11-systemd-based-gates">1.1 systemd-based gates</h3>
@@ -51,7 +198,8 @@ SKIP-with-reason</h2>
 <code>systemd-cgls</code>, <code>systemd-cgtop</code>, or queries
 <code>/sys/fs/cgroup</code> writability.</li>
 <li><strong>Why:</strong> Termux has no systemd. Android does not use it
-as init. Source: <a href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a>.</li>
+as init. Source: <a
+href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a>.</li>
 <li><strong>Tests affected (existing suite):</strong> anything that
 requires the <code>tmx-supported</code> classification path branched on
 systemd-availability. Currently tests 12-14 (the destructive ones) and
@@ -67,7 +215,8 @@ from unprivileged userspace</h3>
 <code>cgroup.subtree_control</code>, <code>memory.max</code>,
 <code>cpu.max</code>, etc.</li>
 <li><strong>Why:</strong> SELinux denies the write for the
-<code>untrusted_app</code> context that hosts Termux. Source: <a href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a>.</li>
+<code>untrusted_app</code> context that hosts Termux. Source: <a
+href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a>.</li>
 <li><strong>Workaround:</strong> rooted-only opt-in path (Magisk +
 <code>su -c</code>). Out of scope for default support.</li>
 <li><strong>SKIP reason:</strong>
@@ -78,8 +227,8 @@ from unprivileged userspace</h3>
 <ul>
 <li><strong>What:</strong> any check that queries
 <code>journalctl -u tmx-NAME.scope</code> for runtime state.</li>
-<li><strong>Why:</strong> No systemd → no journal. Termux&#39;s analogue is
-<code>logcat</code> (Android&#39;s log buffer) or process stderr.</li>
+<li><strong>Why:</strong> No systemd → no journal. Termux's analogue is
+<code>logcat</code> (Android's log buffer) or process stderr.</li>
 <li><strong>Replacement:</strong> for Termux topology, diagnostic
 queries become <code>logcat -d -t 100 | grep tmx</code> or just
 <code>tail -n 100 ~/.tmx/log/$NAME.log</code> if we write a per-session
@@ -106,12 +255,13 @@ Notably we do NOT have one today — the <code>tmx-oom-set</code> helper
 on Linux is non-suid; it uses ambient capabilities. So no impact, but
 worth noting.</li>
 <li><strong>Why:</strong> Android 9+ blocks <code>setuid()</code> via
-seccomp. Source: <a href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">https://github.com/termux/termux-packages/wiki/Common-porting-problems</a>.</li>
+seccomp. Source: <a
+href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">https://github.com/termux/termux-packages/wiki/Common-porting-problems</a>.</li>
 <li><strong>SKIP reason for any new setuid feature:</strong>
 <code>topology_unsupported: android-seccomp-blocks-setuid</code>.</li>
 </ul>
 <h3 id="16-systemd-style-service-restart-on-failure">1.6 systemd-style
-&quot;service restart on failure&quot;</h3>
+"service restart on failure"</h3>
 <ul>
 <li><strong>What:</strong> running the tmux server as a
 <code>--restart=on-failure</code> unit.</li>
@@ -121,7 +271,7 @@ seccomp. Source: <a href="https://github.com/termux/termux-packages/wiki/Common-
 autorestart, but would require explicit operator opt-in and is NOT what
 <code>setup.sh</code> does today.</li>
 <li><strong>Workaround:</strong> document <code>termux-services</code>
-as optional power-user feature; default port doesn&#39;t include it.</li>
+as optional power-user feature; default port doesn't include it.</li>
 </ul>
 <h2 id="2-will-degrade--partial-functionality">2. WILL DEGRADE — partial
 functionality</h2>
@@ -132,16 +282,17 @@ functionality</h2>
 <code>/proc/$PID/oom_score_adj</code> so tmux survives memory
 pressure.</li>
 <li><strong>Status:</strong> the FILE write succeeds on Termux
-(<code>/proc</code> is writable for own processes). BUT Android&#39;s lmkd
+(<code>/proc</code> is writable for own processes). BUT Android's lmkd
 maintains its OWN priority table keyed on Android UID, NOT on
 <code>oom_score_adj</code>. When lmkd kicks in (memory pressure), it can
 <code>SIGKILL</code> Termux regardless of our score adjustment.</li>
 <li><strong>Result:</strong> the write is cosmetic. Real protection
 requires the operator to disable battery optimization AND grant Termux
-&quot;high priority&quot; via OEM settings (where available).</li>
-<li><strong>§11.4.81 honest-gap row:</strong> &quot;Termux: oom_score_adj
-writable but Android lmkd may override based on app priority.&quot;</li>
-<li>Source: <a href="https://source.android.com/docs/core/perf/lmkd">https://source.android.com/docs/core/perf/lmkd</a>.</li>
+"high priority" via OEM settings (where available).</li>
+<li><strong>§11.4.81 honest-gap row:</strong> "Termux: oom_score_adj
+writable but Android lmkd may override based on app priority."</li>
+<li>Source: <a
+href="https://source.android.com/docs/core/perf/lmkd">https://source.android.com/docs/core/perf/lmkd</a>.</li>
 </ul>
 <h3 id="22-memory-cap-rlimit_as">2.2 Memory cap
 (<code>RLIMIT_AS</code>)</h3>
@@ -150,7 +301,7 @@ writable but Android lmkd may override based on app priority.&quot;</li>
 underneath). Better than macOS.</li>
 <li><strong>Caveat:</strong> the cap is per-process, not per-cgroup. If
 tmux forks 100 panes, each can hit the cap independently. Total memory
-usage is <code>RLIMIT_AS × N_processes</code> worst case. On Linux&#39;s
+usage is <code>RLIMIT_AS × N_processes</code> worst case. On Linux's
 cgroup model, the cap is shared across all processes in the scope — true
 ceiling. We lose that.</li>
 </ul>
@@ -167,13 +318,15 @@ Termux.</li>
 </ul>
 <h3 id="24-background-survival">2.4 Background survival</h3>
 <ul>
-<li><strong>Status:</strong> degrades to &quot;kept alive only with
-<code>termux-wake-lock</code> + battery-opt unrestricted&quot;.</li>
+<li><strong>Status:</strong> degrades to "kept alive only with
+<code>termux-wake-lock</code> + battery-opt unrestricted".</li>
 <li><strong>Failure modes:</strong>
 <ul>
-<li>Doze freezes CPU; sessions appear hung when screen off (<a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>).</li>
+<li>Doze freezes CPU; sessions appear hung when screen off (<a
+href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>).</li>
 <li>Phantom Process Killer (Android 12+) kills child processes when
-count &gt; 32 (<a href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>).</li>
+count &gt; 32 (<a
+href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>).</li>
 <li>OEM-specific killers (MIUI, ColorOS, etc.) may override even Android
 settings.</li>
 </ul></li>
@@ -183,28 +336,28 @@ be enforced from our side.</li>
 <h3 id="25-os-level-shared-tmp">2.5 OS-level shared
 <code>/tmp</code></h3>
 <ul>
-<li><strong>Status:</strong> Termux&#39;s <code>/tmp</code> is
+<li><strong>Status:</strong> Termux's <code>/tmp</code> is
 <code>$PREFIX/tmp</code>, not <code>/tmp</code>. Code expecting
 <code>/tmp</code> hard-coded will fail.</li>
 <li><strong>Impact on us:</strong> our existing code uses
-<code>${TMPDIR:-/tmp}</code> or the user&#39;s home for state. UNCONFIRMED —
+<code>${TMPDIR:-/tmp}</code> or the user's home for state. UNCONFIRMED —
 need grep audit of the codebase for raw <code>/tmp</code> references.
 Resolution: grep <code>/tmp/</code> literally in
 <code>scripts/</code>.</li>
 <li><strong>Termux-specific:</strong> also <code>/tmp</code> is wiped on
-app restart (different lifecycle from Linux). Don&#39;t store persistent
+app restart (different lifecycle from Linux). Don't store persistent
 state there.</li>
 </ul>
 <h3 id="26-phantom-process-killers-32-child-cap-on-android-12">2.6
-Phantom Process Killer&#39;s 32-child cap on Android 12+</h3>
+Phantom Process Killer's 32-child cap on Android 12+</h3>
 <ul>
 <li><strong>What:</strong> Android 12+ kills child processes when more
-than 32 are seen as &quot;phantom&quot; (children of an app whose parent has gone
+than 32 are seen as "phantom" (children of an app whose parent has gone
 background). tmux with 6+ windows × 5+ panes = potential trip.</li>
 <li><strong>Workaround:</strong> ADB toggle to disable, documented for
 operator. Cannot be set programmatically without root.</li>
-<li><strong>§11.4.81 honest-gap row:</strong> &quot;Termux on Android 12+:
-TasksMax is effectively 32 unless ADB-toggled higher&quot;.</li>
+<li><strong>§11.4.81 honest-gap row:</strong> "Termux on Android 12+:
+TasksMax is effectively 32 unless ADB-toggled higher".</li>
 </ul>
 <h3 id="27-concurrent-session-rlimit_nproc-sharing">2.7
 Concurrent-session <code>RLIMIT_NPROC</code> sharing</h3>
@@ -221,7 +374,7 @@ ADAPTATION</h2>
 <ul>
 <li><strong>Status:</strong> works (Termux ships a maintained
 <code>tmux</code> package). Our hardened 3.6a build also compiles
-cleanly under Termux&#39;s bionic toolchain (Termux&#39;s recipe is proof).</li>
+cleanly under Termux's bionic toolchain (Termux's recipe is proof).</li>
 <li><strong>Adaptation:</strong> none for tmux core; potentially adjust
 <code>tmux.conf.template</code> to add Termux-specific keybindings
 (touch-friendly prefix). Not blocking.</li>
@@ -239,12 +392,12 @@ via <code>pkg install golang</code>, OR NDK cross-compile from host per
 <ul>
 <li><strong>Status:</strong> works. POSIX-sh / bash 5.x. The
 <code>[ -t 0 ] &amp;&amp; [ -t 1 ]</code> non-TTY guard works because
-sshd-without-PTY doesn&#39;t allocate one.</li>
+sshd-without-PTY doesn't allocate one.</li>
 <li><strong>Adaptation:</strong> none.</li>
 </ul>
 <h3 id="34-ssh-dispatcher">3.4 SSH dispatcher</h3>
 <ul>
-<li><strong>Status:</strong> works. Termux&#39;s OpenSSH 10.3p1 supports
+<li><strong>Status:</strong> works. Termux's OpenSSH 10.3p1 supports
 <code>command=</code> and propagates <code>SSH_ORIGINAL_COMMAND</code>
 identically to Linux/macOS. (See §04.)</li>
 <li><strong>Adaptation:</strong> port number — <code>8022</code> not
@@ -279,9 +432,9 @@ research-only mission. Each carries a resolution path:</p>
 <tbody>
 <tr>
 <td>U1</td>
-<td><code>bash -l</code> follows Termux&#39;s documented login chain
+<td><code>bash -l</code> follows Termux's documented login chain
 (<code>$PREFIX/etc/bash.bashrc</code> → <code>~/.bashrc</code>)</td>
-<td>Run `bash -lc &#39;env</td>
+<td>Run `bash -lc 'env</td>
 </tr>
 <tr>
 <td>U2</td>
@@ -310,9 +463,9 @@ default colours for every hostname hash</td>
 </tr>
 <tr>
 <td>U6</td>
-<td>OpenSSH&#39;s
+<td>OpenSSH's
 <code>no-port-forwarding,no-X11-forwarding,no-agent-forwarding</code>
-restrictions are honoured by Termux&#39;s build</td>
+restrictions are honoured by Termux's build</td>
 <td>Add explicit restriction-bypass-attempt tests to test 22</td>
 </tr>
 <tr>
@@ -330,19 +483,20 @@ reliably present on Termux base install</td>
 <tr>
 <td>U9</td>
 <td>Whether the existing scrolling fix (Applied Fix A16) actually works
-under Termux in 2026 (file was originally noted as &quot;mobile/Termux&quot;
+under Termux in 2026 (file was originally noted as "mobile/Termux"
 compatible)</td>
 <td>Run scripts/tests/17_*.sh under Termux</td>
 </tr>
 <tr>
 <td>U10</td>
-<td>Exact behaviour of <code>tmx-state-bin</code>&#39;s <code>flock</code>
+<td>Exact behaviour of <code>tmx-state-bin</code>'s <code>flock</code>
 calls on Android tmpfs vs ext4 — should be identical but unverified</td>
 <td>flock-contention smoke test on the actual device</td>
 </tr>
 </tbody>
 </table>
-<h2 id="5-carve-outs-from-existing-11481-cross-platform-parity-invariant">5.
+<h2
+id="5-carve-outs-from-existing-11481-cross-platform-parity-invariant">5.
 Carve-outs from existing §11.4.81 cross-platform-parity invariant</h2>
 <p>For each existing gate test that depends on a Linux primitive, the
 Termux branch is documented above. Summary of NEW SKIP-with-reasons:</p>
@@ -405,25 +559,32 @@ SSH-only mode</td>
 <td>KernelSU / Magisk policy changes affecting rooted opt-in path</td>
 <td>Low</td>
 <td>Power-user feature degraded</td>
-<td>Power-user path is opt-in; degrading it doesn&#39;t affect default
+<td>Power-user path is opt-in; degrading it doesn't affect default
 operator</td>
 </tr>
 </tbody>
 </table>
 <h2 id="sources">Sources</h2>
 <ul>
-<li><a href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a>
+<li><a
+href="https://github.com/termux/termux-packages/discussions/17585">https://github.com/termux/termux-packages/discussions/17585</a>
 (systemd absence)</li>
-<li><a href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a>
+<li><a
+href="https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b">https://dev.to/elenbit/unreliable-linux-containers-on-android-addressing-integration-networking-and-stability-for-2p5b</a>
 (cgroup access)</li>
-<li><a href="https://source.android.com/docs/core/perf/lmkd">https://source.android.com/docs/core/perf/lmkd</a>
+<li><a
+href="https://source.android.com/docs/core/perf/lmkd">https://source.android.com/docs/core/perf/lmkd</a>
 (lmkd overrides oom_score_adj)</li>
-<li><a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>
+<li><a
+href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>
 (Doze)</li>
-<li><a href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>
+<li><a
+href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>
 (Phantom Process Killer)</li>
-<li><a href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a></li>
-<li><a href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">https://github.com/termux/termux-packages/wiki/Common-porting-problems</a>
+<li><a
+href="https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/">https://maheshtechnicals.com/fix-termux-error-process-completed-signal-9-disable-phantom-process-killer-in-android-12-13/</a></li>
+<li><a
+href="https://github.com/termux/termux-packages/wiki/Common-porting-problems">https://github.com/termux/termux-packages/wiki/Common-porting-problems</a>
 (setuid blocked since Android 9)</li>
 </ul>
 </body>

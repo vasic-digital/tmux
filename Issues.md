@@ -328,3 +328,39 @@ TMX-079's own fix + tests are unaffected. Tracked here so they are not lost.
 **Cross-reference:** TMX-080 (`Issues.md` §H1) is hypothesised to share the SAME underlying mechanism (oh-my-bash prompt-render subprocess activity racing tmux's `tcgetpgrp`-based pane-state resolution) manifesting as a DIFFERENT symptom — a stale/wrong `#{pane_current_path}` read there, vs. a settle-window timeout here. Confirming or refuting this shared-cause hypothesis (e.g., by testing whether disabling oh-my-bash for test-created sessions makes BOTH TMX-080 and TMX-081 stop reproducing) is the recommended next step for either investigation.
 
 **Fix direction (still not attempted — no live reproduction to validate a fix against this cycle):** if the shared-cause hypothesis holds, candidate fixes include (a) a settle heuristic that specifically recognises oh-my-bash startup activity and excludes it from the "must be zero" requirement (e.g., waiting for `#{pane_current_command}` to stably show the shell itself, not a transient subprocess, before starting the settle-count), or (b) scoping test-created sessions to a minimal, non-framework shell so tests are not coupled to the operator's own interactive shell configuration. Needs a fresh reproduction (possibly requiring genuine host load, a cold oh-my-bash cache, or an artificially-injected slow prompt hook) before any fix can be validated per the project's own TDD-RED-first discipline (§11.4.43/§11.4.115) — forcing a fix without a live failing case to prove it against would itself be a bluff.
+
+---
+
+## I. Live copy-mode wheel binding (2026-09-01)
+
+Surfaced during the v1.0.44 verification work. Tracked here because it is a real, currently-failing check that was not previously recorded anywhere — leaving it only in a test log would be a §11.4.238 coverage escape at the tracking layer.
+
+### I1 WHEEL-COPY-MODE-OVERRIDE-001 — test 17 sub-check T3: the LIVE `WheelUpPane` binding is not the copy-mode override
+
+**TMX-ID:** TMX-090
+**Type:** Bug
+**Status:** In progress
+
+**What:** `scripts/tests/17_scrollback_copy_mode.sh` sub-check **T3** reads the binding actually installed on the LIVE tmux server —
+
+```
+tmux -L "$S_SOCK" list-keys -T root WheelUpPane
+```
+
+— and requires the returned binding text to mention BOTH `copy-mode` and `scroll-up`. The project's `tmux.conf.template` deliberately OVERRIDES tmux's default `WheelUpPane` binding: the tmux default consults `#{mouse_any_flag}` and FORWARDS the wheel event to the running application, whereas the override enters copy-mode unconditionally so scrollback works even under mouse-tracking. T3 exists to prove the override is live on the server, not merely present in the config file.
+
+**Observed (current):**
+
+```
+FAIL: T3: live WheelUpPane binding is not the copy-mode override
+```
+
+**Status of the investigation:** an investigation is IN FLIGHT. **The cause is NOT established.** No hypothesis is recorded here, because none has been confirmed against captured evidence — per §11.4.6 a cause may be stated only as a proven FACT or explicitly marked `UNCONFIRMED:` / `PENDING_FORENSICS:`, and a guess dressed as a lead is exactly what that clause forbids. What is known is only what is written above: the check reads the live server's binding, and on the current tree it does not match.
+
+**PENDING_FORENSICS:** the `observed:` line the test prints immediately after the FAIL (`echo "  observed: $WHEEL_BIND"`) carries the ACTUAL binding text the live server returned. That output has not been captured into this entry. Capturing it is the first concrete step — it distinguishes at least three materially different situations that the FAIL alone cannot: the override never reached the server (config not loaded / loaded from a different path), the override reached the server but in a form whose text does not contain both required tokens (a matcher-side problem in the test, i.e. potentially a §11.4.1 FAIL-bluff rather than a product defect), or the binding was subsequently replaced. Which of these holds is UNKNOWN until that output is read.
+
+**Relationship to other items:** DISTINCT from TMX-080 / TMX-081 (§H1 / §H2) — those are timing/settle races around `#{pane_current_path}` and cgroup throttle windows. This one is a key-binding-presence check. No shared-cause hypothesis is asserted; whether one exists is UNCONFIRMED and would itself require evidence (§11.4.214 — this is a NEW id rather than a reopen precisely because no existing item describes this defect).
+
+**Note on a sibling check (not asserted as the same defect):** `scripts/tests/47_alt_screen_scroll.sh` **T6** asserts a related live-`WheelUpPane`-override property. Whether T6 currently passes or fails on this tree has NOT been measured this cycle and is NOT claimed either way.
+
+**Fix direction:** none proposed. Per §11.4.102 the systematic-debugging arc (reproduce → characterise → falsifiable hypothesis → fix against the PROVEN cause) must complete before any fix is written; proposing a direction now would be the guess-and-retry pattern that clause exists to prevent.

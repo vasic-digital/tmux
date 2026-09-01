@@ -35,6 +35,8 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# §11.4.201 version-stable single-key binding readback (TMX-090)
+. "$REPO_ROOT/scripts/tests/lib/list_key.sh"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 HOST_OS="$(uname -s)"
 case "$HOST_OS" in
@@ -148,7 +150,7 @@ fi
 _pass "T2.0: operator-path session created"
 
 # T2 — live readback for the four bindings.
-M_BIND="$("$TMUX_BIN" -L "$S_SOCK" list-keys -T root M-MouseDrag1Pane 2>/dev/null || true)"
+M_BIND="$(tmx_list_key "$TMUX_BIN" "$S_SOCK" root M-MouseDrag1Pane)"
 if printf '%s' "$M_BIND" | grep -q 'copy-mode'; then
     _pass "T2.1: live M-MouseDrag1Pane binding drives copy-mode"
 else
@@ -156,7 +158,7 @@ else
     echo "  observed: $M_BIND"
 fi
 
-S_BIND="$("$TMUX_BIN" -L "$S_SOCK" list-keys -T root S-MouseDrag1Pane 2>/dev/null || true)"
+S_BIND="$(tmx_list_key "$TMUX_BIN" "$S_SOCK" root S-MouseDrag1Pane)"
 if printf '%s' "$S_BIND" | grep -q 'copy-mode'; then
     _pass "T2.2: live S-MouseDrag1Pane binding drives copy-mode"
 else
@@ -164,7 +166,7 @@ else
     echo "  observed: $S_BIND"
 fi
 
-ME_BIND="$("$TMUX_BIN" -L "$S_SOCK" list-keys -T copy-mode-vi M-MouseDragEnd1Pane 2>/dev/null || true)"
+ME_BIND="$(tmx_list_key "$TMUX_BIN" "$S_SOCK" copy-mode-vi M-MouseDragEnd1Pane)"
 if printf '%s' "$ME_BIND" | grep -q 'copy-pipe-and-cancel' \
     && printf '%s' "$ME_BIND" | grep -q '@clip'; then
     _pass "T2.3: live M-MouseDragEnd1Pane binding routes selection through @clip"
@@ -172,7 +174,7 @@ else
     _fail "T2.3: live M-MouseDragEnd1Pane is not the @clip copy-pipe-and-cancel"
 fi
 
-SE_BIND="$("$TMUX_BIN" -L "$S_SOCK" list-keys -T copy-mode-vi S-MouseDragEnd1Pane 2>/dev/null || true)"
+SE_BIND="$(tmx_list_key "$TMUX_BIN" "$S_SOCK" copy-mode-vi S-MouseDragEnd1Pane)"
 if printf '%s' "$SE_BIND" | grep -q 'copy-pipe-and-cancel' \
     && printf '%s' "$SE_BIND" | grep -q '@clip'; then
     _pass "T2.4: live S-MouseDragEnd1Pane binding routes selection through @clip"
@@ -244,7 +246,7 @@ if [ -x "$HELPER" ] && command -v python3 >/dev/null 2>&1; then
         # Re-readback the M-MouseDrag1Pane bind WHILE the app is in
         # mouse-tracking mode. Binds in the root table do not change;
         # this is a defensive assertion that the override survives.
-        M_BIND2="$("$TMUX_BIN" -L "$S_SOCK" list-keys -T root M-MouseDrag1Pane 2>/dev/null || true)"
+        M_BIND2="$(tmx_list_key "$TMUX_BIN" "$S_SOCK" root M-MouseDrag1Pane)"
         if printf '%s' "$M_BIND2" | grep -q 'copy-mode'; then
             _pass "T4: M-MouseDrag1Pane override survives mouse_any_flag=1 surface (Claude-Code-like)"
         else

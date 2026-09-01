@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc 3.10" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>CONTINUATION</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -172,13 +171,12 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
 </head>
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-08-13T12:00:00Z</p>
+<p><strong>Last updated:</strong> 2026-09-01T16:15:00Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -211,21 +209,73 @@ current state. Update this document as you work.</p>
 </tr>
 <tr>
 <td>Pinned tmux</td>
-<td>upstream tag <code>3.6a</code></td>
+<td>upstream release TAG <code>3.7b</code>
+(<code>e802909de06012a4df6209d55e86487c56223163</code>) — re-pinned by
+TMX-089 (<code>a6f3fc4</code>) from the untagged <code>next-3.8</code>
+(<code>40381bdc</code>) that <code>562cde7</code> had briefly adopted.
+<code>3.7b</code> is an ANCESTOR of <code>40381bdc</code> (verified — a
+clean rewind, not a divergence); its release tarball exists with
+measured sha256
+<code>87f2e99e3b685973f2ca002ffd6ed7e51a5744f7009daae5a15670b6d532db96</code>
+and ships a pre-generated <code>configure</code> AND
+<code>cmd-parse.c</code>, which is what the root-free zig build path
+requires. Rebuilt binary reports <code>tmux 3.7b</code> (verified).
+Note: tag <code>3.7c</code> EXISTS upstream, so <code>3.7b</code> is NOT
+the latest stable and <code>README.md</code> no longer claims it
+is.</td>
 </tr>
 <tr>
 <td>Version</td>
-<td><strong>1.0.43</strong> (versionCode 44) — TMX-084 + TMX-085: two
-false-result defects in the verification HARNESS itself (not the
-wrapper) — <code>run_all.sh</code>'s verdict classifier misread an
-honest <code>SKIP-layer:</code> sub-check note (and any test's own
-internal <code>PASS=N FAIL=N SKIP=N</code> counters) as the test's
-overall verdict, and test 59's <code>RED_MODE</code> default made it
-fail 100% deterministically against a genuinely-fixed wrapper under a
-bare harness invocation. See §3.33 + <code>Fixed.md</code> §K
-(TMX-084/085). Previous: v1.0.42 (TMX-083, systemd-oomd victim-avoidance
-on session scopes — <code>ManagedOOMPreference=avoid</code> added to
-every scope/slice creation site, closing a §11.4.108 layer-3 gap where
+<td><strong>1.0.44</strong> (versionCode 45, NOT yet released — no tag
+cut) — FOUR items this cycle: <strong>TMX-086 + TMX-087</strong> (the
+operator-reported install blocker) and, landing after that batch already
+reached <code>main</code>, <strong>TMX-088</strong> (the zig build
+path's <code>YACC</code> was an ABSOLUTE path, breaking BOTH
+<code>configure</code>'s <code>AC_CHECK_PROG</code> resolution AND
+<code>etc/ylwrap</code>'s output-filename contract — the latter a SILENT
+exit-0 failure; found by INDEPENDENT post-hoc review of
+<code>562cde7</code>, fixed in <code>7966edb</code>, new test 91 +
+mutation <code>M-ZIG-YACC-BARE-WORD</code>) and <strong>TMX-089</strong>
+(<code>562cde7</code>'s <code>next-3.8</code> pin withdrew the root-free
+build capability — test 71 C4 MEASURED the loss; re-pinned to release
+TAG <code>3.7b</code> in <code>a6f3fc4</code> on a second explicit
+operator decision the same day, tarball fast-path restored but now
+DERIVED from the submodule's <code>configure.ac</code> and refused
+without a matching pinned sha256). See §3.36 (cycle state) +
+<code>Fixed.md</code> §M (TMX-088/089). TMX-086 + TMX-087: TWO
+INDEPENDENT root causes behind the operator's single "cannot install /
+setup tmx" report, each one alone sufficient to block the install — (1)
+<code>install.sh</code> injected an HTTPS <code>insteadOf</code> rewrite
+BY DEFAULT, which git propagates into every recursive submodule clone
+via <code>GIT_CONFIG_PARAMETERS</code>, so it reached the one PRIVATE
+nested repo (<code>HelixDevelopment/helix_perf_cache</code>) and blocked
+forever on a GitHub <code>Username</code> prompt with no
+<code>GIT_TERMINAL_PROMPT=0</code> guard; (2) the constitution
+submodule's index carried a <code>.gitmodules</code>-unmapped duplicate
+<code>design-toolkit</code> gitlink, aborting every consumer's recursive
+clone with
+<code>Failed to recurse into submodule path 'constitution'</code>. Fixed
+by defaulting the clone URL to SSH + making the rewrite an explicit
+opt-in (<code>TMX_INSTALL_HTTPS_REWRITE=1</code>) + exporting the
+no-prompt / no-hang git env (<code>GIT_TERMINAL_PROMPT=0</code>,
+<code>GIT_ASKPASS=""</code>, <code>SSH_ASKPASS=""</code>,
+<code>GIT_SSH_COMMAND</code> with <code>accept-new</code>), and by
+constitution commit <code>b9096ac</code> (orphan gitlink removed,
+ff-pushed to all six upstreams, no force-push); constitution pointer
+bumped <code>6f24df9</code> → <code>b9096ac</code>. New test 90
+(§11.4.115 RED/GREEN) + 3 paired mutations. See §3.35 +
+<code>Fixed.md</code> §L (TMX-086/087); §3.36 + <code>Fixed.md</code> §M
+(TMX-088/089). Previous: v1.0.43 (TMX-084 + TMX-085 — two false-result
+defects in the verification HARNESS itself, not the wrapper:
+<code>run_all.sh</code>'s verdict classifier misread an honest
+<code>SKIP-layer:</code> sub-check note (and any test's own internal
+<code>PASS=N FAIL=N SKIP=N</code> counters) as the test's overall
+verdict, and test 59's <code>RED_MODE</code> default made it fail 100%
+deterministically against a genuinely-fixed wrapper under a bare harness
+invocation — <code>Fixed.md</code> §K); v1.0.42 (TMX-083, systemd-oomd
+victim-avoidance on session scopes —
+<code>ManagedOOMPreference=avoid</code> added to every scope/slice
+creation site, closing a §11.4.108 layer-3 gap where
 <code>MemoryMax=infinity</code> was correct but ineffective against
 oomd's orthogonal PSI-pressure victim selection; renumbered from v1.0.41
 to v1.0.42 per §11.4.113 merge-onto-latest-main after a concurrent
@@ -243,8 +293,77 @@ interactive server-scope split TMX_SERVER_SPLIT=1, TMX_CLASSIFICATION
 export, OOM score adjustment).</td>
 </tr>
 <tr>
-<td>Verification (this cycle, v1.0.43)</td>
-<td>Investigated all 5 operator-reported failures
+<td>Verification (this cycle, v1.0.44)</td>
+<td>Controlled A/B for TMX-086 (same repo, same host, same minute, ONE
+variable): SSH as declared → <code>exit=0</code>,
+<code>6adcfb2 refs/heads/main</code>; with the installer's
+<code>insteadOf</code> rewrite → <code>exit=128</code>,
+<code>fatal: could not read Username for 'https://github.com'</code>.
+Anonymous-HTTPS census (all git config bypassed, no credential helper on
+host): 9 repos PUBLIC, <code>HelixDevelopment/helix_perf_cache</code>
+the sole PRIVATE one — the trigger. New test 90
+(<code>90_install_ssh_only_no_credential_prompt.sh</code>) drives the
+real installer behind a recording <code>git</code> shim that captures
+the REAL argv + the INHERITED <code>GIT_TERMINAL_PROMPT</code>, so its
+assertions are runtime evidence, not a grep of the source (§11.4.226):
+GREEN <code>RED_MODE=0</code> → <code>PASS=4 FAIL=0 SKIP=0</code> exit
+<code>0</code>; RED <code>RED_MODE=1</code> (reconstructed pre-fix
+installer) → <code>PASS=1 FAIL=0 SKIP=0</code> exit <code>0</code>,
+defect reproduced. TMX-087: with the orphan gitlink removed, a recursive
+clone checked out <code>Containers</code> and <code>constitution</code>
+over SSH with NO credential prompt; constitution <code>b9096ac</code>
+ff-pushed (<code>6f24df9..b9096ac</code>) to all six upstreams, no
+force-push. A self-inflicted test-instrument FAIL-bluff (argv extractor
+keyed on <code>' clone'</code> with a leading space, matching only when
+the defect was present) was found and fixed at the instrument layer
+during authoring per §11.4.1. <strong>TMX-088 measured:</strong>
+<code>AC_CHECK_PROG</code> with <code>ac_word=/usr/bin/bison</code> →
+<code>found_yacc=no</code>, with <code>ac_word=bison</code> →
+<code>yes</code>, bogus-name negative control → <code>no</code>; real
+<code>tmux/etc/ylwrap</code> with <code>/usr/bin/bison</code> →
+<code>rc=0</code> and <code>cmd-parse.c</code> MISSING, with
+<code>bison -y</code> → <code>rc=0</code> and <code>cmd-parse.c</code>
+CREATED (both exit 0 — an exit-status assertion could never have caught
+it). New test 91 (<code>91_zig_yacc_contract.sh</code>, §11.4.115
+RED/GREEN, <code>RED_MODE</code> default <code>0</code>) exercises BOTH
+real contracts without a full build and DERIVES the value under test
+from <code>build_native.sh</code> itself (§11.4.201(6) attributability);
+paired mutation <code>M-ZIG-YACC-BARE-WORD</code> verified to make C1+C2
+FAIL. <strong>TMX-089 measured:</strong> under the <code>next-3.8</code>
+pin test 71 <strong>C4</strong> FAILED on its neutered bare host
+(<code>cmd-parse.c is not pre-generated and no yacc/bison found</code>)
+— the measured capability withdrawal; <code>3.7b</code> verified an
+ancestor of <code>40381bdc</code>; tarball sha256
+<code>87f2e99e...d532db96</code> measured + pinned; rebuilt binary
+reports <code>tmux 3.7b</code>; tag <code>3.7c</code> confirmed to
+exist. <strong>KNOWN-OPEN — explicitly NOT claimed (§11.4.6):</strong>
+(1) <strong>full-suite <code>run_all.sh</code> retest
+<code>UNCONFIRMED:</code></strong> — has NOT completed, outcome not
+known, still owed before the tag (§11.4.40); (2) <strong>the full
+meta-test mutation sweep has NOT been run</strong> this cycle —
+individual mutations verified, whole-sweep result not known; (3)
+<strong>test 71 C4 has NOT been re-run on the <code>3.7b</code>
+artifact</strong> — the root-free restoration is the RATIONALE for the
+re-pin, <code>UNCONFIRMED:</code> as a result; (4) <strong>test 68
+(<code>68_session_lifecycle.sh</code>) C6/C7 FAIL</strong> —
+pre-existing, reproduces identically on the pre-change tree,
+TMX-080/TMX-081 family (<code>Issues.md</code> §H1/§H2), investigation
+in flight, no outcome recorded; (5)
+<strong><code>FAIL: T3: live WheelUpPane binding is not the copy-mode override</code></strong>
+(<code>17_scrollback_copy_mode.sh</code>) — real, currently failing,
+newly tracked as <strong>TMX-090</strong> (<code>Issues.md</code> §I1);
+under investigation, cause NOT established and none asserted; (6)
+<strong><code>.html</code>/<code>.pdf</code> twins STALE</strong>
+(<code>pandoc</code>/<code>weasyprint</code> absent), remediation
+attempt in flight — an honest stale, never a faked transform
+(§11.4.106(E)). <strong>Process note (§11.4.142/§11.4.113):</strong>
+<code>562cde7</code> swept an agent's in-flight
+<code>build_native.sh</code> edit onto <code>main</code> before the
+mandatory independent review completed (<code>commit_all.sh</code> uses
+<code>git add -A</code>); remediated FIX-FORWARD in
+<code>7966edb</code>, no history rewrite, no force-push. Full detail:
+<code>Fixed.md</code> §L + §M. (Prior cycle, v1.0.43: investigated all 5
+operator-reported failures
 (<code>27_state_persistence.sh 56_real_mouse_drag_copy.sh 57_reload_select_copy_paste.sh 59_oomd_preference_avoid.sh 87_server_scope_split.sh</code>)
 via <code>/superpowers:systematic-debugging</code>; 27/87 confirmed
 unchanged instances of the already-tracked TMX-080/TMX-081 (no action,
@@ -254,7 +373,7 @@ bugs (TMX-084/085) — NEITHER was a defect in
 regression test <code>89_classify_verdict_carrier.sh</code> (§11.4.115
 RED/GREEN, 6 fixtures) + paired mutations
 <code>M-CLASSIFY-CARRIER</code>/<code>M-RED-DEFAULT-59</code>. Full
-detail: <code>Fixed.md</code> §K. (Prior cycle, v1.0.40:
+detail: <code>Fixed.md</code> §K.) (Prior cycle, v1.0.40:
 <code>install.sh</code> clean <code>PASS=72 FAIL=0 SKIP=14</code>, real
 live-session split-topology verification via kernel
 <code>/proc/&lt;pid&gt;/cgroup</code>. Full detail:
@@ -263,12 +382,17 @@ live-session split-topology verification via kernel
 <tr>
 <td>Governance docs</td>
 <td><code>constitution/</code> submodule (HelixConstitution, pinned
-<code>1d81ef0</code>); <code>Containers/</code> submodule (pinned
-<code>18ed03d</code>); project <code>Constitution.md</code> (Project
-Articles §101–§109 extends the submodule), <code>CLAUDE.md</code>,
-<code>AGENTS.md</code>, <code>QWEN.md</code>, <code>GEMINI.md</code>
-(all lockstep), <code>Issues.md</code>, <code>Fixed.md</code>, this
-document</td>
+<code>b9096ac</code> as of v1.0.44 — bumped from <code>6f24df9</code> by
+the TMX-087 orphan-gitlink fix); <code>Containers/</code> submodule
+(pinned <code>18ed03d</code>); <code>tmux/</code> submodule pinned to
+release TAG <code>3.7b</code> (<code>e802909</code>) as of TMX-089
+(<code>a6f3fc4</code>), re-pinned from the untagged
+<code>next-3.8</code> (<code>40381bdc</code>) — governance files and
+every version gate swept <code>next-3.8</code> → <code>3.7b</code>;
+project <code>Constitution.md</code> (Project Articles §101–§109 extends
+the submodule), <code>CLAUDE.md</code>, <code>AGENTS.md</code>,
+<code>QWEN.md</code>, <code>GEMINI.md</code> (all lockstep),
+<code>Issues.md</code>, <code>Fixed.md</code>, this document</td>
 </tr>
 </tbody>
 </table>
@@ -296,6 +420,298 @@ user-mandate quote)</li>
 sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
+<h3
+id="336--v1044-release-cycle--consolidated-state-tmx-086--tmx-087--tmx-088--tmx-089--2026-09-01">§3.36
+— v1.0.44 release cycle — consolidated state (TMX-086 / TMX-087 /
+TMX-088 / TMX-089) → 2026-09-01</h3>
+<p><strong>Status:</strong> IN PROGRESS. All FOUR fixes are landed on
+<code>main</code>; the release is <strong>NOT tagged</strong> and MUST
+NOT be tagged until the known-open list below is cleared. This entry is
+the single cycle-state record; §3.35 keeps the deep TMX-086/TMX-087
+detail.</p>
+<p><strong>Scope of this cycle — four items, two waves:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What</th>
+<th>Landed in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>TMX-086</strong></td>
+<td><code>install.sh</code> injected an HTTPS <code>insteadOf</code>
+rewrite BY DEFAULT; git propagated it into every recursive submodule
+clone via <code>GIT_CONFIG_PARAMETERS</code>, reaching the one PRIVATE
+nested repo (<code>HelixDevelopment/helix_perf_cache</code>) and
+blocking forever on a GitHub <code>Username</code> prompt with no
+<code>GIT_TERMINAL_PROMPT=0</code> guard.</td>
+<td><code>562cde7</code></td>
+</tr>
+<tr>
+<td><strong>TMX-087</strong></td>
+<td>The constitution submodule's index carried a
+<code>.gitmodules</code>-unmapped duplicate <code>design-toolkit</code>
+gitlink, aborting every consumer's recursive clone. Fixed
+constitution-side in <code>b9096ac</code>, ff-pushed to all six
+upstreams, pointer bumped <code>6f24df9</code> →
+<code>b9096ac</code>.</td>
+<td><code>562cde7</code> (pointer)</td>
+</tr>
+<tr>
+<td><strong>TMX-088</strong></td>
+<td>The zig (root-free) build path computed <code>YACC</code> from
+<code>command -v bison</code> — an ABSOLUTE path — breaking BOTH
+contracts it feeds: <code>configure</code>'s <code>AC_CHECK_PROG</code>
+(<code>"$as_dir$ac_word"</code> → <code>/usr/bin//usr/bin/bison</code>,
+aborts <code>yacc not found</code> on a host that HAS bison) AND
+<code>etc/ylwrap</code>'s output-filename contract (plain
+<code>bison</code> emits <code>cmd-parse.tab.c</code>, ylwrap still
+EXITS 0 — a SILENT failure leaving make with no parser source). Fixed to
+a bare <code>bison -y</code>. Same commit: the autogen refusal message
+was UNREACHABLE under <code>set -euo pipefail</code> — fixed with
+<code>|| true</code>.</td>
+<td><code>7966edb</code></td>
+</tr>
+<tr>
+<td><strong>TMX-089</strong></td>
+<td><code>562cde7</code> had adopted the untagged <code>next-3.8</code>
+(<code>40381bdc</code>), which has NO release tarball — so the root-free
+path had to build from the submodule, needing autotools + bison. Test 71
+<strong>C4</strong> MEASURED the withdrawal
+(<code>cmd-parse.c is not pre-generated and no yacc/bison found</code>),
+a §11.4.122 capability loss. Re-pinned to release TAG <code>3.7b</code>
+(<code>e802909</code>) on a SECOND explicit operator decision the same
+day.</td>
+<td><code>a6f3fc4</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>How the second wave was found (§11.4.238 — the intended
+direction):</strong> neither TMX-088 nor TMX-089 was operator-reported.
+TMX-088 came from an <strong>independent post-hoc code review</strong>
+of <code>562cde7</code>; TMX-089 came from a <strong>test measuring a
+capability withdrawal</strong>.</p>
+<p><strong>Process note (§11.4.142 / §11.4.113) — recorded because it is
+the causal reason TMX-088 shipped broken:</strong> <code>562cde7</code>
+swept an agent's IN-FLIGHT <code>scripts/build_native.sh</code> edit
+onto <code>main</code> before that edit had passed the mandatory
+independent review — <code>commit_all.sh</code> stages with
+<code>git add -A</code>, so unrelated in-flight work in the tree was
+carried along by a commit that was about something else. Remediated
+<strong>FIX-FORWARD</strong> in <code>7966edb</code> per §11.4.113: no
+history rewrite, no force-push at any point.</p>
+<p><strong>Current pin + artifact (verified, not inferred):</strong></p>
+<ul>
+<li>Submodule gitlink →
+<code>e802909de06012a4df6209d55e86487c56223163</code>;
+<code>git -C tmux describe --tags</code> → <code>3.7b</code>.</li>
+<li><code>3.7b</code> is an <strong>ancestor</strong> of
+<code>40381bdc</code> — a clean rewind, not a divergence.</li>
+<li>Release tarball sha256
+<code>87f2e99e3b685973f2ca002ffd6ed7e51a5744f7009daae5a15670b6d532db96</code>
+(measured, pinned in <code>scripts/build_native.sh</code>); ships
+pre-generated <code>configure</code> AND <code>cmd-parse.c</code>.</li>
+<li><strong>Rebuilt binary reports <code>tmux 3.7b</code></strong> (read
+from the binary itself).</li>
+<li><code>build_native.sh</code>'s tarball fast-path is restored but now
+DERIVES the version from the submodule's own <code>configure.ac</code>
+and REFUSES the download unless a sha256 is pinned for exactly that
+version — so a future re-pin to an untagged commit falls back to the
+submodule build rather than silently shipping a binary that does not
+match the pin.</li>
+<li>Governance files and every version gate swept <code>next-3.8</code>
+→ <code>3.7b</code>. <code>README.md</code> no longer claims "latest
+stable" — tag <code>3.7c</code> exists (measured).</li>
+</ul>
+<p><strong>KNOWN-OPEN RIGHT NOW — none of these is claimed fixed, and
+each blocks the tag or is tracked (§11.4.6 / §11.4.40):</strong></p>
+<ol type="1">
+<li><strong>Full-suite <code>run_all.sh</code> retest —
+<code>UNCONFIRMED:</code>.</strong> Has NOT completed. Outcome not
+known, not claimed. Owed before any tag (§11.4.40).</li>
+<li><strong>Full meta-test mutation sweep — NOT RUN this cycle.</strong>
+The individual mutations (<code>M-INSTALL-*</code>,
+<code>M-ZIG-YACC-BARE-WORD</code>) were verified; the whole-sweep result
+is not known and is not claimed.</li>
+<li><strong>Test 71 <strong>C4</strong> has NOT been re-run on the
+<code>3.7b</code> artifact.</strong> The root-free restoration is the
+STATED RATIONALE for the re-pin — it is <code>UNCONFIRMED:</code> as a
+RESULT until C4 is re-run on a neutered host and captured. This is the
+missing GREEN half of TMX-089's RED→GREEN pair.</li>
+<li><strong>Test 68 (<code>68_session_lifecycle.sh</code>) C6/C7
+FAIL</strong> — pre-existing; fails identically on the pre-change tree,
+so it is NOT caused by this cycle's work. Belongs to the already-tracked
+TMX-080 / TMX-081 family (<code>Issues.md</code> §H1/§H2). An
+investigation is IN FLIGHT; <strong>no outcome is recorded
+here.</strong></li>
+<li><strong><code>FAIL: T3: live WheelUpPane binding is not the copy-mode override</code></strong>
+(<code>17_scrollback_copy_mode.sh</code>) — a real, currently-failing,
+previously-unrecorded defect, now tracked as <strong>TMX-090</strong>
+(<code>Issues.md</code> §I1). Under investigation; <strong>the cause is
+NOT established and none is asserted.</strong> First concrete step:
+capture the test's own <code>observed:</code> line (the live binding
+text), which the entry records as <code>PENDING_FORENSICS:</code>.</li>
+<li><strong><code>.html</code> / <code>.pdf</code> document twins are
+STALE</strong> — <code>pandoc</code> / <code>weasyprint</code> are
+absent on this host; a remediation attempt is in flight. Honest stale
+per §11.4.106(E), never a faked transform.</li>
+</ol>
+<p><strong>Immediate next actions (in order):</strong></p>
+<ol type="1">
+<li>Re-run test 71 <strong>C4</strong> against the <code>3.7b</code>
+artifact and capture the output — closes TMX-089's owed GREEN (item
+3).</li>
+<li>Run the full <code>run_all.sh</code> sweep + the full meta-test
+mutation sweep, capture both (items 1–2).</li>
+<li>Capture the <code>observed:</code> binding text for TMX-090 and open
+the systematic-debugging arc (item 5).</li>
+<li>Backfill the <code>Fixed.md</code> §L placeholder closure SHAs (see
+§3.35's "Placeholder owed"). §M already carries real SHAs
+(<code>7966edb</code>, <code>a6f3fc4</code>).</li>
+<li>Only after 1–4: cut the tag (§11.4.40 full retest GREEN + §11.4.185
+manual QA remain preconditions).</li>
+</ol>
+<p>Full detail + captured evidence: <code>Fixed.md</code> §L (TMX-086,
+TMX-087) and §M (TMX-088, TMX-089); <code>CHANGELOG.md</code> v1.0.44;
+<code>Issues.md</code> §I1 (TMX-090).</p>
+<h3
+id="335--v1044-ssh-only-installability--credential-prompt--orphan-gitlink-tmx-086tmx-087--2026-09-01">§3.35
+— v1.0.44: SSH-only installability — credential prompt + orphan gitlink
+(TMX-086/TMX-087) → 2026-09-01</h3>
+<p><strong>Status:</strong> DONE (both fixes landed + verified; release
+documentation authored this commit). Full-suite retest
+<code>UNCONFIRMED:</code> — see below.</p>
+<p><strong>Trigger (verbatim operator report, 2026-09-01):</strong> "We
+cannot install / setup tmx (tmux) on the System! Running our bash script
+gets stuck asking for GitHub credentials, which MUST NOTEVER haoppen! We
+shall rely only on ssh key (git protocol)!" Investigated via
+<code>/superpowers:systematic-debugging</code> per §11.4.102. Universal
+§11.4.238 applies — the defect was found by the OPERATOR attempting a
+real install, not by any automated gate this project ships; test 90
+closes that coverage escape.</p>
+<p><strong>Root cause (TWO INDEPENDENT defects behind ONE symptom —
+either alone blocks the install, so fixing only one would have left the
+operator still broken; §11.4.194 exhaustive-review discipline is what
+surfaced the second):</strong></p>
+<ul>
+<li><strong>TMX-086 — the credential prompt.</strong>
+<code>scripts/install.sh</code> injected
+<code>-c url.https://github.com/.insteadOf=git@github.com:</code> BY
+DEFAULT. Git propagates <code>-c</code> flags to child processes via
+<code>GIT_CONFIG_PARAMETERS</code>, so the rewrite did NOT stay scoped
+to the top-level clone — it reached every RECURSIVE submodule clone. The
+constitution submodule nests
+<code>submodules/helix_perf_cache -&gt; git@github.com:HelixDevelopment/helix_perf_cache.git</code>,
+the ONLY repo of the nine in the tree that is not anonymously readable;
+rewritten to HTTPS it cannot be fetched without credentials, so GitHub
+asks for a <code>Username</code>, and with nothing setting
+<code>GIT_TERMINAL_PROMPT=0</code> git BLOCKED on that prompt
+indefinitely. Under <code>curl | bash</code> the prompt is unanswerable.
+Anonymous-HTTPS census (all git config bypassed, no credential helper on
+host): PUBLIC =
+<code>vasic-digital/{tmux,Containers,token_optimizer,session_orchestrator,continuum,anti_bluff,design-toolkit,docs_chain}</code>
++ <code>HelixDevelopment/HelixConstitution</code>; PRIVATE =
+<code>HelixDevelopment/helix_perf_cache</code> (the trigger).</li>
+<li><strong>TMX-087 — the orphan gitlink.</strong> The constitution
+submodule's index carried TWO gitlinks at the identical SHA
+<code>efd2c3fb2f880aaf2baf7f4819ce28a1ce3609cb</code>: a bare
+<code>design-toolkit</code> with NO <code>.gitmodules</code> mapping,
+and the correctly-mapped <code>submodules/design-toolkit</code>. Git
+refuses to recurse into an unmapped gitlink, so every consumer's
+recursive clone aborted with
+<code>fatal: No url found for submodule path 'constitution/design-toolkit' in .gitmodules</code>
+/
+<code>fatal: Failed to recurse into submodule path 'constitution'</code>.
+Introduced when the submodule was relocated under
+<code>submodules/</code> (constitution commit <code>e499ffb</code>)
+without removing the old index entry.</li>
+</ul>
+<p><strong>Fix:</strong></p>
+<ul>
+<li><strong>TMX-086</strong> (all in <code>scripts/install.sh</code>):
+<code>DEFAULT_REPO_URL</code> changed to
+<code>git@github.com:vasic-digital/tmux.git</code>; the
+<code>insteadOf</code> rewrite is OFF by default and now an explicit
+opt-in via <code>TMX_INSTALL_HTTPS_REWRITE=1</code> /
+<code>--https-rewrite</code>, with the legacy
+<code>TMX_INSTALL_NO_HTTPS_REWRITE=1</code> /
+<code>--no-https-rewrite</code> still honoured as an opt-OUT that WINS
+(§11.4.122 — the capability is preserved, only its default changed);
+exported <code>GIT_TERMINAL_PROMPT=0</code>,
+<code>GIT_ASKPASS=""</code>, <code>SSH_ASKPASS=""</code> so a missing
+credential fails fast instead of hanging; exported
+<code>GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20}"</code>
+so a first-contact github host key cannot hang either. Honest boundary
+(§11.4.6): <code>accept-new</code> still REFUSES a CHANGED key, an ssh
+key passphrase prompt is deliberately still allowed, and an operator-set
+<code>GIT_SSH_COMMAND</code> is never overridden.</li>
+<li><strong>TMX-087</strong>: constitution commit <code>b9096ac</code>
+removes ONLY the orphan gitlink — <code>.gitmodules</code> untouched,
+<code>submodules/design-toolkit</code> keeps the same pinned SHA, so no
+capability is dropped. Pushed fast-forward
+(<code>6f24df9..b9096ac</code>) to all SIX constitution upstreams
+(<code>github</code>, <code>gitlab</code>, <code>gitflic</code>,
+<code>gitverse</code>, <code>vasic_digital_github</code>,
+<code>vasic_digital_gitlab</code>), no force-push (§11.4.113). This
+repo's constitution pointer is bumped <code>6f24df9</code> →
+<code>b9096ac</code>.</li>
+</ul>
+<p><strong>Tests:</strong> new
+<code>scripts/tests/90_install_ssh_only_no_credential_prompt.sh</code>
+(§11.4.115 RED/GREEN, <code>RED_MODE</code> default <code>0</code> per
+the TMX-085 convention). Method: a recording <code>git</code> shim
+placed first on <code>PATH</code> captures the REAL argv and the
+INHERITED <code>GIT_TERMINAL_PROMPT</code>, so the assertions are
+RUNTIME evidence, not a grep of the installer source (§11.4.226).
+Sub-checks: <strong>A</strong> default clone URL uses the SSH form;
+<strong>B</strong> no <code>insteadOf</code> rewrite in the real git
+argv by default; <strong>C</strong> git inherited
+<code>GIT_TERMINAL_PROMPT=0</code>; <strong>D</strong>
+<code>TMX_INSTALL_HTTPS_REWRITE=1</code> still enables the rewrite
+(capability preserved). <code>RED_MODE=1</code> reconstructs a pre-fix
+copy of <code>install.sh</code> and asserts the rewrite IS injected —
+proving the test is not blind. Three paired mutations in
+<code>meta_test_false_positive_proof.sh</code>:
+<code>M-INSTALL-SSH-DEFAULT</code> (expect <code>FAIL: A</code>),
+<code>M-INSTALL-HTTPS-REWRITE-DEFAULT</code> (expect
+<code>FAIL: B</code>), <code>M-INSTALL-NO-PROMPT-GUARD</code> (expect
+<code>FAIL: C</code>).</p>
+<p><strong>Measured verification:</strong></p>
+<ul>
+<li>Controlled A/B (same repo, same host, same minute, ONE variable):
+SSH as declared → <code>exit=0</code>,
+<code>6adcfb2 refs/heads/main</code>; with the installer's rewrite →
+<code>exit=128</code>,
+<code>fatal: could not read Username for 'https://github.com'</code>.</li>
+<li>Test 90 GREEN (<code>RED_MODE=0</code>, default) →
+<code>PASS=4 FAIL=0 SKIP=0</code>, exit <code>0</code>. Test 90 RED
+(<code>RED_MODE=1</code>) → <code>PASS=1 FAIL=0 SKIP=0</code>, exit
+<code>0</code>, defect reproduced on the pre-fix artifact.</li>
+<li>Live clone observation: with the orphan gitlink removed,
+<code>Containers</code> and <code>constitution</code> checked out over
+SSH with NO credential prompt.</li>
+<li><strong><code>UNCONFIRMED:</code> full-suite <code>run_all.sh</code>
+retest</strong> — still in flight when this entry was authored; its
+outcome is not known here and is NOT claimed (§11.4.6 / §11.4.40 remains
+owed before the tag is cut).</li>
+</ul>
+<p><strong>Test-instrument bug found and fixed during authoring (§11.4.1
+FAIL-bluff / §11.4.201(7)(c)):</strong> test 90's first argv extractor
+keyed on <code>' clone'</code> WITH A LEADING SPACE, which matched ONLY
+when the defect was present (the pre-fix installer inserts
+<code>-c ...</code> before <code>clone</code>), producing a false FAIL
+on correct code. Fixed at the instrument layer to a word-boundary match
+and documented inline in the test.</p>
+<p><strong>Placeholder owed (§11.4.6):</strong> <code>Fixed.md</code> §L
+carries
+<code>(this commit — MUST be backfilled with the real SHA on landing)</code>
+for both items' tmux-side closure commit — the same
+never-backfilled-placeholder class already corrected for TMX-079 /
+TMX-082 / TMX-083. Backfill on landing.</p>
+<p>Full detail + captured evidence: <code>Fixed.md</code> §L (TMX-086,
+TMX-087); <code>CHANGELOG.md</code> v1.0.44.</p>
 <h3
 id="334--tmx-080tmx-081-deep-dive-investigation-no-fix-landed-documentation-only--2026-08-13">§3.34
 — TMX-080/TMX-081 deep-dive investigation (no fix landed;

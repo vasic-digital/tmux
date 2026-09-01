@@ -1,5 +1,181 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>research</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
 <h1
-id="deep-research-jemalloc-link-by-soname-fix-install.sh-exit-77">Deep
+id="deep-research--jemalloc-link-by-soname-fix-installsh-exit-77">Deep
 research — jemalloc link-by-SONAME fix (install.sh exit 77)</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
 2026-06-30T00:00:00Z <strong>Scope:</strong> §11.4.150 mandatory deep
@@ -19,67 +195,61 @@ containerized build failed → §11.4.101 native fallback ran
 symlink and no <code>.a</code>. <code>build_native.sh</code> injected
 bare <code>-ljemalloc</code> into the configure-time
 <code>LDFLAGS</code>, which the GNU linker cannot resolve without a
-<code>libjemalloc.so</code> symlink — poisoning even the trivial “can
-the compiler link?” probe.</p>
+<code>libjemalloc.so</code> symlink — poisoning even the trivial "can
+the compiler link?" probe.</p>
 <p>Captured proof
-(<code>qa-results/loop-20260630/jemalloc-link-soname/</code>): -
-<code>C1_bare_ljemalloc.log</code>:
-<code>/usr/bin/ld.bfd: cannot find -ljemalloc</code> (FAILS) -
-<code>C1_soname_link.log</code>: empty →
-<code>-l:libjemalloc.so.2</code> LINKS</p>
-<h2 id="angle-1-gnu-ld--lnamespec-authoritative">Angle 1 — GNU ld
+(<code>qa-results/loop-20260630/jemalloc-link-soname/</code>):</p>
+<ul>
+<li><code>C1_bare_ljemalloc.log</code>:
+<code>/usr/bin/ld.bfd: cannot find -ljemalloc</code> (FAILS)</li>
+<li><code>C1_soname_link.log</code>: empty →
+<code>-l:libjemalloc.so.2</code> LINKS</li>
+</ul>
+<h2 id="angle-1--gnu-ld--lnamespec-authoritative">Angle 1 — GNU ld
 <code>-l:namespec</code> (authoritative)</h2>
 <p>GNU Binutils <code>ld</code> manual, <em>Options</em>
 (<code>-l namespec</code> / <code>--library=namespec</code>):</p>
 <blockquote>
-<p>“If namespec is of the form <code>:filename</code>, ld will search
+<p>"If namespec is of the form <code>:filename</code>, ld will search
 the library path for a file called filename … which always specifies a
-file called filename.”</p>
+file called filename."</p>
 </blockquote>
 <p>⇒ <code>-l:libjemalloc.so.2</code> resolves the
 <strong>exact</strong> runtime SONAME file with no name-mangling and
 <strong>no dev symlink required</strong>. This is the correct, root-free
 resolution for a runtime-only host jemalloc, and aligns with the
-project’s §11.4.111 resolve-by-stable-name discipline (the resolved
+project's §11.4.111 resolve-by-stable-name discipline (the resolved
 <code>JEMALLOC_SO</code> SONAME basename is the stable identifier).</p>
 <p>Source: <a
-href="https://sourceware.org/binutils/docs/ld/Options.html"
-class="uri">https://sourceware.org/binutils/docs/ld/Options.html</a>
+href="https://sourceware.org/binutils/docs/ld/Options.html">https://sourceware.org/binutils/docs/ld/Options.html</a>
 (verified 2026-06-30).</p>
 <h2
-id="angle-2-zig-cc-does-not-support--l-authoritative-empirical">Angle 2
-— <code>zig cc</code> does NOT support <code>-l:</code> (authoritative +
-empirical)</h2>
+id="angle-2--zig-cc-does-not-support--l-authoritative--empirical">Angle
+2 — <code>zig cc</code> does NOT support <code>-l:</code> (authoritative
++ empirical)</h2>
 <p>Applying the same <code>-l:</code> form to the <strong>zig</strong>
 native-build path (the ROOT-FREE obtained-toolchain branch) BROKE it:
 configure died <code>C compiler cannot create executables</code> under
 the obtained zig toolchain.</p>
 <p>Authoritative confirmation — ziglang/zig issue #10851:
-“<code>zig cc</code> doesn’t handle <code>-l :$FILE</code>” → underlying
+"<code>zig cc</code> doesn't handle <code>-l :$FILE</code>" → underlying
 <code>ld.lld: error: cannot open :libfoo.so.1</code>. <code>-l:</code>
 is a GNU-ld extension <code>zig cc</code>/LLD does not accept.</p>
-<p>Source: <a href="https://github.com/ziglang/zig/issues/10851"
-class="uri">https://github.com/ziglang/zig/issues/10851</a> (verified
-2026-06-30).</p>
+<p>Source: <a
+href="https://github.com/ziglang/zig/issues/10851">https://github.com/ziglang/zig/issues/10851</a>
+(verified 2026-06-30).</p>
 <p>Empirical corroboration:
 <code>scripts/tests/71_root_free_zig_build.sh</code> PASSED (12/0/0) on
 the pre-fix tree (bare <code>-ljemalloc</code>), FAILED with
 <code>-l:</code> applied, and PASSED again (12/0/0) after the zig line
 was reverted to bare — isolated in a throwaway <code>git worktree</code>
-(§11.4.114). The zig path’s jemalloc is a LOCAL source-build whose
+(§11.4.114). The zig path's jemalloc is a LOCAL source-build whose
 <code>make install</code> ships a <code>libjemalloc.so</code> dev
 symlink, so bare <code>-ljemalloc</code> (+ <code>-L$PFX/lib</code>)
 resolves correctly there.</p>
-<h2 id="resolution-two-mechanism-11.4.111-honest-boundary">Resolution
+<h2 id="resolution-two-mechanism-114111-honest-boundary">Resolution
 (two-mechanism, §11.4.111 honest boundary)</h2>
 <table>
-<colgroup>
-<col style="width: 20%" />
-<col style="width: 20%" />
-<col style="width: 20%" />
-<col style="width: 20%" />
-<col style="width: 20%" />
-</colgroup>
 <thead>
 <tr>
 <th>Path</th>
@@ -114,10 +284,10 @@ resolves correctly there.</p>
 </tr>
 </tbody>
 </table>
-<h2 id="confirm-no-bigger-problem-11.4.150c">Confirm-no-bigger-problem
+<h2 id="confirm-no-bigger-problem-114150c">Confirm-no-bigger-problem
 (§11.4.150(C))</h2>
 <p>The fix is a pure <strong>link-token</strong> change. The produced
-binary’s DT_NEEDED is unchanged — <code>ldd tmux/build/bin/tmux</code>
+binary's DT_NEEDED is unchanged — <code>ldd tmux/build/bin/tmux</code>
 shows <code>libjemalloc.so.2 =&gt; /lib64/libjemalloc.so.2</code> (same
 SONAME recorded as before), and <code>tmux -V</code> =
 <code>tmux 3.6a</code>. No runtime behaviour change; only the
@@ -127,13 +297,14 @@ original failure was a missing dev symlink, not a broken jemalloc.</p>
 <ul>
 <li>GNU Binutils <code>ld</code> manual — Options
 (<code>-l:namespec</code>): <a
-href="https://sourceware.org/binutils/docs/ld/Options.html"
-class="uri">https://sourceware.org/binutils/docs/ld/Options.html</a></li>
+href="https://sourceware.org/binutils/docs/ld/Options.html">https://sourceware.org/binutils/docs/ld/Options.html</a></li>
 <li>ziglang/zig#10851 (<code>zig cc</code> no <code>-l:</code> support):
-<a href="https://github.com/ziglang/zig/issues/10851"
-class="uri">https://github.com/ziglang/zig/issues/10851</a></li>
+<a
+href="https://github.com/ziglang/zig/issues/10851">https://github.com/ziglang/zig/issues/10851</a></li>
 <li>Captured evidence:
 <code>qa-results/loop-20260630/jemalloc-link-soname/C1_*.log</code>,
 test 71 isolation (pre-fix PASS / <code>-l:</code> FAIL / reverted
 PASS).</li>
 </ul>
+</body>
+</html>

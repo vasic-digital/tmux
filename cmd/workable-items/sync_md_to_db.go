@@ -85,6 +85,31 @@ func SyncMDToDBOpts(db *DB, issuesPath, fixedPath string, opts SyncMDToDBOptions
 		}
 	}
 
+	// §11.4.54 id-reservation (second factor of the TMX-078/080/081/090
+	// forensic case): meta.next_atm_id was bumped ONLY past ids carried by
+	// SUCCESSFULLY PARSED items. An id literal sitting in a block the parser
+	// does not bind (e.g. the no-period `### G5 …` heading form) reserved
+	// NOTHING, so the allocator later re-issued that very number to an
+	// unrelated item — two different items answering to one id, in violation of
+	// §11.4.54's never-reuse rule. Reserve EVERY `**TMX-ID:**` literal present
+	// in the source, parsed or not, BEFORE any allocation runs.
+	for _, path := range []string{issuesPath, fixedPath} {
+		if path == "" {
+			continue
+		}
+		raw, rerr := os.ReadFile(path)
+		if rerr != nil {
+			continue // absent/unreadable file already handled above.
+		}
+		for _, ln := range strings.Split(string(raw), "\n") {
+			if m := atmIDLineRE.FindStringSubmatch(strings.TrimRight(ln, "\r")); m != nil {
+				if err := bumpNextATM(db, m[1]); err != nil {
+					return nil, fmt.Errorf("reserve %s: %w", m[1], err)
+				}
+			}
+		}
+	}
+
 	all := append([]*ParsedItem{}, issuesItems...)
 	all = append(all, fixedItems...)
 

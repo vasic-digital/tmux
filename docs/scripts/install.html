@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>install</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -91,6 +90,7 @@
       color: #606060;
     }
     code {
+      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -154,10 +154,13 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
-    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
     /* The extra [class] is a hack that increases specificity enough to
        override a similar rule in reveal.js */
@@ -168,7 +171,6 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
     /* CSS for syntax highlighting */
     html { -webkit-text-size-adjust: 100%; }
     pre > code.sourceCode { white-space: pre; position: relative; }
@@ -339,8 +341,8 @@ overrides (env OR flag — flag wins)</h3>
 <tr>
 <td><code>TMX_REPO_URL</code></td>
 <td><code>--repo URL</code></td>
-<td><code>https://github.com/vasic-digital/tmux.git</code></td>
-<td>clone source</td>
+<td><code>git@github.com:vasic-digital/tmux.git</code></td>
+<td>clone source (SSH / git protocol)</td>
 </tr>
 <tr>
 <td><code>TMX_INSTALL_BRANCH</code></td>
@@ -361,20 +363,46 @@ overrides (env OR flag — flag wins)</h3>
 <td>print the shell rc PATH would be wired into, then exit</td>
 </tr>
 <tr>
+<td><code>TMX_INSTALL_HTTPS_REWRITE=1</code></td>
+<td><code>--https-rewrite</code></td>
+<td>(off)</td>
+<td><strong>opt in</strong> to the <code>git@github:</code> →
+<code>https://github.com/</code> submodule URL rewrite (keyless aid; see
+the warning below)</td>
+</tr>
+<tr>
 <td><code>TMX_INSTALL_NO_HTTPS_REWRITE=1</code></td>
 <td><code>--no-https-rewrite</code></td>
 <td>(off)</td>
-<td>disable the <code>git@github:</code> →
-<code>https://github.com/</code> submodule URL rewrite</td>
+<td>legacy explicit opt-OUT; still honoured, and wins over the
+opt-in</td>
 </tr>
 </tbody>
 </table>
-<p>HTTPS is the default clone scheme precisely because a fresh end user
-may not have SSH keys configured. For the submodules — whose
-<code>.gitmodules</code> pin SSH URLs — the installer applies a
-<code>git@github.com:</code> → <code>https://github.com/</code>
-<code>insteadOf</code> rewrite by default so a keyless user can fetch
-<strong>public</strong> github submodules over HTTPS.</p>
+<p><strong>SSH (the git protocol) is the default clone scheme, and the
+submodule URL rewrite is OFF by default</strong> (changed in 1.0.44).
+The installer clones over the <code>git@github.com:</code> URLs exactly
+as <code>.gitmodules</code> pins them, so your SSH key authenticates
+every fetch.</p>
+<p>Why the previous HTTPS-by-default was removed (TMX-086): the rewrite
+converted the <strong>private</strong> nested submodule
+<code>constitution/submodules/helix_perf_cache</code>
+(<code>git@github.com:HelixDevelopment/helix_perf_cache.git</code>) into
+an <em>unauthenticated</em> HTTPS fetch. GitHub answers that by asking
+for a username, and because nothing set
+<code>GIT_TERMINAL_PROMPT=0</code> the installer BLOCKED on that prompt
+forever — with no way to answer it under <code>curl | bash</code>.
+Measured A/B on the same repo, same host, same minute: SSH
+<code>exit=0</code>; SSH+rewrite
+<code>exit=128 could not read Username</code>.</p>
+<p>The installer now also exports <code>GIT_TERMINAL_PROMPT=0</code>
+(plus empty <code>GIT_ASKPASS</code>/<code>SSH_ASKPASS</code>), so a
+missing credential can only ever produce a fast, readable error — never
+a silent hang. <code>GIT_SSH_COMMAND</code> defaults to
+<code>ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20</code>
+so a first-contact github host key does not block either; an ssh key
+<strong>passphrase</strong> prompt is deliberately still allowed, and
+your own <code>GIT_SSH_COMMAND</code> is never overridden.</p>
 <h2 id="edge-cases">Edge cases</h2>
 <ul>
 <li><strong>Install dir already is our checkout</strong> → the installer
@@ -396,17 +424,26 @@ does NOT grant access to a private submodule. The installer surfaces the
 submodule failure honestly (the <code>constitution/</code> presence
 check warns rather than faking green, §11.4.6); provide an SSH key or an
 HTTPS credential/token for the private repo.</li>
-<li><strong>SSH-keyed user needs a PRIVATE submodule</strong> → the
-default <code>git@github.com:</code> → <code>https://github.com/</code>
-rewrite (the keyless-clone aid) works <em>against</em> you here: it
-rewrites the submodule's SSH URL to an <strong>unauthenticated</strong>
-HTTPS URL, so the private clone fails even though your SSH key would
-have worked. Disable the rewrite so your key is used —
-<code>TMX_INSTALL_NO_HTTPS_REWRITE=1</code> (or
-<code>--no-https-rewrite</code>). Public-submodule keyless users must
-NOT set this. See <a
+<li><strong>SSH-keyed user needs a PRIVATE submodule</strong> → this is
+the default path since 1.0.44 and needs no flag: the pinned
+<code>git@github.com:</code> URLs are used as-is and your key
+authenticates. Do <strong>not</strong> set
+<code>TMX_INSTALL_HTTPS_REWRITE=1</code> — that rewrites the submodule's
+SSH URL to an <strong>unauthenticated</strong> HTTPS URL and the private
+fetch then fails (historically: hung on a credential prompt, TMX-086).
+See <a
 href="../guides/troubleshooting.md"><code>../guides/troubleshooting.md</code></a>
 §4.</li>
+<li><strong>Keyless user with no SSH key at all</strong> → set
+<code>TMX_INSTALL_HTTPS_REWRITE=1</code> <strong>and</strong> pass an
+HTTPS clone source, e.g.
+<code>--repo https://github.com/vasic-digital/tmux.git</code>. Honest
+boundary (§11.4.6): this reaches the public repos only. The private
+nested submodule <code>constitution/submodules/helix_perf_cache</code>
+still cannot be fetched without credentials, so the install will fail on
+it — with a fast, readable error rather than a hang. A keyless install
+of the full tree is not currently possible; an SSH key with access is
+required.</li>
 <li><strong>Build deps missing / verification RED</strong> →
 <code>setup.sh</code> exits non-zero and the installer surfaces it
 (never PATH-exports an unverified binary, §11.4).</li>

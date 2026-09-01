@@ -2,31 +2,178 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>08_recommendation</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="08--recommendation">§08 — Recommendation</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
 2026-05-22T07:20:02Z <strong>Authority:</strong> vasic-digital tmux
@@ -55,7 +202,7 @@ medium-ongoing.</p>
 <tr>
 <td><strong>Build complexity</strong></td>
 <td>LOW-MEDIUM</td>
-<td>tmux + libevent + jemalloc all build cleanly on bionic (Termux&#39;s own
+<td>tmux + libevent + jemalloc all build cleanly on bionic (Termux's own
 package proves it). Go cross-compile is well-trodden territory.
 <code>setup.sh</code> extension is ~50 LOC.</td>
 </tr>
@@ -89,9 +236,9 @@ CI rotation.</td>
 <tr>
 <td><strong>Operator demand</strong></td>
 <td>UNKNOWN</td>
-<td>This research was prompted by a &quot;could we&quot; question, not a count of
+<td>This research was prompted by a "could we" question, not a count of
 requests. <strong>Validation needed</strong>: ask operators whether
-they&#39;d actually use it.</td>
+they'd actually use it.</td>
 </tr>
 </tbody>
 </table>
@@ -114,22 +261,22 @@ Phantom killer).</li>
 per-script companion guides.</li>
 </ol>
 <p>What does NOT need work: the Go state daemon, the shell-init script,
-the SSH dispatcher, tmux itself, jemalloc preload, the project&#39;s
+the SSH dispatcher, tmux itself, jemalloc preload, the project's
 verify/test/Challenge infrastructure.</p>
-<p>The expensive part is <strong>maintenance</strong>: we&#39;d commit to
+<p>The expensive part is <strong>maintenance</strong>: we'd commit to
 running Termux tests on every release, keeping pace with Android API
 changes, and supporting end users on a less-predictable OS.</p>
 <h2 id="conditions-for-proceeding">Conditions for proceeding</h2>
-<p>The conditional &quot;yes&quot; depends on:</p>
+<p>The conditional "yes" depends on:</p>
 <ol type="1">
 <li><strong>v1.0.9 ships clean on Linux + macOS first.</strong> Adding a
 third platform mid-feature-development is §11.4.42-iteration-discipline
 violation territory.</li>
 <li><strong>Operator demand is validated.</strong> A 1-question
-Issues.md poll: &quot;Would you use <code>tmx</code> on your Android phone
-via Termux?&quot; If &lt;30% yes, defer the port until demand grows.</li>
+Issues.md poll: "Would you use <code>tmx</code> on your Android phone
+via Termux?" If &lt;30% yes, defer the port until demand grows.</li>
 <li><strong>At least one test device dedicated.</strong> Either a
-developer&#39;s spare phone or a 2-3 year old phone we keep plugged into the
+developer's spare phone or a 2-3 year old phone we keep plugged into the
 test bench. Termux on an emulator is insufficient for the §06
 WILL-DEGRADE items.</li>
 <li><strong>Tailscale or equivalent established for remote
@@ -215,22 +362,22 @@ parallelism per §11.4.58 + §11.4.70. PWUs T1-T3 are parallel; T4-T5 are
 parallel; T6-T7 are parallel; T8-T9 serial.</p>
 <h2 id="what-we-do-not-recommend">What we do NOT recommend</h2>
 <ul>
-<li><strong>A &quot;minimal viable port&quot; that skips lmkd / Doze
-handling.</strong> That is exactly the §11.4 &quot;tests green but feature
-broken for end user&quot; failure mode the covenant exists to prevent. If we
+<li><strong>A "minimal viable port" that skips lmkd / Doze
+handling.</strong> That is exactly the §11.4 "tests green but feature
+broken for end user" failure mode the covenant exists to prevent. If we
 port, we port with the operator-prep checklist + the
 <code>tmx doctor</code> probe + the SKIP-with-reason vocabulary for
-unavoidable Android killers. Otherwise we ship a feature that &quot;works on
-my screen-on dev phone&quot; and breaks for everyone else.</li>
-<li><strong>A Play Store distribution.</strong> Termux itself isn&#39;t on
+unavoidable Android killers. Otherwise we ship a feature that "works on
+my screen-on dev phone" and breaks for everyone else.</li>
+<li><strong>A Play Store distribution.</strong> Termux itself isn't on
 Play Store (frozen 2022). We have no business trying to ship a tmux
 wrapper there.</li>
 <li><strong>A rooted-cgroup-v2 default path.</strong> Document the
 rooted opt-in for power users, but the supported default is unrooted
 Termux with rlimit.</li>
 <li><strong>Cross-host state sync.</strong> v1.0.9 explicitly excludes
-this (spec §3 non-goal). Adding it to support &quot;my work session on phone
-matches my work session on laptop&quot; doubles the design surface. Stay
+this (spec §3 non-goal). Adding it to support "my work session on phone
+matches my work session on laptop" doubles the design surface. Stay
 focused.</li>
 </ul>
 <h2 id="open-questions-for-operator-approval">Open questions for
@@ -240,7 +387,7 @@ decisions that ultimately need operator sign-off:</p>
 <ol type="1">
 <li><strong>Go / no-go on the v1.1.x port itself.</strong> This document
 recommends conditional-yes with the five conditions above. Operator may
-say &quot;go ahead anyway&quot; or &quot;defer indefinitely.&quot;</li>
+say "go ahead anyway" or "defer indefinitely."</li>
 <li><strong>Default port 8022 vs alternate.</strong> 8022 is Termux
 convention; we recommend keeping it.</li>
 <li><strong>Wake-lock policy.</strong> Default to
@@ -259,11 +406,11 @@ operator chooses to advance.</p>
 Then a focused 3-week PWU lands Termux as a first-class third
 platform.</strong></p>
 <p>The technical risk is low. The maintenance commitment is real but
-bounded. The honest-gap citation is clean (we don&#39;t pretend Termux gives
+bounded. The honest-gap citation is clean (we don't pretend Termux gives
 us what cgroups give us, and we explicitly document the Android-killer
 caveats per §11.4.6).</p>
 <p>If at any point operator demand crystallises into a hard requirement
-(&quot;this MUST work on Termux&quot;), the work is well-understood and ready to
+("this MUST work on Termux"), the work is well-understood and ready to
 begin.</p>
 <hr />
 <h2 id="sources">Sources</h2>

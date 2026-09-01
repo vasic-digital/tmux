@@ -121,7 +121,14 @@ echo "=== CodeGraph MCP wiring per CLI agent (§11.4.78) ==="
 check_mcp "T1 Claude Code (project)"     "$REPO_ROOT/.mcp.json"                project "mcpServers.codegraph"
 
 # T2 — OpenCode: host-scoped (skip if absent)
-check_mcp "T2 OpenCode (host)"           "$HOME/.config/opencode/opencode.json" host    "mcp.codegraph"
+# OpenCode's host config is `opencode.jsonc` on current releases (it was
+# `opencode.json` historically). Probing only the legacy name made this SKIP
+# with "agent likely not installed" on a host where OpenCode IS installed --
+# a §11.4.201(11) presence-probe checking the wrong path rather than the real
+# artifact. Prefer whichever actually exists.
+OPENCODE_CFG="$HOME/.config/opencode/opencode.jsonc"
+[ -f "$OPENCODE_CFG" ] || OPENCODE_CFG="$HOME/.config/opencode/opencode.json"
+check_mcp "T2 OpenCode (host)"           "$OPENCODE_CFG"                       host    "mcp.codegraph"
 
 # T3 — Kimi CLI: host-scoped (skip if absent)
 check_mcp "T3 Kimi CLI (host)"           "$HOME/.kimi/mcp.json"                host    "mcpServers.codegraph"

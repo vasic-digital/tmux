@@ -64,6 +64,58 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
   `gitlab`, `gitflic`, `gitverse`, `vasic_digital_github`,
   `vasic_digital_gitlab`), no force-push (§11.4.113). This repo's
   constitution pointer is bumped `6f24df9` → `b9096ac`.
+- **The zig (root-free) build path could not produce a parser source —
+  TWO independent BLOCKING defects in one line, neither ever shipped
+  working (TMX-088).** Found by an independent post-hoc review of
+  commit `562cde7` (§11.4.142 — the batch reached `main` before that
+  review completed; see the process note below), fixed in `7966edb`.
+  `scripts/build_native.sh`'s zig branch computed `YACC` from
+  `command -v bison`, i.e. an ABSOLUTE path, and that single value
+  breaks BOTH contracts it is fed into: (1) `tmux/configure`'s
+  `AC_CHECK_PROG` does `set dummy $YACC; ac_word=$2` and then tests
+  `"$as_dir$ac_word"` — concatenating a `PATH` entry with a value that
+  ALREADY starts with `/`, so it probes `"/usr/bin//usr/bin/bison"`,
+  which never resolves, and configure aborts `yacc not found` ON A HOST
+  THAT HAS BISON (measured: `ac_word=/usr/bin/bison` → `found_yacc=no`;
+  `ac_word=bison` → `yes`; negative control with a bogus name → `no`);
+  (2) INDEPENDENTLY, plain `bison` without `-y` violates
+  `tmux/etc/ylwrap`'s contract — it emits `cmd-parse.tab.c` instead of
+  `cmd-parse.c` while ylwrap still EXITS 0, a SILENT failure leaving
+  `make` with no parser source (measured: `/usr/bin/bison` → `rc=0`,
+  `cmd-parse.c` MISSING; `bison -y` → `rc=0`, `cmd-parse.c` CREATED).
+  Fixed to a bare, ylwrap-correct word — `bison -y` (or `yacc`), never
+  an absolute path. Also fixed in the same commit: the autogen refusal
+  message was UNREACHABLE under `set -euo pipefail` (the failing
+  pipeline aborted the script before the message could print) —
+  corrected with `|| true` on the pipeline so the explicit
+  `✗ autogen.sh did not produce ./configure` diagnostic is what the
+  operator actually sees.
+- **The tmux pin was re-pinned a SECOND time the same day — from the
+  untagged `next-3.8` to release TAG `3.7b`, restoring the root-free
+  build path (TMX-089).** Landed in `a6f3fc4` on a second explicit
+  operator decision. `562cde7` had adopted `next-3.8` (`40381bdc`),
+  which is untagged `master` with NO release tarball — so the
+  root-free zig path had no pre-generated `configure`/`cmd-parse.c` to
+  fall back to and was forced to build from the submodule, requiring
+  autotools + bison on the host. Test 71 sub-check **C4** FAILED on its
+  deliberately-neutered bare host: `cmd-parse.c is not pre-generated
+  and no yacc/bison found`. That is a MEASURED withdrawal of a real,
+  previously-working capability, so §11.4.122 applies and the pin was
+  moved rather than the capability dropped. Tag `3.7b` (`e802909`) IS
+  an ancestor of `40381bdc` (verified — a clean rewind, not a
+  divergence); its release tarball exists with measured sha256
+  `87f2e99e3b685973f2ca002ffd6ed7e51a5744f7009daae5a15670b6d532db96`
+  and ships BOTH a pre-generated `configure` AND a pre-generated
+  `cmd-parse.c`, so the root-free property is restored AND the tarball
+  matches the submodule pin. The binary was rebuilt; `tmux -V` now
+  reports `tmux 3.7b` (verified). `build_native.sh`'s tarball
+  fast-path is restored but is now DERIVED from the submodule's own
+  `configure.ac` and REFUSED unless a sha256 is pinned for exactly that
+  version — so a future re-pin to an untagged commit falls back to the
+  submodule build instead of silently shipping a binary that does not
+  match the pin. Governance files and all version gates were swept
+  `next-3.8` → `3.7b`; `README.md` no longer claims "latest stable",
+  because tag `3.7c` exists (measured).
 
 ### Tests
 
@@ -92,11 +144,32 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
   false FAIL on correct code — a FAIL-bluff from the instrument, not
   the product. Fixed to a word-boundary match and documented inline in
   the test.
+- **Test 91 (new)** — `91_zig_yacc_contract.sh` (TMX-088): exercises
+  BOTH real contracts the `YACC` value is fed into, WITHOUT a full
+  build — **C1** replays `tmux/configure`'s `AC_CHECK_PROG` resolution
+  logic verbatim, **C2** runs the REAL `tmux/etc/ylwrap` and asserts it
+  emitted `cmd-parse.c` (catching the exit-0 silent failure that a bare
+  exit-status check cannot see). §11.4.115 RED/GREEN polarity,
+  `RED_MODE` default `0`. Attributability (§11.4.201(6)): the value
+  under test is DERIVED from `build_native.sh` itself rather than
+  recomputed inside the test — if the test computed `bison -y`
+  independently, mutating `build_native.sh` would not change what C1/C2
+  examine and the guards would pass on broken source. Honest
+  §11.4.3 SKIP when neither `bison` nor `yacc` is on `PATH`.
+- **Paired mutation (1, new)** in
+  `scripts/tests/meta_test_false_positive_proof.sh`:
+  `M-ZIG-YACC-BARE-WORD` — verified to make **C1 + C2** FAIL.
 
 ### Verification
 
-One operator symptom, TWO independent root causes — either alone is
-sufficient to block the install, so both had to land.
+One operator symptom, TWO independent root causes (TMX-086, TMX-087) —
+either alone is sufficient to block the install, so both had to land.
+Two further BLOCKING defects (TMX-088, TMX-089) were found AFTER that
+batch reached `main`, by independent post-hoc review and by a measured
+capability withdrawal respectively. Only what was actually measured is
+listed here; everything still owed is listed as a known-open gap below.
+
+**Measured:**
 
 - **Controlled A/B for TMX-086** (same repo, same host, same minute,
   one variable): SSH as declared → `exit=0`, `6adcfb2 refs/heads/main`;
@@ -109,11 +182,58 @@ sufficient to block the install, so both had to land.
 - **TMX-087 live clone observation:** with the orphan gitlink removed,
   a recursive clone checked out `Containers` and `constitution` over
   SSH with NO credential prompt.
-- **Full-suite retest:** `UNCONFIRMED:` — the §11.4.40 full
-  `run_all.sh` sweep for this release was still in flight when this
-  entry was authored; its outcome is not known here and is not
-  claimed. See `Fixed.md` §L (TMX-086, TMX-087) and `CONTINUATION.md`
-  §3.35 for the full detail + captured evidence.
+- **TMX-088 contract measurements** (both contracts exercised directly,
+  not inferred): `AC_CHECK_PROG` with `ac_word=/usr/bin/bison` →
+  `found_yacc=no`; with `ac_word=bison` → `yes`; negative control (a
+  bogus program name) → `no`. Real `etc/ylwrap` with `/usr/bin/bison`
+  → `rc=0` and `cmd-parse.c` MISSING; with `bison -y` → `rc=0` and
+  `cmd-parse.c` CREATED. Paired mutation `M-ZIG-YACC-BARE-WORD`
+  verified to make test 91's C1 + C2 FAIL.
+- **TMX-089 capability withdrawal + restoration:** under the
+  `next-3.8` pin, test 71 **C4** FAILED on its neutered bare host
+  (`cmd-parse.c is not pre-generated and no yacc/bison found`) —
+  the measured evidence that a working capability had been withdrawn.
+  Tag `3.7b` (`e802909`) verified to be an ancestor of `40381bdc` (a
+  clean rewind); its release tarball sha256 measured as
+  `87f2e99e...d532db96` and pinned. Binary rebuilt and re-checked:
+  `tmux -V` reports `tmux 3.7b`. Tag `3.7c` confirmed to exist, which
+  is why `README.md` no longer claims "latest stable".
+
+**Known-open at the time of writing — explicitly NOT claimed fixed
+(§11.4.6):**
+
+- **Full-suite `run_all.sh` retest: `UNCONFIRMED:`** — the §11.4.40
+  full sweep for this release has NOT completed; its outcome is not
+  known here and is not claimed. It remains owed before the tag is cut.
+- **The full meta-test mutation sweep has NOT been run** this cycle.
+  The individual mutations above were verified; the whole-sweep result
+  is not known and is not claimed.
+- **Test 71 C4 has NOT been re-run on the `3.7b` artifact.** The
+  root-free restoration is the STATED RATIONALE for the re-pin, not a
+  verified result — `UNCONFIRMED:` until C4 is re-run and captured.
+- **Test 68 (`68_session_lifecycle.sh`) C6/C7 FAIL** — pre-existing,
+  reproduced identically on the pre-change tree, belonging to the
+  already-tracked TMX-080 / TMX-081 family (`Issues.md` §H1/§H2). An
+  investigation is in flight; no outcome is recorded here.
+- **`FAIL: T3: live WheelUpPane binding is not the copy-mode
+  override`** (`17_scrollback_copy_mode.sh`) — a real, currently
+  failing check, newly tracked as **TMX-090** (`Issues.md` §I1). Under
+  investigation; the cause is NOT yet established and none is asserted.
+- **The `.html` / `.pdf` document twins are STALE** (`pandoc` /
+  `weasyprint` absent on this host); a remediation attempt is in
+  flight (§11.4.106(E) — an honest stale, never a faked transform).
+
+**Process note (§11.4.142 / §11.4.113):** commit `562cde7` swept an
+agent's in-flight `scripts/build_native.sh` edit onto `main` before it
+had passed the mandatory independent review — `commit_all.sh` stages
+with `git add -A`, so unrelated in-flight work in the tree was carried
+along. That is what put TMX-088 on `main` in a non-working state.
+Remediated FIX-FORWARD in `7966edb` per §11.4.113; no history was
+rewritten and no force-push was performed at any point.
+
+See `Fixed.md` §L (TMX-086, TMX-087) and §M (TMX-088, TMX-089), and
+`CONTINUATION.md` §3.36 (cycle state) / §3.35 (TMX-086/087 detail) for
+the full record + captured evidence.
 
 ---
 

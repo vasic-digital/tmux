@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc 3.10" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>Constitution</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -172,7 +171,6 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
 </head>
 <body>
@@ -188,7 +186,7 @@ Project Constitution</h1>
 <tbody>
 <tr>
 <td>Revision</td>
-<td>4</td>
+<td>5</td>
 </tr>
 <tr>
 <td>Created</td>
@@ -196,7 +194,7 @@ Project Constitution</h1>
 </tr>
 <tr>
 <td>Last modified</td>
-<td>2026-08-10</td>
+<td>2026-09-01</td>
 </tr>
 <tr>
 <td>Status</td>
@@ -209,9 +207,33 @@ Constitution, pinned <code>7f738df</code></td>
 </tr>
 <tr>
 <td>Status summary</td>
-<td>R4 (2026-08-10): §105/§106 updated — no CPU/task/lifetime cap by
-default (matching the already-correct "liquid" memory model); root-cause
-fix for sessions/processes being killed despite ample host capacity
+<td>R6 (2026-09-01): §107 rewritten AGAIN — the 2026-09-01
+<code>next-3.8</code> adoption was REVISED by the operator the same day
+and the <code>tmux/</code> submodule is now pinned to upstream RELEASE
+TAG <code>3.7b</code> (annotated; <code>3.7b^{}</code> = commit
+<code>e802909</code>). Reason recorded as captured fact, not opinion:
+the untagged <code>next-3.8</code> master commit has no upstream release
+tarball, so it withdrew the root-free zig build path — test 71 check C4
+FAILED — and tag <code>3.7b</code> HAS a tarball (ships pre-generated
+<code>configure</code> + <code>cmd-parse.c</code>), restoring that path
+AND making the built binary's version equal its pin
+(<code>tmux 3.7b</code>). The rewind
+<code>40381bdc</code>→<code>3.7b</code> is pure (<code>3.7b</code> IS an
+ancestor, 808 commits back); relative to <code>3.6a</code> it is still a
+531-commit forward move. Stated plainly per §11.4.6: <code>3.7b</code>
+is NOT the newest upstream tag (<code>3.7c</code> exists) — it is a
+deliberate known-good release pin. The full timeline is on the record,
+including BOTH silent drifts — 2026-05-13 <code>f4132aa</code> (reverted
+by <code>2836956</code>) and 2026-08-31 <code>1344dba</code>
+"Auto-commit" (regularised by the 2026-09-01 decision, still recorded as
+the §11.4.6 violation it was, and now also recorded as the drift that
+caused the measured C4 capability loss). Immutability preserved
+verbatim: never modified (the submodule tree carries zero tracked
+modifications — the <code>3.7b</code> version string is upstream's own),
+never advanced again without a new documented decision. R4 (2026-08-10):
+§105/§106 updated — no CPU/task/lifetime cap by default (matching the
+already-correct "liquid" memory model); root-cause fix for
+sessions/processes being killed despite ample host capacity
 (idle-recycler default-on kill + unconditional CPUQuota/TasksMax with no
 full opt-out). R3 (2026-05-21): full refactor to the HelixConstitution
 extends-template form. Universal clauses now inherited from the
@@ -488,13 +510,142 @@ design):</p>
 <code>TMX_MEM</code> (XNU gap, §105).</p>
 <h3 id="107--upstream-tmux-submodule-pinned--immutable">§107 — Upstream
 tmux submodule pinned + immutable</h3>
-<p><code>tmux/</code> references <code>tmux/tmux</code> at tag
-<code>3.6a</code> (commit <code>cc117b5</code>). It is a third-party
-upstream submodule: <strong>never modified</strong>, never advanced off
-the tag without an explicit, documented decision in
+<p><code>tmux/</code> references <code>tmux/tmux</code> at upstream
+release tag <strong><code>3.7b</code></strong> (annotated tag;
+<code>3.7b^{}</code> = commit
+<code>e802909de06012a4df6209d55e86487c56223163</code>,
+<code>git -C tmux describe --tags</code> → <code>3.7b</code>; upstream's
+own <code>configure.ac</code> carries
+<code>AC_INIT([tmux], 3.7b)</code>, so <code>tmux -V</code> prints
+<code>tmux 3.7b</code>). It is a third-party upstream submodule:
+<strong>never modified</strong> — the checkout carries ZERO tracked
+modifications (<code>git -C tmux status --porcelain</code> shows only
+untracked build outputs; <code>git diff HEAD -- configure.ac</code> is
+empty, i.e. the <code>3.7b</code> version string is UPSTREAM's content,
+not an edit of ours) — and never advanced off the pinned commit without
+an explicit, documented decision recorded in this section +
 <code>Fixed.md</code> + a governance-doc update in the same commit.
-Silent pin-drift is a §101 / universal §11.4.6 violation (forensic
-precedent: <code>Fixed.md</code> §3.8).</p>
+Silent pin-drift is a §101 / universal §11.4.6 violation.</p>
+<p><strong>Adoption decision — 2026-09-01 (operator, explicit), in TWO
+steps the same day. Both are recorded; the second REVISES the
+first.</strong></p>
+<p><em>Step 1 — adopt <code>next-3.8</code> (superseded).</em> The pin
+was advanced from tag <code>3.6a</code> (commit <code>cc117b5</code>) to
+commit <code>40381bdc</code>, an <strong>UNTAGGED upstream master
+commit</strong> whose <code>configure.ac</code> version string is
+<code>next-3.8</code> (<code>git describe --tags</code> →
+<code>3.7b-808-g40381bdc</code>). The operator was shown the drift and
+the available options and chose to adopt the newer tmux deliberately
+rather than revert. The move was a pure fast-forward (<code>3.6a</code>
+IS an ancestor of <code>40381bdc</code>) — nothing rewritten, dropped,
+or lost.</p>
+<p><em>Step 2 — REVISE to tag <code>3.7b</code> (current, binding).</em>
+Adopting the untagged master commit <strong>withdrew a real,
+previously-working capability and this was PROVEN, not
+suspected</strong>: the root-free zig build path
+(<code>scripts/tests/71_root_free_zig_build.sh</code>) needs an upstream
+<strong>release tarball</strong>, because the tarball ships the
+pre-generated <code>configure</code> and <code>cmd-parse.c</code> that a
+bare git checkout does not contain and that cannot be regenerated
+without autotools/bison on a bare host. <code>next-3.8</code> is a
+development-line commit with <strong>no release tarball</strong>, so
+check <strong>C4</strong> of test 71 <strong>FAILED</strong> — captured
+evidence, a genuine §11.4.115-class defect-present observation on the
+adopted artifact, not a prediction. The operator therefore revised the
+decision the SAME day and re-pinned to upstream release tag
+<strong><code>3.7b</code></strong>.</p>
+<p>The honest facts of the CURRENT pin, per §11.4.6 — each measured,
+none assumed:</p>
+<ul>
+<li><strong><code>3.7b</code> is a real upstream RELEASE tag</strong>,
+not a master commit. A published release tarball exists —
+<code>tmux-3.7b.tar.gz</code>, sha256
+<code>87f2e99e3b685973f2ca002ffd6ed7e51a5744f7009daae5a15670b6d532db96</code>
+(its download URL was independently re-confirmed reachable, HTTP 200, at
+revision time) — and it ships <code>configure</code> +
+<code>cmd-parse.c</code>. That is precisely the property
+<code>next-3.8</code> lacked, so the root-free build path is RESTORED by
+this pin, not merely asserted to be.</li>
+<li><strong>The built artifact now MATCHES the pin.</strong> Upstream
+<code>3.7b</code>'s own <code>configure.ac</code> declares
+<code>3.7b</code>, so the binary reports <code>tmux 3.7b</code> — the
+version string, the tag, and the recorded commit all name the same
+thing. Under the <code>next-3.8</code> pin they did not: the
+tag-describe said <code>3.7b-808-g40381bdc</code> while the binary said
+<code>next-3.8</code>.</li>
+<li><strong>The move from the step-1 pin is a pure REWIND, not a
+divergence.</strong> <code>3.7b</code> IS an ancestor of
+<code>40381bdc</code> (<code>git merge-base --is-ancestor</code> exits
+0; <code>git rev-list --count 3.7b..40381bdc</code> → <code>808</code>).
+No upstream history was rewritten and nothing was lost — the project
+simply stops 808 commits earlier, on the last tagged release boundary
+before them.</li>
+<li><strong>Relative to the ORIGINAL <code>3.6a</code> pin this is still
+a forward move</strong>: <code>3.6a</code> (<code>cc117b5</code>) IS an
+ancestor of <code>3.7b</code>, <code>531</code> commits back
+(<code>git rev-list --count 3.6a..3.7b</code> → <code>531</code>).</li>
+<li><strong><code>3.7b</code> is NOT the newest tag upstream
+carries</strong> — <code>3.7c</code> exists
+(<code>git -C tmux tag --list | sort -V | tail</code>). Stating this
+plainly is required by §11.4.6: <code>3.7b</code> is a deliberate
+known-good release pin, and it MUST NOT be described as "the latest
+upstream tag". Moving to <code>3.7c</code> or beyond needs a new
+documented decision under this section.</li>
+<li><strong>What the project GAINS back over the step-1 pin</strong>: an
+upstream release tarball, upstream release notes, a build that is
+genuinely from a known-good upstream <em>tag</em>, a root-free build
+path that works, and a binary whose reported version equals its pin.
+<strong>What it gives up</strong>: the 808 post-<code>3.7b</code>
+upstream commits — accepted deliberately, since the capability they cost
+was load-bearing and the defect was captured, not hypothesised.</li>
+</ul>
+<p><strong>Forensic history — recorded, never erased (§11.4.6).</strong>
+This pin has drifted SILENTLY twice. Both drifts remain on the
+record:</p>
+<ol type="1">
+<li><strong>2026-05-13</strong> — parent commit <code>f4132aa</code>
+(message: <code>Auto-commit</code>) advanced the submodule from
+<code>cc117b5</code> to <code>3f651d9f</code> (329 commits past the tag)
+with no documented decision. Classified a CRITICAL §1 / universal
+§11.4.6 bluff and <strong>REVERTED</strong> to <code>cc117b5</code> by
+commit <code>2836956</code> (2026-05-13). Audit trail:
+<code>CONTINUATION.md</code> §3.8, <code>Fixed.md</code> §3.8 / A2.</li>
+<li><strong>2026-08-31</strong> — parent commit <code>1344dba</code>,
+whose ENTIRE commit message is the two words <code>Auto-commit</code>,
+advanced the submodule from <code>cc117b5</code> to
+<code>40381bdc</code> (and moved <code>Containers</code> and
+<code>constitution</code> pointers in the same commit). <strong>No
+documented decision authorising it existed anywhere in this
+repository</strong> at the time it landed, or afterwards, until the
+2026-09-01 decision above.</li>
+</ol>
+<p>The 2026-09-01 operator decision <strong>regularises the outcome of
+drift 2 — it does NOT retroactively legitimise the way it
+arrived.</strong> The pin change was silent, undocumented, and carried
+by an opaque <code>Auto-commit</code> message: a §101 / universal
+§11.4.6 violation that was caught AFTER the fact rather than prevented,
+and it is recorded here as such. What changed on 2026-09-01 is the pin's
+authorisation, not its history. Note the drift was NOT harmless: it is
+the drift that carried the project onto the untagged master commit whose
+captured test-71 C4 failure forced the same-day revision above — the
+cost of the silent drift was a real, measured capability loss,
+discovered by a test rather than by the commit that caused it.</p>
+<p><strong>The full pin timeline, for the record:</strong> pinned
+<code>3.6a</code> → silently drifted to <code>3f651d9f</code>
+(2026-05-13, reverted) → silently drifted to <code>40381bdc</code>
+(2026-08-31, <code>Auto-commit</code>) → <code>next-3.8</code> adopted
+by explicit operator decision (2026-09-01, step 1) → <strong>re-pinned
+to release tag <code>3.7b</code> by the operator's same-day revision
+(2026-09-01, step 2 — current)</strong>.</p>
+<p><strong>The immutability discipline is UNCHANGED and still
+binding.</strong> The <code>tmux/</code> submodule is still never
+modified, and the current pin — tag <code>3.7b</code>
+(<code>e802909</code>) — is still never advanced again, to
+<code>3.7c</code>, to a newer master commit, or anywhere else, without a
+NEW explicit, documented operator decision recorded in this section +
+<code>Fixed.md</code> in the same commit. Neither adopting an untagged
+commit once, nor revising that adoption the same day, licences any
+future silent drift.</p>
 <h3 id="108--native-dual-os-build-discipline">§108 — Native dual-OS
 build discipline</h3>
 <p>The hardened tmux binary is built natively per OS — Linux ELF and
@@ -522,8 +673,11 @@ justification.</p>
 <pre><code>Containers     git@github.com:vasic-digital/Containers.git   (cgroup orchestration helpers)
 constitution   git@github.com:HelixDevelopment/HelixConstitution.git   (governance; pinned 7f738df)</code></pre>
 <p><code>tmux/</code> is a <strong>third-party upstream</strong>
-submodule (<code>tmux/tmux</code> tag <code>3.6a</code>) — excluded from
-the owned set; immutable per §107.</p>
+submodule (<code>tmux/tmux</code> pinned at upstream release tag
+<code>3.7b</code> = commit <code>e802909</code>, adopted by explicit
+operator decision 2026-09-01 — the same-day revision of that day's
+earlier untagged-master pin, §107) — excluded from the owned set;
+immutable per §107.</p>
 <hr />
 <h2 id="project-specific-remotes">Project-specific remotes</h2>
 <table>

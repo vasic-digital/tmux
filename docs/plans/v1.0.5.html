@@ -2,31 +2,178 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>v1.0.5</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="working-plan--v105-cycle-2026-05-21">Working Plan — v1.0.5 cycle
 (2026-05-21)</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
@@ -40,10 +187,10 @@ sibling test exercises what XNU CAN enforce.</p>
 <h2 id="1-triggering-directive-verbatim-2026-05-21">§1 Triggering
 directive (verbatim, 2026-05-21)</h2>
 <blockquote>
-<p>&quot;Any Linux-only blocker / issue we have MUST BE created macOS and
+<p>"Any Linux-only blocker / issue we have MUST BE created macOS and
 other supported platforms equivalent! So, depending on platform proper
 implementation will be used for particular OS! EVERYTHING MUST BE
-PROPERLY EXTENDED AND UPDATED!&quot;</p>
+PROPERLY EXTENDED AND UPDATED!"</p>
 </blockquote>
 <h2 id="2-platform-equivalence-matrix">§2 Platform-equivalence
 matrix</h2>
@@ -121,16 +268,16 @@ strip <code>ulimit -u</code> from rlimit wrapper → test 15 T3 FAILs
 <h3 id="phase-1--test-09-darwin-branch">Phase 1 — Test 09 Darwin
 branch</h3>
 <ul>
-<li>Add <code>case &quot;$(uname -s)&quot; in Darwin) … esac</code> block that:
+<li>Add <code>case "$(uname -s)" in Darwin) … esac</code> block that:
 <ul>
 <li>Spawns 2 sessions via <code>tmx new -s isol1 -d</code> +
 <code>tmx new -s isol2 -d</code></li>
 <li>Reads back <code>ulimit -t</code> (CPU) + <code>ulimit -u</code>
 (NPROC) inside each session via
 <code>send-keys</code>/<code>capture-pane</code></li>
-<li>Asserts both values match the wrapper&#39;s defaults (86400s, 2666 procs
+<li>Asserts both values match the wrapper's defaults (86400s, 2666 procs
 derived from host)</li>
-<li>SIGKILL session-1&#39;s tmux server directly; verify session-2&#39;s server
+<li>SIGKILL session-1's tmux server directly; verify session-2's server
 survives with original PID</li>
 <li>Captured evidence: ulimit readback per session + ps before/after
 kill</li>
@@ -149,22 +296,24 @@ branch</h3>
 branch</h3>
 <ul>
 <li>3 sessions A/B/C via <code>tmx new</code></li>
-<li>Capture each server&#39;s PID (tmx-LABEL socket)</li>
+<li>Capture each server's PID (tmx-LABEL socket)</li>
 <li>Direct kill server A (SIGKILL)</li>
 <li>Assert B + C servers still running with ORIGINAL PIDs</li>
 <li>Assert tmx ls no longer shows A</li>
 </ul>
-<h3 id="phase-4--new-test-24-darwin-cpu-cap-enforcement-macos-only">Phase 4
+<h3
+id="phase-4--new-test-24-darwin-cpu-cap-enforcement-macos-only">Phase 4
 — NEW Test 24 (Darwin CPU-cap enforcement, macOS-only)</h3>
 <ul>
 <li>Spawn a session with <code>TMX_CPU_HARD_SEC=5</code></li>
 <li>Inside the session, run a CPU-bound loop</li>
-<li>Assert process is SIGXCPU&#39;d ≤ 7 seconds (5s soft + epsilon)</li>
+<li>Assert process is SIGXCPU'd ≤ 7 seconds (5s soft + epsilon)</li>
 <li>Captured evidence: process exit signal + wall-clock duration</li>
 <li>§11.4.3 dispatch: SKIPs on Linux (test 12 covers Linux memory
 pressure; Linux CPU cap is via cgroup)</li>
 </ul>
-<h3 id="phase-5--retire-m7-m10-add-m20--m21-darwin-rlimit-mutations">Phase 5
+<h3
+id="phase-5--retire-m7-m10-add-m20--m21-darwin-rlimit-mutations">Phase 5
 — Retire M7-M10; add M20 + M21 Darwin rlimit mutations</h3>
 <ul>
 <li>M7-M10 explicitly retired with comment block citing native-dual-OS
@@ -198,11 +347,11 @@ commit + push</h3>
 <h2 id="4-anti-bluff-invariants-verbatim-user-mandate-2026-05-21">§4
 Anti-bluff invariants (verbatim user mandate, 2026-05-21)</h2>
 <blockquote>
-<p>&quot;all existing tests and Challenges do work in anti-bluff manner —
+<p>"all existing tests and Challenges do work in anti-bluff manner —
 they MUST confirm that all tested codebase really works as expected! We
 had been in position that all tests do execute with success and all
 Challenges as well, but in reality the most of the features does not
-work and can&#39;t be used!&quot;</p>
+work and can't be used!"</p>
 </blockquote>
 <p>Every Darwin branch added in this cycle MUST:</p>
 <ol type="1">
@@ -210,7 +359,7 @@ work and can&#39;t be used!&quot;</p>
 existence.</li>
 <li>Use the operator path (<code>tmx new -s NAME -d</code>) per
 §102.</li>
-<li>SKIP-with-reason where macOS genuinely can&#39;t (kernel gap), citing
+<li>SKIP-with-reason where macOS genuinely can't (kernel gap), citing
 the exact rlimit + reproducer per §11.4.6 no-guessing.</li>
 <li>Have a paired §103 layer-4 mutation in the meta-test.</li>
 </ol>
@@ -218,7 +367,7 @@ the exact rlimit + reproducer per §11.4.6 no-guessing.</li>
 for future cycles)</h2>
 <ul>
 <li>Linux remote-host runner — to actually exercise the Linux branches
-of tests 09/13/14 from a Darwin dev host, we&#39;d need a Linux test target.
+of tests 09/13/14 from a Darwin dev host, we'd need a Linux test target.
 This cycle ensures both branches are CODED correctly; Linux-side
 validation lands when a Linux CI host is provisioned.</li>
 <li>macOS launchd job-based hard memory cap (would need root) — out of

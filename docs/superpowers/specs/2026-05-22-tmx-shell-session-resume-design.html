@@ -2,96 +2,244 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>2026-05-22-tmx-shell-session-resume-design</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-color: #aaaaaa;
-}
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
-div.sourceCode
-{ background-color: #f8f8f8; }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ef2929; } 
-code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.at { color: #204a87; } 
-code span.bn { color: #0000cf; } 
-code span.cf { color: #204a87; font-weight: bold; } 
-code span.ch { color: #4e9a06; } 
-code span.cn { color: #8f5902; } 
-code span.co { color: #8f5902; font-style: italic; } 
-code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.dt { color: #204a87; } 
-code span.dv { color: #0000cf; } 
-code span.er { color: #a40000; font-weight: bold; } 
-code span.ex { } 
-code span.fl { color: #0000cf; } 
-code span.fu { color: #204a87; font-weight: bold; } 
-code span.im { } 
-code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.kw { color: #204a87; font-weight: bold; } 
-code span.op { color: #ce5c00; font-weight: bold; } 
-code span.ot { color: #8f5902; } 
-code span.pp { color: #8f5902; font-style: italic; } 
-code span.sc { color: #ce5c00; font-weight: bold; } 
-code span.ss { color: #4e9a06; } 
-code span.st { color: #4e9a06; } 
-code span.va { color: #000000; } 
-code span.vs { color: #4e9a06; } 
-code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
-<h1 id="tmx-shell-session-resume--ssh-dispatch--go-state-daemon--design-spec">tmx
+<h1
+id="tmx-shell-session-resume--ssh-dispatch--go-state-daemon--design-spec">tmx
 Shell-Session Resume + SSH Dispatch + Go State Daemon — Design Spec</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
 2026-05-22T06:14:03Z <strong>Authority:</strong> vasic-digital tmux
@@ -107,7 +255,7 @@ anti-bluff test + Challenge coverage on macOS + nezha-Linux</p>
 interactive login for a session name, defaulting to
 <code>default</code>. The snippet has four issues:</p>
 <ol type="1">
-<li>The snippet is <strong>duplicated</strong> in every operator&#39;s rc
+<li>The snippet is <strong>duplicated</strong> in every operator's rc
 file — drift is invisible.</li>
 <li>The <code>read -r</code> call <strong>blocks</strong>
 non-interactive shells (scp, rsync, IDEs) — breaks them.</li>
@@ -242,7 +390,8 @@ dispatch:
    └── anything else  → stderr &quot;this key accepts only a session name; use your normal key for shell commands&quot; + exit 1</code></pre>
 <h3 id="53-state-file-schema-tmxstatejson-mode-0600">5.3 State file
 schema (<code>~/.tmx/state.json</code>, mode 0600)</h3>
-<div class="sourceCode" id="cb3"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;schema_version&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;sessions&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;work&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
@@ -380,7 +529,7 @@ runtime (new <code>scripts/tests/</code>)</h3>
 <ul>
 <li><code>18_state_persistence.sh</code> — create <code>pwd-test</code>,
 cd /tmp, detach, kill server, recreate →
-<code>tmux display-message -p &#39;#{pane_current_path}&#39;</code> MUST equal
+<code>tmux display-message -p '#{pane_current_path}'</code> MUST equal
 <code>/tmp</code>. <strong>Positive evidence</strong>: captured
 pane-current-path string, not just exit code.</li>
 <li><code>19_default_skip.sh</code> — <code>default</code> input, no
@@ -394,7 +543,7 @@ AND no tmux started.</li>
 <li><code>22_ssh_dispatch_local.sh</code> —
 <code>SSH_ORIGINAL_COMMAND=work tmx-ssh-dispatch.sh</code>.
 <strong>Positive evidence</strong>:
-<code>tmux ls | grep -x &#39;work: .*&#39;</code>.</li>
+<code>tmux ls | grep -x 'work: .*'</code>.</li>
 <li><code>23_ssh_dispatch_remote_nezha.sh</code> — real SSH into
 nezha.local. SKIPs per §11.4.3 if unreachable; otherwise asserts session
 created AND cwd restored.</li>
@@ -407,7 +556,7 @@ post-condition file parses as JSON AND all 10 keys present.</li>
 <code>;</code>, <code> </code>, <code>/</code>, <code>..</code> all
 rejected.</li>
 <li><code>27_dispatcher_rejects_multiword.sh</code> —
-<code>SSH_ORIGINAL_COMMAND=&quot;echo hi&quot;</code>; non-zero exit AND no
+<code>SSH_ORIGINAL_COMMAND="echo hi"</code>; non-zero exit AND no
 tmux.</li>
 <li><code>28_nested_tmux_skip.sh</code> — <code>TMUX=fake</code> envvar;
 assert skip.</li>
@@ -418,7 +567,8 @@ tmx still works.</li>
 <li><code>31_macos_linux_parity.sh</code> — §11.4.81 case-on-uname; each
 branch positive evidence per §11.4.5.</li>
 </ul>
-<h3 id="layer-4--paired-11-meta-test-mutations-meta_test_false_positive_proofsh">Layer
+<h3
+id="layer-4--paired-11-meta-test-mutations-meta_test_false_positive_proofsh">Layer
 4 — paired §1.1 meta-test mutations
 (<code>meta_test_false_positive_proof.sh</code>)</h3>
 <ul>
@@ -511,8 +661,8 @@ identical evidence-hash required.</p>
 <code>.pdf</code> siblings via <code>scripts/export_docs.sh</code>
 (§11.4.65) and carry the §11.4.44 revision header.</p>
 <h2 id="9-constitution-check">9. Constitution check</h2>
-<p>The user&#39;s mandate (&quot;tests MUST guarantee... full usability by end
-users&quot;) is verbatim §11.4 / §107. Already mirrored across:</p>
+<p>The user's mandate ("tests MUST guarantee... full usability by end
+users") is verbatim §11.4 / §107. Already mirrored across:</p>
 <ul>
 <li>HelixConstitution submodule: <code>Constitution.md</code> §11.4,
 <code>CLAUDE.md</code>, <code>AGENTS.md</code></li>
@@ -538,9 +688,9 @@ GREEN with captured evidence.</li>
 <li>Bump <code>VERSION</code> to <code>version=1.0.9</code> /
 <code>versionCode=10</code>.</li>
 <li><code>CHANGELOG.md</code> v1.0.9 entry.</li>
-<li><code>bash commit_all.sh &quot;v1.0.9 — tmx shell-session resume + ssh dispatch + Go state daemon&quot;</code>
+<li><code>bash commit_all.sh "v1.0.9 — tmx shell-session resume + ssh dispatch + Go state daemon"</code>
 (pushes to github + gitlab).</li>
-<li>Tag <code>v1.0.9</code>, push tag via commit_all.sh&#39;s tag path.</li>
+<li>Tag <code>v1.0.9</code>, push tag via commit_all.sh's tag path.</li>
 <li>Verify both remotes via <code>gh release view v1.0.9</code> +
 <code>glab release view v1.0.9</code>.</li>
 </ol>
@@ -645,7 +795,7 @@ were updated in lockstep:
 </ul></li>
 <li><strong>Test 27 Phase 3 uses <code>tmux run-shell</code>
 directly</strong> (not session-closed hook firing) to prove the hook
-command&#39;s run-shell action works end-to-end. Reason: detached-session
+command's run-shell action works end-to-end. Reason: detached-session
 test has no attached client so <code>client-detached</code> cannot fire;
 <code>session-closed</code> fires after pane destruction making
 <code>#{pane_current_path}</code> empty. The hook COMMAND is the
@@ -656,7 +806,7 @@ covered by HelixQA Challenge <code>TMUX-CH-25</code>. Documented in test
 <li><strong>macOS path resolution</strong> — tests comparing
 <code>pane_current_path</code> against <code>/tmp/...</code> allow both
 the literal and the <code>pwd -P</code> resolved form
-(<code>/private/tmp/...</code>) per §11.4.81 (XNU&#39;s <code>/tmp</code>
+(<code>/private/tmp/...</code>) per §11.4.81 (XNU's <code>/tmp</code>
 symlink behaviour).</li>
 <li><strong>41_docs_user_guides_render.sh</strong> added to P8
 deliverables to satisfy <code>TMUX-CH-28</code> Challenge.</li>

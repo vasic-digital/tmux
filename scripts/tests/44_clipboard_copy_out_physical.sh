@@ -32,6 +32,8 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# §11.4.201 version-stable single-key binding readback (TMX-090)
+. "$REPO_ROOT/scripts/tests/lib/list_key.sh"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 HOST_OS="$(uname -s)"
 case "$HOST_OS" in
@@ -143,7 +145,7 @@ _pass "T2.0: operator-path session created (positive evidence: 'tmux -L $S_SOCK 
 
 # ── T2: live binding readback — the `y` key in copy-mode-vi must
 #       resolve to copy-pipe-and-cancel referencing @clip.
-Y_BIND="$("$TMUX_BIN" -L "$S_SOCK" list-keys -T copy-mode-vi y 2>/dev/null || true)"
+Y_BIND="$(tmx_list_key "$TMUX_BIN" "$S_SOCK" copy-mode-vi y)"
 if printf '%s' "$Y_BIND" | grep -q 'copy-pipe-and-cancel' \
     && printf '%s' "$Y_BIND" | grep -q '@clip'; then
     _pass "T2.1: live copy-mode-vi y binding routes selection through @clip (operator key path active)"
@@ -152,7 +154,7 @@ else
     echo "  observed: $Y_BIND"
 fi
 
-MD_BIND="$("$TMUX_BIN" -L "$S_SOCK" list-keys -T copy-mode-vi MouseDragEnd1Pane 2>/dev/null || true)"
+MD_BIND="$(tmx_list_key "$TMUX_BIN" "$S_SOCK" copy-mode-vi MouseDragEnd1Pane)"
 if printf '%s' "$MD_BIND" | grep -q 'copy-pipe-and-cancel' \
     && printf '%s' "$MD_BIND" | grep -q '@clip'; then
     _pass "T2.2: live MouseDragEnd1Pane routes selection through @clip (operator mouse path active)"

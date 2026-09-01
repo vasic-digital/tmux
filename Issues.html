@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc 3.10" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>Issues</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -172,7 +171,6 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
 </head>
 <body>
@@ -809,5 +807,72 @@ oh-my-bash cache, or an artificially-injected slow prompt hook) before
 any fix can be validated per the project's own TDD-RED-first discipline
 (§11.4.43/§11.4.115) — forcing a fix without a live failing case to
 prove it against would itself be a bluff.</p>
+<hr />
+<h2 id="i-live-copy-mode-wheel-binding-2026-09-01">I. Live copy-mode
+wheel binding (2026-09-01)</h2>
+<p>Surfaced during the v1.0.44 verification work. Tracked here because
+it is a real, currently-failing check that was not previously recorded
+anywhere — leaving it only in a test log would be a §11.4.238 coverage
+escape at the tracking layer.</p>
+<h3
+id="i1-wheel-copy-mode-override-001--test-17-sub-check-t3-the-live-wheeluppane-binding-is-not-the-copy-mode-override">I1
+WHEEL-COPY-MODE-OVERRIDE-001 — test 17 sub-check T3: the LIVE
+<code>WheelUpPane</code> binding is not the copy-mode override</h3>
+<p><strong>TMX-ID:</strong> TMX-090 <strong>Type:</strong> Bug
+<strong>Status:</strong> In progress</p>
+<p><strong>What:</strong>
+<code>scripts/tests/17_scrollback_copy_mode.sh</code> sub-check
+<strong>T3</strong> reads the binding actually installed on the LIVE
+tmux server —</p>
+<pre><code>tmux -L &quot;$S_SOCK&quot; list-keys -T root WheelUpPane</code></pre>
+<p>— and requires the returned binding text to mention BOTH
+<code>copy-mode</code> and <code>scroll-up</code>. The project's
+<code>tmux.conf.template</code> deliberately OVERRIDES tmux's default
+<code>WheelUpPane</code> binding: the tmux default consults
+<code>#{mouse_any_flag}</code> and FORWARDS the wheel event to the
+running application, whereas the override enters copy-mode
+unconditionally so scrollback works even under mouse-tracking. T3 exists
+to prove the override is live on the server, not merely present in the
+config file.</p>
+<p><strong>Observed (current):</strong></p>
+<pre><code>FAIL: T3: live WheelUpPane binding is not the copy-mode override</code></pre>
+<p><strong>Status of the investigation:</strong> an investigation is IN
+FLIGHT. <strong>The cause is NOT established.</strong> No hypothesis is
+recorded here, because none has been confirmed against captured evidence
+— per §11.4.6 a cause may be stated only as a proven FACT or explicitly
+marked <code>UNCONFIRMED:</code> / <code>PENDING_FORENSICS:</code>, and
+a guess dressed as a lead is exactly what that clause forbids. What is
+known is only what is written above: the check reads the live server's
+binding, and on the current tree it does not match.</p>
+<p><strong>PENDING_FORENSICS:</strong> the <code>observed:</code> line
+the test prints immediately after the FAIL
+(<code>echo "  observed: $WHEEL_BIND"</code>) carries the ACTUAL binding
+text the live server returned. That output has not been captured into
+this entry. Capturing it is the first concrete step — it distinguishes
+at least three materially different situations that the FAIL alone
+cannot: the override never reached the server (config not loaded /
+loaded from a different path), the override reached the server but in a
+form whose text does not contain both required tokens (a matcher-side
+problem in the test, i.e. potentially a §11.4.1 FAIL-bluff rather than a
+product defect), or the binding was subsequently replaced. Which of
+these holds is UNKNOWN until that output is read.</p>
+<p><strong>Relationship to other items:</strong> DISTINCT from TMX-080 /
+TMX-081 (§H1 / §H2) — those are timing/settle races around
+<code>#{pane_current_path}</code> and cgroup throttle windows. This one
+is a key-binding-presence check. No shared-cause hypothesis is asserted;
+whether one exists is UNCONFIRMED and would itself require evidence
+(§11.4.214 — this is a NEW id rather than a reopen precisely because no
+existing item describes this defect).</p>
+<p><strong>Note on a sibling check (not asserted as the same
+defect):</strong> <code>scripts/tests/47_alt_screen_scroll.sh</code>
+<strong>T6</strong> asserts a related
+live-<code>WheelUpPane</code>-override property. Whether T6 currently
+passes or fails on this tree has NOT been measured this cycle and is NOT
+claimed either way.</p>
+<p><strong>Fix direction:</strong> none proposed. Per §11.4.102 the
+systematic-debugging arc (reproduce → characterise → falsifiable
+hypothesis → fix against the PROVEN cause) must complete before any fix
+is written; proposing a direction now would be the guess-and-retry
+pattern that clause exists to prevent.</p>
 </body>
 </html>

@@ -3367,3 +3367,84 @@ The orphan entry was introduced when the submodule was relocated under `submodul
 **§11.4.120 reconciliation:** none required — no gate asserted the presence of the duplicate gitlink.
 
 **Discovery-pressure note (§11.4.118):** the operator reported ONE symptom. Two independent, individually-sufficient root causes were found behind it (L1 credential prompt, L2 orphan gitlink). Stopping at the first sufficient cause would have shipped a still-broken install. No further undiagnosed blocker remains from this report; the coverage this cycle exercised is the clean-clone install path over SSH — subsystems outside that path were not exercised by this investigation and are stated as an honest coverage gap rather than implied clean.
+
+---
+
+## M. Zig-build parser-source contract + tmux pin restoration (2026-09-01)
+
+Both items in this section landed AFTER the §L batch had already reached `main`, in the SAME release cycle (v1.0.44). Neither was reported by the operator: **M1 was found by an INDEPENDENT post-hoc code review** of commit `562cde7` (§11.4.142 / §11.4.125 — the review that should have gated the commit ran after it, for the process reason recorded below), and **M2 was found by a test measuring a capability withdrawal** that the same commit's pin change had caused. Recording both here rather than folding them into §L, because they are distinct defects with distinct root causes and distinct evidence.
+
+**Process note (§11.4.142 / §11.4.113 — recorded because it is the causal reason M1 shipped broken):** commit `562cde7` swept an agent's IN-FLIGHT `scripts/build_native.sh` edit onto `main` before that edit had passed the mandatory independent review. `commit_all.sh` stages with `git add -A`, so unrelated in-flight work present in the working tree was carried along by a commit that was about something else. Remediated FIX-FORWARD in `7966edb` per §11.4.113 — no history rewrite, no force-push at any point.
+
+### M1 ZIG-YACC-CONTRACT-001 — the zig (root-free) build path computed `YACC` as an ABSOLUTE path, breaking BOTH contracts it is fed into, so no parser source was ever produced — `FIXED`
+
+**TMX-ID:** TMX-088
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** BLOCKER (the root-free zig build path could not produce `cmd-parse.c` at all; `cmd-parse.c` is gitignored AND in `CLEANFILES`, so the broken branch is the one a FRESH CLONE always takes)
+
+**Root cause — ONE line, TWO independent breakages, both measured:** `scripts/build_native.sh`'s zig branch set `YACC` from `command -v bison`, which yields an ABSOLUTE path (`/usr/bin/bison`). That single value is wrong for both of the contracts it is subsequently fed into:
+
+1. **`tmux/configure`'s `AC_CHECK_PROG` resolution.** The macro does `set dummy $YACC; ac_word=$2`, then probes `"$as_dir$ac_word"` for each `PATH` entry — concatenating a directory with a value that ALREADY begins with `/`. The probed path is therefore `"/usr/bin//usr/bin/bison"`, which never resolves, and configure aborts with `yacc not found` **on a host that HAS bison**.
+2. **`tmux/etc/ylwrap`'s output-filename contract.** `tmux/Makefile.in`'s `.y.c` rule drives `etc/ylwrap`, which requires the program to emit `y.tab.c`. Plain `bison` (no `-y`) emits `cmd-parse.tab.c` instead — and **ylwrap still EXITS 0**. That is a SILENT failure: nothing in the build reports an error, and `make` is simply left with no `cmd-parse.c` to compile.
+
+Either breakage alone stops the build; they are independent, so fixing one would have left the other live.
+
+**Evidence — direct contract measurements (§11.4.226 runtime evidence class; each contract exercised directly, never inferred from reading the source):**
+
+- `AC_CHECK_PROG` resolution, replayed verbatim: `ac_word=/usr/bin/bison` → `found_yacc=no`; `ac_word=bison` → `found_yacc=yes`; **negative control** (a bogus program name) → `no`. The negative control is what proves the check can still say "no" — without it, a `yes` on the fixed value would not distinguish a working probe from a probe that always answers `yes` (§11.4.201(7)(b)).
+- Real `tmux/etc/ylwrap`, invoked directly: with `/usr/bin/bison` → `rc=0` and `cmd-parse.c` **MISSING**; with `bison -y` → `rc=0` and `cmd-parse.c` **CREATED**. Note both runs exit 0 — an exit-status assertion could never have caught this, which is precisely why the guard asserts the FILE, not the status.
+
+**Fix (`scripts/build_native.sh`, commit `7966edb`):**
+
+1. The zig path's `YACC` is now a bare, ylwrap-correct **word** — `bison -y` (or `yacc`) — never an absolute path. The bare word satisfies `AC_CHECK_PROG`'s `$as_dir$ac_word` concatenation, and the `-y` satisfies ylwrap's `y.tab.c` requirement.
+2. **Same commit, separate defect:** the autogen refusal was UNREACHABLE. Under `set -euo pipefail`, a failing `autogen.sh` pipeline aborted the script BEFORE the explicit `✗ autogen.sh did not produce ./configure` message could print, so the operator saw a bare non-zero exit instead of the diagnostic that was written for exactly this case. Fixed with `|| true` on the pipeline so the intended, actionable message is what actually reaches the operator (§11.4.1 — a diagnostic that cannot fire is not a diagnostic).
+
+**Closure cycle:** v1.0.44
+**Closure commit:** `7966edb` (`fix(build): zig-path YACC must be a bare, ylwrap-correct word (TMX-088)`)
+**Captured evidence (4-layer, §11.4.108):**
+
+- (a) **pre-build / source layer:** `bash -n scripts/build_native.sh` clean; `bash -n scripts/tests/91_zig_yacc_contract.sh` clean.
+- (b) **artifact layer:** `scripts/build_native.sh` IS the shipped artifact for this fix (a shell script, not a compiled output), so the source and artifact layers coincide. Stated explicitly rather than claimed as a separate passing layer (§11.4.6).
+- (c) **runtime layer (§11.4.108 layer 3 — the load-bearing one):** test 91 exercises the two REAL contracts — configure's own `AC_CHECK_PROG` logic and the REAL `tmux/etc/ylwrap` — with the value the script actually computes. The assertions read the produced FILE and the resolution OUTCOME, never the script's source text.
+- (d) **§11.4.115 RED/GREEN polarity + paired mutation (§1.1):** `RED_MODE=1` feeds the PRE-FIX value (the absolute path) into both real contracts and asserts they BREAK — proving the guard is not blind. Paired mutation `M-ZIG-YACC-BARE-WORD` in `meta_test_false_positive_proof.sh` verified to make **C1 + C2** FAIL.
+
+**Regression-protection:** `scripts/tests/91_zig_yacc_contract.sh` — **C1** (configure's `AC_CHECK_PROG` resolves the value) and **C2** (the real `etc/ylwrap` emits `cmd-parse.c`, not `cmd-parse.tab.c`). `RED_MODE` defaults to `0` (the standing regression-guard polarity, per the convention TMX-085 established). The test does NOT require a full build, so it is cheap enough to run in the standing sweep. Honest §11.4.3 SKIP when neither `bison` nor `yacc` is on `PATH` — the contracts genuinely cannot be exercised there, and a fake PASS is never emitted.
+
+**Attributability note (§11.4.201(6) — why the guard measures the SOURCE OF TRUTH and not a copy):** the value under test is **DERIVED from `scripts/build_native.sh` itself** (the zig-branch assignment is extracted and expanded the way the script would), never recomputed independently inside the test. Had the test computed `bison -y` on its own, mutating `build_native.sh` would not have changed what C1/C2 examine, and the guards would have passed on broken source — the exact false-null this project has been bitten by before. This is what makes `M-ZIG-YACC-BARE-WORD` a genuine §1.1 pair rather than a tautology.
+
+**§11.4.120 reconciliation:** none required — no pre-existing gate asserted the absolute-path `YACC` value as correct; there was no gate on this path at all, which is why the defect reached `main`. Test 91 is the new gate, not a reconciled one.
+
+### M2 TMUX-PIN-ROOT-FREE-RESTORE-001 — the `next-3.8` pin withdrew the root-free build capability; re-pinned to release TAG `3.7b` — `FIXED`
+
+**TMX-ID:** TMX-089
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** BLOCKER (a MEASURED withdrawal of a real, previously-working capability — the root-free build — on hosts with no autotools/bison)
+
+**Root cause:** commit `562cde7` moved the tmux submodule pin to `next-3.8` (`40381bdc`). `next-3.8` is **untagged `master`**: it has NO release tarball. The project's root-free zig path depends on a sha256-pinned RELEASE TARBALL that ships a pre-generated `configure` and a pre-generated `cmd-parse.c` — with no tarball available, the path was forced to build from the submodule instead, which requires autotools **and** bison on the host. On a host without them the build simply cannot proceed. This is not a theoretical regression: test 71's sub-check **C4**, whose whole purpose is to run on a deliberately-neutered bare host, FAILED with `cmd-parse.c is not pre-generated and no yacc/bison found`.
+
+Per §11.4.122 a previously-working, user-visible capability may not be silently dropped, so the correct response was to move the pin back rather than accept the loss.
+
+**Fix (commit `a6f3fc4`, on a SECOND explicit operator decision the same day):** the pin was moved from `next-3.8` (`40381bdc`) to release **TAG `3.7b`** (`e802909de06012a4df6209d55e86487c56223163`).
+
+- `3.7b` is an **ancestor of `40381bdc`** (verified) — so this is a clean rewind along the same history, not a divergence onto an unrelated line.
+- `3.7b`'s release tarball exists, with measured sha256 `87f2e99e3b685973f2ca002ffd6ed7e51a5744f7009daae5a15670b6d532db96`, and it ships BOTH a pre-generated `configure` AND a pre-generated `cmd-parse.c` — so the root-free property is restored AND the tarball genuinely corresponds to the submodule pin.
+- The binary was rebuilt against the new pin; `tmux -V` reports `tmux 3.7b` (verified directly against the built binary, not inferred from the pin).
+- `build_native.sh`'s tarball fast-path is restored, but hardened: the version is **DERIVED from the submodule's own `configure.ac`** rather than hardcoded, and the download is **REFUSED unless a sha256 is pinned for exactly that version**. A future re-pin to an untagged commit therefore falls back to the submodule build instead of silently shipping a binary that does not match the pin — the defect class is closed by construction, not only by this one corrected value.
+- Governance files and every version gate were swept `next-3.8` → `3.7b`. `README.md` no longer claims "latest stable", because tag `3.7c` exists (measured) — the previous wording would have been false.
+
+**Closure cycle:** v1.0.44
+**Closure commit:** `a6f3fc4` (`fix(pin): re-pin tmux to TAG 3.7b — restores the root-free build path (TMX-089)`)
+**Captured evidence (4-layer, §11.4.108):**
+
+- (a) **source layer:** the submodule gitlink resolves to `e802909de06012a4df6209d55e86487c56223163`; `git -C tmux describe --tags` reports `3.7b`; the sha256 for `3.7b` is present as a pinned value in `scripts/build_native.sh`.
+- (b) **artifact layer:** the rebuilt binary reports `tmux 3.7b` — the ARTIFACT's own self-reported identity matches the pin, which is the §11.4.108 layer-2 assertion (bytes landed), not a re-read of the pin.
+- (c) **runtime-on-clean-target layer:** **`UNCONFIRMED:`** — see the honest boundary below. The rebuilt binary reporting its version IS runtime evidence that the correct source was built; the ROOT-FREE property specifically has not been re-measured on a bare host this cycle.
+- (d) **§11.4.115 polarity:** this item has no polarity test of its own. Its RED evidence is test 71 C4's MEASURED FAILURE under the `next-3.8` pin — the defect was reproduced on the broken artifact before the fix, which is the substance §11.4.115 requires; the corresponding GREEN has not yet been captured (below).
+
+**Honest boundary (§11.4.6) — what is NOT claimed:** **test 71 C4 has NOT been re-run against the `3.7b` artifact.** The restoration of the root-free path is the STATED RATIONALE for the re-pin and is supported by the tarball's contents (pre-generated `configure` + `cmd-parse.c`, sha256-pinned), but the GREEN half of the RED→GREEN pair is **`UNCONFIRMED:`** until C4 is actually re-run on a neutered host and its output captured. Until then this item is fixed at the source/artifact layers with the runtime layer explicitly owed — recorded as an open obligation rather than implied complete.
+
+**§11.4.120 reconciliation:** none required. Test 71 C4 FAILING under `next-3.8` was the gate CORRECTLY catching a real capability regression — exactly the case §11.4.120 says must NOT be resolved by weakening the gate. The gate was left untouched and the PIN was moved instead.
+
+**Discovery-pressure note (§11.4.118):** neither M1 nor M2 was operator-reported — M1 came from an independent post-hoc review, M2 from a test that measured a capability withdrawal. That is the intended direction (§11.4.238: automated review and automated tests should be the discoverers). The coverage this cycle exercised is the zig/root-free build path and the pin; subsystems outside it were not exercised by this work and are stated as an honest coverage gap rather than implied clean. Specifically still open at the time of writing: the full `run_all.sh` sweep, the full meta-test mutation sweep, test 71 C4 on `3.7b`, test 68 C6/C7 (TMX-080/TMX-081 family), and TMX-090 (`Issues.md` §I1).

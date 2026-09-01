@@ -35,6 +35,11 @@ CONF="$REPO_ROOT/scripts/tmux.conf.template"
 
 BIN="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 [ -x "$BIN" ] || BIN="$REPO_ROOT/tmux/build-linux/bin/tmux"
+# The project's actual Linux build dir is tmux/build/bin (scripts/build_native.sh
+# BUILD_DIR default). Omitting it made this test SKIP with "no tmux binary
+# available" on a host that had just built one -- a §11.4.201(11) presence-probe
+# checking the wrong path rather than the real artifact.
+[ -x "$BIN" ] || BIN="$REPO_ROOT/tmux/build/bin/tmux"
 [ -x "$BIN" ] || BIN=$(command -v tmux 2>/dev/null || true)
 [ -n "$BIN" ] || { echo "SKIP: 55 — no tmux binary available (§11.4.3 topology)"; exit 0; }
 

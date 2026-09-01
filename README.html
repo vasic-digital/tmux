@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc 3.10" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>README</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -172,7 +171,6 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
     /* CSS for syntax highlighting */
     html { -webkit-text-size-adjust: 100%; }
     pre > code.sourceCode { white-space: pre; position: relative; }
@@ -374,8 +372,8 @@ under the pipe with <code>bash -s -- …</code>):</p>
 <tr>
 <td><code>TMX_REPO_URL</code></td>
 <td><code>--repo URL</code></td>
-<td><code>https://github.com/vasic-digital/tmux.git</code></td>
-<td>clone source (HTTPS so keyless users can clone)</td>
+<td><code>git@github.com:vasic-digital/tmux.git</code></td>
+<td>clone source (SSH / git protocol — see below)</td>
 </tr>
 <tr>
 <td><code>TMX_INSTALL_BRANCH</code></td>
@@ -470,9 +468,9 @@ href="docs/scripts/obtain_local_deps.md"><code>docs/scripts/obtain_local_deps.md
    │  ├ CPUQuota  = unset (unlimited)│         │  │             by default, opt-in)       │
    │  ├ TasksMax  = infinity         │         │  ├ ulimit -u  ← RLIMIT_NPROC (unlimited  │
    │  ├ Delegate  = yes              │         │  │             by default, opt-in)       │
-   │  └ tmux 3.6a (Linux ELF)        │         │  └ ulimit -v  ← RLIMIT_AS NOT enforced   │
+   │  └ tmux 3.7b (Linux ELF)        │         │  └ ulimit -v  ← RLIMIT_AS NOT enforced   │
    │  status-bar = DJB2(host)        │         │                  by XNU (documented gap) │
-   │  oom_score_adj = -500           │         │  tmux 3.6a (Mach-O)                      │
+   │  oom_score_adj = -500           │         │  tmux 3.7b (Mach-O)                      │
    │  idle-recycle = OFF by default  │         │  status-bar = DJB2(host)                 │
    │  (TMX_RECYCLE_IDLE_SECS opt-in) │         │  (oom_score_adj N/A on Darwin)           │
    └─────────────────────────────────┘         └──────────────────────────────────────────┘
@@ -525,8 +523,17 @@ No VM. No bridge. No <code>core@localhost</code>. No bluff.</p>
 </thead>
 <tbody>
 <tr>
-<td><strong>tmux 3.6a</strong> (latest stable)</td>
-<td>Pinned to a known-good upstream tag</td>
+<td><strong>tmux <code>3.7b</code></strong> (upstream release tag)</td>
+<td>Pinned to upstream tag <code>3.7b</code> = commit
+<code>e802909</code>, adopted by explicit operator decision 2026-09-01
+(Constitution §107). A real upstream <strong>release</strong> tag with a
+published release tarball (<code>tmux-3.7b.tar.gz</code>, sha256
+<code>87f2e99e…db96</code>), which is what the root-free zig build path
+needs — it ships the pre-generated <code>configure</code> +
+<code>cmd-parse.c</code>. It is <strong>not</strong> the newest tag
+upstream carries (<code>3.7c</code> exists); it is a deliberate
+known-good pin, and moving off it requires a new documented decision
+(§107).</td>
 </tr>
 <tr>
 <td><strong>Hardened compile flags</strong></td>

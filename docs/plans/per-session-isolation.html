@@ -2,31 +2,178 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>per-session-isolation</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="per-session-isolation-plan">Per-Session Isolation Plan</h1>
 <blockquote>
 <p>Engineering plan for: per-tmux-session OOM containment, CPU + memory
@@ -39,25 +186,27 @@ approved.</strong></p>
 statement (with captured evidence)</h2>
 <p>Two distinct bugs in the current architecture, both proven on the
 podman-machine VM 2026-05-13:</p>
-<h3 id="bug-1--tmx-session-shell-is-the-vms-core-user-not-the-operators-host-shell">Bug
-1 — <code>tmx</code> session shell is the VM&#39;s <code>core</code> user,
-not the operator&#39;s host shell</h3>
+<h3
+id="bug-1--tmx-session-shell-is-the-vms-core-user-not-the-operators-host-shell">Bug
+1 — <code>tmx</code> session shell is the VM's <code>core</code> user,
+not the operator's host shell</h3>
 <pre><code>$ tmx new -s X
 ... operator now sees: core@localhost:~$</code></pre>
 <p><code>/proc/self/cgroup</code> shows
 <code>0::/user.slice/user-501.slice/session-353.scope</code> and
-<code>pwd</code> returns <code>/var/home/core</code>. The macOS host&#39;s
+<code>pwd</code> returns <code>/var/home/core</code>. The macOS host's
 commands are not on PATH; the operator is in a Linux user shell inside
 the podman machine VM.</p>
 <p><strong>Cause</strong> — by design: the verified Linux binary runs in
-the VM, and the bridge SSHes the operator&#39;s terminal into the VM where
+the VM, and the bridge SSHes the operator's terminal into the VM where
 tmux runs.</p>
 <p><strong>Status</strong> — fundamental architectural limit.
-Mitigation, not &quot;fix&quot;: the operator&#39;s <code>/Users/&lt;name&gt;</code>
+Mitigation, not "fix": the operator's <code>/Users/&lt;name&gt;</code>
 is virtiofs-mounted into the VM, so files ARE accessible. macOS-only
 commands (Homebrew binaries, <code>scutil</code>, etc.) cannot be
 invoked from inside a Linux session. We document this explicitly.</p>
-<h3 id="bug-2--all-tmx-sessions-share-one-cgroup-the-1-isolation-bluff">Bug
+<h3
+id="bug-2--all-tmx-sessions-share-one-cgroup-the-1-isolation-bluff">Bug
 2 — All tmx sessions share ONE cgroup (the §1 isolation bluff)</h3>
 <pre><code>$ tmx new -s isol1 -d
 $ tmx new -s isol2 -d
@@ -66,12 +215,12 @@ $ pgrep -af tmux/build/bin/tmux
 $ cat /proc/504655/cgroup
 0::/user.slice/user-501.slice/user@501.service/app.slice/run-p504653-i504654.scope
                                                               ← ONE scope</code></pre>
-<p>Both sessions live in <strong>one tmux server</strong>, that server&#39;s
+<p>Both sessions live in <strong>one tmux server</strong>, that server's
 process is in <strong>one cgroup scope</strong>, with
 <strong>one</strong> <code>MemoryMax</code> and <strong>one</strong>
 <code>TasksMax</code>.</p>
-<p>README claim: <em>&quot;Crash isolation: if one session OOMs/crashes, only
-that session dies; other sessions and their processes survive.&quot;</em> —
+<p>README claim: <em>"Crash isolation: if one session OOMs/crashes, only
+that session dies; other sessions and their processes survive."</em> —
 <strong>this is false in practice.</strong> OOM in any session OOM-kills
 the shared server, which destroys every session. Test 14
 (<code>14_concurrent_oom_independence.sh</code>) passes because it tests
@@ -85,7 +234,7 @@ itself.</strong></p>
 <li>A dedicated cgroup-v2 transient scope named
 <code>tmx-&lt;NAME&gt;.scope</code> per the operator-given session
 name.</li>
-<li>The session&#39;s primary shell process (and all descendants) is placed
+<li>The session's primary shell process (and all descendants) is placed
 inside that scope.</li>
 <li>Independent <code>MemoryMax</code>, <code>CPUQuota</code>,
 <code>TasksMax</code> per session — defaults from env
@@ -94,9 +243,10 @@ session.</li>
 <li>OOM-kill in scope A leaves scope B + the tmux server + the
 user.slice untouched (§1 invariant).</li>
 </ol>
-<h3 id="implementation-approach--default-command-injection">Implementation
+<h3
+id="implementation-approach--default-command-injection">Implementation
 approach — <code>default-command</code> injection</h3>
-<p>Tmux supports <code>set -g default-command &quot;...&quot;</code> and the
+<p>Tmux supports <code>set -g default-command "..."</code> and the
 <code>new-session -e VAR=val</code> flag, plus
 <code>new-window -c</code> / <code>-e</code>. The cleanest path:</p>
 <pre><code>tmux new-session -d -s NAME \
@@ -105,22 +255,22 @@ approach — <code>default-command</code> injection</h3>
         -p MemoryMax=8G -p CPUQuota=200% -p TasksMax=4096 -p Delegate=yes \
         --setenv=TMX_SESSION=NAME \
         $SHELL -l&quot;</code></pre>
-<p>The session&#39;s initial shell is the systemd-run command, which
-transitions into the user&#39;s <code>$SHELL -l</code> inside the new
+<p>The session's initial shell is the systemd-run command, which
+transitions into the user's <code>$SHELL -l</code> inside the new
 transient scope. Any process spawned from that shell (new windows, panes
 via <code>:new-window</code>, child processes) inherits the scope via
 Linux cgroup-v2 semantics.</p>
-<p><strong>Per-window / per-pane creation</strong>: tmux&#39;s
+<p><strong>Per-window / per-pane creation</strong>: tmux's
 <code>:new-window</code> and <code>:split-window</code> spawn children
-of the existing pane&#39;s process. Because cgroup inheritance is via
-fork(), they automatically join the session&#39;s scope. No extra wrapping
+of the existing pane's process. Because cgroup inheritance is via
+fork(), they automatically join the session's scope. No extra wrapping
 needed.</p>
 <p><strong>Cross-session boundary</strong>: when the operator runs
-<code>:choose-tree</code> to jump between sessions, that&#39;s a
-tmux-internal client-side switch (re-attach); it doesn&#39;t move processes
-between scopes. Each session&#39;s process tree stays in its own scope.</p>
+<code>:choose-tree</code> to jump between sessions, that's a
+tmux-internal client-side switch (re-attach); it doesn't move processes
+between scopes. Each session's process tree stays in its own scope.</p>
 <h3 id="why-not-podman-per-session">Why NOT podman-per-session</h3>
-<p>The user&#39;s question mentions &quot;the power of containers.&quot; We evaluated
+<p>The user's question mentions "the power of containers." We evaluated
 both:</p>
 <table>
 <thead>
@@ -179,8 +329,8 @@ both:</p>
 </tbody>
 </table>
 <p><code>systemd --user --scope</code> provides every property the user
-actually asked for (&quot;CPU + memory cap&quot;, &quot;kill session A leaves others
-alone&quot;). Full OCI containers add filesystem + network isolation we do
+actually asked for ("CPU + memory cap", "kill session A leaves others
+alone"). Full OCI containers add filesystem + network isolation we do
 not need and trade off ~20× startup latency. <strong>We adopt the
 OOM-Protect approach of per-leaf scopes</strong>, applied per tmux
 session.</p>
@@ -189,19 +339,19 @@ rootfs, etc.) we can add <code>TMX_BACKEND=podman</code> as an opt-in
 alternative. Out of scope for this plan.</p>
 <h2 id="2--anti-bluff-regression-coverage-114-enforcement">§2 —
 Anti-bluff regression coverage (§11.4 enforcement)</h2>
-<p>Three things must change so this CAN&#39;T re-ship broken:</p>
+<p>Three things must change so this CAN'T re-ship broken:</p>
 <h3 id="21-test-14-must-exercise-the-operators-actual-workflow">§2.1
-Test 14 must exercise the operator&#39;s actual workflow</h3>
+Test 14 must exercise the operator's actual workflow</h3>
 <p>Current <code>14_concurrent_oom_independence.sh</code> spawns three
 explicit <code>systemd-run --user --scope</code> units by hand and
 triggers OOM in scope A. This passes EVEN when the actual
 <code>tmx new -s X / tmx new -s Y</code> flow puts all sessions in one
 cgroup — that was the gap that let Bug 2 ship.</p>
-<p><strong>Fix:</strong> rewrite Test 14&#39;s body to use the
+<p><strong>Fix:</strong> rewrite Test 14's body to use the
 <code>tmx</code> wrapper to create the three sessions
 (<code>tmx new -s A -d</code>, <code>tmx new -s B -d</code>,
-<code>tmx new -s C -d</code>). Then trigger OOM in A&#39;s shell via
-<code>tmx send-keys -t A &#39;stress-ng ...&#39;</code> and verify B + C are
+<code>tmx new -s C -d</code>). Then trigger OOM in A's shell via
+<code>tmx send-keys -t A 'stress-ng ...'</code> and verify B + C are
 still listed in <code>tmx ls</code> AND their scope cgroup files still
 report their MainPID. Operator-facing path is now in the gate.</p>
 <h3 id="22-new-test-15--per-session-cgroup-distinctness">§2.2 New Test
@@ -223,19 +373,19 @@ entries <code>tmx-a.scope</code> + <code>tmx-b.scope</code></td>
 <code>tmx-b.scope</code> both = active</td>
 </tr>
 <tr>
-<td>T2: each scope&#39;s <code>cgroup.procs</code> file contains its
-session&#39;s shell PID (different PIDs in different cgroup paths)</td>
+<td>T2: each scope's <code>cgroup.procs</code> file contains its
+session's shell PID (different PIDs in different cgroup paths)</td>
 <td><code>/sys/fs/cgroup/.../tmx-a.scope/cgroup.procs</code> and
 <code>.../tmx-b.scope/cgroup.procs</code></td>
 </tr>
 <tr>
-<td>T3: each scope&#39;s <code>memory.max</code> reads back the
+<td>T3: each scope's <code>memory.max</code> reads back the
 operator-configured cap (default <code>TMX_MEM=8G</code>) — values are 8
 589 934 592 bytes</td>
 <td>direct readback</td>
 </tr>
 <tr>
-<td>T4: each scope&#39;s <code>cpu.max</code> reads back the
+<td>T4: each scope's <code>cpu.max</code> reads back the
 operator-configured quota</td>
 <td>direct readback</td>
 </tr>
@@ -252,7 +402,8 @@ name</td>
 </tr>
 </tbody>
 </table>
-<h3 id="23-new-test-16-destructive-tmx_test_destructive1--oom-containment-is-genuine">§2.3
+<h3
+id="23-new-test-16-destructive-tmx_test_destructive1--oom-containment-is-genuine">§2.3
 New Test 16 (destructive, <code>TMX_TEST_DESTRUCTIVE=1</code>) — OOM
 containment is genuine</h3>
 <p><code>16_per_session_oom_containment.sh</code>:</p>
@@ -270,13 +421,13 @@ visible in <code>tmx ls</code></td>
 <td>tmx ls output</td>
 </tr>
 <tr>
-<td>T2: capture B&#39;s MainPID and C&#39;s MainPID from
+<td>T2: capture B's MainPID and C's MainPID from
 <code>cgroup.procs</code></td>
 <td>direct readback</td>
 </tr>
 <tr>
 <td>T3: trigger OOM in A —
-<code>tmx send-keys -t A &quot;stress-ng --vm 1 --vm-bytes &lt;MemoryMax+10%&gt; --timeout 30s&quot;</code></td>
+<code>tmx send-keys -t A "stress-ng --vm 1 --vm-bytes &lt;MemoryMax+10%&gt; --timeout 30s"</code></td>
 <td>journalctl -k oom-kill line</td>
 </tr>
 <tr>
@@ -288,7 +439,7 @@ visible in <code>tmx ls</code></td>
 <td>systemctl is-active = active</td>
 </tr>
 <tr>
-<td>T6: B&#39;s MainPID and C&#39;s MainPID UNCHANGED</td>
+<td>T6: B's MainPID and C's MainPID UNCHANGED</td>
 <td>re-read cgroup.procs</td>
 </tr>
 <tr>
@@ -332,7 +483,7 @@ scope</td>
 <ul>
 <li>T7: create two sessions through the bridge, verify both are in
 different scope units via
-<code>tmx run-shell &quot;systemctl --user list-units --type=scope&quot;</code>
+<code>tmx run-shell "systemctl --user list-units --type=scope"</code>
 output (or equivalent). End-to-end through bridge → wrapper →
 systemd.</li>
 </ul>
@@ -354,7 +505,7 @@ sanitise <code>NAME</code> to a unit-name-safe token</td>
 <tr>
 <td><code>scripts/tests/14_concurrent_oom_independence.sh</code></td>
 <td>Replace hand-spawned scopes with <code>tmx new -s</code> invocations
-so the operator path is what&#39;s tested</td>
+so the operator path is what's tested</td>
 </tr>
 <tr>
 <td><code>scripts/tests/15_per_session_cgroup_distinct.sh</code></td>
@@ -383,8 +534,8 @@ coverage</td>
 </tr>
 <tr>
 <td><code>docs/plans/containerization.md</code></td>
-<td>Update §B-conclusion to &quot;per-session scope (NOT per-server
-scope)&quot;</td>
+<td>Update §B-conclusion to "per-session scope (NOT per-server
+scope)"</td>
 </tr>
 <tr>
 <td><code>docs/guide/README.md</code></td>
@@ -419,10 +570,10 @@ mandate)</td>
 <blockquote>
 <p><strong>§11.4.7 — Operator-path test coverage rule.</strong> Every
 gate test for a feature MUST exercise the SAME entry point an end-user
-would invoke in production. Tests that bypass the operator&#39;s wrapper,
+would invoke in production. Tests that bypass the operator's wrapper,
 helper, or install path — and instead reproduce its effects with
-hand-crafted equivalents — DO NOT satisfy §11.4.2&#39;s captured-evidence
-requirement. When the operator&#39;s path and the test&#39;s path diverge, the
+hand-crafted equivalents — DO NOT satisfy §11.4.2's captured-evidence
+requirement. When the operator's path and the test's path diverge, the
 test document must EXPLICITLY name what divergence exists AND a separate
 end-to-end test must close that divergence with captured evidence.</p>
 <p><em>Forensic anchor:</em> Test 14 hand-spawned
@@ -434,7 +585,7 @@ Fixed.md). Propagated to Containers/CONSTITUTION.md at the same anchor
 depth.</p>
 </blockquote>
 <h2 id="5--acceptance-criteria">§5 — Acceptance criteria</h2>
-<p>This plan is &quot;done&quot; when:</p>
+<p>This plan is "done" when:</p>
 <ol type="1">
 <li><code>bash scripts/test_vm.sh</code> → SUMMARY PASS=16 (added Test
 15 + Test 16) FAIL=0</li>
@@ -449,8 +600,8 @@ FAIL=0</li>
 shows <code>tmx-A.scope</code> AND <code>tmx-B.scope</code> AS DISTINCT
 UNITS</li>
 <li>Manual operator OOM check (Linux host with destructive opt-in): kill
-session A&#39;s shell with a stress-ng exhausting MemoryMax+10%; session B&#39;s
-tmux pane still responds to <code>tmx send-keys -t B &quot;echo alive&quot;</code>
+session A's shell with a stress-ng exhausting MemoryMax+10%; session B's
+tmux pane still responds to <code>tmx send-keys -t B "echo alive"</code>
 + <code>tmx capture-pane -t B -p</code> shows <code>alive</code></li>
 <li>Constitution.md §11.4.7 + Containers/CONSTITUTION.md equivalent both
 reference the same forensic anchor</li>
@@ -470,22 +621,22 @@ concurrent-session budget of 4. Operator override via
 time-slices).</p></li>
 <li><p><strong>Unit-name sanitisation — replace invalid chars with
 <code>_</code>, error on collision.</strong>
-<code>tmx new -s &#39;my work&#39;</code> → <code>tmx-my_work.scope</code>. If
+<code>tmx new -s 'my work'</code> → <code>tmx-my_work.scope</code>. If
 <code>tmx-my_work.scope</code> already exists (active),
 <code>tmx new</code> errors explicitly with the path so the operator can
 diagnose. Predictable naming — operators can target a scope by its
 session name.</p></li>
 <li><p><strong><code>tmx kill-session</code> cleanup — explicit
-<code>systemctl --user stop tmx-NAME.scope</code></strong> AFTER tmux&#39;s
+<code>systemctl --user stop tmx-NAME.scope</code></strong> AFTER tmux's
 own kill-session. Belt-and-suspenders: faster cgroup-number /
 memory-accounting reclaim; tolerant of logind versions that GC inactive
 scopes slowly.</p></li>
 <li><p><strong>macOS host-shell access — document explicitly, no
-bridging.</strong> <code>docs/guide/README.md</code> §5.6: &quot;tmx sessions
+bridging.</strong> <code>docs/guide/README.md</code> §5.6: "tmx sessions
 are Linux environments running in the podman machine VM. Your files
 under <code>/Users/&lt;name&gt;</code> are accessible via virtiofs;
 macOS-only Mach-O commands (Homebrew binaries, <code>scutil</code>,
-etc.) are not available inside a session.&quot; Operators use system tmux
+etc.) are not available inside a session." Operators use system tmux
 (Homebrew) for macOS-host work; our verified tmux is for the
 bounded-isolation workflows. Side-by-side is already the
 design.</p></li>

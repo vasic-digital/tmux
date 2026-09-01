@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc 3.10" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>AGENTS</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -172,7 +171,6 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
 </head>
 <body>
@@ -221,14 +219,17 @@ and its sub-anchors §11.4.1 through §11.4.78. Project anchor: <a
 href="Constitution.md"><code>Constitution.md</code></a> §101.</p>
 <p>Non-compliance is a release blocker regardless of context.</p>
 <h2 id="project-overview">Project overview</h2>
-<p>Verified hardened tmux 3.6a build with jemalloc, OOM protection, and
-per-session isolation via the <code>tmx</code> wrapper. Native dual-OS:
-each <code>tmx new -s NAME</code> spawns its own tmux server on the host
-with OS-native isolation — cgroup-v2 scope on Linux, POSIX rlimit
-wrapper on macOS. Session shell is the operator's host shell with full
-PATH. No VM. macOS memory-cap gap documented honestly (XNU doesn't
-enforce <code>RLIMIT_AS</code>) — see <code>docs/guide/README.md</code>
-§5.6.</p>
+<p>Verified hardened tmux <code>3.7b</code> build — upstream RELEASE TAG
+<code>3.7b</code> (commit <code>e802909</code>), adopted by explicit
+operator decision 2026-09-01 (the same-day revision of that day's
+earlier untagged-master pin, Project §107) — with jemalloc, OOM
+protection, and per-session isolation via the <code>tmx</code> wrapper.
+Native dual-OS: each <code>tmx new -s NAME</code> spawns its own tmux
+server on the host with OS-native isolation — cgroup-v2 scope on Linux,
+POSIX rlimit wrapper on macOS. Session shell is the operator's host
+shell with full PATH. No VM. macOS memory-cap gap documented honestly
+(XNU doesn't enforce <code>RLIMIT_AS</code>) — see
+<code>docs/guide/README.md</code> §5.6.</p>
 <h2
 id="critical-base-rules-restated-for-agents-that-dont-follow-imports">Critical
 base rules restated (for agents that don't follow @imports)</h2>
@@ -334,8 +335,8 @@ modify</strong></td>
 </tr>
 <tr>
 <td><code>tmux/</code></td>
-<td>upstream submodule (tag <code>3.6a</code>) — <strong>do not
-modify</strong></td>
+<td>upstream submodule (pinned to release tag <code>3.7b</code> = commit
+<code>e802909</code>) — <strong>do not modify</strong></td>
 </tr>
 <tr>
 <td><code>Containers/</code></td>
@@ -387,8 +388,9 @@ files (<code>scripts/tmx</code>, <code>tmux/build*/</code>).</li>
 <li>CI/CD pipeline files (<code>.github/workflows/</code>,
 <code>.gitlab-ci.yml</code>).</li>
 <li>HTTPS Git remotes — SSH only.</li>
-<li>Advancing the <code>tmux/</code> submodule off tag <code>3.6a</code>
-without an explicit documented decision (Project §107).</li>
+<li>Advancing the <code>tmux/</code> submodule off pinned release tag
+<code>3.7b</code> (commit <code>e802909</code>) without an explicit
+documented decision (Project §107).</li>
 </ul>
 <h3 id="project-specific-workflow">Project-specific workflow</h3>
 <ul>

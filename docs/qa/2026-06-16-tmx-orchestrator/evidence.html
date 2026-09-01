@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>evidence</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -156,8 +155,12 @@
       text-decoration: none;
     }
     span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
     /* The extra [class] is a hack that increases specificity enough to
        override a similar rule in reveal.js */
@@ -168,21 +171,20 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
 </head>
 <body>
 <h1
-id="qa-evidence-tmx-orchestrator-containers-submodule-distribution-orchestrator">QA
+id="qa-evidence--tmx-orchestrator-containers-submodule-distribution-orchestrator">QA
 evidence — tmx-orchestrator: Containers-submodule distribution
 orchestrator</h1>
 <p><strong>Run-id:</strong> 2026-06-16-tmx-orchestrator
 <strong>Captured:</strong> 2026-06-16 <strong>Conductor:</strong>
 Mistborn (Darwin arm64, go 1.26.2) · <strong>Target:</strong>
 nezha.local (ALT Linux x86_64, podman 5.7.1) <strong>Deliverable
-(operator mandate):</strong> “Make a proper binary using the Containers
+(operator mandate):</strong> "Make a proper binary using the Containers
 submodule lib to orchestrate the distribution — for when/if we need it
-for our testing needs.”</p>
+for our testing needs."</p>
 <p>A real consumer binary at <code>scripts/tmx-orchestrator/</code>
 (module <code>digital.vasic.tmux/orchestrator</code>) imports the
 decoupled <code>digital.vasic.containers</code> submodule (via
@@ -190,9 +192,9 @@ decoupled <code>digital.vasic.containers</code> submodule (via
 distribution to nezha. The submodule was NOT modified for tmux-specifics
 (CONST-051); the ONE library change is a generic <code>Ports</code>
 capability (committed upstream <code>1b9da9b</code>, §11.4.76
-extend-don’t-reimplement).</p>
+extend-don't-reimplement).</p>
 <hr />
-<h2 id="hosts-real-cross-host-probe-macos-nezha-over-ssh">1.
+<h2 id="1-hosts--real-cross-host-probe-macos--nezha-over-ssh">1.
 <code>hosts</code> — real cross-host probe (macOS → nezha over SSH)</h2>
 <pre><code>$ tmx-orchestrator-bin hosts --env Containers/.env
 [INFO] registered remote host: nezha (nezha.local)
@@ -202,7 +204,7 @@ nezha  nezha.local  22    yes        17.2  9.9   6365/64086  8</code></pre>
 <p>Real <code>/proc</code> resources parsed from nezha over SSH; exit
 0.</p>
 <h2
-id="distribute-deploy-a-real-container-on-nezha-health-check-the-anti-bluff-core">2.
+id="2-distribute--deploy-a-real-container-on-nezha--health-check-the-anti-bluff-core">2.
 <code>distribute</code> — deploy a REAL container on nezha +
 health-check (the anti-bluff core)</h2>
 <pre><code>$ tmx-orchestrator-bin distribute --image docker.io/library/nginx:alpine \
@@ -227,16 +229,16 @@ $ ssh nezha &#39;curl -s -o /dev/null -w &quot;HTTP %{http_code}&quot; http://lo
 HTTP 200</code></pre>
 <p>A genuine nginx container is running on nezha, published on host port
 18080, serving HTTP 200.</p>
-<h2 id="down-teardown-verified-clean">3. <code>down</code> — teardown,
-verified clean</h2>
+<h2 id="3-down--teardown-verified-clean">3. <code>down</code> —
+teardown, verified clean</h2>
 <pre><code>$ tmx-orchestrator-bin down --name tmx-orch-demo --env Containers/.env
 [INFO] removed container tmx-orch-demo on nezha
 teardown complete for container &quot;tmx-orch-demo&quot;
 down exit=0
 $ ssh nezha &#39;podman ps -a --format &quot;{{.Names}}&quot; | grep -q tmx-orch-demo &amp;&amp; echo PRESENT || echo REMOVED-CLEAN&#39;
 REMOVED-CLEAN</code></pre>
-<h2 id="library-extension-proof-containers-1b9da9b">4. Library extension
-proof (Containers <code>1b9da9b</code>)</h2>
+<h2 id="4-library-extension-proof-containers-1b9da9b">4. Library
+extension proof (Containers <code>1b9da9b</code>)</h2>
 <ul>
 <li><code>ContainerRequirements.Ports []PortMapping</code> +
 <code>-p host:container[/proto]</code> rendered in
@@ -252,14 +254,9 @@ change).</li>
 <li>Containers full unit suite on nezha: all 37 packages
 <code>ok</code>, RC=0.</li>
 </ul>
-<h2 id="root-cause-fixes-during-bring-up-systematic-debugging-fact">5.
+<h2 id="5-root-cause-fixes-during-bring-up-systematic-debugging-fact">5.
 Root-cause fixes during bring-up (systematic-debugging, FACT)</h2>
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
 <thead>
 <tr>
 <th>Symptom</th>
@@ -269,19 +266,19 @@ Root-cause fixes during bring-up (systematic-debugging, FACT)</h2>
 </thead>
 <tbody>
 <tr>
-<td>health check “connection refused” on nezha:80</td>
+<td>health check "connection refused" on nezha:80</td>
 <td>container run with no <code>-p</code>; port only in container
 netns</td>
 <td>added <code>Ports</code> to the lib + <code>--publish</code> (extend
 §11.4.76)</td>
 </tr>
 <tr>
-<td>deploy fail “8080 Address already in use”</td>
+<td>deploy fail "8080 Address already in use"</td>
 <td>nezha already serves on 8080 (curl → 404)</td>
 <td>pick a verified-free host port (18080)</td>
 </tr>
 <tr>
-<td>health “connection reset by peer” immediately after deploy</td>
+<td>health "connection reset by peer" immediately after deploy</td>
 <td>readiness race — first connect before nginx + pasta port-forward
 accept</td>
 <td>poll the health check ~15 s until ready (no false PASS)</td>

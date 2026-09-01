@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>troubleshooting</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -91,6 +90,7 @@
       color: #606060;
     }
     code {
+      white-space: pre-wrap;
       font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
       font-size: 85%;
       margin: 0;
@@ -154,10 +154,13 @@
     #TOC a:not(:hover) {
       text-decoration: none;
     }
-    code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
     /* The extra [class] is a hack that increases specificity enough to
        override a similar rule in reveal.js */
@@ -168,7 +171,6 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
     /* CSS for syntax highlighting */
     html { -webkit-text-size-adjust: 100%; }
     pre > code.sourceCode { white-space: pre; position: relative; }
@@ -494,15 +496,24 @@ error there.</p>
 <h2 id="4-installsh-https-rewrite--private-submodule-edge">4. install.sh
 HTTPS-rewrite / private-submodule edge</h2>
 <h3 id="background">Background</h3>
-<p>The <code>curl | bash</code> installer clones over <strong>HTTPS by
-default</strong> so a fresh user <strong>without SSH keys</strong> can
-still fetch the project and its <strong>public</strong> github
-submodules. Because the submodules pin SSH URLs in
-<code>.gitmodules</code>, the installer applies a git
-<code>insteadOf</code> rewrite by default —
-<code>url.https://github.com/.insteadOf=git@github.com:</code> — so a
-keyless user's recursive clone resolves those public submodules over
-HTTPS (<code>scripts/install.sh:142-152</code>).</p>
+<p><strong>Fixed in 1.0.44 (TMX-086) — the installer no longer does this
+by default.</strong></p>
+<p>Historically the <code>curl | bash</code> installer cloned over
+<strong>HTTPS by default</strong> and applied a git
+<code>insteadOf</code> rewrite —
+<code>url.https://github.com/.insteadOf=git@github.com:</code> — to
+every submodule URL, as a keyless-clone aid. That rewrite converted the
+<strong>private</strong> nested submodule
+<code>constitution/submodules/helix_perf_cache</code> into an
+<em>unauthenticated</em> HTTPS fetch; GitHub answered by asking for a
+username, and with no <code>GIT_TERMINAL_PROMPT=0</code> guard the
+installer BLOCKED on that prompt forever. Under <code>curl | bash</code>
+the prompt is unanswerable, so the install simply hung.</p>
+<p>The installer now clones over <strong>SSH (the git protocol) by
+default</strong>, applies no rewrite, and exports
+<code>GIT_TERMINAL_PROMPT=0</code> so a missing credential can only ever
+fail fast. If you are on 1.0.44 or later you should not hit this at
+all.</p>
 <h3 id="the-edge">The edge</h3>
 <p>If you <strong>do</strong> have SSH keys configured
 <strong>and</strong> need a <strong>private</strong> submodule, the
@@ -512,10 +523,13 @@ default HTTPS rewrite works against you: it rewrites the submodule's
 <strong>unauthenticated</strong> HTTPS fetch (no credential) and the
 private clone fails. The honest boundary is documented in the script
 itself: the HTTPS rewrite does <strong>not</strong> grant access to
-private submodules (<code>scripts/install.sh:144-146</code>).</p>
+private submodules (<code>scripts/install.sh</code>, the GITC
+config-injection block).</p>
 <h3 id="recovery">Recovery</h3>
-<p>Disable the rewrite so your SSH key is used for the private
-submodule. Either:</p>
+<p>On 1.0.44+ no action is needed — SSH is the default and the rewrite
+is off.</p>
+<p>If you are running an <strong>older</strong> installer, disable the
+rewrite so your SSH key is used for the private submodule. Either:</p>
 <div class="sourceCode" id="cb9"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Env var (works under the curl|bash pipe):</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="va">TMX_INSTALL_NO_HTTPS_REWRITE</span><span class="op">=</span>1 <span class="dt">\</span></span>
@@ -523,11 +537,11 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># …or the equivalent flag when running a downloaded copy:</span></span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> install.sh <span class="at">--no-https-rewrite</span></span></code></pre></div>
-<p>With the rewrite disabled, the submodules clone via their pinned
+<p>With the rewrite disabled the submodules clone via their pinned
 <code>git@github.com:</code> SSH URLs and your key authenticates the
-private fetch (<code>scripts/install.sh:34,82,92,150-151</code>).
-Public-submodule keyless users should <strong>not</strong> set this —
-they need the default rewrite.</p>
+private fetch. On 1.0.44+ the inverse flag
+<code>TMX_INSTALL_HTTPS_REWRITE=1</code> opts <em>in</em> to the old
+rewrite; it is off by default and reaches public repos only.</p>
 <p>See also the "Private submodule with no access" / "Edge cases" notes
 in <a
 href="../scripts/install.md"><code>../scripts/install.md</code></a>.</p>

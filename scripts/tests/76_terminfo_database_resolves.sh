@@ -22,12 +22,40 @@
 # --with-terminfo-dirs). These tests passed for prior releases on hosts whose
 # terminfo happened to match the compiled-in path; this guard makes it robust.
 #
+# MEASURED REFUTATION of the original C1 design (2026-09-01, §11.4.6 — this is a
+# FACT, established by probing the shipped binary, not an assumption):
+#   The original C1 HOPED the artifact was broken: it set TERMINFO_DIRS to a
+#   nonexistent dir and expected "can't find terminfo database". That does NOT
+#   reproduce on a healthy host. `strings tmux/build/bin/tmux` shows the static
+#   tinfo carries a compiled-in TERMINFO_DIRS of
+#   "/etc/terminfo:/lib/terminfo:/usr/share/terminfo" plus a compiled-in TERMINFO
+#   of "/etc/terminfo", and ncurses keeps the COMPILED-IN dirs in its search list
+#   even when $TERMINFO_DIRS is set — measured: TERMINFO + TERMINFO_DIRS + HOME
+#   all pointed at empty scratch dirs and the session STILL came up. So no
+#   environment manipulation alone can reach that diagnostic on this host, and
+#   the old C1 could only ever SKIP here. A guard that waits for the artifact to
+#   be broken is not a guard; C1 now SYNTHESISES its own broken precondition.
+#
 # What this guard proves (captured evidence, §11.4.5/§11.4.123):
-#   C1  PRINCIPLE (Linux, mode-agnostic): a raw-binary client attach over a PTY
-#       with TERMINFO_DIRS pointed at a NONEXISTENT dir (simulating the gone
-#       build prefix) + TERM=screen-256color reproduces "can't find terminfo
-#       database"; the SAME attach with TERMINFO_DIRS = the host's real dirs
-#       (`infocmp -D`) does NOT — the exact env mechanism the fix relies on.
+#   C1  RUNTIME (Linux, §11.4.115 RED/GREEN on a SYNTHESISED precondition):
+#       `tic` compiles a terminfo entry for a unique synthetic terminal name into
+#       a SCRATCH dir only — a name resolvable ONLY through $TERMINFO_DIRS /
+#       $TERMINFO, deterministically absent from every host database. Then:
+#         RED_MODE=1  R1 the synthetic TERM with the scratch dir NOT on the search
+#                        path MUST fail terminfo resolution (defect reproduced);
+#                     R2 the SAME TERM WITH TERMINFO_DIRS=<scratch> MUST resolve —
+#                        the control needle (§11.4.201(7)(b)) proving R1's failure
+#                        was the search path, not a broken entry, and proving the
+#                        probe can report OK. This IS the env mechanism the
+#                        tmx.template fix relies on, exercised on the real binary.
+#         RED_MODE=0  G1 the SHIPPED binary + a TERM the host's database really
+#                        has, with NO env overrides, MUST resolve and bring a
+#                        server up — the real, user-visible property;
+#                     G2 the synthetic scratch-only TERM MUST still fail —
+#                        detector viability per §11.4.115(F), so G1's OK is a real
+#                        observation and not a probe that always says OK.
+#       Host-safe: everything is confined to $WORK + env vars, trap-reverted; the
+#       host terminfo database, the built binary and $HOME are never modified.
 #   C2  WRAPPER (source, standing guard): scripts/tmx.template defines
 #       _ensure_terminfo_dirs, EXPORTS TERMINFO_DIRS, AND calls it at load.
 #   C3  BUILD (source): obtain_local_deps.sh static-tinfo configure bakes in
@@ -38,14 +66,21 @@
 #
 # Usage:      bash scripts/tests/76_terminfo_database_resolves.sh
 #             RED_MODE=1 bash scripts/tests/76_terminfo_database_resolves.sh
-# Inputs:     RED_MODE (default 1 per §11.4.115). Honours $TMPDIR / $TMUX_BIN.
+# Inputs:     RED_MODE (default 0 = standing regression guard, per the TMX-085
+#             lesson that a harness invoking tests with no env override makes a
+#             test's OWN default its standing verification behaviour).
+#             Honours $TMPDIR / $TMUX_BIN.
 # Outputs:    EVIDENCE / PASS / FAIL / SKIP lines + summary.
-# Side-effects: throwaway tmux servers on private socket labels (trap-cleaned,
-#             §11.4.14). HOST-SAFE: never touches the real terminfo DB or config.
-# Dependencies: a built tmux ($TMUX_BIN or tmux/build*/bin/tmux), python3 (PTY).
+# Side-effects: throwaway tmux servers on private socket labels + a synthetic
+#             terminfo entry compiled into $WORK (trap-cleaned, §11.4.14).
+#             HOST-SAFE: never touches the real terminfo DB, the built binary,
+#             $HOME, or any config.
+# Dependencies: a built tmux ($TMUX_BIN or tmux/build*/bin/tmux), python3 (PTY),
+#             tic + infocmp (ncurses-bin) for the C1 synthesis.
 # §11.4.67:   bash -n + sh -n clean.
-# §11.4.81:   C1 is Linux/PTY-oriented; honest SKIP where python3 / binary absent.
-# Last verified: 2026-06-30
+# §11.4.81:   C1 is Linux/PTY-oriented; honest SKIP where python3 / tic / infocmp
+#             / the binary are absent.
+# Last verified: 2026-09-01
 # ─────────────────────────────────────────────────────────────────────────────
 set -uo pipefail
 

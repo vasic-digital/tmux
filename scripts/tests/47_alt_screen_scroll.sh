@@ -33,6 +33,8 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# §11.4.201 version-stable single-key binding readback (TMX-090)
+. "$REPO_ROOT/scripts/tests/lib/list_key.sh"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 HOST_OS="$(uname -s)"
 case "$HOST_OS" in
@@ -165,7 +167,7 @@ fi
 #      tmux default that would forward to the app). This is the bind
 #      string assertion — it MUST mention copy-mode AND scroll-up
 #      AND NOT be the default "if mouse_any_flag send -M" pattern.
-WHEEL_BIND="$("$TMUX_BIN" -L "$S_SOCK" list-keys -T root WheelUpPane 2>/dev/null || true)"
+WHEEL_BIND="$(tmx_list_key "$TMUX_BIN" "$S_SOCK" root WheelUpPane)"
 if printf '%s' "$WHEEL_BIND" | grep -q 'copy-mode' && \
    printf '%s' "$WHEEL_BIND" | grep -q 'scroll-up' && \
    ! printf '%s' "$WHEEL_BIND" | grep -q 'mouse_any_flag'; then

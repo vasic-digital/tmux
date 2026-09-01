@@ -2,95 +2,242 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>07_test_strategy</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-.display.math{display: block; text-align: center; margin: 0.5rem auto;}
-
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-color: #aaaaaa;
-}
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
-div.sourceCode
-{ background-color: #f8f8f8; }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ef2929; } 
-code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.at { color: #204a87; } 
-code span.bn { color: #0000cf; } 
-code span.cf { color: #204a87; font-weight: bold; } 
-code span.ch { color: #4e9a06; } 
-code span.cn { color: #8f5902; } 
-code span.co { color: #8f5902; font-style: italic; } 
-code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.dt { color: #204a87; } 
-code span.dv { color: #0000cf; } 
-code span.er { color: #a40000; font-weight: bold; } 
-code span.ex { } 
-code span.fl { color: #0000cf; } 
-code span.fu { color: #204a87; font-weight: bold; } 
-code span.im { } 
-code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.kw { color: #204a87; font-weight: bold; } 
-code span.op { color: #ce5c00; font-weight: bold; } 
-code span.ot { color: #8f5902; } 
-code span.pp { color: #8f5902; font-style: italic; } 
-code span.sc { color: #ce5c00; font-weight: bold; } 
-code span.ss { color: #4e9a06; } 
-code span.st { color: #4e9a06; } 
-code span.va { color: #000000; } 
-code span.vs { color: #4e9a06; } 
-code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
 <h1 id="07--anti-bluff-test-strategy-for-termux">§07 — Anti-Bluff Test
 Strategy for Termux</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
@@ -111,8 +258,8 @@ per §11.4.5 — not just exit codes. On Linux/macOS we have:</p>
 require:</p>
 <ul>
 <li><code>adb shell run-as com.termux</code> — this DOES NOT WORK.
-Termux&#39;s <code>AndroidManifest.xml</code> does NOT declare
-<code>android:debuggable=&quot;true&quot;</code> (security posture), so
+Termux's <code>AndroidManifest.xml</code> does NOT declare
+<code>android:debuggable="true"</code> (security posture), so
 <code>run-as</code> refuses access. Confirmed in numerous Termux GitHub
 discussions.</li>
 <li>Rooting the test device.</li>
@@ -120,9 +267,9 @@ discussions.</li>
 </ul>
 <h2 id="2-the-ssh-driven-harness--recommended">2. The SSH-driven harness
 — RECOMMENDED</h2>
-<p>The cleanest approach is to use <strong>Termux&#39;s own sshd as the test
-harness&#39;s remote-host channel</strong>. The host machine (Linux or macOS
-dev box) ssh&#39;s into the phone on port 8022 and drives tests over SSH.
+<p>The cleanest approach is to use <strong>Termux's own sshd as the test
+harness's remote-host channel</strong>. The host machine (Linux or macOS
+dev box) ssh's into the phone on port 8022 and drives tests over SSH.
 This is identical in shape to our existing nezha remote-test
 pattern.</p>
 <h3 id="21-setup-contract">2.1 Setup contract</h3>
@@ -131,7 +278,7 @@ pattern.</p>
 <li>Termux installed from F-Droid.</li>
 <li>OpenSSH (<code>pkg install openssh</code>).</li>
 <li><code>~/.ssh/authorized_keys</code> populated with the host
-machine&#39;s CI public key (NO <code>command=</code> restriction — we want
+machine's CI public key (NO <code>command=</code> restriction — we want
 unrestricted shell for testing).</li>
 <li><code>sshd</code> running on 8022 (started via Termux:Boot autostart
 script).</li>
@@ -142,13 +289,14 @@ script).</li>
 <li>Network access (Wi-Fi LAN or Tailscale).</li>
 </ul>
 <h3 id="22-host-side-test-driver">2.2 Host-side test driver</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># scripts/test_termux.sh — host-side driver</span></span>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># scripts/test_termux.sh — host-side driver</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-euo</span> pipefail</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="va">TERMUX_HOST</span><span class="op">=</span><span class="st">&quot;</span><span class="va">${TERMUX_TEST_HOST</span><span class="op">:-</span><span class="va">}</span><span class="st">&quot;</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="bu">[</span> <span class="ot">-z</span> <span class="st">&quot;</span><span class="va">$TERMUX_HOST</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">&amp;&amp;</span> <span class="kw">{</span> <span class="bu">echo</span> <span class="st">&quot;SKIP: TERMUX_TEST_HOST not set&quot;</span><span class="kw">;</span> <span class="bu">exit</span> 0<span class="kw">;</span> <span class="kw">}</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> <span class="at">-p</span> 8022 <span class="st">&quot;</span><span class="va">$TERMUX_HOST</span><span class="st">&quot;</span> <span class="st">&#39;cd ~/tmux-project &amp;&amp; git pull &amp;&amp; bash scripts/tests/run_all.sh&#39;</span></span></code></pre></div>
-<p>Test scripts run unchanged on the remote because Termux&#39;s bash is
+<p>Test scripts run unchanged on the remote because Termux's bash is
 bash 5.x and our scripts use POSIX features (per §11.4.67). Output is
 captured back to host, evidence files are pulled via
 <code>scp</code>.</p>
@@ -159,7 +307,7 @@ Linux/macOS, just collected over SSH:</p>
 <ul>
 <li><code>tmux capture-pane -p</code> output saved to
 <code>~/.tmx/evidence/&lt;test&gt;/&lt;iter&gt;/pane.txt</code>, then
-<code>scp</code>&#39;d to host.</li>
+<code>scp</code>'d to host.</li>
 <li>For tests asserting RLIMIT_AS enforcement: capture
 <code>/proc/$PID/status</code> lines <code>VmPeak:</code>,
 <code>VmSize:</code>, before and after attempting to exceed.</li>
@@ -170,7 +318,7 @@ script.</li>
 <code>/proc/$PID/oom_score_adj</code> value + tmux-server PID before and
 after a synthetic memory-pressure event.</li>
 <li>For tests asserting wake-lock effectiveness: capture
-<code>dumpsys power | grep -A2 &#39;PARTIAL_WAKE_LOCK&#39;</code> output BEFORE
+<code>dumpsys power | grep -A2 'PARTIAL_WAKE_LOCK'</code> output BEFORE
 entering Doze + AFTER simulating Doze.</li>
 </ul>
 <p>All evidence files travel back to host and feed the standard
@@ -251,13 +399,13 @@ degraded</td>
 </tr>
 </tbody>
 </table>
-<p>Each &quot;works&quot; needs CAPTURED-RUNTIME-EVIDENCE per §11.4.5, not just an
+<p>Each "works" needs CAPTURED-RUNTIME-EVIDENCE per §11.4.5, not just an
 exit code. The matrix becomes one of the layer-3 runtime tests in the
 existing <code>scripts/tests/</code> directory.</p>
 <h2 id="4-test-31--macos_linux_paritysh-extension-to-termux">4. Test 31
 — <code>macos_linux_parity.sh</code> extension to Termux</h2>
 <p>Spec §7.3 test 31 today reads
-<code>case &quot;$(uname -s)&quot; in Darwin) ... ;; Linux) ... ;; esac</code>.
+<code>case "$(uname -s)" in Darwin) ... ;; Linux) ... ;; esac</code>.
 For Termux this becomes:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">case</span> <span class="st">&quot;</span><span class="va">$(</span><span class="fu">uname</span> <span class="at">-s</span><span class="va">)</span><span class="st">&quot;</span> <span class="kw">in</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="ss">Darwin</span><span class="kw">)</span> <span class="ex">...</span> <span class="cf">;;</span></span>
@@ -303,12 +451,13 @@ churn.</li>
 of the F-Droid APK.</li>
 <li>Pros: reproducible, no physical hardware.</li>
 <li>Cons: emulators do NOT replicate lmkd / Doze / Phantom Process
-Killer accurately. Most of the WILL-DEGRADE items in §06 can&#39;t be
+Killer accurately. Most of the WILL-DEGRADE items in §06 can't be
 tested.</li>
 <li>Verdict: useful for happy-path build smoke; insufficient for full
 anti-bluff.</li>
 </ul>
-<h3 id="53-hybrid-emulator-for-cheap-smoke--scheduled-phone-runs-for-full-sweep">5.3
+<h3
+id="53-hybrid-emulator-for-cheap-smoke--scheduled-phone-runs-for-full-sweep">5.3
 Hybrid: emulator for cheap smoke + scheduled phone-runs for full
 sweep</h3>
 <ul>
@@ -347,7 +496,7 @@ failure modes specific to Termux</h2>
 risks:</p>
 <ul>
 <li><strong>Phantom Process Killer firing mid-test.</strong> A passing
-test gets <code>SIGKILL</code>&#39;d at iteration 7 of 10 because Android
+test gets <code>SIGKILL</code>'d at iteration 7 of 10 because Android
 decided the parent went background. The test framework needs to detect
 this (signal 9 != normal exit) and re-classify the run as
 <code>topology_unsupported: termux-phantom-killer-fired</code> rather
@@ -373,20 +522,20 @@ specifically:</p>
 <li>Iteration latency is HIGHER (slower CPU, slower I/O on flash
 storage) — overall sweep walltime increases by ~3× vs a Linux SSD.</li>
 <li>Some iterations may fall victim to background-kill mid-iteration.
-Classification must distinguish &quot;feature is non-deterministic&quot; (FAIL)
-from &quot;Android killed the test process&quot; (SKIP-with-reason).</li>
+Classification must distinguish "feature is non-deterministic" (FAIL)
+from "Android killed the test process" (SKIP-with-reason).</li>
 </ul>
 <p>Recommend Termux-specific N=3 for fast tests, N=10 reserved for the
 cycle-validation suite, with explicit retry-on-SIGKILL semantics.</p>
 <h2 id="9-pre-build-gate-cm-cross-platform-parity-extension">9.
 Pre-build gate <code>CM-CROSS-PLATFORM-PARITY</code> extension</h2>
-<p>§11.4.81 already defines this gate. When Termux lands, the gate&#39;s
-<code>case &quot;$(uname -s)&quot;</code> scanner detects three branches
+<p>§11.4.81 already defines this gate. When Termux lands, the gate's
+<code>case "$(uname -s)"</code> scanner detects three branches
 needed:</p>
 <ul>
 <li><code>Darwin)</code></li>
 <li><code>Linux)</code> + nested
-<code>if [ -n &quot;${TERMUX_VERSION:-}&quot; ]</code></li>
+<code>if [ -n "${TERMUX_VERSION:-}" ]</code></li>
 <li><code>Linux)</code> + nested <code>else</code> (the systemd-or-not
 split)</li>
 </ul>
@@ -394,10 +543,10 @@ split)</li>
 Standard four-layer integration.</p>
 <h2 id="10-topology-detection-in-tests">10. Topology detection in
 tests</h2>
-<p>The canonical &quot;am I on Termux?&quot; detector is:</p>
+<p>The canonical "am I on Termux?" detector is:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">_is_termux()</span> <span class="kw">{</span> <span class="bu">[</span> <span class="ot">-n</span> <span class="st">&quot;</span><span class="va">${TERMUX_VERSION</span><span class="op">:-</span><span class="va">}</span><span class="st">&quot;</span> <span class="bu">]</span> <span class="kw">||</span> <span class="bu">[</span> <span class="ot">-d</span> /data/data/com.termux/files/usr <span class="bu">]</span><span class="kw">;</span> <span class="kw">}</span></span></code></pre></div>
 <p>Belt-and-suspenders — <code>$TERMUX_VERSION</code> is the env var,
-the directory check is the fallback when the env wasn&#39;t sourced.</p>
+the directory check is the fallback when the env wasn't sourced.</p>
 <h2 id="11-captured-evidence-directory-layout">11. Captured-evidence
 directory layout</h2>
 <pre><code>qa-results/
@@ -417,7 +566,7 @@ directory layout</h2>
 <p>The test strategy reduces to: <strong>SSH-into-the-phone as we today
 SSH-into-nezha</strong>. The technical primitives (SSH, capture-pane,
 evidence files, flock state) all port. The COMPLICATION is that
-Android&#39;s mid-test killers (lmkd, Doze, Phantom Process Killer)
+Android's mid-test killers (lmkd, Doze, Phantom Process Killer)
 introduce a new failure class that must be detected and classified as
 topology issues, not test flakes. Our existing §103 + §11.4 machinery
 accommodates this via the SKIP-with-reason vocabulary.</p>
@@ -427,15 +576,21 @@ tests 18-31 + the new <code>_is_termux</code> helper in the anti-bluff
 lib). Plus the operator-side phone-prep checklist (§05).</p>
 <h2 id="sources">Sources</h2>
 <ul>
-<li><a href="https://source.android.com/docs/core/perf/lmkd">https://source.android.com/docs/core/perf/lmkd</a></li>
-<li><a href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>
+<li><a
+href="https://source.android.com/docs/core/perf/lmkd">https://source.android.com/docs/core/perf/lmkd</a></li>
+<li><a
+href="https://github.com/termux/termux-app/issues/2366">https://github.com/termux/termux-app/issues/2366</a>
 (Phantom Process Killer)</li>
-<li><a href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>
+<li><a
+href="https://github.com/termux/termux-app/issues/377">https://github.com/termux/termux-app/issues/377</a>
 (Doze)</li>
-<li><a href="https://developer.android.com/topic/performance/vitals/lmk">https://developer.android.com/topic/performance/vitals/lmk</a></li>
-<li><a href="https://github.com/termux/termux-app">https://github.com/termux/termux-app</a>
+<li><a
+href="https://developer.android.com/topic/performance/vitals/lmk">https://developer.android.com/topic/performance/vitals/lmk</a></li>
+<li><a
+href="https://github.com/termux/termux-app">https://github.com/termux/termux-app</a>
 (Termux app source — <code>android:debuggable</code> confirmation)</li>
-<li><a href="https://www.sitepoint.com/hardened-mobile-dev-a-termux-docker-guide-for-grapheneos/">https://www.sitepoint.com/hardened-mobile-dev-a-termux-docker-guide-for-grapheneos/</a>
+<li><a
+href="https://www.sitepoint.com/hardened-mobile-dev-a-termux-docker-guide-for-grapheneos/">https://www.sitepoint.com/hardened-mobile-dev-a-termux-docker-guide-for-grapheneos/</a>
 (community discussion of test/dev workflows on Termux)</li>
 </ul>
 </body>

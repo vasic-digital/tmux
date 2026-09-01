@@ -20,7 +20,11 @@
 
 package main
 
-import "strings"
+import (
+	"regexp"
+	"strconv"
+	"strings"
+)
 
 // buildItemIndex returns a TMX-NNN → *Item map of every structured item.
 func buildItemIndex(db *DB) (map[string]*Item, error) {
@@ -114,10 +118,70 @@ func rewriteBlockForStatus(blockLines []string, it *Item) string {
 	return strings.Join(out, "\n")
 }
 
+// blockCodeRE extracts the `<CAT><N>` block code from an item's `### ` heading.
+//
+// It accepts BOTH corpus heading forms — the period form `### A3. title` and the
+// no-period form `### A99 MIGRATE-ME-001 — title` — because both are live
+// operator conventions (Fixed.md carries 23 no-period headings, Issues.md 11).
+// It is DELIBERATELY separate from parser.go's headingRE: headingRE decides what
+// becomes an ITEM (widening it would re-key half the corpus), whereas this
+// regex only reads a block's self-declared code for identity verification.
+//
+// A heading carrying no `<CAT><N>` code at all (`### TMX-051 — …`,
+// `### M24-ESCAPE-001 …`) yields no match and so fails verification.
+var blockCodeRE = regexp.MustCompile(`^###\s+([A-Z])(\d+)[.\s]`)
+
+// blockHeadingIdentifies reports whether the `### ` heading line genuinely
+// belongs to item it, by requiring the block's OWN self-declared `<CAT><N>` code
+// to agree with the item's recorded category + code ordinal.
+//
+// This is the identity gate that makes a move SAFE. Locating a block by a bare
+// `**TMX-ID:** TMX-NNN` STRING match in the blob is NOT sufficient to establish
+// that the block IS that item's block: an id literal in the source can resolve
+// to a DIFFERENT item whenever the allocator has independently issued that
+// number (see the TMX-078/080/081/090 forensic case in
+// reconcile_identity_test.go, where `### G5 …` carried `**TMX-ID:** TMX-078`
+// while TMX-078 named an unrelated `A50` item). Moving on an unverified match
+// relocates one item's operator-authored prose under another item's identity and
+// rewrites its status to the foreign item's — a §11.4.108 SOURCE→ARTIFACT
+// corruption. Requiring the id AND the block code to agree makes the move rest
+// on two independent signals instead of one.
+//
+// The effective ordinal mirrors writeItemBlock's own fallback: an item with no
+// code_ordinal (every `workable-items add` row) is rendered under its TMX-NNN
+// ordinal, so identity must read it the same way.
+//
+// A heading that cannot be verified leaves the block in place — the
+// conservative-safe default per §11.4.201.
+func blockHeadingIdentifies(headingLine string, it *Item) bool {
+	if it == nil {
+		return false
+	}
+	m := blockCodeRE.FindStringSubmatch(headingLine)
+	if m == nil {
+		return false // heading declares no block code — cannot verify.
+	}
+	if !strings.EqualFold(m[1], it.Category) {
+		return false
+	}
+	ordinal, err := strconv.Atoi(m[2])
+	if err != nil {
+		return false
+	}
+	want := it.CodeOrdinal
+	if want == 0 {
+		want = atmOrdinal(it.ATMID)
+	}
+	return ordinal == want
+}
+
 // findMovedBlocks scans srcLines for item blocks (keyed on a `**TMX-ID:** TMX-NNN`
 // line) whose structured item.current_location != srcLoc — those blocks must
 // MOVE out of this file. Returns the ranges (in document order) with their
 // rewritten destination form.
+//
+// A candidate block is moved ONLY when its `### ` heading positively identifies
+// the item (blockHeadingIdentifies) — an id match alone is never enough.
 func findMovedBlocks(srcLines []string, byID map[string]*Item, srcLoc string) []itemBlockRange {
 	var moves []itemBlockRange
 	for i := 0; i < len(srcLines); i++ {
@@ -140,6 +204,10 @@ func findMovedBlocks(srcLines []string, byID map[string]*Item, srcLoc string) []
 		}
 		if start < 0 {
 			continue // malformed (TMX-ID with no enclosing heading) — leave.
+		}
+		if !blockHeadingIdentifies(srcLines[start], it) {
+			// The id resolves to an item this block is NOT — refuse the move.
+			continue
 		}
 		// Block end: the first STRUCTURAL boundary after the TMX-ID line — the
 		// next level-1..3 heading (next item / section / top) OR a `---` that is

@@ -31,6 +31,8 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# §11.4.201 version-stable single-key binding readback (TMX-090)
+. "$REPO_ROOT/scripts/tests/lib/list_key.sh"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
 HOST_OS="$(uname -s)"
 case "$HOST_OS" in
@@ -150,7 +152,7 @@ else
     _fail "T2.1: live server has no @clip-read user-option (paste-IN routing broken)"
 fi
 
-P_BIND="$("$TMUX_BIN" -L "$S_SOCK" list-keys -T prefix P 2>/dev/null || true)"
+P_BIND="$(tmx_list_key "$TMUX_BIN" "$S_SOCK" prefix P)"
 if printf '%s' "$P_BIND" | grep -Eq 'load-buffer|set-buffer|paste-buffer'; then
     _pass "T2.2: live prefix+P binding present (paste-IN keystroke path active)"
 else

@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>README</title>
   <style>
@@ -41,7 +41,6 @@
       body {
         background-color: transparent;
         color: black;
-        font-size: 12pt;
       }
       p, h2, h3 {
         orphans: 3;
@@ -156,8 +155,12 @@
       text-decoration: none;
     }
     span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
     div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
     /* The extra [class] is a hack that increases specificity enough to
        override a similar rule in reveal.js */
@@ -168,7 +171,6 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
     /* CSS for syntax highlighting */
     html { -webkit-text-size-adjust: 100%; }
     pre > code.sourceCode { white-space: pre; position: relative; }
@@ -201,39 +203,38 @@
       }
     pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
     div.sourceCode
-      {   }
+      {  background-color: #f8f8f8; }
     @media screen {
     pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
     }
-    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
-    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-    code span.at { color: #7d9029; } /* Attribute */
-    code span.bn { color: #40a070; } /* BaseN */
-    code span.bu { color: #008000; } /* BuiltIn */
-    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-    code span.ch { color: #4070a0; } /* Char */
-    code span.cn { color: #880000; } /* Constant */
-    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
-    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
-    code span.dt { color: #902000; } /* DataType */
-    code span.dv { color: #40a070; } /* DecVal */
-    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
     code span.ex { } /* Extension */
-    code span.fl { color: #40a070; } /* Float */
-    code span.fu { color: #06287e; } /* Function */
-    code span.im { color: #008000; font-weight: bold; } /* Import */
-    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
-    code span.op { color: #666666; } /* Operator */
-    code span.ot { color: #007020; } /* Other */
-    code span.pp { color: #bc7a00; } /* Preprocessor */
-    code span.sc { color: #4070a0; } /* SpecialChar */
-    code span.ss { color: #bb6688; } /* SpecialString */
-    code span.st { color: #4070a0; } /* String */
-    code span.va { color: #19177c; } /* Variable */
-    code span.vs { color: #4070a0; } /* VerbatimString */
-    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
   </style>
 </head>
 <body>
@@ -242,12 +243,11 @@
 2026-06-16T15:40:00Z</p>
 <p>A real, compile-correct Go consumer binary that drives the
 <code>digital.vasic.containers</code> submodule library to orchestrate
-container distribution to remote test hosts
-(e.g. <code>nezha.local</code>) for the tmux project’s testing
-needs.</p>
+container distribution to remote test hosts (e.g.
+<code>nezha.local</code>) for the tmux project's testing needs.</p>
 <h2 id="purpose">Purpose</h2>
 <p>When the tmux project needs heavy/containerized test workloads run on
-a remote host instead of the developer’s laptop, this binary is the
+a remote host instead of the developer's laptop, this binary is the
 on-demand entry point. It:</p>
 <ol type="1">
 <li>Loads the remote-host configuration from
@@ -265,10 +265,6 @@ submodule — the submodule stays 100% decoupled (CONST-051).</p>
 <h2 id="how-it-consumes-the-containers-submodule">How it consumes the
 Containers submodule</h2>
 <table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
 <thead>
 <tr>
 <th>Containers package</th>
@@ -304,9 +300,7 @@ Containers submodule</h2>
 </tr>
 <tr>
 <td><code>pkg/health</code></td>
-<td><code>NewDefaultChecker</code> +
-<code>HealthTarget{Type: HealthTCP|HealthHTTP}</code> +
-<code>Check(ctx)</code></td>
+<td><code>NewDefaultChecker</code> + `HealthTarget{Type: HealthTCP</td>
 </tr>
 <tr>
 <td><code>pkg/logging</code></td>
@@ -332,7 +326,7 @@ tracked.</p>
 default <code>../../Containers/.env</code> resolution works, or pass
 <code>--env</code> explicitly.</p>
 <h3
-id="hosts-register-probe-every-configured-remote-host"><code>hosts</code>
+id="hosts--register--probe-every-configured-remote-host"><code>hosts</code>
 — register + probe every configured remote host</h3>
 <div class="sourceCode" id="cb3"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./tmx-orchestrator-bin</span> hosts</span>
@@ -341,7 +335,7 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="
 each for reachability + CPU/memory, and prints a table. <strong>Exits
 non-zero if any configured host is unreachable.</strong></p>
 <h3
-id="distribute-run-a-container-on-a-remote-host-health-check-it"><code>distribute</code>
+id="distribute--run-a-container-on-a-remote-host--health-check-it"><code>distribute</code>
 — run a container on a remote host + health-check it</h3>
 <div class="sourceCode" id="cb4"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># TCP health check (default image nginx:alpine, name tmx-orch-demo, port 80)</span></span>
@@ -383,7 +377,7 @@ reach the service.</strong> The remote deploy runs
 <code>&lt;runtime&gt; run -d --name X -p host:container image</code>
 (the <code>Ports</code> field of <code>ContainerRequirements</code>,
 added to the Containers library per §11.4.76); without it the container
-port lives only inside the container’s network namespace and the
+port lives only inside the container's network namespace and the
 conductor cannot reach it. The health check polls (~15 s) so a
 freshly-started service that is not yet accepting connections is given
 time to become ready (no false PASS — a genuinely-down service stays
@@ -392,8 +386,8 @@ UNHEALTHY for the full window).</p>
 <p><strong>Health-check strength (<code>tcp</code> vs
 <code>http</code>).</strong> A <code>--health tcp</code> check is
 <em>connect-only</em>: against a <strong>published</strong> port it is
-satisfied by the runtime’s port-forward host listener even if the
-container itself is not serving that port — i.e. it confirms the port is
+satisfied by the runtime's port-forward host listener even if the
+container itself is not serving that port — i.e. it confirms the port is
 published, not that the service responds. Prefer
 <code>--health http</code> for HTTP services: the request is forwarded
 through to the container, so a non-serving container yields
@@ -403,7 +397,7 @@ through to the container, so a non-serving container yields
 running</strong> on its host for inspection (logs/exec); the command
 prints a hint to run <code>down --name &lt;name&gt;</code> so a failed
 deploy never silently leaks a container.</p>
-<h3 id="down-tear-down-distributed-containers"><code>down</code> — tear
+<h3 id="down--tear-down-distributed-containers"><code>down</code> — tear
 down distributed container(s)</h3>
 <div class="sourceCode" id="cb5"><pre
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">./tmx-orchestrator-bin</span> down <span class="at">--name</span> tmx-web</span></code></pre></div>

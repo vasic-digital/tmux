@@ -102,24 +102,33 @@ elif [ -z "$REAL_CC" ]; then
 else
     JLIB="$WORK/jlib"; mkdir -p "$JLIB"
     printf 'int __tmx75_stub;\n' > "$WORK/stub.c"
-    if "$REAL_CC" -shared -fPIC -o "$JLIB/libjemalloc.so.2" "$WORK/stub.c" >/dev/null 2>&1; then
+    # ISOLATION (TMX-091, root-caused 2026-09-01): the stub was previously named
+    # libjemalloc.so.2, so bare `-ljemalloc` searched for `libjemalloc.so`, missed
+    # this scratch -L dir, and FELL BACK TO THE SYSTEM SEARCH PATH, where the
+    # installed libjemalloc-dev provides /usr/lib/<triple>/libjemalloc.so. bare_rc
+    # was therefore 0 and the test SKIPped with a misattributed reason ("binutils
+    # variant"), never exercising its own principle on any host with the dev
+    # package. A stub name that CANNOT exist system-wide isolates the link so the
+    # principle is genuinely tested. The principle is name-independent: bare -lNAME
+    # needs libNAME.so (dev symlink), while -l:libNAME.so.2 links a runtime-only lib.
+    if "$REAL_CC" -shared -fPIC -o "$JLIB/libtmx75jem.so.2" "$WORK/stub.c" >/dev/null 2>&1; then
         # NO libjemalloc.so dev symlink is created — runtime-only, the host condition.
         printf 'int main(void){return 0;}\n' > "$WORK/conftest.c"
         bare_rc=0
-        "$REAL_CC" "$WORK/conftest.c" -L"$JLIB" -Wl,--no-as-needed -ljemalloc -Wl,--as-needed \
+        "$REAL_CC" "$WORK/conftest.c" -L"$JLIB" -Wl,--no-as-needed -ltmx75jem -Wl,--as-needed \
             -o "$WORK/t_bare" > "$WORK/bare.log" 2>&1 || bare_rc=$?
         soname_rc=0
-        "$REAL_CC" "$WORK/conftest.c" -L"$JLIB" -Wl,--no-as-needed -l:libjemalloc.so.2 -Wl,--as-needed \
+        "$REAL_CC" "$WORK/conftest.c" -L"$JLIB" -Wl,--no-as-needed -l:libtmx75jem.so.2 -Wl,--as-needed \
             -o "$WORK/t_soname" > "$WORK/soname.log" 2>&1 || soname_rc=$?
         cp "$WORK/bare.log" "$EVID_DIR/C1_bare_ljemalloc.log" 2>/dev/null || true
         cp "$WORK/soname.log" "$EVID_DIR/C1_soname_link.log" 2>/dev/null || true
         if [ "$bare_rc" != "0" ] && [ "$soname_rc" = "0" ]; then
-            _pass "C1 runtime-only jemalloc: bare -ljemalloc FAILS (rc=$bare_rc), -l:libjemalloc.so.2 LINKS (rc=0) — fix principle proven"
+            _pass "C1 runtime-only lib (isolated stub): bare -l NAME FAILS (rc=$bare_rc), -l:libNAME.so.2 LINKS (rc=0) — jemalloc link-by-SONAME principle proven"
             _ev "captured: qa-results/loop-20260630/jemalloc-link-soname/C1_bare_ljemalloc.log + C1_soname_link.log"
         elif [ "$bare_rc" = "0" ]; then
-            _skip "C1 host linker resolved bare -ljemalloc against a runtime-only stub (binutils variant) — principle not exercisable here (§11.4.3)"
+            _fail "C1 bare -l resolved against a runtime-only stub (rc=0) — the isolated stub should NOT be satisfiable without a .so dev symlink; link isolation is broken"
         else
-            _fail "C1 -l:libjemalloc.so.2 did NOT link a runtime-only jemalloc (rc=$soname_rc) — fix principle broken: $(tail -1 "$WORK/soname.log")"
+            _fail "C1 -l:libtmx75jem.so.2 did NOT link a runtime-only lib (rc=$soname_rc) — fix principle broken: $(tail -1 "$WORK/soname.log")"
         fi
     else
         _skip "C1 could not build a stub shared object on this host (§11.4.3)"

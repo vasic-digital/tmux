@@ -1665,6 +1665,20 @@ v109_run_mutation \
     "scripts/tests/59_oomd_preference_avoid.sh" \
     "FAIL (RED)"
 
+# ── M-LIST-KEY-VERSION-STABLE: single-key binding readback (TMX-090) ────────
+# Reverting the version-stable whole-table+grep readback to the key-argument
+# form of list-keys reintroduces the §11.4.201(6) FALSE NULL: under tmux 3.7b
+# `list-keys -T root WheelUpPane` returns EMPTY with rc=0 while the binding is
+# present, so the test reads "binding absent" and reports the product broken.
+# Test 17 T3 must FAIL.
+v109_run_mutation \
+    "M-LIST-KEY-VERSION-STABLE" \
+    "revert tmx_list_key to the key-argument form of list-keys — reintroduces the false-null that made six binding tests report a correct product as broken" \
+    "scripts/tests/lib/list_key.sh" \
+    "inplace_sed 's|list-keys -T \"\$table\" 2>/dev/null|list-keys -T \"\$table\" \"\$key\" 2>/dev/null|' \"\$target_abs\"" \
+    "scripts/tests/17_scrollback_copy_mode.sh" \
+    "FAIL: T3"
+
 # ── M-ZIG-YACC-BARE-WORD: build_native.sh zig-path YACC value (TMX-088) ─────
 # Reverting the bare ylwrap-correct word to the absolute path reintroduces BOTH
 # measured breakages: configure's AC_CHECK_PROG cannot resolve a slash-bearing
