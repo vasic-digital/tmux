@@ -84,7 +84,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -uo pipefail
 
-RED_MODE="${RED_MODE:-1}"
+RED_MODE="${RED_MODE:-0}"
 
 SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SELF_DIR/../.." && pwd)"
@@ -106,7 +106,20 @@ _ev()   { echo "EVIDENCE 76: $*"; }
 SCRATCH_BASE="${TMPDIR:-/tmp}"; SCRATCH_BASE="${SCRATCH_BASE%/}"
 WORK="$SCRATCH_BASE/tmx76.$$"
 EVID_DIR="$REPO_ROOT/qa-results/loop-20260630/terminfo-db-resolve"
-_cleanup() { rm -rf "$WORK" 2>/dev/null || true; }
+# §11.4.14: every probe uses a private socket label carrying THIS invocation's
+# pid, so the EXIT sweep can remove exactly our own dead sockets and can never
+# touch a concurrent run's. (kill-server ends the server but whether its socket
+# file is gone by the time we look is a race with the server's own teardown —
+# UNCONFIRMED which side wins; the sweep is correct either way, so no verdict
+# depends on that race.)
+PROBE_TAG="tmx76p$$"
+SOCK_DIR="${TMUX_TMPDIR:-/tmp}/tmux-$(id -u 2>/dev/null || echo 0)"
+_cleanup() {
+    rm -rf "$WORK" 2>/dev/null || true
+    [ -n "${SOCK_DIR:-}" ] && [ -n "${PROBE_TAG:-}" ] && \
+        rm -f "$SOCK_DIR/$PROBE_TAG"* 2>/dev/null
+    return 0
+}
 trap _cleanup EXIT
 mkdir -p "$WORK" "$EVID_DIR" 2>/dev/null || true
 
@@ -116,24 +129,25 @@ echo "════════════════════════�
 
 [ -f "$TPL" ] || { _fail "scripts/tmx.template absent"; echo "── summary 76: PASS=$PASS FAIL=$FAIL SKIP=$SKIP ──"; exit 1; }
 
-# ── C1: PRINCIPLE — bad TERMINFO_DIRS reproduces, real dirs fix it ─────────────
-if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
-    _skip "C1 no tmux binary (build absent) — cannot exercise the terminfo lookup (§11.4.3)"
-elif ! command -v python3 >/dev/null 2>&1; then
-    _skip "C1 python3 unavailable — cannot drive a PTY client attach (§11.4.3)"
-else
-    _tinfo_probe() { # $1 = TERMINFO_DIRS value; prints "ERR" iff "can't find terminfo database"
-        python3 - "$BIN" "$1" <<'PY' 2>/dev/null
+# ── C1: RUNTIME — RED/GREEN over a SYNTHESISED broken precondition ─────────────
+# The probe drives the SHIPPED binary as a client over a real PTY under a fully
+# controlled terminfo environment and CLASSIFIES what tmux itself reported. The
+# classification patterns are tmux's own tty_term_create() diagnostics; an EMPTY
+# read is classified ERR:no-output, never OK (§11.4.201(6) — a blind instrument
+# and a healthy run must not return the same quiet answer).
+_tinfo_probe() { # $1=TERM  $2=TERMINFO ('' unset)  $3=TERMINFO_DIRS ('' unset)  $4=HOME ('' inherit)
+    python3 - "$BIN" "$1" "$2" "$3" "$4" "$PROBE_TAG" <<'PY' 2>/dev/null
 import os,pty,select,time,sys,subprocess
-BIN,TD=sys.argv[1],sys.argv[2]
-L="tmx76probe%d"%os.getpid()
+BIN,TERM,TI,TD,HOME,TAG=sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4],sys.argv[5],sys.argv[6]
+L="%s_%d"%(TAG,os.getpid())
 subprocess.run([BIN,"-L",L,"kill-server"],capture_output=True)
 pid,fd=pty.fork()
 if pid==0:
-    os.environ["TERM"]="screen-256color"
-    os.environ.pop("TERMINFO",None)
-    if TD: os.environ["TERMINFO_DIRS"]=TD
-    else: os.environ.pop("TERMINFO_DIRS",None)
+    os.environ["TERM"]=TERM
+    for k,v in (("TERMINFO",TI),("TERMINFO_DIRS",TD)):
+        if v: os.environ[k]=v
+        else: os.environ.pop(k,None)
+    if HOME: os.environ["HOME"]=HOME
     os.execvp(BIN,[BIN,"-L",L,"new-session","-x","80","-y","24","sleep 2"]); os._exit(127)
 buf=b""; t=time.time()
 while time.time()-t<3.5:
@@ -146,22 +160,106 @@ while time.time()-t<3.5:
 subprocess.run([BIN,"-L",L,"kill-server"],capture_output=True)
 try: os.kill(pid,15); os.waitpid(pid,0)
 except Exception: pass
-sys.stdout.write("ERR" if "can't find terminfo database" in buf.decode(errors="replace") else "OK")
+# §11.4.14: kill-server ends the server but LEAVES its socket file behind, so a
+# repeatedly-run guard slowly litters the tmux socket dir. Unlink our own
+# private label's socket — never anything else's.
+try: os.unlink(os.path.join(os.environ.get("TMUX_TMPDIR") or "/tmp","tmux-%d"%os.getuid(),L))
+except OSError: pass
+s=buf.decode(errors="replace")
+for pat,tag in (("can't find terminfo database","ERR:db-not-found"),
+                ("missing or unsuitable terminal","ERR:entry-not-found"),
+                ("can't use hardcopy terminal","ERR:hardcopy"),
+                ("open terminal failed","ERR:open-failed")):
+    if pat in s:
+        sys.stdout.write(tag); break
+else:
+    sys.stdout.write("OK" if s.strip() else "ERR:no-output")
 PY
-    }
-    REAL_DIRS=""
-    command -v infocmp >/dev/null 2>&1 && REAL_DIRS="$(infocmp -D 2>/dev/null | tr '\n' ':' | sed 's/:*$//')"
-    [ -n "$REAL_DIRS" ] || REAL_DIRS="/usr/share/terminfo:/lib/terminfo:/etc/terminfo"
-    bad="$(_tinfo_probe "$WORK/no-such-terminfo-dir")"
-    good="$(_tinfo_probe "$REAL_DIRS")"
-    { echo "bad-dirs result=$bad  real-dirs($REAL_DIRS) result=$good"; } > "$EVID_DIR/C1_terminfo_probe.log" 2>/dev/null || true
-    if [ "$bad" = "ERR" ] && [ "$good" = "OK" ]; then
-        _pass "C1 nonexistent TERMINFO_DIRS reproduces 'can't find terminfo database'; host real dirs ($REAL_DIRS) resolve it — fix principle proven"
+}
+
+# Compile a terminfo entry for a UNIQUE synthetic terminal name into a SCRATCH
+# dir only. Derived from a real host entry so it is a genuinely usable terminal —
+# the ONLY thing wrong with it is that it lives nowhere the binary searches by
+# default. That is the forensic defect's shape (an entry the binary cannot reach)
+# constructed deterministically, instead of hoping the artifact is broken.
+SYN_TERM="tmx76syn$$"
+SYN_DIR="$WORK/terminfo"
+SYN_HOME="$WORK/home"
+SYN_BASE=""
+_synthesise_scratch_only_terminal() {
+    command -v infocmp >/dev/null 2>&1 || return 1
+    command -v tic     >/dev/null 2>&1 || return 1
+    mkdir -p "$SYN_DIR" "$SYN_HOME" 2>/dev/null || return 1
+    for base in screen-256color "${TERM:-}" xterm; do
+        [ -n "$base" ] || continue
+        infocmp -1 "$base" 2>/dev/null \
+            | sed -e "s#^$base|#$SYN_TERM|#" -e "s#^$base,#$SYN_TERM,#" > "$WORK/syn.ti" || continue
+        grep -qE "^$SYN_TERM[|,]" "$WORK/syn.ti" || continue
+        tic -x -o "$SYN_DIR" "$WORK/syn.ti" >/dev/null 2>&1 || continue
+        SYN_BASE="$base"; return 0
+    done
+    return 1
+}
+
+# The TERM used for the GREEN user-visible assertion. infocmp is a SELECTION
+# heuristic only (which names the host database actually carries) — the oracle is
+# the tmux probe itself. Without infocmp we cannot establish that any given TERM
+# is genuinely present, so G1 SKIPs rather than false-FAILing (§11.4.201(1)).
+REAL_TERM=""
+if command -v infocmp >/dev/null 2>&1; then
+    for cand in screen-256color "${TERM:-}" xterm; do
+        [ -n "$cand" ] || continue
+        infocmp -1 "$cand" >/dev/null 2>&1 || continue
+        REAL_TERM="$cand"; break
+    done
+fi
+
+if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
+    _skip "C1 no tmux binary (build absent) — cannot exercise the terminfo lookup (§11.4.3)"
+elif ! command -v python3 >/dev/null 2>&1; then
+    _skip "C1 python3 unavailable — cannot drive a PTY client attach (§11.4.3)"
+elif ! _synthesise_scratch_only_terminal; then
+    _skip "C1 tic/infocmp unavailable (or no host entry to derive from) — cannot synthesise the broken precondition (§11.4.3)"
+else
+    syn_unreachable="$(_tinfo_probe "$SYN_TERM" "" "" "$SYN_HOME")"
+    if [ "$RED_MODE" = "1" ]; then
+        syn_reachable="$(_tinfo_probe "$SYN_TERM" "" "$SYN_DIR" "$SYN_HOME")"
+        { echo "RED_MODE=1 synthetic=$SYN_TERM derived-from=$SYN_BASE scratch=$SYN_DIR"
+          echo "R1 off-search-path result=$syn_unreachable"
+          echo "R2 TERMINFO_DIRS=$SYN_DIR result=$syn_reachable"
+        } > "$EVID_DIR/C1_terminfo_probe.log" 2>/dev/null || true
+        case "$syn_unreachable" in
+            ERR:*) _pass "C1/R1 RED: synthetic terminal '$SYN_TERM' (derived from $SYN_BASE, present ONLY in $SYN_DIR) is unresolvable when that dir is off the search path — terminfo-resolution failure reproduced ($syn_unreachable)" ;;
+            *)     _fail "C1/R1 RED — the scratch-only terminal RESOLVED without its dir on the search path (result=$syn_unreachable); the broken precondition was not established, so this check proves nothing" ;;
+        esac
+        if [ "$syn_reachable" = "OK" ]; then
+            _pass "C1/R2 control needle: the SAME terminal WITH TERMINFO_DIRS=$SYN_DIR resolves and the server comes up — R1's failure was the search path, not a bad entry, and the probe can report OK (§11.4.201(7)(b))"
+        else
+            _fail "C1/R2 control needle FAILED (result=$syn_reachable) — TERMINFO_DIRS did not make the entry reachable; R1's failure is unattributable and the env mechanism the fix relies on is NOT proven on this binary"
+        fi
         _ev "captured: qa-results/loop-20260630/terminfo-db-resolve/C1_terminfo_probe.log"
-    elif [ "$good" != "OK" ]; then
-        _fail "C1 host real terminfo dirs did NOT resolve the DB (good=$good) — binary/terminfo broken"
     else
-        _skip "C1 could not reproduce the bad-dirs error here (bad=$bad) — binary's compiled-in path may already be valid (§11.4.3)"
+        if [ -z "$REAL_TERM" ]; then
+            green="SKIP"
+        else
+            green="$(_tinfo_probe "$REAL_TERM" "" "" "")"
+        fi
+        { echo "RED_MODE=0 shipped-binary=$BIN"
+          echo "G1 TERM=${REAL_TERM:-<none-selectable>} no-env-overrides result=$green"
+          echo "G2 detector-viability synthetic=$SYN_TERM off-search-path result=$syn_unreachable"
+        } > "$EVID_DIR/C1_terminfo_probe.log" 2>/dev/null || true
+        if [ -z "$REAL_TERM" ]; then
+            _skip "C1/G1 infocmp unavailable — cannot establish which TERM this host's database genuinely carries, so no TERM can be asserted resolvable without guessing (§11.4.3/§11.4.6)"
+        elif [ "$green" = "OK" ]; then
+            _pass "C1/G1 the shipped binary resolves TERM=$REAL_TERM from the host terminfo database with NO env overrides and brings a server up — the user-visible property this guard exists for"
+        else
+            _fail "C1/G1 the shipped binary could NOT resolve TERM=$REAL_TERM (result=$green) even though the host database carries it — the forensic defect is live: 'tmx new -s NAME' will die with the tmux server not coming up"
+        fi
+        case "$syn_unreachable" in
+            ERR:*) _pass "C1/G2 detector viability (§11.4.115(F)): the scratch-only terminal '$SYN_TERM' still FAILS off the search path ($syn_unreachable) — G1's OK is a real observation, not a probe that always reports OK" ;;
+            *)     _fail "C1/G2 detector viability FAILED — the scratch-only terminal RESOLVED off its search path (result=$syn_unreachable); this probe cannot distinguish a resolvable terminal from an unresolvable one, so G1's verdict is unvalidated instrumentation" ;;
+        esac
+        _ev "captured: qa-results/loop-20260630/terminfo-db-resolve/C1_terminfo_probe.log"
     fi
 fi
 

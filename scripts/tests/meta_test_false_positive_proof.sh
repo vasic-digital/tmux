@@ -1665,6 +1665,33 @@ v109_run_mutation \
     "scripts/tests/59_oomd_preference_avoid.sh" \
     "FAIL (RED)"
 
+# ── M-T68-ECHO-SATISFIED-NEEDLE: test 68 dir assertions (TMX-092) ───────────
+# Reverting C3's split-literal sentinel to the inline form puts the needle in the
+# ECHOED COMMAND LINE, so pth_wait_text is satisfied before the shell has run --
+# and C3 then PASSES even when the target directory does not exist (proven: with
+# $PROJ deleted the pre-fix C3 still reported PASS, i.e. it could not catch its
+# own negation). Test 68 must FAIL on C3.
+v109_run_mutation \
+    "M-T68-ECHO-SATISFIED-NEEDLE" \
+    "revert test 68's C3 output-only sentinel to the echo-satisfied inline needle — restores a sub-check that passes on a deleted directory" \
+    "scripts/tests/68_session_lifecycle.sh" \
+    "inplace_sed 's|&& pth_wait_text \"drv_\${NAME}_c\" \"C3PWD:\$PROJ\" 10|\&\& pth_capture \"drv_\${NAME}_c\" | grep -qF \"\$PROJ\"|' \"\$target_abs\"" \
+    "scripts/tests/68_session_lifecycle.sh" \
+    "FAIL"
+
+# ── M76b: test 76 C1 detector blinded (§11.4.115(F) detector viability) ──────
+# C1 asserts a RUNTIME property, so no tmx.template mutation reaches it; the
+# honest pairing mutates the DETECTOR's environment while the gate still runs the
+# real binary. Handing the "unreachable" probe the scratch terminfo dir makes the
+# synthetic terminal resolve, so the viability guard must FAIL.
+run_mutation \
+    "M76b: test 76 C1 detector blinded — off-path probe handed the scratch terminfo dir (§11.4.115(F))" \
+    "scripts/tests/76_terminfo_database_resolves.sh" \
+    "inplace_sed 's|_tinfo_probe \"\$SYN_TERM\" \"\" \"\" \"\$SYN_HOME\"|_tinfo_probe \"\$SYN_TERM\" \"\" \"\$SYN_DIR\" \"\$SYN_HOME\"|' \"\$target_abs\"" \
+    "false" \
+    "scripts/tests/76_terminfo_database_resolves.sh" \
+    "FAIL.*C1/G2"
+
 # ── M-LIST-KEY-VERSION-STABLE: single-key binding readback (TMX-090) ────────
 # Reverting the version-stable whole-table+grep readback to the key-argument
 # form of list-keys reintroduces the §11.4.201(6) FALSE NULL: under tmux 3.7b

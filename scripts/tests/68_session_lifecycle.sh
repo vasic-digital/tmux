@@ -296,9 +296,9 @@ for _iter in 1 2 3; do
 
     # ───────────────────────────── C3 ───────────────────────────────────
     # cd into a dir under ~/Projects + ls → pane cwd is that dir.
-    pth_send_line "drv_${NAME}_c" "cd '$PROJ' && ls && pwd && echo C3DONE_$_iter"
+    pth_send_line "drv_${NAME}_c" "cd '$PROJ' && ls && echo \"C3PW\"\"D:\$(pwd)\" && echo \"C3DO\"\"NE_$_iter\""
     if pth_wait_text "drv_${NAME}_c" "C3DONE_$_iter" 10 \
-       && pth_capture "drv_${NAME}_c" | grep -qF "$PROJ"; then
+       && pth_wait_text "drv_${NAME}_c" "C3PWD:$PROJ" 10; then
         echo "[evidence C3 iter=$_iter] pane cwd == $PROJ (ls ran; pwd shows the dir)"
         _pass "iter $_iter C3: cd into ~/Projects dir + ls → pane cwd is the dir"
     else
@@ -380,9 +380,9 @@ for _iter in 1 2 3; do
             ss="$(_get_opt "$NAME" status-style)"
             [ "$ss" = "bg=red" ] && _pass "iter $_iter C5: still RED on reattach (bg=red)" \
                 || _fail "iter $_iter C5: status-style='$ss' on reattach (want bg=red)"
-            pth_send_line "drv_${NAME}_rc" "pwd && echo C5PWD_$_iter"
-            if pth_wait_text "drv_${NAME}_rc" "C5PWD_$_iter" 10 \
-               && pth_capture "drv_${NAME}_rc" | grep -qF "$PROJ"; then
+            pth_send_line "drv_${NAME}_rc" "echo \"C5PW\"\"D:\$(pwd)\" && echo \"C5DO\"\"NE_$_iter\""
+            if pth_wait_text "drv_${NAME}_rc" "C5DONE_$_iter" 10 \
+               && pth_wait_text "drv_${NAME}_rc" "C5PWD:$PROJ" 10; then
                 _pass "iter $_iter C5: same directory on reattach ($PROJ)"
             else
                 _fail "iter $_iter C5: reattached pane not in $PROJ"
@@ -509,9 +509,9 @@ for _iter in 1 2 3; do
                     ss="$(_get_opt "$C6NAME" status-style)"
                     [ "$ss" = "bg=red" ] && _pass "iter $_iter C6: re-create RESTORED RED (bg=red)" \
                         || _fail "iter $_iter C6: re-create color='$ss' (want bg=red)"
-                    pth_send_line "drv_${C6NAME}_re" "pwd && echo C6PWD_$_iter"
-                    if pth_wait_text "drv_${C6NAME}_re" "C6PWD_$_iter" 10 \
-                       && pth_capture "drv_${C6NAME}_re" | grep -qF "$PROJ"; then
+                    pth_send_line "drv_${C6NAME}_re" "echo \"C6PW\"\"D:\$(pwd)\" && echo \"C6DO\"\"NE_$_iter\""
+                    if pth_wait_text "drv_${C6NAME}_re" "C6DONE_$_iter" 10 \
+                       && pth_wait_text "drv_${C6NAME}_re" "C6PWD:$PROJ" 10; then
                         _pass "iter $_iter C6: re-create RESTORED dir ($PROJ)"
                     else
                         _fail "iter $_iter C6: re-create pane not in remembered dir $PROJ"
@@ -604,9 +604,9 @@ for _iter in 1 2 3; do
                     bg=*)   _pass "iter $_iter C7: DEFAULT color = host fallback ($ss, not the deleted red)" ;;
                     *)      _fail "iter $_iter C7: no fallback color applied (status-style='$ss')" ;;
                 esac
-                pth_send_line "drv_${NAME}_d" "pwd && echo C7PWD_$_iter"
-                if pth_wait_text "drv_${NAME}_d" "C7PWD_$_iter" 10 \
-                   && pth_capture "drv_${NAME}_d" | grep -qF "$HOME_DIR"; then
+                pth_send_line "drv_${NAME}_d" "echo \"C7PW\"\"D:\$(pwd)\" && echo \"C7DO\"\"NE_$_iter\""
+                if pth_wait_text "drv_${NAME}_d" "C7DONE_$_iter" 10 \
+                   && pth_wait_text "drv_${NAME}_d" "C7PWD:$HOME_DIR" 10; then
                     _pass "iter $_iter C7: DEFAULT dir = \$HOME ($HOME_DIR)"
                 else
                     _fail "iter $_iter C7: default dir not \$HOME (pane not in $HOME_DIR)"
