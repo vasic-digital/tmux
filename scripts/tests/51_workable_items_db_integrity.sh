@@ -89,6 +89,12 @@ if [ -f "$DB" ]; then
     validate_rc=$?
     if [ "$validate_rc" -ne 0 ]; then
         _fail "T3 'workable-items validate --db $DB' returned rc=$validate_rc: $validate_out"
+    elif echo "$validate_out" | grep -qF 'identity audit skipped'; then
+        # A skipped audit still prints "0 findings", so a bare grep for that
+        # string would PASS on a check that never ran (§11.4.201 false-null:
+        # a blind instrument and a clean corpus return the identical quiet
+        # zero). Refuse the skip-shaped output explicitly.
+        _fail "T3 the §11.4.54 identity audit SKIPPED — its zero proves nothing: $validate_out"
     elif echo "$validate_out" | grep -qE '0 findings'; then
         _pass "T3 validate clean: $validate_out"
     else

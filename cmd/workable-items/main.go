@@ -170,6 +170,8 @@ func runValidate(args []string) {
 	fs := flag.NewFlagSet("validate", flag.ExitOnError)
 	dbPath := fs.String("db", "docs/workable_items.db", "path to SQLite DB")
 	schemaOnly := fs.Bool("schema-only", false, "only check that the embedded schema applies cleanly")
+	issuesPath := fs.String("issues", "Issues.md", "path to the open tracker (cross-surface §11.4.54 identity audit)")
+	fixedPath := fs.String("fixed", "Fixed.md", "path to the closed tracker (cross-surface §11.4.54 identity audit)")
 	_ = fs.Parse(args)
 
 	db, err := OpenDB(*dbPath)
@@ -187,6 +189,26 @@ func runValidate(args []string) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "validate: %v\n", err)
 		os.Exit(1)
+	}
+	// §11.4.54 cross-surface block-identity audit. Runs only when both trackers
+	// are readable; a missing tracker is reported honestly rather than silently
+	// skipping the audit (an absent check and a clean corpus must not look alike).
+	if _, e1 := os.Stat(*issuesPath); e1 == nil {
+		if _, e2 := os.Stat(*fixedPath); e2 == nil {
+			idf, unlocated, err := ValidateBlockIdentity(db, *issuesPath, *fixedPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "validate (identity): %v\n", err)
+				os.Exit(1)
+			}
+			findings = append(findings, idf...)
+			if unlocated > 0 {
+				fmt.Printf("note: %d item(s) skipped by the identity audit — their block could not be located (known heading-form gap)\n", unlocated)
+			}
+		} else {
+			fmt.Printf("note: identity audit skipped — %s not readable\n", *fixedPath)
+		}
+	} else {
+		fmt.Printf("note: identity audit skipped — %s not readable\n", *issuesPath)
 	}
 	if len(findings) == 0 {
 		fmt.Println("validate OK: 0 findings")
