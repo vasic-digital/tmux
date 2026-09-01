@@ -30,11 +30,35 @@ import (
 
 // headingRE matches H3 lines that introduce a workable item.
 //
-//	### <CAT><N>. <title>
+//	### <CAT><N>. <title>     (period form)
+//	### <CAT><N> <title>      (space form)
 //
-// Captures: 1=category letter (A..Z), 2=numeric, 3=remainder (title + trailing
-// status hint).
-var headingRE = regexp.MustCompile(`^###\s+([A-Z])(\d+)\.\s+(.*)$`)
+// BOTH forms are accepted. The period was once required, which silently dropped
+// every space-form block from the SSoT: its body was absorbed into the
+// PRECEDING item's raw_body and its item sat in the DB with a sentinel identity
+// (category Z / code_ordinal 0 — "heading never parsed"), so nothing could
+// locate it in the markdown. The corpus carries both forms (measured
+// 2026-09-01: 10 of 13 CAT+N headings in Issues.md and 23 of 83 in Fixed.md
+// were space form), and the reconciler's own matcher `blockCodeRE` had ALWAYS
+// accepted both — so the narrow form here was an internal inconsistency, not a
+// deliberate contract.
+//
+// The separator is REQUIRED, and must be followed by real title text. These are
+// therefore all correctly REFUSED (each pinned by TestHeadingRE_AcceptedAndRefused):
+//
+//	`### A50X`   no separator at all
+//	`### A1.x`   period not followed by whitespace
+//	`### A12.5`  a decimal/version-like token is not an ordinal + title
+//	`### A1.`    empty title (its heading_hash would be computed over "")
+//	`### A1 `    empty title after a space separator
+//
+// Captures: 1=category letter (A..Z), 2=numeric ordinal, 3=title (the remainder,
+// which carries any trailing status hint).
+//
+// THIS COMMENT IS THE SPECIFIED ORACLE (§11.4.245) for heading_forms_test.go:
+// that test's accept/refuse table is derived from the contract stated here, not
+// from the regex, so a change to one that is not a change to the other fails.
+var headingRE = regexp.MustCompile(`^###\s+([A-Z])(\d+)(?:\.\s+|\s+)(\S.*)$`)
 
 // trailingStatusRE captures the optional " — `STATUS`" suffix at the end of
 // the heading remainder.

@@ -134,6 +134,11 @@ func runSync(args []string) {
 		}
 		fmt.Printf("sync md-to-db OK: issues_parsed=%d fixed_parsed=%d inserted=%d updated=%d unchanged=%d allocated=%d refresh_raw=%v\n",
 			res.IssuesParsed, res.FixedParsed, res.Inserted, res.Updated, res.UnchangedItems, res.ATMIDsAllocated, *refreshRawBodies)
+		if res.IdentityRebinds > 0 {
+			// Never let a row-replacing rebind pass unseen (§11.4.226).
+			fmt.Printf("  identity rebinds: %d — %s\n",
+				res.IdentityRebinds, strings.Join(res.RebindDetails, "; "))
+		}
 	case "db-to-md":
 		if err := SyncDBToMD(db, *outDir); err != nil {
 			fmt.Fprintf(os.Stderr, "sync db-to-md: %v\n", err)

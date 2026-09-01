@@ -54,8 +54,9 @@
 
 ## A. Tooling / harness gaps — RESOLVED
 
-### A50. Session-name sanitization for spaces and special characters — `RESOLVED`
+### A55. Session-name sanitization for spaces and special characters — `RESOLVED`
 
+**TMX-ID:** TMX-078
 **Type:** Feature
 **Status:** Implemented (→ Fixed.md)
 **Closure cycle:** v1.0.35 / versionCode 36 (2026-07-05).
@@ -77,7 +78,7 @@
 
 **Regression-protection.** `M82` in `scripts/tests/meta_test_false_positive_proof.sh`.
 
-**Tracked task.** Issues.md §G5 `SANITIZE-NAME-001` / `TMX-078`.
+**Tracked task.** This entry (§A55) IS the tracked record — `SANITIZE-NAME-001` / `TMX-078`. It formerly pointed at an Issues.md §G5 block that duplicated this one; that duplicate was retired on operator decision (2026-09-01) so one item has exactly one block.
 
 ---
 

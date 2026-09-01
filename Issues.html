@@ -367,6 +367,80 @@ so the refusal does not depend on <code>_scope_ok</code> at all.
 <code>tmx new -s NAME</code> against an already-live NAME still refuses
 cleanly, with no password prompt reached.</p>
 <hr />
+<h3
+id="a5-add-hash-convention-split-001--addgo-and-parsergo-compute-heading_hash-from-two-different-conventions">A5.
+ADD-HASH-CONVENTION-SPLIT-001 — <code>add.go</code> and
+<code>parser.go</code> compute heading_hash from two different
+conventions</h3>
+<p><strong>TMX-ID:</strong> TMX-093 <strong>Type:</strong> Task
+<strong>Status:</strong> Queued</p>
+<p><strong>What.</strong>
+<code>computeHeadingHash(category, code, title)</code> is called with
+two different second arguments: <code>add.go:52</code> passes the ATM id
+(<code>TMX-093</code>) where <code>parser.go:201</code> passes the block
+code (<code>B1</code>). The same logical item therefore hashes
+differently depending on which path created its row, so an
+<code>add</code>-created row never binds to the parser's hash for its
+own block.</p>
+<p><strong>How it manifests.</strong> A row created by <code>add</code>
+is reached by its declared <code>**TMX-ID:**</code> rather than by
+heading identity, so the first sync after an operator hand-writes that
+item's block performs an identity rebind: the row is updated,
+<code>identity rebinds: 1</code> is printed, and an
+<code>item_history</code> row is recorded. Surfaced by independent
+review 2026-09-01, which walked the full lifecycle and confirmed the
+behaviour is bounded — exactly ONE honest rebind, after which the hash
+lookup hits and the sync converges to <code>unchanged</code>. It is a
+standing surprise, not a data-loss path.</p>
+<p><strong>Reproduction.</strong>
+<code>workable-items add -title X -category B ...</code>, then
+hand-write the matching <code>### B&lt;N&gt; X</code> block declaring
+that id into Issues.md, then <code>sync md-to-db</code>: observe the
+<code>identity rebinds: 1</code> line. A second sync reports
+<code>unchanged</code>.</p>
+<p><strong>Acceptance.</strong> Either normalise the two call sites onto
+one convention (and migrate any existing add-created rows), or document
+the split at <code>computeHeadingHash</code> so the rebind is expected
+rather than surprising — whichever the operator prefers. Live corpus is
+unaffected today: sync reports <code>unchanged=90</code> with zero
+rebinds.</p>
+<hr />
+<h3
+id="a6-add-rows-not-rendered-001--db-to-md-does-not-render-rows-created-by-the-add-verb">A6.
+ADD-ROWS-NOT-RENDERED-001 — <code>db-to-md</code> does not render rows
+created by the <code>add</code> verb</h3>
+<p><strong>TMX-ID:</strong> TMX-094 <strong>Type:</strong> Bug
+<strong>Status:</strong> Queued</p>
+<p><strong>What.</strong> <code>sync db-to-md</code> replays
+<code>document_sources</code> reconciled against the structured rows, so
+a row that has no block in the source markdown is not rendered at all. A
+row created by <code>workable-items add</code> is exactly that: it
+exists in the SSoT and is invisible in the tracker documents.</p>
+<p><strong>How it manifests.</strong> The item is silently absent from
+<code>Issues.md</code> / <code>Fixed.md</code> and from their exports,
+so it does not reach an operator reading the trackers even though
+<code>validate</code> and the DB both hold it — the §11.4.148 integrity
+contract (an item must carry status, type and id on ALL surfaces) is not
+met for these rows.</p>
+<p><strong>Why this is filed now.</strong> The defect is PRE-EXISTING
+and is referenced in TMX-076 only as historical context for why
+TMX-071's work was reverted; no item tracks the rendering defect itself.
+Confirmed untracked by grep over both trackers 2026-09-01 (with a
+control needle proving the search was not blind), and re-demonstrated by
+independent review the same day: an <code>add</code>-created row
+produced an empty rendered <code>Issues.md</code>. Filed so it stops
+being carried only inside another item's narrative (§11.4.197 — a known
+defect with no tracked item evaporates).</p>
+<p><strong>Reproduction.</strong>
+<code>workable-items add -title X ...</code> into a scratch DB, then
+<code>sync db-to-md --out-dir &lt;tmp&gt;</code>: the rendered
+<code>Issues.md</code> contains no block for X.</p>
+<p><strong>Acceptance.</strong> <code>db-to-md</code> emits a block for
+every structured row that has no corresponding source block (appended to
+its category section), so a round-trip after <code>add</code> is
+lossless; covered by a test that adds a row, renders, and asserts the
+block is present, with its §1.1 mutation removing the emit.</p>
+<hr />
 <h2 id="b-anti-bluff-completeness-across-the-existing-test-surface">B.
 Anti-bluff completeness across the existing test surface</h2>
 <p>(Prior B-items closed: B3 P5-M20/P5-M21 escapes CLOSED in v1.0.16
@@ -476,93 +550,14 @@ Code lands across sibling tasks of that plan; these four entries track
 the four user-visible requirements from the operator mandate
 (random-suffix create, masked password input, single-prompt reopen,
 existing-session picker).</p>
-<h3
-id="g1-wizard-suffix-001--wizard-created-sessions-get-a-random-4-digit-name-suffix">G1
-WIZARD-SUFFIX-001 — wizard-created sessions get a random 4-digit name
-suffix</h3>
-<p><strong>TMX-ID:</strong> TMX-072 <strong>Type:</strong> Feature
-<strong>Status:</strong> Implemented (→ Fixed.md)</p>
-<p>Typing a session name at the interactive tmx wizard now always
-creates a brand-new session whose real name is the typed name plus a
-random 4-digit suffix (e.g. my-session-2507), so retyping the same base
-name later can never collide with or be confused for an earlier session.
-This makes every session created through the wizard genuinely unique by
-construction, while scripts and tests that need a deterministic exact
-name can set TMX_EXACT_NAME=1 to opt out. Implemented in
-scripts/tmx-shell-init.sh.template. Acceptance: test 78 passes, showing
-the created session name matches base-NNNN and that TMX_EXACT_NAME=1
-suppresses it.</p>
-<h3
-id="g2-password-mask-001--password-input-is-masked-with-asterisks-while-typing">G2
-PASSWORD-MASK-001 — password input is masked with asterisks while
-typing</h3>
-<p><strong>TMX-ID:</strong> TMX-073 <strong>Type:</strong> Feature
-<strong>Status:</strong> Implemented (→ Fixed.md)</p>
-<p>Session passwords are no longer echoed in plaintext to the terminal
-while being typed. Every password prompt in the tmx wrapper now shows a
-single asterisk character for each keystroke, with backspace erasing one
-asterisk, so a password can never be read off the screen by someone
-glancing at it. Implemented via the shared _read_password_masked helper
-in scripts/tmx.template. Acceptance: test 77 passes, proving the pane
-buffer never contains the typed plaintext.</p>
-<h3
-id="g3-double-prompt-001--reopening-a-password-protected-session-no-longer-asks-for-the-password-twice">G3
-DOUBLE-PROMPT-001 — reopening a password-protected session no longer
-asks for the password twice</h3>
-<p><strong>TMX-ID:</strong> TMX-074 <strong>Type:</strong> Bug
-<strong>Status:</strong> Fixed (→ Fixed.md)</p>
-<p>Reopening a session that had been idle-recycled (its tmux process
-torn down for inactivity, but its password remembered) used to show a
-confusing second prompt that looked like it might be resetting the
-password, even though typing the same password both times always worked.
-The root cause was the attach command checking the remembered password
-before checking whether the session was actually still running, so a
-doomed attach attempt fell through to the create flow, which
-unconditionally asked to set a password again. Opening an
-already-protected session (live or recycled) now verifies the password
-exactly once; only a genuinely brand-new session name asks for a
-password and a confirmation. Fixed in scripts/tmx.template's attach and
-new command handling. Acceptance: test 81 reproduces the exact reported
-scenario end-to-end and proves exactly one prompt appears, with the
-stored password unchanged afterward.</p>
-<h3
-id="g4-wizard-picker-001--wizard-offers-a-picker-of-existing-sessions-when-no-new-name-is-typed">G4
-WIZARD-PICKER-001 — wizard offers a picker of existing sessions when no
-new name is typed</h3>
-<p><strong>TMX-ID:</strong> TMX-075 <strong>Type:</strong> Feature
-<strong>Status:</strong> Implemented (→ Fixed.md)</p>
-<p>Previously, pressing Enter without typing a session name at the
-interactive tmx wizard always dropped the operator into a plain shell
-with no other option. Now, if any sessions already exist, the operator
-sees a numbered list of them plus a 'None' option, and can pick a number
-to join that session directly (still prompted for its password exactly
-once if it is protected) instead of having to remember and retype its
-exact name. Choosing None, or pressing Enter again, behaves exactly as
-before (a plain shell). Implemented in
-scripts/tmx-shell-init.sh.template. Acceptance: test 79 passes, covering
-picking a plain session, picking a password-protected one, and choosing
-None.</p>
-<h3
-id="g5-sanitize-name-001--session-names-containing-spaces-or-special-characters-are-normalized-to-safe-names">G5
-SANITIZE-NAME-001 — session names containing spaces or special
-characters are normalized to safe names</h3>
-<p><strong>TMX-ID:</strong> TMX-078 <strong>Type:</strong> Feature
-<strong>Status:</strong> Implemented (→ Fixed.md)</p>
-<p>When the operator types or passes a session name containing spaces,
-tabs, or other special characters, tmx now normalizes it instead of
-rejecting it: leading/trailing whitespace is removed, internal
-whitespace runs are collapsed to a single <code>-</code>, and any
-remaining characters outside the session-name safe set are stripped.
-This applies both to <code>tmx new -s NAME</code> (via
-<code>scripts/tmx.template</code>) and to the interactive wizard prompt
-(via <code>scripts/tmx-shell-init.sh.template</code>), so names like
-<code>"hello world"</code> become <code>hello-world</code>. The wizard
-prompt preserves inline colour syntax (<code>name:red</code>,
-<code>name:#hex</code>) by splitting at the first <code>:</code> before
-sanitizing the name and inserting the random suffix before the colour
-token (<code>home-1234:red</code>). Empty or whitespace-only input
-continues to fall through to the existing empty/default picker path.
-Closure: v1.0.35 / versionCode 36.</p>
+<p><strong>Section closed 2026-09-01.</strong> All five entries have
+landed and now live in <code>Fixed.md</code>: G1/TMX-072, G2/TMX-073,
+G3/TMX-074, G4/TMX-075 (the four listed above) and the session-name
+sanitization work as §A55/TMX-078. Their blocks were duplicated here
+while they were also in <code>Fixed.md</code>; the duplicates were
+retired on operator decision so each item has exactly one block. The
+heading is kept for the historical context above — it is deliberately
+empty of items, not missing them.</p>
 <hr />
 <h2
 id="h-pre-existing-timing-issues-surfaced-during-the-2026-08-10-no-limits-by-default-cycle">H.

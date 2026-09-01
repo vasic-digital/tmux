@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-09-01T16:15:00Z
+**Last updated:** 2026-09-01T19:25:23Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -33,6 +33,70 @@ Paste this prompt:
 - `Constitution.md` §5 / §12.10 continuation-document sacred invariant
 
 ## §3 — Active work
+
+### §3.37 — Heading-regex widening + corpus repair (TMX-072..075, TMX-078, TMX-093, TMX-094) → 2026-09-01
+
+**Status:** IN PROGRESS — landed in the working tree, independent review CLOSED with a
+clean GO, full `verify.sh` sweep on the final tree in flight. NOT yet committed.
+
+**The defect.** `cmd/workable-items/parser.go`'s `headingRE` required a period after
+the block ordinal (`### A52.`), so every SPACE-form heading (`### G5 NAME-001 — …`)
+failed to parse. Consequence measured, not inferred: the block's body was absorbed
+into the PRECEDING item's `raw_body`, and its own row sat in the DB with a sentinel
+identity (category `Z` / `code_ordinal 0`), so nothing could locate it in the
+markdown. The reconciler's own matcher `blockCodeRE` had ALWAYS accepted both forms —
+so the narrow parser was an internal inconsistency, not a deliberate contract.
+
+**What widening exposed (each fixed at root cause, not patched at the call site):**
+
+| # | Defect | Fix |
+|---|---|---|
+| 1 | `UpsertItem` decided INSERT-vs-UPDATE on `heading_hash` alone, so a newly-parseable block died on `UNIQUE constraint failed: items.atm_id` | resolve an explicit `**TMX-ID:**` to its existing row and UPDATE, refreshing the hash |
+| 2 | Two blocks for one item silently COLLAPSED into one row whose survivor depended on read order | fail-closed guard on the UNION of `**TMX-ID:**` and heading identity across every parsed block in BOTH files |
+| 3 | The guard persisted `document_sources` BEFORE running, so a REFUSED sync still mutated the git-tracked SSoT | raw text held in locals; both blobs persisted only after the guard passes |
+| 4 | An identity rebind replaced a row's category/ordinal/title/body with NO history row and NO counter — `validate` reported 0 findings because the result was self-consistent | prior identity captured, `item_history` row written, counted in `SyncResult`, printed by the CLI |
+| 5 | `itemContentEqual` compared `Category` but not `CodeOrdinal`/`HeadingHash`, so an ordinal-only renumber took the "unchanged" path — the row kept a stale ordinal + hash PERMANENTLY (every later sync re-missed the hash and re-reported unchanged) | both fields added to the comparison; rows now self-heal from either drift |
+| 6 | `lookupByHeadingHash` matched on error TEXT and returned `("", nil)` for real DB errors — a failed query read as a hash MISS, which mints a duplicate row | `errors.Is(err, sql.ErrNoRows)`; real errors propagate |
+
+**Corpus repair (operator-approved 2026-09-01, both decisions recorded):** removed four
+stale `### G1..G4` duplicates that existed as full blocks in BOTH trackers (TMX-072..075,
+already closed in `Fixed.md`); resolved the `A50` double-claim by renumbering
+`Fixed.md`'s block to `### A55.` and adding `**TMX-ID:** TMX-078`, then retiring the
+duplicate Issues `### G5`. The emptied `## G.` section was ANNOTATED, not deleted.
+
+**Regex also TIGHTENED.** `(?:\.\s+|\s+)` with a `(\S.*)$` title, so `### A1.x`,
+`### A12.5` (which would have yielded ordinal 12, title "5 …") and empty-title
+`### A1.` are refused. Blast radius MEASURED before syncing: 90 loose-accepted corpus
+headings scanned, **0** dropped, control-needle proven.
+
+**Two new tracked items filed (§11.4.197 — both were genuinely untracked):** TMX-093
+(`add.go:52` passes the ATM id where `parser.go:201` passes the block code into
+`computeHeadingHash` — bounded to one honest rebind, a standing surprise) and TMX-094
+(`db-to-md` does not render `add`-created rows — the §11.4.148 all-surfaces contract
+is unmet for them). `Issues.md` §A5 / §A6.
+
+**Measured state:** sentinel identities 7 → 3; 14 previously-invisible blocks now
+tracked; cross-tracker duplicates 5 → 0; sync idempotent (`unchanged=92`, zero
+rebinds); round-trip byte-identical 3/3; test 51 `PASS=5 FAIL=0`; `validate` 0 findings.
+The identity-audit unlocated count ROSE 55 → 57 — honest and explained in
+`docs/qa/2026-09-01-heading-regex-widening/closure-evidence.md`: 14 newly-visible blocks entered the
+SSoT and the audit can only locate a block that declares a `**TMX-ID:**`, which 60 of 85
+`Fixed.md` blocks do not.
+
+**Review (§11.4.134 iterate-to-GO, independent reviewer, 4 rounds + a delta):** round 2
+NO-GO (1 BLOCKING — my own corpus-removal loop had over-deleted the `## H.` header and
+its §11.4.114 preamble; restored verbatim from `git show HEAD:Issues.md` — plus 3
+IMPORTANT + 3 MINOR); round 3 NO-GO (defect 5 above, found in the seam I had asked the
+reviewer to attack); round 4 **GO**, delta review of the two filed items **GO**.
+Two of my own new tests were BLIND on first write (one had an inverted condition that
+skipped every assertion; one asserted an outcome identical under both code paths) —
+both found by running the mutations rather than trusting the green, and rewritten.
+
+**KNOWN-OPEN — explicitly NOT claimed (§11.4.6):** (1) the FINAL full `verify.sh` sweep
+on the exact committable tree is IN FLIGHT — outcome NOT known; two earlier sweeps were
+terminated as stale (each started before a later fix) rather than quoted; (2) NOT
+committed and NOT pushed; (3) §11.4.185 manual QA not performed; (4) this cycle does not
+close any of §3.36's known-open items.
 
 ### §3.36 — v1.0.44 release cycle — consolidated state (TMX-086 / TMX-087 / TMX-088 / TMX-089) → 2026-09-01
 

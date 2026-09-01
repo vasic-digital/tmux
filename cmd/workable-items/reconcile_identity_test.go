@@ -218,10 +218,93 @@ func TestAllocatorNeverReissuesAnIDPresentInSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TMX-078 is declared in the source; no auto-allocated item may hold it.
+	// §11.4.120 RECONCILED 2026-09-01 (headingRE widened to accept the space
+	// heading form).
+	//
+	// The invariant is unchanged — an id literal present in the source must
+	// never be auto-allocated to a DIFFERENT item (§11.4.54 never-reuse). What
+	// changed is the correct observable. Previously the declaring block
+	// `### G5 SANITIZE-NAME-001 …` could not parse, so the id was reserved and
+	// necessarily UNUSED, and "no row holds TMX-078" was a sound PROXY. The
+	// widened parser binds that block to the id it declares, so a row now
+	// legitimately holds it — and the old proxy reports the RIGHTFUL owner as a
+	// theft.
+	//
+	// Assert the invariant directly: if TMX-078 is held, it must be held by the
+	// block that DECLARES it (G5), never by an unrelated auto-allocated item.
+	// This is strictly stronger than the proxy — it distinguishes the rightful
+	// owner from a thief instead of forbidding ownership outright.
 	if it, _ := db.GetItem("TMX-078"); it != nil {
-		t.Errorf("TMX-078 was re-issued to an unrelated item %q (cat=%s%d) — the "+
-			"literal is present in Issues.md and MUST be reserved",
+		if it.Category != "G" || it.CodeOrdinal != 5 {
+			t.Errorf("TMX-078 was re-issued to an unrelated item %q (cat=%s%d) — the "+
+				"literal is present in Issues.md and MUST be reserved for the block "+
+				"that declares it (G5)",
+				it.Title, it.Category, it.CodeOrdinal)
+		}
+	}
+}
+
+// TestAllocatorReservesIDLiteralInsideANonParseableBlock keeps the §11.4.54
+// id-reservation loop under a LIVE §1.1 mutation pair.
+//
+// WHY THIS TEST EXISTS (measured 2026-09-01). Widening headingRE to accept the
+// space heading form orphaned the mutation pair of the test above: the block
+// declaring TMX-078 now PARSES, so it binds the id through the ExplicitATM path
+// and the id is never offered to the allocator — with or without the
+// reservation loop. Disabling the loop left that test GREEN.
+//
+// The loop is still load-bearing for an id literal the parser CANNOT bind:
+// one inside a heading with no <CAT><N> code (the live corpus has
+// `### M24-ESCAPE-001 …`, `### TMX-051 …`, `### NEZHA-INSTALL-v1.0.26-001 …`).
+// Such a literal reserves nothing on its own, so without the loop the allocator
+// re-issues that very number to an unrelated item — two items answering to one
+// id, the §11.4.54 never-reuse violation this loop was built for.
+func TestAllocatorReservesIDLiteralInsideANonParseableBlock(t *testing.T) {
+	dir := t.TempDir()
+
+	// The id literal lives in a NON-item block, so no parsed item can claim it.
+	issues := "# Issues\n\n## A\n\n" +
+		"### M24-ESCAPE-001 — a non-item heading that carries an id literal\n\n" +
+		"**TMX-ID:** TMX-078\n" +
+		"**Type:** Task\n\n" +
+		"Body prose for the non-item block, long enough to satisfy the floor.\n"
+
+	// An ordinary item with NO id of its own — the allocator must serve it a
+	// FRESH number, never the reserved literal above.
+	fixed := "# Fixed\n\n## A\n\n" +
+		"### A9. An unnumbered closed item — `RESOLVED`\n\n" +
+		"**Type:** Task\n\n" +
+		"Closed item body prose long enough to satisfy the description floor.\n"
+
+	issuesPath := dir + "/Issues.md"
+	fixedPath := dir + "/Fixed.md"
+	if err := os.WriteFile(issuesPath, []byte(issues), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(fixedPath, []byte(fixed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	db, err := OpenDB(dir + "/t.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	// Park the counter exactly on the reserved literal, so the very next
+	// allocation collides unless the literal was reserved.
+	if err := db.MetaSet("next_atm_id", "78"); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := SyncMDToDB(db, issuesPath, fixedPath); err != nil {
+		t.Fatal(err)
+	}
+
+	// No parsed item declares TMX-078, so nothing may hold it.
+	if it, _ := db.GetItem("TMX-078"); it != nil {
+		t.Errorf("TMX-078 was re-issued to %q (cat=%s%d) — the literal sits in a "+
+			"non-parseable block and MUST still be reserved",
 			it.Title, it.Category, it.CodeOrdinal)
 	}
 }

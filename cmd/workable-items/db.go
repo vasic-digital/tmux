@@ -165,6 +165,39 @@ func (d *DB) UpsertItem(it *Item) error {
 			it.RawBody, existingATM)
 		return err
 	}
+	// heading_hash MISSED. Before treating this as a new row, check whether the
+	// caller already resolved an EXISTING atm_id (sync_md_to_db.go does exactly
+	// this via its `**TMX-ID:**` ExplicitATM fallback). An item's identity is its
+	// atm_id; heading_hash is a FINDING AID that must be free to change when the
+	// heading legitimately changes — a wording reflow, or a block that only
+	// becomes parseable once headingRE accepts the space heading form.
+	//
+	// Without this branch the hash miss fell straight through to INSERT and hit
+	// `UNIQUE constraint failed: items.atm_id` (reproduced on the live corpus for
+	// TMX-072). UPDATE the row and REFRESH its heading_hash, so the next sync
+	// binds on the hash again instead of repeating the miss.
+	if it.ATMID != "" {
+		var seen string
+		err = d.conn.QueryRow("SELECT atm_id FROM items WHERE atm_id = ?", it.ATMID).Scan(&seen)
+		if err != nil && err != sql.ErrNoRows {
+			return fmt.Errorf("lookup by atm_id: %w", err)
+		}
+		if err == nil {
+			_, err = d.conn.Exec(`
+				UPDATE items SET
+					type = ?, status = ?, severity = ?, title = ?, description = ?,
+					forensic_anchor = ?, closure_criteria = ?, composes_with = ?,
+					current_location = ?, category = ?, code_ordinal = ?,
+					heading_hash = ?, raw_body = ?, last_modified = datetime('now')
+				WHERE atm_id = ?`,
+				it.Type, it.Status, it.Severity, it.Title, it.Description,
+				it.ForensicAnchor, it.ClosureCriteria, it.ComposesWith,
+				it.CurrentLocation, it.Category, it.CodeOrdinal,
+				it.HeadingHash, it.RawBody, it.ATMID)
+			return err
+		}
+	}
+
 	// Insert new row.
 	_, err = d.conn.Exec(`
 		INSERT INTO items(

@@ -123,13 +123,16 @@ func rewriteBlockForStatus(blockLines []string, it *Item) string {
 // It accepts BOTH corpus heading forms — the period form `### A3. title` and the
 // no-period form `### A99 MIGRATE-ME-001 — title` — because both are live
 // operator conventions (Fixed.md carries 23 no-period headings, Issues.md 11).
-// It is DELIBERATELY separate from parser.go's headingRE: headingRE decides what
-// becomes an ITEM (widening it would re-key half the corpus), whereas this
-// regex only reads a block's self-declared code for identity verification.
+// It is kept separate from parser.go's headingRE because the two answer
+// different questions — headingRE decides what becomes an ITEM (and captures its
+// title), this one only reads a block's self-declared code for identity
+// verification. Their ACCEPTED SET is deliberately identical: the two once
+// disagreed (headingRE required the period), and that disagreement silently
+// dropped every space-form block from the SSoT. They are changed together.
 //
 // A heading carrying no `<CAT><N>` code at all (`### TMX-051 — …`,
 // `### M24-ESCAPE-001 …`) yields no match and so fails verification.
-var blockCodeRE = regexp.MustCompile(`^###\s+([A-Z])(\d+)[.\s]`)
+var blockCodeRE = regexp.MustCompile(`^###\s+([A-Z])(\d+)(?:\.\s+|\s+)\S`)
 
 // blockHeadingIdentifies reports whether the `### ` heading line genuinely
 // belongs to item it, by requiring the block's OWN self-declared `<CAT><N>` code

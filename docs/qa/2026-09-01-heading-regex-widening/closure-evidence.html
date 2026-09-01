@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>closure-evidence</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+<h1 id="closure-evidence--heading-regex-widening--corpus-repair">Closure
+evidence — heading-regex widening + corpus repair</h1>
+<p>Captured: 2026-09-01T18:36:11Z HEAD: ec25327</p>
+<h2 id="identity-audit-unlocated-count-review-minor-5">Identity-audit
+unlocated count (review MINOR-5)</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BEFORE (period-only regex, pre-repair)</td>
+<td>55</td>
+</tr>
+<tr>
+<td>AFTER (widened+tightened, post-repair)</td>
+<td>57</td>
+</tr>
+</tbody>
+</table>
+<p>The count ROSE by 2. This is an honest regression in that one number,
+not a silent one, and it is explained: 14 previously-invisible blocks
+now parse into the SSoT, and the audit can only LOCATE a block that
+declares a <code>**TMX-ID:**</code> line. Blocks with no such line
+assert no ownership and are skipped by design (the audit's own
+false-positive guard) — they are counted, never hidden.</p>
+<table>
+<thead>
+<tr>
+<th>file</th>
+<th>blocks with no <code>**TMX-ID:**</code></th>
+<th>total blocks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Issues.md</td>
+<td>3</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Fixed.md</td>
+<td>60</td>
+<td>85</td>
+</tr>
+</tbody>
+</table>
+<h2
+id="sentinel-identities-category-z--code_ordinal--0--heading-never-parsed">Sentinel
+identities (category Z / code_ordinal &lt;= 0 — heading never
+parsed)</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BEFORE</td>
+<td>7</td>
+</tr>
+<tr>
+<td>AFTER</td>
+<td>3 (of 92 rows)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="corpus-duplication">Corpus duplication</h2>
+<p>Cross-tracker duplicates BEFORE: 5 (G1..G4 in both trackers; A50
+claimed by two items). AFTER: 0 — enforced at the sync seam, which now
+refuses on the union of <code>**TMX-ID:**</code> and heading-identity
+across every parsed block in both files.</p>
+<h2
+id="mutation-ledger-11--every-guard-pinned-each-mutation-verified-to-land-before-running">Mutation
+ledger (§1.1) — every guard pinned, each mutation verified to land
+before running</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Mutation</th>
+<th>Test that FAILs</th>
+<th>Author</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M-C</td>
+<td>revert <code>headingRE</code> to the loose pre-tightening form</td>
+<td><code>TestHeadingRE_AcceptedAndRefused</code></td>
+<td>me</td>
+</tr>
+<tr>
+<td>M-D</td>
+<td>desync <code>blockCodeRE</code> from <code>headingRE</code></td>
+<td><code>TestHeadingRE_AndBlockCodeRE_AgreeOnAcceptance</code></td>
+<td>me</td>
+</tr>
+<tr>
+<td>M-A</td>
+<td>restrict the duplicate guard to same-code pairs</td>
+<td><code>…RefusesSameIDUnderDifferentBlockCodes</code></td>
+<td>reviewer (survived round 2)</td>
+</tr>
+<tr>
+<td>M-B</td>
+<td>restrict the duplicate guard to cross-file pairs</td>
+<td><code>…RefusesSameIDTwiceWithinOneFile</code></td>
+<td>me</td>
+</tr>
+<tr>
+<td>R1</td>
+<td>disable the byHash key</td>
+<td><code>…RefusesIdLessDuplicateAcrossTrackers</code></td>
+<td>reviewer (survived round 2)</td>
+</tr>
+<tr>
+<td>R5</td>
+<td>swap identity-resolution precedence</td>
+<td><code>…HeadingHashWinsAndNoSpuriousRebindIsRecorded</code></td>
+<td>reviewer (survived round 2)</td>
+</tr>
+<tr>
+<td>R17</td>
+<td>suppress the rebind counter, keep the history row</td>
+<td><code>…IdentityRebindIsRecordedInHistory</code></td>
+<td>reviewer</td>
+</tr>
+<tr>
+<td>R23</td>
+<td>strip the prior identity from the history <code>Reason</code></td>
+<td><code>…IdentityRebindIsRecordedInHistory</code></td>
+<td>reviewer</td>
+</tr>
+<tr>
+<td>—</td>
+<td>persist <code>document_sources</code> before the guard</td>
+<td><code>…RefusalLeavesDocumentSourcesUntouched</code></td>
+<td>me</td>
+</tr>
+<tr>
+<td>—</td>
+<td>remove the rebind's history recording</td>
+<td><code>…IdentityRebindIsRecordedInHistory</code></td>
+<td>me</td>
+</tr>
+<tr>
+<td>—</td>
+<td>blank <code>RebindDetails</code></td>
+<td><code>…IdentityRebindIsRecordedInHistory</code></td>
+<td>me</td>
+</tr>
+<tr>
+<td>—</td>
+<td>restore the <code>lookupByHeadingHash</code> error swallow</td>
+<td><code>…ReportsRealErrorsInsteadOfReportingAbsent</code></td>
+<td>me</td>
+</tr>
+<tr>
+<td>—</td>
+<td>drop <code>CodeOrdinal</code> from
+<code>itemContentEqual</code></td>
+<td><code>…DriftedStoredOrdinalSelfHeals</code></td>
+<td>me</td>
+</tr>
+<tr>
+<td>—</td>
+<td>drop <code>HeadingHash</code> from
+<code>itemContentEqual</code></td>
+<td><code>…StaleStoredHashSelfHeals</code></td>
+<td>me</td>
+</tr>
+<tr>
+<td>—</td>
+<td>drop BOTH identity fields</td>
+<td><code>…OrdinalOnlyRenumberIsAppliedAndRecorded</code></td>
+<td>me</td>
+</tr>
+</tbody>
+</table>
+<p>Two of my own tests were BLIND on first write and were caught by
+running these mutations rather than trusting the green: the rebind
+test's assertions sat behind an inverted condition that skipped them
+every run, and the precedence test asserted a row outcome that is
+identical under both orderings (<code>UpsertItem</code> re-resolves by
+heading-hash internally, so the sync-layer order changes only the audit
+trail). Both were rewritten to assert what the mutation actually
+changes.</p>
+<h2 id="review-trail-114134-iterate-to-go">Review trail (§11.4.134
+iterate-to-GO)</h2>
+<p>Round 2 NO-GO — 1 BLOCKING (my corpus-removal loop over-deleted the
+<code>## H.</code> header and its §11.4.114 preamble; restored verbatim
+from <code>git show HEAD:Issues.md</code>), 3 IMPORTANT, 3 MINOR. Round
+3 NO-GO — 1 IMPORTANT (the <code>itemContentEqual</code> identity gap,
+found in the seam I asked the reviewer to attack). Round 4 GO — zero
+findings, zero warnings. Delta review of the two filed tracker items
+GO.</p>
+</body>
+</html>

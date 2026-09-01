@@ -53,10 +53,20 @@ func TestParse_PeriodHeadingDoesNotAbsorbFollowingBlock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	// The no-period block is not a workable item of its own (does not match
-	// headingRE) — only the period heading parses.
-	if len(items) != 1 {
-		t.Fatalf("expected exactly 1 parsed item, got %d", len(items))
+	// §11.4.120 RECONCILED 2026-09-01: headingRE now accepts the SPACE heading
+	// form too, so the follower `### B2 …` parses as its OWN item — 2 items, not
+	// 1. That count was never the invariant; it was an artifact of the narrow
+	// regex. THE invariant is the two absorption assertions below: the period
+	// item must not swallow the follower's **TMX-ID:** or **Type:**. Those are
+	// unchanged and remain the load-bearing checks.
+	if len(items) != 2 {
+		t.Fatalf("expected the period item AND the now-parseable follower (2), got %d", len(items))
+	}
+	// The follower must own the metadata written inside its own block — the
+	// positive half of the same invariant, which the old count-based assertion
+	// could not express at all.
+	if got := items[1].ExplicitATM; got != "TMX-005" {
+		t.Errorf("the follower block must own its own **TMX-ID:**, got %q want %q", got, "TMX-005")
 	}
 	if got := items[0].ExplicitATM; got != "" {
 		t.Errorf("period item absorbed a following block's **TMX-ID:**: ExplicitATM=%q, want \"\"", got)
@@ -108,14 +118,101 @@ func TestSyncMDToDB_PeriodHeadingDoesNotStealExistingTMXID(t *testing.T) {
 		t.Fatalf("md-to-db raised an error (greedy-bind UNIQUE collision): %v", err)
 	}
 
-	got, err := db.GetItem(victim.ATMID)
+	// §11.4.120 RECONCILED 2026-09-01 when headingRE was widened to accept the
+	// space heading form.
+	//
+	// The invariant is unchanged: the PERIOD item must not take an id that
+	// belongs to a different block. What changed is the correct OBSERVABLE.
+	//
+	// Previously the follower `### B2 …` could never parse, so nothing could
+	// legitimately rewrite the victim row, and "victim title unchanged" was a
+	// sound PROXY for "the period item did not steal the id". With the widened
+	// parser the follower is a real item that literally declares
+	// `**TMX-ID:** <victim>` inside its own block, so binding to that row and
+	// refreshing its fields is the CORRECT repair (it is exactly how the live
+	// TMX-072..075 sentinel rows regain their identity) — the old proxy now
+	// reports that correct behaviour as theft.
+	//
+	// So assert the invariant DIRECTLY instead of through the stale proxy:
+	// the period item must hold a FRESH id, and the victim id must be held by
+	// the block that declares it. This is strictly stronger than the proxy —
+	// it names the thief rather than inferring one from a side effect.
+	items, err := db.AllItems()
 	if err != nil {
-		t.Fatalf("re-read victim: %v", err)
+		t.Fatalf("read back items: %v", err)
 	}
-	if got == nil {
+	var periodItem, victimRow *Item
+	for _, it := range items {
+		switch {
+		case it.Category == "A" && it.CodeOrdinal == 1:
+			periodItem = it
+		case it.ATMID == victim.ATMID:
+			victimRow = it
+		}
+	}
+	if periodItem == nil {
+		t.Fatalf("the period item (A1) was not persisted; rows=%d", len(items))
+	}
+	// THE invariant: the greedy period heading did not take the victim's id.
+	if periodItem.ATMID == victim.ATMID {
+		t.Errorf("greedy bind: the period item A1 STOLE %s (title=%q)",
+			victim.ATMID, periodItem.Title)
+	}
+	if victimRow == nil {
 		t.Fatalf("victim %s vanished after sync", victim.ATMID)
 	}
-	if got.Title != victim.Title {
-		t.Errorf("victim %s was clobbered: title=%q, want %q", victim.ATMID, got.Title, victim.Title)
+	// And the id is held by the block that actually declares it — the follower.
+	if victimRow.Category != "B" || victimRow.CodeOrdinal != 2 {
+		t.Errorf("%s should be held by the follower block B2 that declares it, got %s%d (title=%q)",
+			victim.ATMID, victimRow.Category, victimRow.CodeOrdinal, victimRow.Title)
+	}
+}
+
+// TestParse_NonItemHeadingStillClosesMetadataWindow keeps the TMX-065
+// greedy-bind guard under a LIVE §1.1 mutation pair.
+//
+// WHY THIS TEST EXISTS (measured 2026-09-01). When headingRE was widened to
+// accept the space heading form, the two tests above stopped exercising the
+// guard: a follower like `### B2 …` now matches headingRE itself, so the
+// heading-match branch ends the preceding block before the metadata window is
+// ever consulted. Mutating the guard away (`anyHeadingRE` → `false`) left both
+// of them GREEN — i.e. the widening silently orphaned the guard's mutation
+// pair, and the guard was one refactor away from being deleted as dead code
+// (§11.4.124).
+//
+// The guard is still load-bearing for every heading that is NOT an item: a
+// `####` sub-heading, and CAT+N-less `### ` headings which the live corpus
+// really does contain (Issues.md `### M24-ESCAPE-001 …`, Fixed.md
+// `### TMX-051 …`, `### NEZHA-INSTALL-v1.0.26-001 …`). This test drives that
+// class, so the guard keeps a mutation that genuinely FAILs without it.
+func TestParse_NonItemHeadingStillClosesMetadataWindow(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, "Issues.md")
+	doc := "# Issues\n\n## A\n\n" +
+		"### A1. Period heading with no TMX-ID of its own\n\n" +
+		"This period item has a sufficiently long description paragraph here.\n\n" +
+		// NOT a workable item: no <CAT><N> code, so headingRE does not match and
+		// the heading-match branch never fires. Only the guard can close the
+		// window before these structured lines are read.
+		"### M24-ESCAPE-001 — a non-item heading that carries metadata\n\n" +
+		"**TMX-ID:** TMX-005\n" +
+		"**Type:** Bug\n\n" +
+		"Body text for the non-item block, long enough to read as a paragraph.\n"
+	if err := os.WriteFile(path, []byte(doc), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	items, err := ParseFile(path, LocationIssues)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("the non-item heading must NOT become an item: got %d items", len(items))
+	}
+	if got := items[0].ExplicitATM; got != "" {
+		t.Errorf("period item absorbed a non-item block's **TMX-ID:**: got %q, want \"\" "+
+			"(the greedy-bind guard did not close the metadata window)", got)
+	}
+	if got := items[0].Item.Type; got != TypeTask {
+		t.Errorf("period item absorbed a non-item block's **Type:**: got %q, want %q", got, TypeTask)
 	}
 }

@@ -326,14 +326,15 @@ layer (c) met by challenge entries CH-01 through CH-14</td>
 <h2 id="a-tooling--harness-gaps--resolved">A. Tooling / harness gaps —
 RESOLVED</h2>
 <h3
-id="a50-session-name-sanitization-for-spaces-and-special-characters--resolved">A50.
+id="a55-session-name-sanitization-for-spaces-and-special-characters--resolved">A55.
 Session-name sanitization for spaces and special characters —
 <code>RESOLVED</code></h3>
-<p><strong>Type:</strong> Feature <strong>Status:</strong> Implemented
-(→ Fixed.md) <strong>Closure cycle:</strong> v1.0.35 / versionCode 36
-(2026-07-05). <strong>Reported:</strong> Operator, 2026-07-05 — session
-names typed/passed with spaces or special characters should be
-normalized to safe names instead of rejected.</p>
+<p><strong>TMX-ID:</strong> TMX-078 <strong>Type:</strong> Feature
+<strong>Status:</strong> Implemented (→ Fixed.md) <strong>Closure
+cycle:</strong> v1.0.35 / versionCode 36 (2026-07-05).
+<strong>Reported:</strong> Operator, 2026-07-05 — session names
+typed/passed with spaces or special characters should be normalized to
+safe names instead of rejected.</p>
 <p><strong>Root cause / behaviour.</strong> <code>tmx new -s NAME</code>
 and the interactive wizard prompt previously rejected names containing
 spaces or most special characters. This forced the operator to know the
@@ -379,8 +380,11 @@ test 82 fails, proving the guard has teeth.</li>
 </ul>
 <p><strong>Regression-protection.</strong> <code>M82</code> in
 <code>scripts/tests/meta_test_false_positive_proof.sh</code>.</p>
-<p><strong>Tracked task.</strong> Issues.md §G5
-<code>SANITIZE-NAME-001</code> / <code>TMX-078</code>.</p>
+<p><strong>Tracked task.</strong> This entry (§A55) IS the tracked
+record — <code>SANITIZE-NAME-001</code> / <code>TMX-078</code>. It
+formerly pointed at an Issues.md §G5 block that duplicated this one;
+that duplicate was retired on operator decision (2026-09-01) so one item
+has exactly one block.</p>
 <hr />
 <h3
 id="a49-test-17-scrollback--copy-mode-load-flake--root-caused--fixed-two-independent-vectors--resolved">A49.

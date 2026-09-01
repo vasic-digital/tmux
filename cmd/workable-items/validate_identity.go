@@ -38,8 +38,11 @@ import (
 )
 
 // blockOwnerRE matches a block heading in either heading form the corpus uses:
-// `### G5 NAME-001 — ...` and `### A52. NAME-001 — ...` (the period form is the
-// only one the item parser accepts; both appear in the tracked markdown).
+// `### G5 NAME-001 — ...` and `### A52. NAME-001 — ...`. Both are accepted by
+// the item parser too (parser.go's headingRE); this audit deliberately stays
+// LOOSER than that parser — it must be able to see a block the parser cannot,
+// because "the parser did not reach this block" is one of the states it counts
+// (the `unlocated` return) rather than a state it should be blind to.
 var blockOwnerRE = regexp.MustCompile(`^###\s+([A-Z])(\d+)\.?\s`)
 
 // idFieldRE matches the ticket-id field line inside a block body.
