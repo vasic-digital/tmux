@@ -224,28 +224,45 @@ false-positive guard) — they are counted, never hidden.</p>
 </tr>
 </tbody>
 </table>
-<h2
-id="sentinel-identities-category-z--code_ordinal--0--heading-never-parsed">Sentinel
-identities (category Z / code_ordinal &lt;= 0 — heading never
-parsed)</h2>
+<h2 id="sentinel-identities-heading-never-parsed">Sentinel identities
+(heading never parsed)</h2>
+<p>Measured against <code>git show HEAD~1:docs/workable_items.db</code>
+vs the current DB.</p>
 <table>
 <thead>
 <tr>
 <th></th>
-<th>count</th>
+<th>BEFORE</th>
+<th>AFTER</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>BEFORE</td>
-<td>7</td>
+<td>rows with <code>code_ordinal &lt;= 0</code></td>
+<td>17</td>
+<td>3 (of 94 rows)</td>
 </tr>
 <tr>
-<td>AFTER</td>
-<td>3 (of 92 rows)</td>
+<td>rows with <code>category = 'Z'</code></td>
+<td>4</td>
+<td>0</td>
 </tr>
 </tbody>
 </table>
+<p>The 14 rows that healed (TMX-057..066, TMX-072..075) were the TRUE
+sentinels — every one of them now carries a real
+<code>&lt;CAT&gt;&lt;ORD&gt;</code>. The 3 survivors are NOT sentinels:
+they are TMX-038 / TMX-039 / TMX-041, the genuine <code>### A0.</code> /
+<code>### B0</code> / <code>### C0</code> blocks at
+<code>Fixed.md:2585 / 2652 / 2718</code>, whose ordinal legitimately IS
+zero.</p>
+<p>CORRECTION (§11.4.6): an earlier revision of this file published "7 →
+3" for this row. That figure reproduces under no definition of
+"sentinel" the current DB supports (category-Z-only = 4; category-Z AND
+ordinal-0 = 4; <code>code_ordinal &lt;= 0</code> = 17; true sentinels =
+14) and it contradicted this document's own adjacent "14 newly-visible
+blocks" figure. The table above is the re-measured, reproducible
+replacement.</p>
 <h2 id="corpus-duplication">Corpus duplication</h2>
 <p>Cross-tracker duplicates BEFORE: 5 (G1..G4 in both trackers; A50
 claimed by two items). AFTER: 0 — enforced at the sync seam, which now
@@ -281,7 +298,7 @@ before running</h2>
 <td>M-A</td>
 <td>restrict the duplicate guard to same-code pairs</td>
 <td><code>…RefusesSameIDUnderDifferentBlockCodes</code></td>
-<td>reviewer (survived round 2)</td>
+<td>reviewer (SURVIVED round 1)</td>
 </tr>
 <tr>
 <td>M-B</td>
@@ -293,13 +310,13 @@ before running</h2>
 <td>R1</td>
 <td>disable the byHash key</td>
 <td><code>…RefusesIdLessDuplicateAcrossTrackers</code></td>
-<td>reviewer (survived round 2)</td>
+<td>reviewer (SURVIVED round 1)</td>
 </tr>
 <tr>
 <td>R5</td>
 <td>swap identity-resolution precedence</td>
 <td><code>…HeadingHashWinsAndNoSpuriousRebindIsRecorded</code></td>
-<td>reviewer (survived round 2)</td>
+<td>reviewer (SURVIVED round 1)</td>
 </tr>
 <tr>
 <td>R17</td>
@@ -330,6 +347,32 @@ before running</h2>
 <td>blank <code>RebindDetails</code></td>
 <td><code>…IdentityRebindIsRecordedInHistory</code></td>
 <td>me</td>
+</tr>
+<tr>
+<td>R2</td>
+<td>disable the id-reservation loop</td>
+<td><code>TestAllocatorReservesIDLiteralInsideANonParseableBlock</code></td>
+<td>reviewer (caught)</td>
+</tr>
+<tr>
+<td>R3</td>
+<td>drop the atm-branch heading-hash refresh</td>
+<td><code>TestUpsertItem_ChangedHeadingHashUpdatesByATMID</code></td>
+<td>reviewer (caught)</td>
+</tr>
+<tr>
+<td>R4</td>
+<td>weaken <code>headingRE</code>'s title group to
+<code>(.*)$</code></td>
+<td><code>TestHeadingRE_AcceptedAndRefused</code> +
+<code>…AgreeOnAcceptance</code></td>
+<td>reviewer (caught)</td>
+</tr>
+<tr>
+<td>R6</td>
+<td>disable the greedy-bind guard</td>
+<td><code>TestParse_NonItemHeadingStillClosesMetadataWindow</code></td>
+<td>reviewer (caught)</td>
 </tr>
 <tr>
 <td>—</td>
@@ -369,12 +412,22 @@ trail). Both were rewritten to assert what the mutation actually
 changes.</p>
 <h2 id="review-trail-114134-iterate-to-go">Review trail (§11.4.134
 iterate-to-GO)</h2>
-<p>Round 2 NO-GO — 1 BLOCKING (my corpus-removal loop over-deleted the
+<p>Round 1 NO-GO — 1 BLOCKING (my corpus-removal loop over-deleted the
 <code>## H.</code> header and its §11.4.114 preamble; restored verbatim
-from <code>git show HEAD:Issues.md</code>), 3 IMPORTANT, 3 MINOR. Round
-3 NO-GO — 1 IMPORTANT (the <code>itemContentEqual</code> identity gap,
-found in the seam I asked the reviewer to attack). Round 4 GO — zero
-findings, zero warnings. Delta review of the two filed tracker items
-GO.</p>
+from <code>git show HEAD:Issues.md</code>), plus IMPORTANT + MINOR
+findings. Round 2 NO-GO — 3 IMPORTANT, 3 MINOR; it also VERIFIED the
+round-1 BLOCKING closed. Round 3 NO-GO — 1 IMPORTANT (the
+<code>itemContentEqual</code> identity gap, found in the seam I asked
+the reviewer to attack). Round 4 GO — zero findings, zero warnings.
+Delta review of the two filed tracker items GO. Delta review of
+<code>CONTINUATION.md</code> §3.37 + this file NO-GO on 3 MINOR
+documentation-accuracy findings (round attribution, the sentinel
+figures, and a superseded gitignored copy of this file) — all three
+remediated.</p>
+<p>Round-numbering note (§11.4.6): no per-round review artifact was
+written to disk, so the boundary between rounds 1 and 2 could not be
+reconstructed independently here. The numbering is the reviewer's own
+record; an earlier revision of this file folded round 1 into round 2 and
+mis-attributed the BLOCKING to round 2.</p>
 </body>
 </html>

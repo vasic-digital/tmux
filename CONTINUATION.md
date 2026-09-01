@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-09-01T19:25:23Z
+**Last updated:** 2026-09-01T19:38:09Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -75,19 +75,29 @@ headings scanned, **0** dropped, control-needle proven.
 (`db-to-md` does not render `add`-created rows — the §11.4.148 all-surfaces contract
 is unmet for them). `Issues.md` §A5 / §A6.
 
-**Measured state:** sentinel identities 7 → 3; 14 previously-invisible blocks now
-tracked; cross-tracker duplicates 5 → 0; sync idempotent (`unchanged=92`, zero
+**Measured state:** rows with `code_ordinal <= 0` 17 → 3, of which the 14 healed rows
+were the true sentinels and the surviving 3 are the genuine zero-ordinal blocks
+`### A0.` / `### B0` / `### C0` (`Fixed.md:2585/2652/2718`) — real ordinals, not
+sentinels; category-`Z` sentinels 4 → 0; 14 previously-invisible blocks now
+tracked (TMX-079..092 — a DIFFERENT set of 14 from the healed rows TMX-057..066 +
+TMX-072..075); cross-tracker duplicates 5 → 0; sync idempotent (`unchanged=92`, zero
 rebinds); round-trip byte-identical 3/3; test 51 `PASS=5 FAIL=0`; `validate` 0 findings.
 The identity-audit unlocated count ROSE 55 → 57 — honest and explained in
 `docs/qa/2026-09-01-heading-regex-widening/closure-evidence.md`: 14 newly-visible blocks entered the
 SSoT and the audit can only locate a block that declares a `**TMX-ID:**`, which 60 of 85
 `Fixed.md` blocks do not.
 
-**Review (§11.4.134 iterate-to-GO, independent reviewer, 4 rounds + a delta):** round 2
-NO-GO (1 BLOCKING — my own corpus-removal loop had over-deleted the `## H.` header and
-its §11.4.114 preamble; restored verbatim from `git show HEAD:Issues.md` — plus 3
-IMPORTANT + 3 MINOR); round 3 NO-GO (defect 5 above, found in the seam I had asked the
-reviewer to attack); round 4 **GO**, delta review of the two filed items **GO**.
+**Review (§11.4.134 iterate-to-GO, independent reviewer, 4 rounds + two deltas):**
+round 1 NO-GO (1 BLOCKING — my own corpus-removal loop had over-deleted the `## H.`
+header and its §11.4.114 preamble; restored verbatim from `git show HEAD:Issues.md`);
+round 2 NO-GO (3 IMPORTANT + 3 MINOR, and it VERIFIED the round-1 BLOCKING closed);
+round 3 NO-GO (defect 5 above, found in the seam I had asked the reviewer to attack);
+round 4 **GO**; delta review of the two filed items **GO**; delta review of this entry
++ the evidence file NO-GO on 3 MINOR documentation-accuracy findings, all three
+remediated here. Round-numbering note (§11.4.6): no per-round artifact was kept on
+disk, so I could not reconstruct the round boundary independently — the numbering
+above is the reviewer's record, corroborated by this entry's own earlier
+internal inconsistency (it claimed 4 rounds while enumerating only 3).
 Two of my own new tests were BLIND on first write (one had an inverted condition that
 skipped every assertion; one asserted an outcome identical under both code paths) —
 both found by running the mutations rather than trusting the green, and rewritten.
