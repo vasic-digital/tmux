@@ -3,7 +3,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Purpose:    TMX-063 standing regression guard — PROVE the PRODUCTION scripts
 #             (scripts/obtain_local_deps.sh + scripts/build_native.sh) build a
-#             working tmux 3.6a with NO root, NO sudo/su, NO interaction, even
+#             working tmux next-3.8 with NO root, NO sudo/su, NO interaction, even
 #             when the host has NO working C toolchain — by OBTAINING the zig
 #             root-free toolchain and source-building libevent/ncurses/jemalloc
 #             + tmux with it. (§11.4.115 RED-baseline + §11.4.135 guard +
@@ -21,14 +21,14 @@
 #       the REAL build cannot link → FAILS at the can't-link step (defect present
 #       on the broken artifact). Same source, polarity switch.
 #   C4  GREEN (RED_MODE=0): in the neutered env WITH the zig obtain, the REAL
-#       project scripts build tmux 3.6a end-to-end with ONLY the obtained zig.
-#   C5  tmux -V == "tmux 3.6a" (user-visible build product).
+#       project scripts build tmux next-3.8 end-to-end with ONLY the obtained zig.
+#   C5  tmux -V == "tmux $EXPECTED_VERSION" (default next-3.8) — user-visible build product.
 #   C6  LIVE SESSION: the zig-built tmux drives a real session
 #       (new-session/send-keys/capture-pane shows the computed marker).
 #   C7  LOCAL-LINK (residual #2): readelf DT_NEEDED of the built tmux references
 #       the LOCAL zig-built libevent/ncurses/jemalloc sonames (not host copies).
 #   C8  N=3 determinism (§11.4.50): the GREEN build, run N times, yields an
-#       IDENTICAL "tmux 3.6a" every time.
+#       IDENTICAL "tmux next-3.8" every time.
 #   C9  §1.1 paired mutation (self-contained): stripping the `cc` registry branch
 #       from a COPY of obtain_local_deps.sh makes the neutered obtain unable to
 #       get a zig toolchain (CC_KIND≠zig) → the build cannot proceed → MUTATION
@@ -61,6 +61,9 @@ set -uo pipefail
 
 RED_MODE="${RED_MODE:-0}"
 ZIG_BUILD_N="${TMX_ZIG_BUILD_N:-3}"
+# Adopted upstream tmux version (operator decision 2026-09-01: next-3.8 pin).
+# Inherited from run_all.sh when run in-suite; defaulted for standalone runs.
+EXPECTED_VERSION="${EXPECTED_VERSION:-next-3.8}"
 
 SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SELF_DIR/../.." && pwd)"
@@ -311,8 +314,8 @@ fi
 # ── C5 tmux -V ────────────────────────────────────────────────────────────────
 export LD_LIBRARY_PATH="$PFX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 VOUT="$("$BUILT_BIN" -V 2>&1 | head -1 || true)"
-if [ "$VOUT" = "tmux 3.6a" ]; then
-    _pass "C5 tmux -V == 'tmux 3.6a' (user-visible build product)"
+if [ "$VOUT" = "tmux $EXPECTED_VERSION" ]; then
+    _pass "C5 tmux -V == 'tmux $EXPECTED_VERSION' (user-visible build product)"
     {
         echo "=== TMX-063 root-free zig build — user-visible proof $(date -u '+%Y-%m-%dT%H:%M:%SZ') ==="
         echo "binary: $BUILT_BIN"
@@ -321,7 +324,7 @@ if [ "$VOUT" = "tmux 3.6a" ]; then
     } > "$EVID_DIR/GREEN_tmux_runtime_proof.log" 2>/dev/null || true
     _ev "GREEN runtime: qa-results/loop-20260629/zig-impl/GREEN_tmux_runtime_proof.log"
 else
-    _fail "C5 tmux -V wrong: '$VOUT' (expected 'tmux 3.6a')"
+    _fail "C5 tmux -V wrong: '$VOUT' (expected 'tmux $EXPECTED_VERSION')"
 fi
 
 # ── C6 LIVE SESSION ───────────────────────────────────────────────────────────

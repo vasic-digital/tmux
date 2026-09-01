@@ -26,13 +26,19 @@
 #
 # Inputs (all optional; env OR flag — flag wins):
 #   TMX_INSTALL_DIR        / --dir DIR    install root (default $HOME/<project>)
-#   TMX_REPO_URL           / --repo URL   clone source (default the HTTPS repo)
+#   TMX_REPO_URL           / --repo URL   clone source (default the SSH repo)
 #   TMX_INSTALL_BRANCH     / --branch B   branch to clone/track (default main)
 #   TMX_INSTALL_NO_SETUP=1 / --clone-only stop after clone+submodules (no build)
 #   TMX_INSTALL_DETECT_RC_ONLY=1 / --detect-rc-only  print the shell rc the
 #                                         installer would wire PATH into, exit 0
-#   TMX_INSTALL_NO_HTTPS_REWRITE=1        disable git@github→https submodule
-#                                         URL rewrite (keyless-clone aid)
+#   TMX_INSTALL_HTTPS_REWRITE=1  / --https-rewrite   OPT IN to the
+#                                         git@github→https submodule URL
+#                                         rewrite (keyless-clone aid). OFF by
+#                                         default since 1.0.44: it breaks the
+#                                         PRIVATE nested submodule and hangs
+#                                         on a credential prompt (TMX-086).
+#   TMX_INSTALL_NO_HTTPS_REWRITE=1 / --no-https-rewrite  legacy explicit
+#                                         opt-OUT; still honoured and wins.
 #
 # Outputs:
 #   - The cloned project at $TMX_INSTALL_DIR (with constitution/ + tmux/ +
@@ -65,13 +71,42 @@
 
 set -euo pipefail
 
+# ── never block on an interactive credential prompt (§11.4.1 fail-fast) ──────
+# Forensic anchor (2026-09-01): the installer hung forever asking for GitHub
+# credentials. Root cause was the SSH->HTTPS rewrite below turning the PRIVATE
+# nested submodule git@github.com:HelixDevelopment/helix_perf_cache.git into an
+# anonymous HTTPS fetch, which GitHub answers by asking for a Username. With no
+# guard, git BLOCKS on that prompt -- and under `curl | bash` there is no sane
+# way for the operator to answer it. A missing credential MUST surface as a
+# fast, readable error, never as a silent hang: that is the difference between
+# an honest FAIL and a §11.4.1 hang-bluff.
+#   GIT_TERMINAL_PROMPT=0  -> git errors instead of prompting on the terminal
+#   GIT_ASKPASS/SSH_ASKPASS unset -> no GUI/helper prompt substitutes for it
+#     (unset, not ="" -- some OpenSSH builds read an EMPTY SSH_ASKPASS as a
+#      zero-length program name rather than as "no helper")
+# NOTE: this deliberately does NOT set SSH BatchMode -- an ssh KEY PASSPHRASE
+# prompt is a legitimate interactive step and is left working (§11.4.122: do
+# not remove a capability while fixing something else).
+export GIT_TERMINAL_PROMPT=0
+unset GIT_ASKPASS SSH_ASKPASS
+# SSH is now the default transport, so the SSH path must not hang either.
+# A FRESH System has no github.com entry in known_hosts; default ssh then asks
+# "Are you sure you want to continue connecting?" and BLOCKS -- which would
+# merely trade an HTTPS credential hang for an SSH host-key hang (§11.4.1
+# solve-A-create-B). `accept-new` accepts a FIRST-CONTACT key but still REFUSES
+# a CHANGED key, so MITM detection on later connects is preserved (plain `no`
+# would disable that and is deliberately not used). Deferred to the operator's
+# own GIT_SSH_COMMAND when they have set one (§11.4.122).
+# A key PASSPHRASE prompt is intentionally still allowed (no BatchMode).
+export GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20}"
+
 # ── canonical project identity ───────────────────────────────────────────────
 # Project name per §11.4.29 (lowercase snake_case). The repository directory is
 # named `tmux`; the default install root is therefore $HOME/tmux. This is a
 # CONSTANT here on purpose: a curl|bash invocation runs standalone (NOT inside
 # the repo), so the installer cannot derive the name from its own location.
 PROJECT_NAME="tmux"
-DEFAULT_REPO_URL="https://github.com/vasic-digital/tmux.git"
+DEFAULT_REPO_URL="git@github.com:vasic-digital/tmux.git"
 
 # ── configuration (env defaults; flags override below) ───────────────────────
 TMX_INSTALL_DIR="${TMX_INSTALL_DIR:-$HOME/$PROJECT_NAME}"
@@ -79,6 +114,11 @@ TMX_REPO_URL="${TMX_REPO_URL:-$DEFAULT_REPO_URL}"
 TMX_INSTALL_BRANCH="${TMX_INSTALL_BRANCH:-main}"
 NO_SETUP="${TMX_INSTALL_NO_SETUP:-}"
 DETECT_RC_ONLY="${TMX_INSTALL_DETECT_RC_ONLY:-}"
+HTTPS_REWRITE="${TMX_INSTALL_HTTPS_REWRITE:-}"
+# Legacy opt-out (pre-1.0.44 default was rewrite-ON). The rewrite is now OFF
+# by default, so this variable is accepted and honoured but is a no-op unless
+# someone also set TMX_INSTALL_HTTPS_REWRITE=1 -- in which case the explicit
+# opt-OUT wins (safest interpretation; never silently enables HTTPS).
 NO_HTTPS_REWRITE="${TMX_INSTALL_NO_HTTPS_REWRITE:-}"
 
 # ── arg parsing (NEVER reads stdin — curl|bash keeps the script on stdin) ─────
@@ -89,7 +129,8 @@ while [ $# -gt 0 ]; do
         --branch)         TMX_INSTALL_BRANCH="$2"; shift 2 ;;
         --clone-only|--no-setup) NO_SETUP=1; shift ;;
         --detect-rc-only) DETECT_RC_ONLY=1; shift ;;
-        --no-https-rewrite) NO_HTTPS_REWRITE=1; shift ;;
+        --no-https-rewrite) NO_HTTPS_REWRITE=1; HTTPS_REWRITE=""; shift ;;
+        --https-rewrite)    HTTPS_REWRITE=1;    shift ;;
         --help|-h)
             sed -n '2,/^# ────.*─────$/p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//'
             exit 0
@@ -97,6 +138,13 @@ while [ $# -gt 0 ]; do
         *) echo "install.sh: unknown arg '$1' (try --help)" >&2; exit 2 ;;
     esac
 done
+
+# ── opt-OUT clamp (applied AFTER arg parsing so it wins in EVERY order) ──────
+# The rewrite is OFF by default. An explicit opt-OUT -- env or flag, in any
+# position -- always beats an explicit opt-IN. Clamping here rather than before
+# the loop makes `--no-https-rewrite --https-rewrite` behave identically to
+# `--https-rewrite --no-https-rewrite`: the safe answer, never a silent HTTPS.
+[ "$NO_HTTPS_REWRITE" = "1" ] && HTTPS_REWRITE=""
 
 _say()  { printf '%s\n' "[install] $*"; }
 _warn() { printf '%s\n' "[install] ⚠ $*" >&2; }
@@ -147,7 +195,7 @@ fi
 #  • protocol.file.allow=always — only when TMX_REPO_URL is a file:// mirror
 #    (local mirror / the test harness). NOT enabled for network installs.
 GITC=()
-if [ "$NO_HTTPS_REWRITE" != "1" ]; then
+if [ "$HTTPS_REWRITE" = "1" ]; then
     GITC+=( -c "url.https://github.com/.insteadOf=git@github.com:" )
 fi
 case "$TMX_REPO_URL" in

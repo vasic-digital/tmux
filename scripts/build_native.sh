@@ -293,45 +293,126 @@ case "$HOST_OS" in
             # ── ROOT-FREE zig toolchain path (TMX-063) ───────────────────────
             # The host has no working C toolchain → obtain_local_deps.sh obtained
             # zig (CC_KIND=zig) + emitted the binutils/flag-filter wrappers, and
-            # source-built libevent/ncurses/jemalloc with it. Build tmux from the
-            # sha256-pinned 3.6a RELEASE tarball (ships pre-generated configure +
-            # cmd-parse.c → NO autotools generators, NO bison: YACC=true) so the
-            # WHOLE pipeline needs only zig + make. Proven end-to-end on this host
-            # 2026-06-29 (qa-results/loop-20260629/zig-impl/).
-            TMUX_REL_VER="3.6a"
-            TMUX_REL_URL="https://github.com/tmux/tmux/releases/download/3.6a/tmux-3.6a.tar.gz"
-            TMUX_REL_SHA="b6d8d9c76585db8ef5fa00d4931902fa4b8cbe8166f528f44fc403961a3f3759"
+            # source-built libevent/ncurses/jemalloc with it. tmux itself is built
+            # from THE PINNED SUBMODULE — the same source of record the
+            # host-toolchain path below uses — so the binary this path installs
+            # into $BUILD_DIR corresponds to the submodule pin.
+            #
+            # WHY NOT AN UPSTREAM RELEASE TARBALL (changed 2026-09-01, when the
+            # operator adopted the next-3.8 pin). This path previously downloaded
+            # the sha256-pinned tmux 3.6a RELEASE tarball, because release
+            # tarballs ship a pre-generated `configure` + `cmd-parse.c` and the
+            # pipeline then needed only zig + make. That is no longer viable and
+            # is no longer honest:
+            #   * the submodule is pinned at 40381bdc (`3.7b-808-g40381bdc`;
+            #     tmux/configure.ac: AC_INIT([tmux], next-3.8));
+            #   * upstream publishes NO release tarball for that version —
+            #     measured 2026-09-01 by HTTP HEAD, instrument proven seeing
+            #     (§11.4.201(7)(b)): .../next-3.8/tmux-next-3.8.tar.gz → 404,
+            #     .../3.8/... → 404, while .../3.6a/... and .../3.7b/... → 200;
+            #   * the nearest reachable release, 3.7b, IS available (200) but the
+            #     pin is 808 commits AHEAD of it (`git -C tmux rev-list --count
+            #     3.7b..HEAD` = 808), so re-pointing at 3.7b would trade a
+            #     two-release mismatch for an 808-commit one, not fix it.
+            # Any tarball here would install a binary whose reported version does
+            # not describe the pinned source — a §11.4.108 SOURCE→ARTIFACT
+            # integrity gap. The version gates assert on the BUILT BINARY
+            # (EXPECTED_VERSION defaults to next-3.8 in scripts/tests/run_all.sh,
+            # 01_smoke.sh and 71_root_free_zig_build.sh C5), so a tarball build
+            # would either FAIL them honestly or, worse, be green against source
+            # nobody reviewed.
+            #
+            # COST, stated honestly (§11.4.6). The submodule ships NO generated
+            # build system — `configure`, `Makefile.in`, `cmd-parse.c` and
+            # `aclocal.m4` are all listed in tmux/.gitignore — so on a host where
+            # they are absent this path additionally needs the autotools
+            # generators (aclocal/automake/autoreconf) and, for `cmd-parse.c`,
+            # yacc/bison. None of those needs a working C compiler in order to
+            # RUN (autotools are perl+m4; bison ships precompiled), so a zig host
+            # may well have them. When it does not, we REFUSE with an actionable
+            # message naming exactly what is missing — never silently substitute
+            # a mismatched tarball.
             PFX="${LOCAL_DEPS_PREFIX:-$LOCAL_DEPS_ROOT/${HOST_OS}_${HOST_ARCH}}"
-            CACHE="$LOCAL_DEPS_ROOT/.tarballs"; mkdir -p "$CACHE"
             SRCROOT="$PFX/tmux-src"
-            TARBALL="$CACHE/tmux-${TMUX_REL_VER}.tar.gz"
+            TMUX_SRC="$SRCROOT/tmux"
             ZCC="${CC_WRAPPER_DIR}/cc"
             MKBIN="$(command -v make 2>/dev/null || echo /usr/bin/make)"
 
-            echo "[build_native] ROOT-FREE zig build: CC=$ZCC"
-            # download + sha256-verify the release tarball (network-frugal cache).
-            _shatool() { command -v sha256sum >/dev/null 2>&1 && { sha256sum "$1" | awk '{print $1}'; return; }; command -v shasum >/dev/null 2>&1 && shasum -a 256 "$1" | awk '{print $1}'; }
-            if [ -f "$TARBALL" ]; then [ "$(_shatool "$TARBALL")" = "$TMUX_REL_SHA" ] || rm -f "$TARBALL"; fi
-            if [ ! -f "$TARBALL" ]; then
-                echo "[build_native] downloading $TMUX_REL_URL"
-                if command -v curl >/dev/null 2>&1; then curl -fsSL -o "$TARBALL" "$TMUX_REL_URL"
-                elif command -v wget >/dev/null 2>&1; then wget -q -O "$TARBALL" "$TMUX_REL_URL"
-                else echo "[build_native] ✗ no curl/wget to fetch tmux release tarball"; exit 1; fi
-            fi
-            GOT_SHA="$(_shatool "$TARBALL")"
-            if [ "$GOT_SHA" != "$TMUX_REL_SHA" ]; then
-                echo "[build_native] ✗ tmux tarball sha256 MISMATCH — want $TMUX_REL_SHA got $GOT_SHA"
-                rm -f "$TARBALL"; exit 1
-            fi
-            echo "[build_native] tmux tarball sha256 verified ($TMUX_REL_SHA)"
+            [ -f "$REPO_ROOT/tmux/configure.ac" ] || {
+                echo "[build_native] ✗ tmux submodule not checked out (no tmux/configure.ac)"
+                echo "  fix: git submodule update --init --recursive tmux"
+                exit 1
+            }
+            PIN_VER="$(sed -n 's/^AC_INIT(\[tmux\], *\([^)]*\)).*/\1/p' \
+                        "$REPO_ROOT/tmux/configure.ac" | head -1)"
+            echo "[build_native] ROOT-FREE zig build from the PINNED SUBMODULE (${PIN_VER:-unknown}): CC=$ZCC"
 
-            rm -rf "$SRCROOT"; mkdir -p "$SRCROOT"
-            tar xzf "$TARBALL" -C "$SRCROOT"
-            TMUX_SRC="$SRCROOT/tmux-${TMUX_REL_VER}"
-            [ -d "$TMUX_SRC" ] || { echo "[build_native] ✗ tmux source dir missing after extract"; exit 1; }
-            # cmd-parse.c ships pre-generated; touch it newer than cmd-parse.y so
-            # make never invokes the yacc rule (YACC=true is a never-called no-op).
-            touch "$TMUX_SRC/cmd-parse.c"
+            # Build from an ISOLATED COPY of the submodule, never in-tree. This
+            # preserves the non-destructive property the tarball path had:
+            # scripts/tests/71_root_free_zig_build.sh runs the REAL build without
+            # clobbering the operator's tmux/ worktree (§12 host-safety +
+            # §11.4.14). It also makes the build immune to the worktree's
+            # generated files changing underneath it mid-build.
+            rm -rf "$SRCROOT"; mkdir -p "$TMUX_SRC"
+            tar -cf - -C "$REPO_ROOT/tmux" \
+                --exclude=.git --exclude=build --exclude=build-darwin \
+                --exclude=.deps --exclude='*.o' . \
+                | tar -xf - -C "$TMUX_SRC" \
+                || { echo "[build_native] ✗ could not copy the tmux submodule into $TMUX_SRC"; exit 1; }
+            # Drop configure/compile state carried over from a HOST-toolchain
+            # build of the worktree: it is stale for the zig toolchain and would
+            # make `make` reuse host-compiled state. `configure` below regenerates
+            # all of it. `configure` / `Makefile.in` themselves are KEPT.
+            rm -f "$TMUX_SRC/config.status" "$TMUX_SRC/config.log" \
+                  "$TMUX_SRC/config.h" "$TMUX_SRC/Makefile"
+
+            # ── generated build system: probe, never assume (§11.4.6) ─────────
+            if [ ! -f "$TMUX_SRC/configure" ]; then
+                _missing_gen=""
+                for _g in aclocal automake autoreconf; do
+                    command -v "$_g" >/dev/null 2>&1 \
+                        || _missing_gen="${_missing_gen:+$_missing_gen }$_g"
+                done
+                if [ -n "$_missing_gen" ]; then
+                    echo "[build_native] ✗ cannot build the pinned tmux source root-free."
+                    echo "    The submodule ships no pre-generated ./configure (it is"
+                    echo "    .gitignore'd) and these autotools generators are MISSING:"
+                    echo "      $_missing_gen"
+                    echo "    This path deliberately REFUSES to substitute an upstream"
+                    echo "    release tarball: upstream publishes none for the pinned"
+                    echo "    version (${PIN_VER:-unknown}), so any tarball would install a"
+                    echo "    binary that does not correspond to the pin (§11.4.108)."
+                    echo "  fix: install the generators — they need no C compiler to run:"
+                    echo "    Debian/Ubuntu: apt-get install autoconf automake bison"
+                    echo "    Fedora/RHEL:   dnf install autoconf automake bison"
+                    echo "    Alpine:        apk add autoconf automake bison"
+                    exit 1
+                fi
+                echo "[build_native] generating ./configure from the submodule (autogen.sh)..."
+                ( cd "$TMUX_SRC" && sh autogen.sh ) 2>&1 | tail -5
+                [ -f "$TMUX_SRC/configure" ] || {
+                    echo "[build_native] ✗ autogen.sh did not produce ./configure"; exit 1; }
+            fi
+
+            # cmd-parse.c is generated from cmd-parse.y by yacc. When the copy
+            # already carries a generated one, touch it newer than the .y so make
+            # never invokes the yacc rule (YACC=true is then a never-called no-op
+            # — this preserves the old tarball path's "no bison needed" property
+            # whenever the worktree happens to be already generated). When it is
+            # ABSENT a real yacc/bison is REQUIRED: forcing YACC=true there would
+            # silently build a tmux with no command parser.
+            ZYACC="true"
+            if [ -f "$TMUX_SRC/cmd-parse.c" ]; then
+                touch "$TMUX_SRC/cmd-parse.c"
+            else
+                ZYACC="$(command -v bison 2>/dev/null || command -v yacc 2>/dev/null || true)"
+                [ -n "$ZYACC" ] || {
+                    echo "[build_native] ✗ cmd-parse.c is not pre-generated and no yacc/bison found."
+                    echo "    Forcing YACC=true here would build a tmux with no command parser."
+                    echo "  fix: install bison (Debian/Ubuntu: apt-get install bison)"
+                    exit 1
+                }
+            fi
 
             # zig-specific flags: ncursesw widec headers live at include/ncursesw/;
             # --allow-shlib-undefined relaxes the configure link probe (host
@@ -355,12 +436,12 @@ case "$HOST_OS" in
             # make bare the correct stable resolution here.
             ZLDFLAGS="$ZLDFLAGS -Wl,--no-as-needed -ljemalloc -Wl,--as-needed"
 
-            echo "[build_native] configuring tmux $TMUX_REL_VER (zig, YACC=true, release tarball)..."
+            echo "[build_native] configuring tmux ${PIN_VER:-unknown} (zig, pinned submodule source)..."
             (
                 cd "$TMUX_SRC"
                 PATH="${CC_WRAPPER_DIR}:$PATH"; export PATH
-                export CC="$ZCC" YACC=true MAKE="$MKBIN"
-                CC="$ZCC" YACC=true MAKE="$MKBIN" \
+                export CC="$ZCC" YACC="$ZYACC" MAKE="$MKBIN"
+                CC="$ZCC" YACC="$ZYACC" MAKE="$MKBIN" \
                 CFLAGS="$ZCFLAGS" LDFLAGS="$ZLDFLAGS" \
                 PKG_CONFIG_PATH="${LOCAL_PKGCONFIG:+${LOCAL_PKGCONFIG}:}${PKG_CONFIG_PATH:-}" \
                     ./configure --prefix="$BUILD_DIR" --disable-debug 2>&1 | tail -10

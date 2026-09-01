@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Revision | 4 |
+| Revision | 5 |
 | Created | 2026-05-07 |
-| Last modified | 2026-08-10 |
+| Last modified | 2026-09-01 |
 | Status | active |
 | Extends | `constitution/Constitution.md` — Helix Universal Constitution, pinned `7f738df` |
-| Status summary | R4 (2026-08-10): §105/§106 updated — no CPU/task/lifetime cap by default (matching the already-correct "liquid" memory model); root-cause fix for sessions/processes being killed despite ample host capacity (idle-recycler default-on kill + unconditional CPUQuota/TasksMax with no full opt-out). R3 (2026-05-21): full refactor to the HelixConstitution extends-template form. Universal clauses now inherited from the `constitution/` submodule; this file holds only Project Articles §101–§109. No universal clause weakened — inheritance is verified by `scripts/tests/test_constitution_inheritance.sh` + its paired mutation. |
+| Status summary | R5 (2026-09-01): §107 rewritten — the `tmux/` submodule pin is now recorded as commit `40381bdc` (`3.7b-808-g40381bdc`, version string `next-3.8`), adopted by an EXPLICIT operator decision of 2026-09-01 after the pointer was found to have drifted off tag `3.6a` silently. Honest costs recorded: `next-3.8` is an UNTAGGED upstream master commit 1339 commits past `3.6a` (pure fast-forward, nothing lost), so there is no upstream release tarball and the build is a non-release build. Both silent drifts remain on the record — 2026-05-13 `f4132aa` (reverted by `2836956`) and 2026-08-31 `1344dba` (regularised by the 2026-09-01 decision, but recorded as the §11.4.6 violation it was). Immutability discipline preserved verbatim: never modified, never advanced again without a new documented decision. R4 (2026-08-10): §105/§106 updated — no CPU/task/lifetime cap by default (matching the already-correct "liquid" memory model); root-cause fix for sessions/processes being killed despite ample host capacity (idle-recycler default-on kill + unconditional CPUQuota/TasksMax with no full opt-out). R3 (2026-05-21): full refactor to the HelixConstitution extends-template form. Universal clauses now inherited from the `constitution/` submodule; this file holds only Project Articles §101–§109. No universal clause weakened — inheritance is verified by `scripts/tests/test_constitution_inheritance.sh` + its paired mutation. |
 
 This constitution **extends** the Helix Universal Constitution at
 [`constitution/Constitution.md`](constitution/Constitution.md). Every
@@ -215,11 +215,66 @@ On macOS the memory cap is informational only regardless of `TMX_MEM`
 
 ### §107 — Upstream tmux submodule pinned + immutable
 
-`tmux/` references `tmux/tmux` at tag `3.6a` (commit `cc117b5`). It is a
-third-party upstream submodule: **never modified**, never advanced off
-the tag without an explicit, documented decision in `Fixed.md` + a
-governance-doc update in the same commit. Silent pin-drift is a §101 /
-universal §11.4.6 violation (forensic precedent: `Fixed.md` §3.8).
+`tmux/` references `tmux/tmux` at commit `40381bdc`
+(`git -C tmux describe --tags` → `3.7b-808-g40381bdc`; `configure.ac`
+version string `next-3.8`). It is a third-party upstream submodule:
+**never modified**, and never advanced off the pinned commit without an
+explicit, documented decision recorded in this section + `Fixed.md` +
+a governance-doc update in the same commit. Silent pin-drift is a §101 /
+universal §11.4.6 violation.
+
+**Adoption decision — 2026-09-01 (operator, explicit).** The pin was
+advanced from tag `3.6a` (commit `cc117b5`) to commit `40381bdc`. The
+operator was shown the drift and the two available options, and chose to
+**adopt the newer tmux deliberately** rather than revert. The honest
+facts of what was adopted, per §11.4.6 — each measured, none assumed:
+
+- `40381bdc` is an **UNTAGGED upstream master commit**, `1339` commits
+  past `3.6a` (`git -C tmux rev-list --count 3.6a..HEAD` → `1339`).
+  `3.6a` (`cc117b5`) IS an ancestor of it (`git merge-base
+  --is-ancestor` exits 0), so the move is a pure fast-forward — no
+  upstream commit was rewritten, dropped, or lost.
+- The adopted version string is **`next-3.8`** — upstream's development
+  line, **NOT a released tag**. There is therefore **no upstream release
+  tarball** for it, and what this project ships is a **non-release build
+  from a moving upstream branch**. That cost is accepted by the
+  operator's decision, not hidden by it.
+- What the project GIVES UP relative to a tagged pin: upstream release
+  tarballs, upstream release notes, and any claim that the binary is
+  built from a "known-good upstream *tag*". What it KEEPS: exact
+  reproducibility from the recorded commit SHA — the SHA, not a tag
+  name, is the binding pin, and it is recorded in the parent index.
+
+**Forensic history — recorded, never erased (§11.4.6).** This pin has
+drifted SILENTLY twice. Both drifts remain on the record:
+
+1. **2026-05-13** — parent commit `f4132aa` (message: `Auto-commit`)
+   advanced the submodule from `cc117b5` to `3f651d9f` (329 commits past
+   the tag) with no documented decision. Classified a CRITICAL §1 /
+   universal §11.4.6 bluff and **REVERTED** to `cc117b5` by commit
+   `2836956` (2026-05-13). Audit trail: `CONTINUATION.md` §3.8,
+   `Fixed.md` §3.8 / A2.
+2. **2026-08-31** — parent commit `1344dba`, whose ENTIRE commit message
+   is the two words `Auto-commit`, advanced the submodule from `cc117b5`
+   to `40381bdc` (and moved `Containers` and `constitution` pointers in
+   the same commit). **No documented decision authorising it existed
+   anywhere in this repository** at the time it landed, or afterwards,
+   until the 2026-09-01 decision above.
+
+The 2026-09-01 operator decision **retroactively regularises the outcome
+of drift 2 — it does NOT retroactively legitimise the way it arrived.**
+The pin change was silent, undocumented, and carried by an opaque
+`Auto-commit` message: a §101 / universal §11.4.6 violation that was
+caught AFTER the fact rather than prevented, and it is recorded here as
+such. What changed on 2026-09-01 is the pin's authorisation, not its
+history.
+
+**The immutability discipline is UNCHANGED and still binding.** The
+`tmux/` submodule is still never modified, and the new pin `40381bdc` is
+still never advanced again — to a tag, to a newer master commit, or
+anywhere else — without a NEW explicit, documented operator decision
+recorded in this section + `Fixed.md` in the same commit. Adopting an
+untagged commit once does not licence future silent drift.
 
 ### §108 — Native dual-OS build discipline
 
@@ -256,8 +311,10 @@ Containers     git@github.com:vasic-digital/Containers.git   (cgroup orchestrati
 constitution   git@github.com:HelixDevelopment/HelixConstitution.git   (governance; pinned 7f738df)
 ```
 
-`tmux/` is a **third-party upstream** submodule (`tmux/tmux` tag `3.6a`)
-— excluded from the owned set; immutable per §107.
+`tmux/` is a **third-party upstream** submodule (`tmux/tmux` pinned at
+commit `40381bdc` = `next-3.8`, an UNTAGGED upstream master commit
+adopted by explicit operator decision 2026-09-01, §107) — excluded from
+the owned set; immutable per §107.
 
 ---
 

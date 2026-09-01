@@ -74,7 +74,7 @@ automatically (§11.4.77).
 | Env var | Flag | Default | Meaning |
 |---|---|---|---|
 | `TMX_INSTALL_DIR` | `--dir DIR` | `$HOME/tmux` | install root |
-| `TMX_REPO_URL` | `--repo URL` | `https://github.com/vasic-digital/tmux.git` | clone source (HTTPS so keyless users can clone) |
+| `TMX_REPO_URL` | `--repo URL` | `git@github.com:vasic-digital/tmux.git` | clone source (SSH / git protocol — see below) |
 | `TMX_INSTALL_BRANCH` | `--branch B` | `main` | branch to clone / track |
 | `TMX_INSTALL_NO_SETUP=1` | `--clone-only` | (off) | clone + submodules only (no build / no host writes) |
 
@@ -151,9 +151,9 @@ After `setup.sh` reports GREEN: open a new shell, or source the rc for your shel
    │  ├ CPUQuota  = unset (unlimited)│         │  │             by default, opt-in)       │
    │  ├ TasksMax  = infinity         │         │  ├ ulimit -u  ← RLIMIT_NPROC (unlimited  │
    │  ├ Delegate  = yes              │         │  │             by default, opt-in)       │
-   │  └ tmux 3.6a (Linux ELF)        │         │  └ ulimit -v  ← RLIMIT_AS NOT enforced   │
+   │  └ tmux next-3.8 (Linux ELF)    │         │  └ ulimit -v  ← RLIMIT_AS NOT enforced   │
    │  status-bar = DJB2(host)        │         │                  by XNU (documented gap) │
-   │  oom_score_adj = -500           │         │  tmux 3.6a (Mach-O)                      │
+   │  oom_score_adj = -500           │         │  tmux next-3.8 (Mach-O)                  │
    │  idle-recycle = OFF by default  │         │  status-bar = DJB2(host)                 │
    │  (TMX_RECYCLE_IDLE_SECS opt-in) │         │  (oom_score_adj N/A on Darwin)           │
    └─────────────────────────────────┘         └──────────────────────────────────────────┘
@@ -173,7 +173,7 @@ Both OS paths deliver the **same operator UX**: plain-vanilla tmux behaviour, th
 
 | Component | Why |
 |---|---|
-| **tmux 3.6a** (latest stable) | Pinned to a known-good upstream tag |
+| **tmux `next-3.8`** (upstream master — NOT a release) | Pinned to upstream commit `40381bdc`, an UNTAGGED master commit adopted by explicit operator decision 2026-09-01 (Constitution §107). No upstream release tarball exists for it; this is a non-release build. |
 | **Hardened compile flags** | `-O2 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2`, RELRO + immediate-binding link |
 | **Build-time `-ljemalloc`** | jemalloc linked at the binary level (more aggressive RAM return than glibc malloc) |
 | **Runtime `LD_PRELOAD=libjemalloc.so`** | Wrapper preloads jemalloc even on hosts where the linker resolved a different malloc |

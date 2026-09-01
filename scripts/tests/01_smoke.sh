@@ -5,7 +5,7 @@
 # binary still works correctly).
 set -uo pipefail
 TMUX_BIN="${TMUX_BIN:?TMUX_BIN not set}"
-EXPECTED_VERSION="${EXPECTED_VERSION:-3.6a}"
+EXPECTED_VERSION="${EXPECTED_VERSION:-next-3.8}"
 echo "── Test 01: smoke ──"
 ACTUAL=$("$TMUX_BIN" -V 2>&1 | grep -v 'no version information' | head -1)
 echo "  binary reports: $ACTUAL"

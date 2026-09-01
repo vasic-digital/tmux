@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test_apple_container.sh — build + test the LINUX tmux 3.6a inside a real
+# test_apple_container.sh — build + test the LINUX tmux next-3.8 inside a real
 # Linux container on a macOS host using Apple's native `container` runtime
 # (https://github.com/apple/container), then run the Linux-relevant tmx test
 # suite against that Linux binary and capture real PASS/FAIL/SKIP evidence.
@@ -56,7 +56,7 @@
 #   macOS host with Apple `container` (>=1.0.0) installed + system running
 #   (`container system status` == running) and the Linux kernel image
 #   present. Host tools: bash, tar, curl, gunzip, awk, sed. The tmux source
-#   is the project's `tmux/` submodule (tag 3.6a, `configure` present).
+#   is the project's `tmux/` submodule (pin next-3.8, `configure` present).
 #
 # ── Cross-references ──────────────────────────────────────────────────
 #   docs/scripts/test_apple_container.md            (companion guide)
@@ -360,7 +360,7 @@ rebuild_tmx_state_bin() {
 
 # ── Build the LINUX tmux inside the container ─────────────────────────
 build_tmux() {
-    log "building Linux tmux 3.6a inside container (timeout ${BUILD_TIMEOUT}s)…"
+    log "building Linux tmux next-3.8 inside container (timeout ${BUILD_TIMEOUT}s)…"
     if ! to "$BUILD_TIMEOUT" container exec "$CTR_NAME" \
             bash /work/repo/scripts/build_native.sh > "$EVID_DIR/build.log" 2>&1; then
         echo "FAIL: in-container build_native.sh returned non-zero — see $EVID_DIR/build.log"
@@ -442,7 +442,7 @@ run_suite() {
         echo "[in-container] tmx wrapper generated (jemalloc=$JEMALLOC)"
         export TMUX_BIN=$REPO/tmux/build/bin/tmux
         export WRAPPER=$REPO/scripts/tmx
-        export EXPECTED_VERSION=3.6a
+        export EXPECTED_VERSION=next-3.8
 
         # Mirror run_all.sh PATH-augmentation (no-op here; codegraph absent).
         PASS=0; FAIL=0; SKIP=0; FAIL_NAMES=""; SKIP_NAMES=""

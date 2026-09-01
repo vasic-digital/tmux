@@ -3282,3 +3282,88 @@ This is exactly the §11.4.201(7)(a) "match structure, not a bare substring" def
 **§11.4.120 reconciliation:** none required — no other gate asserted the old default as correct.
 
 **Discovery-pressure note (§11.4.118):** the investigation triggering both K1 and K2 covered all five tests the operator reported (27, 56, 57, 59, 87); 27 and 87 were independently re-confirmed as the already-tracked TMX-080/TMX-081 (unchanged, no new action). K1 and K2 are the complete account of the remaining three — no further undiagnosed failures remain from this report.
+
+---
+
+## L. SSH-only installability — credential prompt + orphan gitlink (2026-09-01)
+
+Discovered from a verbatim operator report (2026-09-01): "We cannot install / setup tmx (tmux) on the System! Running our bash script gets stuck asking for GitHub credentials, which MUST NOTEVER haoppen! We shall rely only on ssh key (git protocol)!" Universal Constitution §11.4.238 applies — the defect was found by the OPERATOR attempting a real install, not by any automated QA gate this project ships, so the coverage escape is itself part of the closure (test 90 closes it). Investigated via `/superpowers:systematic-debugging` per §11.4.102.
+
+The single reported symptom ("the install gets stuck") resolved to TWO INDEPENDENT root causes, each of which is on its own sufficient to block the install on a clean host. Fixing only one would have left the operator's install still broken — the §11.4.194 exhaustive-review discipline (enumerate the full failure space, never stop at the first sufficient cause) is what surfaced the second.
+
+### L1 INSTALL-CREDENTIAL-PROMPT-001 — `install.sh` injected an HTTPS `insteadOf` rewrite by default, which propagated to a PRIVATE nested submodule and blocked forever on a GitHub `Username` prompt — `FIXED`
+
+**TMX-ID:** TMX-086
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** BLOCKER (operator-reported: the product could not be installed at all on an SSH-key-only host; under `curl | bash` the prompt is not even answerable)
+
+**Root cause:** `scripts/install.sh` injected `-c url.https://github.com/.insteadOf=git@github.com:` BY DEFAULT. Git propagates `-c` flags to child processes via the `GIT_CONFIG_PARAMETERS` environment variable, so the rewrite did NOT stay scoped to the top-level clone — it reached every RECURSIVE submodule clone the install performs. The constitution submodule nests `submodules/helix_perf_cache -> git@github.com:HelixDevelopment/helix_perf_cache.git`, which is the ONLY repository of the nine in the tree that is not anonymously readable. Rewritten to its HTTPS form it cannot be fetched without credentials, so GitHub responds by asking for a `Username`; because nothing in the installer set `GIT_TERMINAL_PROMPT=0`, git BLOCKED on that prompt indefinitely rather than failing fast. Under the documented `curl | bash` install path stdin is the script itself, so the prompt is unanswerable and the install hangs until the operator kills it — exactly the operator's report.
+
+**Evidence — anonymous-HTTPS census** (all git config bypassed, no credential helper present on the host, so the result reflects genuine anonymous readability and not a cached credential):
+
+- PUBLIC (8 + 1 = 9 probed, anonymously readable): `vasic-digital/tmux`, `vasic-digital/Containers`, `vasic-digital/token_optimizer`, `vasic-digital/session_orchestrator`, `vasic-digital/continuum`, `vasic-digital/anti_bluff`, `vasic-digital/design-toolkit`, `vasic-digital/docs_chain`, and `HelixDevelopment/HelixConstitution`.
+- PRIVATE (the trigger): `HelixDevelopment/helix_perf_cache`.
+
+**Evidence — controlled A/B (§11.4.199 exact-reproduction-sequence; same repository, same host, same minute, ONE variable changed):**
+
+- SSH as declared (no rewrite): `exit=0`, `6adcfb2	refs/heads/main`.
+- With the installer's `insteadOf` rewrite applied: `exit=128`, `fatal: could not read Username for 'https://github.com'`.
+
+The A/B isolates the rewrite as the cause: the identical command against the identical remote succeeds over SSH and fails over the rewritten HTTPS URL, with the failure text naming the credential prompt directly.
+
+**Fix (all in `scripts/install.sh`):**
+
+1. `DEFAULT_REPO_URL` changed from `https://github.com/vasic-digital/tmux.git` to `git@github.com:vasic-digital/tmux.git` — SSH (git protocol) is now the declared default, matching the operator's mandate.
+2. The `insteadOf` rewrite is OFF by default. It is now an explicit OPT-IN via `TMX_INSTALL_HTTPS_REWRITE=1` / `--https-rewrite`. The pre-existing `TMX_INSTALL_NO_HTTPS_REWRITE=1` / `--no-https-rewrite` opt-OUT is still honoured and WINS over the opt-in, so no existing caller's intent is silently inverted (§11.4.122 — the HTTPS-rewrite capability is preserved, not removed; only its default changed).
+3. Exported `GIT_TERMINAL_PROMPT=0`, `GIT_ASKPASS=""`, `SSH_ASKPASS=""` — a missing credential now fails FAST with a diagnosable error instead of hanging on an unanswerable prompt. This is the defence-in-depth half: even if some future path reintroduces an unreachable HTTPS URL, the install cannot hang on it.
+4. Exported `GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20}"` — a first-contact github.com host key cannot hang the install either. Honest boundary (§11.4.6): `accept-new` accepts an UNKNOWN host key on first contact but still REFUSES a CHANGED key, so the MITM protection that matters is preserved; an ssh key PASSPHRASE prompt is deliberately still allowed (that prompt is answerable and is the operator's own key); and the `${GIT_SSH_COMMAND:-...}` form means an operator-set `GIT_SSH_COMMAND` is never overridden.
+
+**Closure cycle:** v1.0.44
+**Closure commit:** `(this commit — MUST be backfilled with the real SHA on landing; the never-backfilled-placeholder class already corrected for TMX-079 / TMX-082 / TMX-083)`
+**Captured evidence (4-layer, §11.4.108):**
+
+- (a) **pre-build gate / source layer:** `bash -n scripts/install.sh` clean; `bash -n scripts/tests/90_install_ssh_only_no_credential_prompt.sh` clean.
+- (b) **artifact layer:** not a compiled artifact — `scripts/install.sh` IS the shipped artifact, so the source layer and artifact layer coincide for this fix. Stated explicitly rather than claimed as a separate passing layer (§11.4.6).
+- (c) **runtime layer (§11.4.108 layer 3 — the load-bearing one):** test 90 drives the real installer behind a recording `git` shim placed first on `PATH`, which captures the REAL argv git was invoked with AND the `GIT_TERMINAL_PROMPT` value git INHERITED. The assertions therefore read runtime state, never the installer's source text (§11.4.226 — a grep of the source can never satisfy a runtime evidence class). GREEN run: `PASS=4 FAIL=0 SKIP=0`, exit `0`.
+- (d) **§11.4.115 RED/GREEN polarity + paired mutations (§1.1):** `RED_MODE=1` reconstructs a pre-fix copy of `install.sh` and asserts the rewrite IS injected — `PASS=1 FAIL=0 SKIP=0`, exit `0`, defect reproduced on the pre-fix artifact, proving the test is not blind. Three paired mutations in `meta_test_false_positive_proof.sh`: `M-INSTALL-SSH-DEFAULT` (expect `FAIL: A`), `M-INSTALL-HTTPS-REWRITE-DEFAULT` (expect `FAIL: B`), `M-INSTALL-NO-PROMPT-GUARD` (expect `FAIL: C`).
+- **Live end-to-end observation:** with both this fix and the TMX-087 fix in place, a recursive clone checked out `Containers` and `constitution` over SSH with NO credential prompt.
+
+**Regression-protection:** test 90 (`90_install_ssh_only_no_credential_prompt.sh`) — four sub-checks: **A** default clone URL uses the SSH form; **B** no `insteadOf` rewrite in the real git argv by default; **C** git inherited `GIT_TERMINAL_PROMPT=0`; **D** `TMX_INSTALL_HTTPS_REWRITE=1` still enables the rewrite (the capability-preserved check, so a future "fix" that DELETES the opt-in rather than flipping its default is caught). `RED_MODE` defaults to `0` (the standing regression-guard polarity), per the convention TMX-085 established. Plus the three paired mutations above.
+
+**Test-instrument bug found and fixed during authoring (§11.4.1 FAIL-bluff / §11.4.201(7)(c) the-path-is-part-of-the-instrument):** the first version of test 90's argv extractor keyed on the literal `' clone'` WITH A LEADING SPACE. That pattern matched ONLY when the defect was present — the pre-fix installer inserts `-c url....insteadOf=...` before the `clone` verb, so the space-prefixed form appeared in the defective argv and NOT in the corrected one — producing a false FAIL on genuinely correct code. That is a FAIL-bluff from the INSTRUMENT, not a defect in the product, and per §11.4.1 it was fixed at the instrument layer (changed to a word-boundary match) and documented inline in the test so the footgun is not reintroduced.
+
+**§11.4.120 reconciliation:** none required — no pre-existing gate asserted the HTTPS-rewrite-by-default behaviour as correct. Sub-check **D** is the deliberate reconciliation seam: it asserts the NEW mechanism (rewrite available on explicit opt-in) rather than the removed default.
+
+### L2 CONSTITUTION-ORPHAN-GITLINK-001 — a `.gitmodules`-unmapped duplicate gitlink in the constitution submodule aborted every consumer's recursive clone — `FIXED`
+
+**TMX-ID:** TMX-087
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** BLOCKER (blocked the install INDEPENDENTLY of credentials — fixing TMX-086 alone would have left the operator's install still broken)
+
+**Root cause:** the constitution submodule's git index carried TWO gitlink entries pointing at the identical SHA `efd2c3fb2f880aaf2baf7f4819ce28a1ce3609cb`: a bare `design-toolkit` path with NO corresponding `.gitmodules` mapping, and the correctly-mapped `submodules/design-toolkit`. Git refuses to recurse into a gitlink that has no `.gitmodules` URL mapping, so every consumer's recursive clone aborted:
+
+```
+fatal: No url found for submodule path 'constitution/design-toolkit' in .gitmodules
+fatal: Failed to recurse into submodule path 'constitution'
+```
+
+The orphan entry was introduced when the submodule was relocated under `submodules/` (constitution commit `e499ffb`, "...constitution design-toolkit layout...") — the new path was added and mapped, but the OLD index entry was never removed, leaving a duplicate that `.gitmodules` does not describe.
+
+**Fix:** constitution commit `b9096ac` removes ONLY the orphan gitlink. `.gitmodules` is untouched, and `submodules/design-toolkit` retains the same pinned SHA — so no capability, submodule, or pinned version is dropped (§11.4.122: this is the removal of a duplicate INDEX ENTRY, not the removal of a component; the component itself remains present at its mapped path with its pin unchanged). Pushed FAST-FORWARD (`6f24df9..b9096ac`) to all SIX constitution upstreams — `github`, `gitlab`, `gitflic`, `gitverse`, `vasic_digital_github`, `vasic_digital_gitlab` — with NO force-push at any point (§11.4.113 absolute-no-force-push, §2.1 multi-upstream push). This repository's constitution submodule pointer is bumped `6f24df9` → `b9096ac`.
+
+**Closure cycle:** v1.0.44
+**Closure commit:** constitution-side `b9096ac` (the actual fix); tmux-side pointer bump `(this commit — MUST be backfilled with the real SHA on landing)`
+**Captured evidence (4-layer, §11.4.108):**
+
+- (a) **source layer:** the constitution submodule's index no longer carries the unmapped `design-toolkit` gitlink; `.gitmodules` is byte-unchanged and still maps `submodules/design-toolkit`.
+- (b) **artifact layer:** the fix is a git-index/tree change, so the committed tree IS the artifact; `b9096ac` is present on all six upstreams as a fast-forward descendant of `6f24df9`.
+- (c) **runtime-on-clean-target layer (§11.4.108 layer 3):** a recursive clone — the exact operation that previously aborted — checked out `Containers` and `constitution` over SSH with no credential prompt and no `Failed to recurse` abort.
+- (d) **user-visible layer:** the operator-reported symptom (the install cannot complete) no longer occurs on the clean-clone path.
+
+**Honest boundary (§11.4.6):** this item's fix landed in the constitution submodule, so it carries no tmux-side `RED_MODE` polarity test of its own. Its regression protection is the live recursive-clone path plus the pointer bump; a dedicated orphan-gitlink pre-build gate for the consumer side is NOT claimed here and is not shipped by this release.
+
+**§11.4.120 reconciliation:** none required — no gate asserted the presence of the duplicate gitlink.
+
+**Discovery-pressure note (§11.4.118):** the operator reported ONE symptom. Two independent, individually-sufficient root causes were found behind it (L1 credential prompt, L2 orphan gitlink). Stopping at the first sufficient cause would have shipped a still-broken install. No further undiagnosed blocker remains from this report; the coverage this cycle exercised is the clean-clone install path over SSH — subsystems outside that path were not exercised by this investigation and are stated as an honest coverage gap rather than implied clean.

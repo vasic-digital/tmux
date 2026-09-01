@@ -75,17 +75,33 @@ curl -fsSL <raw-url>/scripts/install.sh -o install.sh && bash install.sh
 | Env var | Flag | Default | Meaning |
 |---|---|---|---|
 | `TMX_INSTALL_DIR` | `--dir DIR` | `$HOME/tmux` | install root (§11.4.29 naming) |
-| `TMX_REPO_URL` | `--repo URL` | `https://github.com/vasic-digital/tmux.git` | clone source |
+| `TMX_REPO_URL` | `--repo URL` | `git@github.com:vasic-digital/tmux.git` | clone source (SSH / git protocol) |
 | `TMX_INSTALL_BRANCH` | `--branch B` | `main` | branch to clone / track |
 | `TMX_INSTALL_NO_SETUP=1` | `--clone-only` | (off) | stop after clone+submodules (no build, no host writes) |
 | `TMX_INSTALL_DETECT_RC_ONLY=1` | `--detect-rc-only` | (off) | print the shell rc PATH would be wired into, then exit |
-| `TMX_INSTALL_NO_HTTPS_REWRITE=1` | `--no-https-rewrite` | (off) | disable the `git@github:` → `https://github.com/` submodule URL rewrite |
+| `TMX_INSTALL_HTTPS_REWRITE=1` | `--https-rewrite` | (off) | **opt in** to the `git@github:` → `https://github.com/` submodule URL rewrite (keyless aid; see the warning below) |
+| `TMX_INSTALL_NO_HTTPS_REWRITE=1` | `--no-https-rewrite` | (off) | legacy explicit opt-OUT; still honoured, and wins over the opt-in |
 
-HTTPS is the default clone scheme precisely because a fresh end user may not
-have SSH keys configured. For the submodules — whose `.gitmodules` pin SSH
-URLs — the installer applies a `git@github.com:` → `https://github.com/`
-`insteadOf` rewrite by default so a keyless user can fetch **public** github
-submodules over HTTPS.
+**SSH (the git protocol) is the default clone scheme, and the submodule URL
+rewrite is OFF by default** (changed in 1.0.44). The installer clones over the
+`git@github.com:` URLs exactly as `.gitmodules` pins them, so your SSH key
+authenticates every fetch.
+
+Why the previous HTTPS-by-default was removed (TMX-086): the rewrite converted
+the **private** nested submodule
+`constitution/submodules/helix_perf_cache` (`git@github.com:HelixDevelopment/helix_perf_cache.git`)
+into an *unauthenticated* HTTPS fetch. GitHub answers that by asking for a
+username, and because nothing set `GIT_TERMINAL_PROMPT=0` the installer BLOCKED
+on that prompt forever — with no way to answer it under `curl | bash`. Measured
+A/B on the same repo, same host, same minute: SSH `exit=0`; SSH+rewrite
+`exit=128 could not read Username`.
+
+The installer now also exports `GIT_TERMINAL_PROMPT=0` (plus empty
+`GIT_ASKPASS`/`SSH_ASKPASS`), so a missing credential can only ever produce a
+fast, readable error — never a silent hang. `GIT_SSH_COMMAND` defaults to
+`ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20` so a first-contact
+github host key does not block either; an ssh key **passphrase** prompt is
+deliberately still allowed, and your own `GIT_SSH_COMMAND` is never overridden.
 
 ## Edge cases
 
@@ -104,14 +120,20 @@ submodules over HTTPS.
   to a private submodule. The installer surfaces the submodule failure honestly
   (the `constitution/` presence check warns rather than faking green, §11.4.6);
   provide an SSH key or an HTTPS credential/token for the private repo.
-- **SSH-keyed user needs a PRIVATE submodule** → the default
-  `git@github.com:` → `https://github.com/` rewrite (the keyless-clone aid)
-  works *against* you here: it rewrites the submodule's SSH URL to an
-  **unauthenticated** HTTPS URL, so the private clone fails even though your SSH
-  key would have worked. Disable the rewrite so your key is used —
-  `TMX_INSTALL_NO_HTTPS_REWRITE=1` (or `--no-https-rewrite`). Public-submodule
-  keyless users must NOT set this. See
-  [`../guides/troubleshooting.md`](../guides/troubleshooting.md) §4.
+- **SSH-keyed user needs a PRIVATE submodule** → this is the default path since
+  1.0.44 and needs no flag: the pinned `git@github.com:` URLs are used as-is and
+  your key authenticates. Do **not** set `TMX_INSTALL_HTTPS_REWRITE=1` — that
+  rewrites the submodule's SSH URL to an **unauthenticated** HTTPS URL and the
+  private fetch then fails (historically: hung on a credential prompt, TMX-086).
+  See [`../guides/troubleshooting.md`](../guides/troubleshooting.md) §4.
+- **Keyless user with no SSH key at all** → set `TMX_INSTALL_HTTPS_REWRITE=1`
+  **and** pass an HTTPS clone source, e.g.
+  `--repo https://github.com/vasic-digital/tmux.git`. Honest boundary (§11.4.6):
+  this reaches the public repos only. The private nested submodule
+  `constitution/submodules/helix_perf_cache` still cannot be fetched without
+  credentials, so the install will fail on it — with a fast, readable error
+  rather than a hang. A keyless install of the full tree is not currently
+  possible; an SSH key with access is required.
 - **Build deps missing / verification RED** → `setup.sh` exits non-zero and the
   installer surfaces it (never PATH-exports an unverified binary, §11.4).
 - **Validation suite FAILs** → the installer prints the SUMMARY and exits

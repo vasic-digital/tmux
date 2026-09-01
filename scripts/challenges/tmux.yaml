@@ -11,7 +11,7 @@ challenges:
     prerequisite: tmux/build/bin/tmux is executable
     test_script: scripts/tests/01_smoke.sh
     pass_condition: |
-      stdout contains "tmux 3.6a"
+      stdout contains "tmux next-3.8"
     evidence: stdout transcript
     severity: blocker
 

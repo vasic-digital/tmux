@@ -17,7 +17,7 @@
 #             for the inner application. Changing to CSI-u is safe for ANY
 #             outer terminal — tmux handles the translation.
 #
-#             Wire-level verification (from tmux 3.6a source input-keys.c:473):
+#             Wire-level verification (from tmux next-3.8 source input-keys.c:467, verified 2026-09-01):
 #               xterm: `\033[27;<modifier>;<keycode>~`
 #               csi-u: `\033[<keycode>;<modifier>u`
 #             Both formats are sent to the INNER application's pty ONLY
@@ -89,7 +89,7 @@ else
     _skip "could not start tmux server with full config (sandbox paths missing)"
 fi
 
-# T3: source-code verification. In tmux 3.6a's input-keys.c:473-476,
+# T3: source-code verification. In tmux next-3.8's input-keys.c:467-470 (verified 2026-09-01 at pin 40381bdc),
 # the encoding function checks: if extended-keys-format == 1 (xterm),
 # emit \033[27;M;K~; else (0 = csi-u), emit \033[K;Mu.
 # Verify the source has this exact logic so a tmux version change that

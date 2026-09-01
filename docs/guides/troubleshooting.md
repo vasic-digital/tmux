@@ -236,13 +236,20 @@ exact missing object / linker error there.
 
 ### Background
 
-The `curl | bash` installer clones over **HTTPS by default** so a fresh user
-**without SSH keys** can still fetch the project and its **public** github
-submodules. Because the submodules pin SSH URLs in `.gitmodules`, the installer
-applies a git `insteadOf` rewrite by default —
-`url.https://github.com/.insteadOf=git@github.com:` — so a keyless user's
-recursive clone resolves those public submodules over HTTPS
-(`scripts/install.sh:142-152`).
+**Fixed in 1.0.44 (TMX-086) — the installer no longer does this by default.**
+
+Historically the `curl | bash` installer cloned over **HTTPS by default** and
+applied a git `insteadOf` rewrite — `url.https://github.com/.insteadOf=git@github.com:`
+— to every submodule URL, as a keyless-clone aid. That rewrite converted the
+**private** nested submodule `constitution/submodules/helix_perf_cache` into an
+*unauthenticated* HTTPS fetch; GitHub answered by asking for a username, and
+with no `GIT_TERMINAL_PROMPT=0` guard the installer BLOCKED on that prompt
+forever. Under `curl | bash` the prompt is unanswerable, so the install simply
+hung.
+
+The installer now clones over **SSH (the git protocol) by default**, applies no
+rewrite, and exports `GIT_TERMINAL_PROMPT=0` so a missing credential can only
+ever fail fast. If you are on 1.0.44 or later you should not hit this at all.
 
 ### The edge
 
@@ -251,11 +258,14 @@ the default HTTPS rewrite works against you: it rewrites the submodule's
 `git@github.com:` SSH URL to `https://github.com/…`, which then attempts an
 **unauthenticated** HTTPS fetch (no credential) and the private clone fails.
 The honest boundary is documented in the script itself: the HTTPS rewrite does
-**not** grant access to private submodules (`scripts/install.sh:144-146`).
+**not** grant access to private submodules (`scripts/install.sh`, the GITC config-injection block).
 
 ### Recovery
 
-Disable the rewrite so your SSH key is used for the private submodule. Either:
+On 1.0.44+ no action is needed — SSH is the default and the rewrite is off.
+
+If you are running an **older** installer, disable the rewrite so your SSH key
+is used for the private submodule. Either:
 
 ```bash
 # Env var (works under the curl|bash pipe):
@@ -266,10 +276,10 @@ TMX_INSTALL_NO_HTTPS_REWRITE=1 \
 bash install.sh --no-https-rewrite
 ```
 
-With the rewrite disabled, the submodules clone via their pinned `git@github.com:`
-SSH URLs and your key authenticates the private fetch
-(`scripts/install.sh:34,82,92,150-151`). Public-submodule keyless users should
-**not** set this — they need the default rewrite.
+With the rewrite disabled the submodules clone via their pinned `git@github.com:`
+SSH URLs and your key authenticates the private fetch. On 1.0.44+ the inverse
+flag `TMX_INSTALL_HTTPS_REWRITE=1` opts *in* to the old rewrite; it is off by
+default and reaches public repos only.
 
 See also the "Private submodule with no access" / "Edge cases" notes in
 [`../scripts/install.md`](../scripts/install.md).

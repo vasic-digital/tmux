@@ -59,7 +59,7 @@ $CONTAINER_CMD run --rm \
     --workdir /repo \
     -e TMUX_BIN=/repo/tmux/build/bin/tmux \
     -e WRAPPER=/repo/scripts/tmx \
-    -e EXPECTED_VERSION=3.6a \
+    -e EXPECTED_VERSION=next-3.8 \
     "$IMAGE" \
     bash -c '
         set -euo pipefail

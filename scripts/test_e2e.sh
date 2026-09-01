@@ -26,6 +26,9 @@ FAIL=0
 SKIP=0
 SESSION="tmx_e2e_$$"
 MARKER="tmx-e2e-marker-$$-$(date +%s)"
+# Adopted upstream tmux version (operator decision 2026-09-01: next-3.8 pin).
+# Single edit point for a future version bump; env-overridable.
+EXPECTED_VERSION="${EXPECTED_VERSION:-next-3.8}"
 
 _pass() { echo "PASS: $*"; PASS=$((PASS + 1)); }
 _fail() { echo "FAIL: $*"; FAIL=$((FAIL + 1)); }
@@ -76,10 +79,10 @@ fi
 echo ""
 echo "--- T2: tmx -V smoke ---"
 VERSION_OUT=$(bash scripts/tmx -V 2>&1 | tail -1 | tr -d '\r')
-if echo "$VERSION_OUT" | grep -q "tmux 3.6a"; then
+if echo "$VERSION_OUT" | grep -q "tmux $EXPECTED_VERSION"; then
     _pass "T2: tmx -V → '$VERSION_OUT'"
 else
-    _fail "T2: tmx -V returned '$VERSION_OUT' (expected 'tmux 3.6a')"
+    _fail "T2: tmx -V returned '$VERSION_OUT' (expected 'tmux $EXPECTED_VERSION')"
 fi
 
 # ─── T3: create detached session ────────────────────────────────────

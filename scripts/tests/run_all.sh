@@ -61,7 +61,7 @@ TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build-darwin/bin/tmux"
 [ -x "$TMUX_BIN_DEFAULT" ] || TMUX_BIN_DEFAULT="$REPO_ROOT/tmux/build/bin/tmux"
 TMUX_BIN="${TMUX_BIN:-$TMUX_BIN_DEFAULT}"
 WRAPPER="${WRAPPER:-$REPO_ROOT/scripts/tmx}"
-EXPECTED_VERSION="${EXPECTED_VERSION:-3.6a}"
+EXPECTED_VERSION="${EXPECTED_VERSION:-next-3.8}"
 export TMUX_BIN WRAPPER EXPECTED_VERSION
 
 # ── resolve obtained jemalloc for every raw-$TMUX_BIN test (NO patchelf) ──

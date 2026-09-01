@@ -43,7 +43,9 @@ Non-compliance is a release blocker regardless of context.
 
 ## Project overview
 
-Verified hardened tmux 3.6a build with jemalloc, OOM protection, and
+Verified hardened tmux `next-3.8` build — upstream commit `40381bdc`,
+an UNTAGGED upstream master commit adopted by explicit operator
+decision 2026-09-01 (Project §107) — with jemalloc, OOM protection, and
 per-session isolation via the `tmx` wrapper. Native dual-OS: each
 `tmx new -s NAME` spawns its own tmux server on the host with
 OS-native isolation — cgroup-v2 scope on Linux, POSIX rlimit wrapper on
@@ -93,7 +95,7 @@ VM. macOS memory-cap gap documented honestly (XNU doesn't enforce
 | Path | Role |
 |---|---|
 | `constitution/` | HelixConstitution submodule — universal governance — **do not modify** |
-| `tmux/` | upstream submodule (tag `3.6a`) — **do not modify** |
+| `tmux/` | upstream submodule (pinned commit `40381bdc` = `next-3.8`, UNTAGGED) — **do not modify** |
 | `Containers/` | vasic-digital cgroup helpers submodule |
 | `scripts/` | build, verify, install, 17 tests + inheritance gate, challenges, templates |
 | `scripts/tmx` | generated dispatcher (`.gitignore`'d — edit `tmx.template`) |
@@ -117,8 +119,8 @@ VM. macOS memory-cap gap documented honestly (XNU doesn't enforce
 - Direct `git push` on the main repo — use `commit_all.sh`.
 - CI/CD pipeline files (`.github/workflows/`, `.gitlab-ci.yml`).
 - HTTPS Git remotes — SSH only.
-- Advancing the `tmux/` submodule off tag `3.6a` without an explicit
-  documented decision (Project §107).
+- Advancing the `tmux/` submodule off pinned commit `40381bdc`
+  (`next-3.8`) without an explicit documented decision (Project §107).
 
 ### Project-specific workflow
 

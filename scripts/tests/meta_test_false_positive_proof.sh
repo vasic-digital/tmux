@@ -1665,6 +1665,55 @@ v109_run_mutation \
     "scripts/tests/59_oomd_preference_avoid.sh" \
     "FAIL (RED)"
 
+# ── M-INSTALL-SSH-ONLY family: install.sh credential-prompt hang (TMX-086) ──
+# §1.1 paired mutations for scripts/tests/90_install_ssh_only_no_credential_prompt.sh.
+# Forensic anchor (2026-09-01): install.sh hung asking for GitHub credentials
+# because its default `url.https://github.com/.insteadOf=git@github.com:` rewrite
+# converted the PRIVATE nested submodule helix_perf_cache to anonymous HTTPS,
+# and no GIT_TERMINAL_PROMPT=0 guard existed to turn the credential need into a
+# fast failure instead of an infinite block. Each mutation below reverts ONE
+# element of the fix and MUST make its own named sub-check FAIL.
+
+v109_run_mutation \
+    "M-INSTALL-SSH-DEFAULT" \
+    "revert install.sh DEFAULT_REPO_URL from the SSH (git) form back to HTTPS — violates the ssh-key-only operator mandate" \
+    "scripts/install.sh" \
+    "inplace_sed 's|^DEFAULT_REPO_URL=\"git@github.com:|DEFAULT_REPO_URL=\"https://github.com/|' \"\$target_abs\"" \
+    "scripts/tests/90_install_ssh_only_no_credential_prompt.sh" \
+    "FAIL: A"
+
+v109_run_mutation \
+    "M-INSTALL-HTTPS-REWRITE-DEFAULT" \
+    "revert install.sh to injecting the SSH->HTTPS insteadOf rewrite BY DEFAULT — reintroduces the private-submodule credential prompt (TMX-086)" \
+    "scripts/install.sh" \
+    "inplace_sed 's|^if \\[ \"\$HTTPS_REWRITE\" = \"1\" \\]; then|if [ \"\$NO_HTTPS_REWRITE\" != \"1\" ]; then|' \"\$target_abs\"" \
+    "scripts/tests/90_install_ssh_only_no_credential_prompt.sh" \
+    "FAIL: B TMX-086 regression"
+
+v109_run_mutation \
+    "M-INSTALL-ASKPASS-GUARD" \
+    "delete install.sh's unset of GIT_ASKPASS/SSH_ASKPASS — an inherited askpass helper could answer the credential prompt the fix disabled" \
+    "scripts/install.sh" \
+    "inplace_sed '/^unset GIT_ASKPASS SSH_ASKPASS\$/d' \"\$target_abs\"" \
+    "scripts/tests/90_install_ssh_only_no_credential_prompt.sh" \
+    "FAIL: E"
+
+v109_run_mutation \
+    "M-INSTALL-SSH-HOSTKEY-GUARD" \
+    "strip StrictHostKeyChecking=accept-new from install.sh's GIT_SSH_COMMAND — a first-contact github host key blocks the installer (the SSH-side hang the SSH-by-default switch would otherwise reintroduce)" \
+    "scripts/install.sh" \
+    "inplace_sed 's|-o StrictHostKeyChecking=accept-new ||' \"\$target_abs\"" \
+    "scripts/tests/90_install_ssh_only_no_credential_prompt.sh" \
+    "FAIL: G"
+
+v109_run_mutation \
+    "M-INSTALL-NO-PROMPT-GUARD" \
+    "delete install.sh's export GIT_TERMINAL_PROMPT=0 — a missing credential BLOCKS on an interactive prompt instead of failing fast (§11.4.1)" \
+    "scripts/install.sh" \
+    "inplace_sed '/^export GIT_TERMINAL_PROMPT=0\$/d' \"\$target_abs\"" \
+    "scripts/tests/90_install_ssh_only_no_credential_prompt.sh" \
+    "FAIL: C"
+
 # ═══════════════════════════════════════════════════════════════════════
 # SUMMARY (relocated post-M24 by P5 so v1.0.9 mutations count in totals)
 # ═══════════════════════════════════════════════════════════════════════

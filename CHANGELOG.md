@@ -6,6 +6,117 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [tmux-1.0.44] (also v1.0.44) — 2026-09-01
+
+### Fixed
+
+- **`scripts/install.sh` hung indefinitely on a GitHub credential
+  prompt — the installer could not complete on an SSH-key-only host
+  (TMX-086).** Verbatim operator report (2026-09-01): "We cannot
+  install / setup tmx (tmux) on the System! Running our bash script
+  gets stuck asking for GitHub credentials, which MUST NOTEVER
+  haoppen! We shall rely only on ssh key (git protocol)!" Root cause:
+  `install.sh` injected `-c url.https://github.com/.insteadOf=git@github.com:`
+  BY DEFAULT. Git propagates `-c` flags to submodule subprocesses via
+  `GIT_CONFIG_PARAMETERS`, so the rewrite reached every RECURSIVE
+  submodule clone — including the constitution submodule's nested
+  `submodules/helix_perf_cache -> git@github.com:HelixDevelopment/helix_perf_cache.git`,
+  the ONLY repo of the nine in the tree that is not anonymously
+  readable. Rewritten to HTTPS it cannot be fetched without
+  credentials, so GitHub asks for a `Username`; nothing set
+  `GIT_TERMINAL_PROMPT=0`, so git BLOCKED on that prompt indefinitely
+  — and under `curl | bash` the prompt is unanswerable. Anonymous-HTTPS
+  census (all git config bypassed, no credential helper on host):
+  PUBLIC = `vasic-digital/{tmux,Containers,token_optimizer,session_orchestrator,continuum,anti_bluff,design-toolkit,docs_chain}`
+  and `HelixDevelopment/HelixConstitution`; PRIVATE =
+  `HelixDevelopment/helix_perf_cache` (the trigger). Fixed, all in
+  `scripts/install.sh`: (1) `DEFAULT_REPO_URL` changed from
+  `https://github.com/vasic-digital/tmux.git` to
+  `git@github.com:vasic-digital/tmux.git`; (2) the `insteadOf` rewrite
+  is now OFF by default — opt in with `TMX_INSTALL_HTTPS_REWRITE=1` /
+  `--https-rewrite`, while the legacy `TMX_INSTALL_NO_HTTPS_REWRITE=1`
+  / `--no-https-rewrite` is still honoured as an explicit opt-OUT and
+  wins; (3) exported `GIT_TERMINAL_PROMPT=0`, `GIT_ASKPASS=""`,
+  `SSH_ASKPASS=""` so a missing credential fails fast instead of
+  hanging; (4) exported
+  `GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20}"`
+  so a first-contact github host key cannot hang either
+  (`accept-new` still REFUSES a CHANGED key; an ssh key passphrase
+  prompt is deliberately still allowed; an operator-set
+  `GIT_SSH_COMMAND` is never overridden).
+- **Recursive clone aborted on an orphan gitlink in the constitution
+  submodule — the install was blocked INDEPENDENTLY of credentials
+  (TMX-087).** The constitution submodule's index carried TWO gitlinks
+  with the identical SHA `efd2c3fb2f880aaf2baf7f4819ce28a1ce3609cb`: a
+  bare `design-toolkit` with NO `.gitmodules` mapping, and the
+  correctly-mapped `submodules/design-toolkit`. Git refuses to recurse
+  when a gitlink has no mapping, so every consumer's recursive clone
+  aborted with `fatal: No url found for submodule path
+  'constitution/design-toolkit' in .gitmodules` followed by `fatal:
+  Failed to recurse into submodule path 'constitution'`. Introduced
+  when the submodule was relocated under `submodules/` (constitution
+  commit `e499ffb`, "...constitution design-toolkit layout...")
+  without removing the old index entry. Fixed by constitution commit
+  `b9096ac`, which removes ONLY the orphan gitlink — `.gitmodules` is
+  untouched and `submodules/design-toolkit` keeps the same pinned SHA,
+  so no capability is dropped (§11.4.122). Pushed fast-forward
+  (`6f24df9..b9096ac`) to all SIX constitution upstreams (`github`,
+  `gitlab`, `gitflic`, `gitverse`, `vasic_digital_github`,
+  `vasic_digital_gitlab`), no force-push (§11.4.113). This repo's
+  constitution pointer is bumped `6f24df9` → `b9096ac`.
+
+### Tests
+
+- **Test 90 (new)** — `90_install_ssh_only_no_credential_prompt.sh`:
+  §11.4.115 RED/GREEN polarity, `RED_MODE` default `0` (the
+  regression-guard polarity, per the TMX-085 convention). Method: a
+  recording `git` shim placed first on `PATH` captures the REAL argv
+  and the INHERITED `GIT_TERMINAL_PROMPT`, so every assertion is
+  runtime evidence rather than a grep of the installer source
+  (§11.4.226 evidence-class). Sub-checks: **A** the default clone URL
+  uses the SSH form; **B** no `insteadOf` rewrite appears in the real
+  git argv by default; **C** git inherited `GIT_TERMINAL_PROMPT=0`;
+  **D** `TMX_INSTALL_HTTPS_REWRITE=1` still enables the rewrite
+  (capability preserved, §11.4.122). `RED_MODE=1` reconstructs a
+  pre-fix copy of `install.sh` and asserts the rewrite IS injected —
+  proving the test is not blind (§11.4.115(F)).
+- **Paired mutations (3, new)** in
+  `scripts/tests/meta_test_false_positive_proof.sh`:
+  `M-INSTALL-SSH-DEFAULT` (expect `FAIL: A`),
+  `M-INSTALL-HTTPS-REWRITE-DEFAULT` (expect `FAIL: B`),
+  `M-INSTALL-NO-PROMPT-GUARD` (expect `FAIL: C`).
+- **Self-inflicted test-instrument bug, found and fixed during
+  authoring (§11.4.1 / §11.4.201(7)(c)):** the argv extractor keyed on
+  `' clone'` with a LEADING SPACE, which matched ONLY when the defect
+  was present (the rewrite adds `-c ...` before `clone`), producing a
+  false FAIL on correct code — a FAIL-bluff from the instrument, not
+  the product. Fixed to a word-boundary match and documented inline in
+  the test.
+
+### Verification
+
+One operator symptom, TWO independent root causes — either alone is
+sufficient to block the install, so both had to land.
+
+- **Controlled A/B for TMX-086** (same repo, same host, same minute,
+  one variable): SSH as declared → `exit=0`, `6adcfb2 refs/heads/main`;
+  with the installer's rewrite applied → `exit=128`, `fatal: could not
+  read Username for 'https://github.com'`.
+- **§11.4.115 polarity, test 90:** GREEN (`RED_MODE=0`, the default) —
+  `PASS=4 FAIL=0 SKIP=0`, exit `0`; RED (`RED_MODE=1`) — `PASS=1
+  FAIL=0 SKIP=0`, exit `0`, defect reproduced on the reconstructed
+  pre-fix installer.
+- **TMX-087 live clone observation:** with the orphan gitlink removed,
+  a recursive clone checked out `Containers` and `constitution` over
+  SSH with NO credential prompt.
+- **Full-suite retest:** `UNCONFIRMED:` — the §11.4.40 full
+  `run_all.sh` sweep for this release was still in flight when this
+  entry was authored; its outcome is not known here and is not
+  claimed. See `Fixed.md` §L (TMX-086, TMX-087) and `CONTINUATION.md`
+  §3.35 for the full detail + captured evidence.
+
+---
+
 ## [tmux-1.0.43] (also v1.0.43) — 2026-08-13
 
 ### Fixed
