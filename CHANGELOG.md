@@ -6,6 +6,550 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [tmux-1.0.45] (also v1.0.45) — Unreleased (intended 2026-09-01)
+
+A **workable-items tracker-integrity** release (versionCode 46). The tmux
+product surface is UNCHANGED from v1.0.44 — same hardened `tmux 3.7b`
+binary, same `tmx` wrapper, same submodule pin
+(`e802909de06012a4df6209d55e86487c56223163`). Everything below is in the
+§11.4.93 SQLite single-source-of-truth engine (`cmd/workable-items/`), the
+release gate (`scripts/verify.sh`), and the tracker corpus itself.
+
+### Fixed
+
+- **TMX-094's fix was structurally suppressed on the live corpus — an
+  `add`-created row still rendered into NO tracker (found during release
+  verification, 2026-09-01).** `sourcelessItems` derived a block code from an
+  item's stored `code_ordinal`, but every `workable-items add` row carries the
+  SENTINEL `code_ordinal = 0`, which renders as code `A0` — and `Fixed.md:2585`
+  holds a genuine `### A0. Initial migration from ATMOSphere project …` block
+  that declares no `**TMX-ID:**`. `codeOwners["A0"][""]` therefore answered for
+  EVERY add-created row in category A, silently suppressing exactly the rows
+  TMX-094 exists to render. The codebase's own rule is stated at
+  `validate_identity.go:163` — *"ordinal sentinel — asserts no block claim"* —
+  and `sourcelessItems` contradicted it. Measured proof: TMX-099 and TMX-100
+  were written to the DB with `current_location = Issues` and rendered into
+  neither tracker (`sourceless count=0` against the real corpus). The stored-
+  ordinal check is now skipped when `CodeOrdinal <= 0`, leaving the
+  `atmOrdinal` fallback intact. Post-fix both rows render as real parseable
+  blocks (`### A99.` / `### A100.`), `issues_parsed` 10 → 12, round-trip
+  byte-identical, `validate` 0 findings. Guarded by
+  `TestSourcelessItems_SentinelOrdinalIsNotABlockClaim` (§11.4.115 polarity
+  switch; `RED_MODE=1` reproduces `count=0` on the pre-fix artifact) plus a
+  §11.4.201(1) false-positive guard, and proven load-bearing by a paired §1.1
+  mutation (reverting the guard makes the RED FAIL). Why the original tests
+  missed it: they exercised each signal with synthetic fixtures that contained
+  no `<CAT>0` block, so they agreed with the code instead of catching it — a
+  fixture-realism gap (§11.4.245).
+
+- **`headingRE` required a period after the block ordinal, so every
+  SPACE-form heading was silently invisible to the SSoT — the block's body
+  was absorbed into the PRECEDING item's `raw_body` and its own row sat in
+  the DB with a sentinel identity, so nothing could locate it in the
+  markdown.** `cmd/workable-items/parser.go` matched
+  `^###\s+([A-Z])(\d+)\.\s+(.*)$`, i.e. `### A52.` but never
+  `### G5 NAME-001 — …`. Measured, not inferred: the sentinel is
+  category `Z` / `code_ordinal 0` ("heading never parsed"). The corpus
+  carries BOTH forms — 23 of the `Fixed.md` block headings were space form (measured at tag `tmux-1.0.44`; the corpus repair in this same release adds more)
+  (measured 2026-09-01, recorded in `reconcile.go`'s own contract comment)
+  — and the reconciler's matcher `blockCodeRE` had **always** accepted
+  both, so the narrow parser was an internal inconsistency between two
+  components of one tool, not a deliberate contract. Widened to
+  `^###\s+([A-Z])(\d+)(?:\.\s+|\s+)(\S.*)$`. In the SAME change both
+  regexes were also **TIGHTENED** and are now changed together by
+  construction: `blockCodeRE` went from the permissive
+  `^###\s+([A-Z])(\d+)[.\s]` to `^###\s+([A-Z])(\d+)(?:\.\s+|\s+)\S`, so
+  the two agree on their accepted set. The separator is now REQUIRED and
+  must be followed by real title text, which correctly REFUSES `### A50X`
+  (no separator), `### A1.x` (period not followed by whitespace),
+  `### A12.5` (a decimal token would have yielded ordinal `12`, title
+  `"5 …"`), `### A1.` and `### A1 ` (empty title — its `heading_hash`
+  would be computed over `""`). Blast radius was measured BEFORE any sync:
+  90 loose-accepted corpus headings scanned, **0** dropped,
+  control-needle proven (§11.4.201(7)(b)). The contract comment above
+  `headingRE` is declared the §11.4.245 SPECIFIED ORACLE for
+  `heading_forms_test.go`, whose accept/refuse table is derived from the
+  prose contract rather than from the regex — so a change to one that is
+  not a change to the other FAILs.
+- **Widening the parser exposed SIX further defects in the sync engine,
+  each fixed at root cause rather than patched at the call site.** None
+  was reachable while the space-form blocks were invisible; every one is
+  a real defect the narrow regex had been masking.
+  1. **`UpsertItem` decided INSERT-vs-UPDATE on `heading_hash` alone**, so
+     a newly-parseable block died on `UNIQUE constraint failed:
+     items.atm_id` (reproduced on the live corpus for TMX-072). An item's
+     identity is its `atm_id`; `heading_hash` is a FINDING AID that must
+     be free to change when the heading legitimately changes.
+     `cmd/workable-items/db.go` now resolves an explicit `**TMX-ID:**` to
+     its existing row, UPDATEs it, and REFRESHES the hash so the next sync
+     binds on the hash instead of repeating the miss.
+  2. **Two blocks for one item silently COLLAPSED into one row** whose
+     survivor depended on read order. Replaced with a fail-closed guard
+     over the UNION of `**TMX-ID:**` (`ExplicitATM`) and heading identity
+     (`HeadingHash`) across every parsed block in BOTH files — it REFUSES
+     rather than picking a winner.
+  3. **That guard persisted `document_sources` BEFORE it ran**, so a
+     REFUSED sync still mutated the git-tracked SSoT. Raw text is now held
+     in locals and both blobs are persisted only after the guard passes
+     (§11.4.252 persist-after-guard).
+  4. **An identity rebind replaced a row's category / ordinal / title /
+     body with NO history row and NO counter** — `validate` reported 0
+     findings because the result was self-consistent. The prior identity
+     is now captured, written to `item_history`, counted in `SyncResult`
+     (`RebindDetails`) and printed by the CLI (§11.4.226).
+  5. **`itemContentEqual` compared `Category` but not `CodeOrdinal` /
+     `HeadingHash`**, so an ordinal-only renumber took the "unchanged"
+     path and the row kept a stale ordinal + hash PERMANENTLY — every
+     later sync re-missed the hash and re-reported unchanged. Both fields
+     are now compared (identity IS content); rows self-heal from either
+     drift.
+  6. **`lookupByHeadingHash` matched on error TEXT and returned
+     `("", nil)` for real DB errors** — a failed query read as a hash
+     MISS, which mints a duplicate row. Now `errors.Is(err,
+     sql.ErrNoRows)`; real errors propagate.
+- **`workable-items add` computed a `heading_hash` the parser could never
+  reproduce — it hashed the ATM id where the parser hashes the BLOCK CODE
+  (TMX-093).** `add.go` passed `atm` into `computeHeadingHash`, while
+  `parser.go` builds `code := category + ordinal` (`parser.go:186`) before
+  hashing it (`parser.go:201`). An `add`-created row therefore could not
+  bind to its own block by hash, and survived only via the `ExplicitATM`
+  rebind fallback in `sync_md_to_db.go` — which REPLACES the row and
+  refreshes the hash, **masking** the split behind a one-off rebind that
+  looked like normal operation. Fixed by hashing the block code the writer
+  actually emits: `blockCode := category + atmOrdinal(atm)`, mirroring
+  `sync_db_to_md.go:195-201`, which renders `### <Category><CodeOrdinal>.`
+  and substitutes `atmOrdinal(ATMID)` when `CodeOrdinal` is the 0 sentinel
+  — so the hash tracks whatever heading the writer emits, for every ATMID
+  form the writer accepts.
+- **`workable-items add --category` accepted values that render a heading
+  the parser can NEVER read (TMX-095, new this cycle).** `AddItem`
+  accepted ANY `Category` string and merely uppercased it, while
+  `headingRE` accepts exactly one letter followed by digits. Measured
+  2026-09-01: `--category=AB` renders `### AB1.` and `--category=1`
+  renders `### 11.`; neither matches. The row lands in the SSoT and the
+  writer emits its block, but the parser cannot see it — the SAME
+  invisible-block class as the heading-form gap above, reached through the
+  `add` seam instead. `AddItem` now refuses anything that is not exactly
+  one letter `A-Z`, with an actionable message. The false-positive guard
+  is explicit and tested: `A`, `Z`, lowercase `a`, and the empty default
+  MUST still be accepted (§11.4.201(1) — a guard that refuses the real
+  corpus is a defect, not a safe default). Filed as its own tracked item
+  by the stream that fixed TMX-093 and correctly declined to fix it out of
+  scope (§11.4.197 — a known defect with no tracked item evaporates);
+  `Issues.md` §A7.
+- **`db-to-md` never rendered `add`-created rows — the §11.4.148
+  all-surfaces contract was unmet for them (TMX-094).**
+  `reconcileLocations` only MOVES blocks that already exist in a document
+  blob; it never APPENDS one for an item present in the structured `items`
+  table but in NEITHER blob. `workable-items add` writes an `items` row and
+  nothing to `document_sources`, so on the live corpus (where a blob is
+  always non-empty and that branch is always taken) an add-created row was
+  a DB row no tracker document ever showed — a silent loss of visibility at
+  the requirements-intake layer (§11.4.202 / §11.4.197). Fixed with
+  `sourcelessItems()` + `appendRenderedItems()` in `sync_db_to_md.go`,
+  gated on THREE independent signals because a false positive here
+  DUPLICATES a block into the tracker, which is strictly worse than the
+  omission it repairs: (a) `items.raw_body` empty — the primary scope gate,
+  deliberately NARROWER than "the item has a block"; (b) no
+  `**TMX-ID:** <id>` line anywhere in either blob; (c) no plausibly-own
+  `### <CAT><N>` block, where a bare code match is NOT sufficient because
+  heading codes are not unique (measured 2026-09-01: 93 code headings, 85
+  distinct — 8 codes appear twice), and the ordinal is checked BOTH as the
+  stored `CodeOrdinal` and as `writeItemBlock`'s `atmOrdinal` fallback
+  because the two legitimately disagree for legacy rows. Signals (b) and
+  (c) are each individually insufficient, measured: the id-line signal
+  alone flags 62 of 95 items, 61 of them FALSE — their blocks ARE present,
+  matched by heading code, because the operator corpus predates the
+  `**TMX-ID:**` convention. Measured on the live corpus (95 items, both
+  blobs seeded): **0** rows have an empty `raw_body`, so this pass appends
+  nothing to the real documents today and the live regeneration stays
+  byte-identical.
+- **The §11.4.54 identity audit DISCARDED a second ownership assertion in
+  silence, so a real collision could not be reported.**
+  `markdownBlockOwners` was first-declarer-wins: `Fixed.md` carried 25
+  blocks declaring a `**TMX-ID:**` while the owner map held 24 keys —
+  `### A52` headed two blocks (TMX-062 and the TMX-071 tombstone) and
+  TMX-071's assertion vanished, so the audit could not report a collision
+  it had already thrown away. Duplicates are now RETURNED and raised as
+  `§11.4.54` findings naming every claimant. Cross-FILE reuse of a code is
+  deliberately NOT a duplicate — identity is `(location, category,
+  ordinal)` and the live corpus legitimately reuses 8 codes across the two
+  trackers, so flagging those would refuse the real corpus
+  (§11.4.201(1)).
+- **A code-less `###` heading did not reset the audit's id-scan cursor, so
+  an id line could bind to the PRECEDING block.** The corpus holds three
+  item-level headings written with a name instead of a block code; `cur`
+  kept pointing at the block above them. The reset is now keyed to ANY
+  heading level (`anyHeadingRE`), not the literal `### ` prefix, because
+  the item parser already closes its own `**TMX-ID:**` window on any
+  heading level — the two components had disagreed about what closes an
+  id-scan window. Honest boundary (§11.4.6): measured on the live corpus
+  2026-09-01 by an awk walk of both trackers comparing the two reset
+  rules, **ZERO** id lines change attribution — this closes a divergence
+  and a live trap for the moment the missing id lines are backfilled; it
+  does NOT repair a mis-attribution that was happening today.
+- **The `### A52` block code was declared by BOTH TMX-062 and TMX-071 — a
+  genuine §11.4.19 one-item-one-block violation with measured data loss.**
+  Both blocks live in `Fixed.md`: the SPACE-form `### A52 NO-SUDO-…` at
+  line 2890 (TMX-062, itself a live specimen of the form this release made
+  parseable) and the PERIOD-form `### A52. META-TEST-72-73-REGISTER-001`
+  at line 3027 (TMX-071). The literal `### A52.` occurs exactly ONCE; it
+  is the CODE that repeats, across the two heading forms — measured at
+  HEAD `5191e82`, BEFORE the repair: `grep -c '^### A52\.'` = 1,
+  `grep -cE '^### A52(\.| )'` = 2. Resolved by renumbering the TMX-071
+  block `### A52.` → `### A56.` (A56 was free; the highest in use was
+  A55), and the sync's `ExplicitATM` path RECORDED the identity rebind
+  (`TMX-071 (was A52 … in Fixed -> now A56 … in Fixed)`). Post-renumber
+  those same two commands measure `0` and `1`, and the owner map holds 25
+  keys with `owners['A52']=TMX-062`, `owners['A56']=TMX-071`. The
+  superseded pre-renumber measurements are PINNED to the revision they
+  were taken at in the closure evidence rather than deleted, because the
+  collision they document was real (§11.4.6).
+- **TMX-078's stored identity named a block owned by a different ticket —
+  and no check could see it (landed in `ec25327`).** The DB row stored
+  `{category:A, code_ordinal:50, location:Fixed}` — "I am `### A50` in
+  `Fixed.md`" — but `Fixed.md:2945` `### A50` declared
+  `**TMX-ID:** TMX-057`, while TMX-078's real block was `Issues.md:271`
+  `### G5 SANITIZE-NAME-001`. `validate` reported 0 findings throughout
+  because NO check compared a row's STORED identity against the MARKDOWN
+  block it names — a missing check and a clean corpus return the identical
+  quiet zero (§11.4.201). It is not catchable DB-internally either: a
+  duplicate `(location, category, ordinal)` scan misses it, because
+  TMX-078's triple IS unique — the item it collides with carries the
+  ordinal-0 sentinel the narrow heading parser left behind. Only the
+  markdown can settle who owns a block. Repaired (one row, TMX-078
+  `A50/Fixed` → `G5/Issues`, §9.2 pre-op backup taken before the UPDATE,
+  DB WAL-checkpointed `TRUNCATE` before staging per §11.4.95) and covered
+  by a NEW cross-surface detector, `ValidateBlockIdentity`, wired into
+  `runValidate` behind `--issues` / `--fixed`. Its four false-positive
+  guards are each measured against the live corpus: ordinal-0 is the
+  unknown sentinel and asserts no claim; a block the parser cannot locate
+  is the known heading-form gap, COUNTED and REPORTED rather than silently
+  zeroed; a block with no `**TMX-ID:**` field asserts no ownership; and an
+  Obsolete row MAY share its successor's block — TMX-001 (Obsolete) and
+  TMX-054 both correctly name `Fixed B3`, so without that guard a correct
+  §11.4.90 supersession would be reported as a defect.
+
+- **Closing an item could move its block identity onto a block another item
+  already held — `close.go` wrote the destination regardless.** A close is a
+  BLOCK-IDENTITY MIGRATION, not only a status change: the identity triple
+  `(current_location, category, code_ordinal)` is a pointer to ONE markdown
+  block, and flipping `current_location` re-points it from `(Issues, cat,
+  ord)` to `(Fixed, cat, ord)`. Block codes are CATEGORY-LOCAL and are NOT
+  unique across the two trackers, so that destination can already be occupied
+  — producing exactly the two-items-one-block state `ValidateBlockIdentity`
+  exists to report. `CloseItem` now checks the destination BEFORE any write,
+  so the refusal is side-effect free and the row is left exactly as it was
+  (§11.4.252 fail-closed), and the error names the colliding holder plus the
+  concrete recovery (renumber to a free code in `Issues.md`, re-sync, close
+  again). Three false-positive guards mirror `validate_identity.go`'s, so the
+  two components agree on what "claims a block" means (§11.4.201(1)):
+  `code_ordinal <= 0` is the unknown-ordinal sentinel every `add` row carries
+  and can never collide; an `Obsolete` closure legitimately SHARES its
+  successor's block (§11.4.90 — measured live, `(Fixed, B, 3)` is held by both
+  TMX-001 and TMX-054); and the item's own row is excluded, so an idempotent
+  double-close is never refused by itself. The migration is also RECORDED on
+  the closure history event (`block identity <CODE> migrated <from> -> Fixed`,
+  appended to any operator-supplied reason rather than replacing it) — a
+  rewrite with no recorded evidence is indistinguishable from a row that was
+  always that way (§11.4.226).
+
+### Changed
+
+- **Two shipped governance gates that enforced NOTHING are now WIRED into
+  the release gate.** `scripts/testing/tracker_structural_integrity.sh`
+  and `scripts/review/review_round_record_test.sh` live outside
+  `run_all.sh`'s `scripts/tests/[0-9][0-9]_*.sh` glob, so grep proved
+  **zero** invocations from any runner: both self-tested green by hand
+  while gating zero (§11.4.205 — a gate that runs only when a human asks
+  is not a gate; §11.4.227(A) — a named gate must be implemented or a
+  registered deferral, never silent debt). Found by the independent review
+  as a BLOCKING finding and confirmed by re-measurement before acceptance.
+  Both are now executed from `scripts/verify.sh` as Layer-1 static gates
+  `CM-TRACKER-STRUCTURAL-INTEGRITY` and `CM-REVIEW-ROUND-RECORD-WIRED`,
+  each validated in BOTH polarities (golden-TRUE PASS on the healthy tree
+  printing its resolved evidence; golden-FALSE FAIL with `rc=1` when the
+  script is absent), each FAIL printing an actionable `reproduce:` line,
+  and a FAIL of either ABORTS `setup.sh` before the runtime suite (the
+  shared `TRACKGOV_FAIL` block, which now also carries the third gate
+  below).
+- **The three code-less `###` headings are REPAIRED, and a THIRD Layer-1
+  gate now covers the class so it cannot silently return.** The tracker
+  grammar never required a `### ` heading to carry a block code, so
+  hand-added headings were absorbed into the preceding block's `raw_body`
+  and were invisible to the §11.4.93 SSoT — one architectural cause reached
+  by three unrelated triggers (a sub-note, the ATM→TMX prefix migration
+  `89324dc`, a §12.10 status log). All three headings now carry a
+  parser-readable block code and a `**TMX-ID:**` line — `Issues.md`'s
+  `M24-ESCAPE-001` became `### B54 M24-ESCAPE-001 … — FIXED` (TMX-098) and
+  `Fixed.md`'s two became `### D2.` (TMX-096) and `### D3.` (TMX-097);
+  measured with `grep -c 'TMX-096\|TMX-097\|TMX-098' Issues.md Fixed.md`
+  → `Issues.md:0  Fixed.md:8`, all three now resident in the closed
+  tracker. The class is enforced by `scripts/testing/heading_grammar_gate.sh`,
+  wired into `scripts/verify.sh` as Layer-1 static gate
+  `CM-HEADING-GRAMMAR` (definition `scripts/verify.sh:935`, invocation
+  `:1050`, its FAIL reaching `exit 1` through the same `TRACKGOV_FAIL`
+  block as the two gates above). Measured live: `Issues.md` headings=12
+  coded=12 code-less=0; `Fixed.md` headings=86 coded=86 code-less=0;
+  `rc=0`. The gate carries a §11.4.201(7)(b) control needle — 3 synthetic
+  headings pushed through the SAME scanner return `seen=3 coded=2
+  code-less=1`, so its zero is proven not blind — and a companion
+  §11.4.115(F) RED/GREEN pair: run against `HEAD:Issues.md` +
+  `HEAD:Fixed.md` (the pre-repair artifact) it FAILs naming all three
+  offenders by file and line, and against the repaired corpus it PASSes.
+  Its self-test `scripts/testing/heading_grammar_gate_test.sh` reports
+  `PASS=9 FAIL=0`, two of the nine being §1.1 mutations (classifier
+  weakened → gate MISSES the code-less heading `rc=0`; counter neutered →
+  same), proving the verdict depends on the assertion and the count rather
+  than on incidental output. Companion guide:
+  `docs/scripts/heading_grammar_gate.md` (§11.4.18).
+- **Tracker corpus repair (operator-approved 2026-09-01, both decisions
+  recorded).** Removed four stale `### G1..G4` duplicates that existed as
+  full blocks in BOTH trackers (TMX-072..075, already closed in
+  `Fixed.md`); resolved the `A50` double-claim by renumbering `Fixed.md`'s
+  block to `### A55.` and adding `**TMX-ID:** TMX-078`, then retiring the
+  duplicate `Issues.md` `### G5`. The emptied `## G.` section was
+  **ANNOTATED, not deleted** — and the `Fixed.md` §A55 entry's "Tracked
+  task" line now names ITSELF as the tracked record instead of pointing at
+  the retired duplicate. Cross-tracker duplicates: **5 → 0**, enforced at
+  the sync seam.
+- **`constitution` submodule pointer `b9096ac` → `f5876a3`** — a codegraph
+  ledger append; no governance text changed.
+- **`README.md`** gains a doc-link row for the two newly-wired gates and
+  their companion guides (`docs/scripts/tracker_structural_integrity.md`,
+  `docs/scripts/review_round_record.md`), so both are reachable from the
+  canonical entry point (§11.4.212).
+
+### Tests
+
+- **New Go test files:** `heading_forms_test.go` (the §11.4.245
+  specified-oracle accept/refuse table, plus a test that `headingRE` and
+  `blockCodeRE` AGREE on acceptance), `duplicate_block_test.go`,
+  `upsert_identity_test.go`, `guard_coverage_test.go`,
+  `validate_identity_test.go`, `validate_identity_duplicate_test.go`,
+  `add_hash_convention_test.go`, `add_category_validation_test.go`,
+  `db_to_md_add_rows_test.go`, `sourceless_signals_test.go`; extended
+  `parser_greedybind_test.go` and `reconcile_identity_test.go`.
+- **Test 51 gate hardening — the T3 identity-audit check would have
+  PASSed on a check that never ran.** It asserted only that the output
+  contains `0 findings`, but a SKIPPED audit prints `0 findings` too — the
+  §11.4.201 false-null shape, where a blind instrument and a clean corpus
+  return the identical quiet zero. T3 now refuses skip-shaped output
+  explicitly (`the §11.4.54 identity audit SKIPPED — its zero proves
+  nothing`), and was proven load-bearing by mutation: hide the tracker →
+  FAIL; restore → no false fire.
+- **Mutation ledger (§1.1), 19 guards pinned**, each mutation verified to
+  LAND in the file before being run, recorded in
+  `docs/qa/2026-09-01-heading-regex-widening/closure-evidence.md`. Nine
+  of the 19 were authored by the independent reviewer rather than by the
+  author.
+- **Two of the author's own tests were BLIND on first write** and were
+  caught by RUNNING the mutations rather than trusting the green: the
+  rebind test's assertions sat behind an inverted condition that skipped
+  them every run, and the precedence test asserted a row outcome that is
+  IDENTICAL under both orderings (`UpsertItem` re-resolves by heading-hash
+  internally, so the sync-layer order changes only the audit trail). Both
+  were rewritten to assert what the mutation actually changes. Two of
+  `ec25327`'s controls were blind on first measurement for the same reason
+  and were repaired before being trusted: a test helper left `HeadingHash`
+  empty so every fixture `put()` overwrote the previous row and the
+  2-item obsolete fixture collapsed to 1; and the ordinal-0 control
+  asserted only `findings==0`, which the detector satisfies either way.
+- **Control needle (§11.4.201(7)(b)) for the live-corpus zero:**
+  re-injecting the exact original TMX-078 collision into a DB copy makes
+  the validator FAIL naming TMX-078, while the tracked DB reports 0
+  findings across 3 iterations — the zero is proven not blind.
+
+### Verification
+
+This cycle's defects share one shape: **a check, a parser, or a gate that
+returned a confident quiet zero while enforcing nothing** — the narrow
+regex that made blocks invisible, the audit that discarded a second
+ownership claim, the two gates no runner ever invoked, and the T3 check
+that could not tell a skip from a pass. Everything below is quoted with
+the revision it was measured at; nothing is claimed for the current tree
+that has not been re-measured on it.
+
+**Measured (each pinned to its revision):**
+
+- **At `ec25327`:** `go vet ./...` clean; `go test -count=1 ./...` ok;
+  test 51 `PASS=5 FAIL=0 SKIP=0` on 3/3 iterations; `db-to-md` reproduces
+  `Issues.md` and `Fixed.md` byte-identically (test 51 T4/T5, 3/3,
+  `hash=9d91e1a1e871150aec5fa8eebea9a04601ab10ea`) — zero corpus impact
+  from the TMX-078 row repair. TMX-057, TMX-001, TMX-054 verified
+  byte-unchanged by a HEAD-vs-worktree row dump.
+- **At `8dad4e3`:** sentinel identities — rows with `code_ordinal <= 0`
+  **17 → 3**, category-`Z` sentinels **4 → 0**; the 14 rows that healed
+  (TMX-057..066, TMX-072..075) were the TRUE sentinels, and the 3
+  survivors are NOT sentinels but TMX-038 / TMX-039 / TMX-041, the genuine
+  `### A0.` / `### B0` / `### C0` blocks at `Fixed.md:2585 / 2652 / 2718`
+  whose ordinal legitimately IS zero. 14 previously-invisible blocks
+  (TMX-079..092) entered the SSoT — a DIFFERENT set of 14 from the healed
+  rows. Cross-tracker duplicates **5 → 0**. Sync idempotent
+  (`unchanged=92`, zero rebinds); round-trip byte-identical 3/3; test 51
+  `PASS=5 FAIL=0`; `validate` 0 findings.
+- **At `1690789`:** a `verify.sh` sweep completed `exit 0`, GREEN, every
+  summary `FAIL=0`, 11 SKIPs (hardware / topology, pre-existing). That
+  sweep predates the uncommitted work described in the sections above and
+  is NOT a verdict on the current tree.
+- **On the current tree — HEAD `2c8187a` plus the uncommitted engine /
+  gate / corpus work described above — the full `verify.sh` sweep
+  COMPLETED 2026-09-02T06:09Z** (`verify_final.log`, 1177 lines). An
+  EARLIER sweep completed 05:42Z (`verify_full.log`); the tree was then
+  edited further (`.gitignore`, `README.md`, `CONTINUATION.md`,
+  `Issues.md`, `Fixed.md`, 14 regenerated exports), so the 05:42Z run
+  does NOT validate this tree and the 06:09Z run does. `verify.sh` does
+  read `README.md` and `CONTINUATION.md`, which is why the re-run was
+  required rather than optional. Every edit after 06:09Z is
+  documentation-only and is re-validated by the §11.4.40 full retest
+  that gates the tag. Result: `SUMMARY: PASS=79  FAIL=0
+  SKIP=11`, closing `GREEN: tmux binary verified — safe to PATH-export.`
+  All three Layer-1 tracker/governance gates PASSed inside it —
+  `CM-TRACKER-STRUCTURAL-INTEGRITY (6 tracker-structural check(s))`,
+  `CM-REVIEW-ROUND-RECORD-WIRED (PASS=23 FAIL=0)`,
+  `CM-HEADING-GRAMMAR (no code-less tracker headings)`. The 11 SKIPs are
+  **honest topology / capability skips (§11.4.3), not passes**, and are
+  enumerated rather than aggregated: `08_oom_score_adj`,
+  `12_memory_pressure_under_cap`, `13_tasksmax_stress`,
+  `14_concurrent_oom_independence` (destructive — require
+  `TMX_TEST_DESTRUCTIVE=1` on a dedicated test host);
+  `44_clipboard_copy_out_physical`, `45_multiline_copy_physical`,
+  `46_paste_in_physical`, `48_modifier_drag_override` (require a GUI
+  clipboard, absent on this headless host); `22_codegraph_mcp_wired`,
+  `32_ssh_dispatch_remote_nezha`, `62_distribution_orchestrator` (absent
+  topology). **Honest boundary (§11.4.6):** this sweep is a verdict on the
+  automated suite for this tree and nothing more — it does NOT discharge
+  §11.4.185 manual QA (still owed, below), it does NOT cover the 11 skipped
+  topologies, and it does NOT stand in for the on-device / dual-host suites
+  those skips name.
+  ran reads either file (`grep -rln 'CHANGELOG\|docs/changelogs' scripts/`
+  matches only two comment lines, `59_oomd_preference_avoid.sh:64` and
+  `61_no_libtinfo_version_warning.sh:45`).
+- **The 94-rows-vs-92-parsed-blocks gap is fully accounted for**, and the
+  arithmetic is reproducible: 94 DB rows = 91 distinct block identities
+  `(location, CAT, ORD)` + 2 rows that SHARE a block CODE with another row
+  (TMX-001/TMX-054 at `Fixed B3`; TMX-071/TMX-062 at `Fixed A52`) + 1 row
+  whose claimed identity has no block at all (TMX-050 at `Fixed F1`); 92
+  parsed = 91 distinct + 1 duplicated block CODE. All three extra rows are
+  `Obsolete`, which is exactly what the audit's Obsolete guard skips, so
+  `validate` correctly reports 0 findings.
+- **Three measuring instruments were DISCARDED en route**, each recorded
+  because the failure shape is the lesson (§11.4.201): a `**TMX-ID:**`
+  join reporting "62 rows missing from markdown" (60 of 85 `Fixed.md`
+  blocks declare no such line, so the join measured the known missing-id
+  gap, not row absence); a reimplemented `computeHeadingHash` reporting
+  "79 rows unbound" (it hashed the RAW heading remainder, where
+  `parser.go:201` hashes `cleanTitle`, i.e. the remainder with its trailing
+  `STATUS` hint already stripped by `trailingStatusRE` — with the strip, the
+  same computation yields unbound = 2); and an earlier account
+  attributing the row gap to the two headings the tightened regex refuses
+  (measured: NO DB row corresponds to either heading, so they contribute
+  ZERO rows — an id LITERAL read as a row KEY, the §11.4.201(9)
+  field-identity class). All three produced confident wrong numbers
+  without crashing. The first two were caught and discarded during the
+  investigation; the third was published and is RETRACTED in `2c8187a`
+  and in the closure evidence — the conclusions it reached (gap = 2, no
+  live collision, `validate` 0 findings) survive, but they were reached
+  via the wrong rows and the arithmetic above is the reproducible
+  replacement.
+- **The identity-audit unlocated count ROSE 55 → 57** — an honest
+  regression in that one number, explained rather than hidden: 14
+  newly-visible blocks entered the SSoT, and the audit can only LOCATE a
+  block that declares a `TMX-ID` line, which 60 of 85 `Fixed.md` blocks (and
+  3 of the 8 `Issues.md` blocks censused at the time) do not. Those
+  blocks assert no ownership and are skipped by design — counted and
+  reported out loud, never silently zeroed (§11.4.201(6)).
+
+**Review (§11.4.134 iterate-to-GO):** the heading-regex batch went round 1
+NO-GO (1 BLOCKING — the author's own corpus-removal loop had over-deleted
+the `## H.` header and its §11.4.114 preamble; restored verbatim from
+`git show HEAD:Issues.md`) → round 2 NO-GO (3 IMPORTANT + 3 MINOR, and it
+VERIFIED the round-1 BLOCKING closed) → round 3 NO-GO (1 IMPORTANT: the
+`itemContentEqual` identity gap, found in the seam the author had asked the
+reviewer to attack) → round 4 **GO** → a delta review of the two filed
+items **GO** → a delta review of the tracker/evidence text NO-GO on 3 MINOR
+documentation-accuracy findings, all three remediated in `1690789` and
+`2c8187a`. Round-numbering honest boundary (§11.4.6): no per-round artifact
+was written to disk, so the boundary could not be reconstructed from local
+state; the numbering is the reviewer's record, corroborated decisively by
+its own argument that a mutation which BECAME a round-2 finding cannot have
+survived round 1.
+
+**Known-open at the time of writing — explicitly NOT claimed fixed
+(§11.4.6):**
+
+- **The independent review of the current batch returned NO-GO** — the
+  LATEST round (2026-09-02, §11.4.209 substrate) reported 0 BLOCKING, 5
+  IMPORTANT, 1 MINOR, of which four were defects introduced BY the previous
+  round's remediation; the PRIOR round reported 3 BLOCKING, 6 IMPORTANT, 5
+  MINOR — and no round has yet returned a clean GO.
+  §11.4.134 requires iterating to ZERO findings AND ZERO warnings; that
+  loop is still open. All three BLOCKING findings were confirmed by
+  independent re-measurement before acceptance and are fixed above (the
+  two unwired gates; a `CONTINUATION.md` freshness stamp bumped with zero
+  content change; a closure-evidence citation this same batch falsified).
+- **The four reviewer-authored mutations that SURVIVED the prior round are
+  REMEDIATED** (`cmd/workable-items/sourceless_signals_test.go`). Across two
+  later rounds 14 reviewer-authored mutations ran with 12 CAUGHT; the two
+  survivors are a pre-declared, re-measured honest redundancy and a
+  zero-padding normalization whose coverage gap is being closed. The
+  §11.4.194(6)(d) pattern is recorded as the reason reviewer-authored
+  mutations are mandatory, not as a closed-by-assertion item.
+- **`sync db-to-md` WRITES the git-tracked SSoT DB on every run** (TMX-103,
+  Queued), including a pure verification round-trip — `sync_db_to_md.go:131-134`
+  rewrites `meta.last_sync_direction`/`meta.last_sync_timestamp`
+  unconditionally, so verifying byte-identity dirties `docs/workable_items.db`.
+  PRE-EXISTING at HEAD; this batch enshrines the round-trip as the verification
+  mechanism and does NOT fix the side effect.
+- **`close.go`'s collision guard REFUSES a bad closure; it does not
+  RENUMBER one.** The guard above stops a NEW two-items-one-block state from
+  being written and tells the operator what to do, but the renumber itself is
+  manual — an automatic free-code allocation on close is not implemented and
+  is not claimed. Nor does it repair an EXISTING stale pointer: TMX-050 still
+  names `F1`, a block existing in NEITHER tracker. That repair is OWED.
+- **The missing `TMX-ID` backfill is OWED.** 60 of 85 `Fixed.md` blocks
+  (and 3 of the 8 `Issues.md` blocks measured in the closure evidence)
+  declare no id line, which is why
+  **57 of 95 items remain unlocatable by the identity audit**. That number
+  is reported out loud by `validate` rather than counted clean, and it is
+  not claimed to be shrinking this cycle.
+- **The full meta-test mutation sweep has NOT been run against this
+  tree** — its outcome is not known and is not claimed. (The full
+  `verify.sh` sweep, formerly listed here as not completed, DID complete
+  GREEN on this tree — see the current-tree entry under "Measured" above.
+  The 19 individually-pinned §1.1 mutations recorded in the closure
+  evidence are not a substitute for that whole-suite mutation sweep.)
+- **§11.4.185 manual QA has NOT been performed**, and the tag has NOT been
+  cut. Both remain preconditions of the release (§11.4.40 full retest
+  GREEN + §11.4.185).
+- **Two PRE-EXISTING tracker doc-set gaps were FOUND during this cycle and are
+  TRACKED, not fixed:** TMX-101 — §11.4.44 revision headers absent from
+  `Issues.md` (0/0), `Fixed.md` (0/0) and `CONTINUATION.md` (0 Revision /
+  1 Last-updated), with `docs/workable-items/Status.md` = 1 as the control
+  needle; and TMX-102 — `Issues_Summary.md` and `Fixed_Summary.md` do not
+  exist anywhere in the repository despite §11.4.12 and §11.4.53 mandating
+  both. Neither was introduced by this batch and neither is fixed in it.
+- **This cycle closes NONE of the v1.0.44 known-open items** — test 68
+  C6/C7 (TMX-080 / TMX-081 family), TMX-090 (`17_scrollback_copy_mode.sh`
+  T3 live `WheelUpPane` binding), test 71 C4 on the `3.7b` artifact, and
+  the `Fixed.md` §L placeholder closure SHAs all remain open exactly as
+  recorded in the v1.0.44 entry.
+
+**Process note (§11.4.238):** none of this cycle's defects was
+operator-reported. The heading-form gap surfaced from a tracker-integrity
+investigation; six more came out of fixing it; TMX-093/094/095 and the two
+audit defects came from a five-stream root-cause fan-out (§11.4.230(C));
+and the three BLOCKING findings — including two gates that enforced
+nothing — came from the independent review. That is the intended direction
+of discovery, and it is also why the review loop is not yet closed.
+
+See `CONTINUATION.md` §3.37 / §3.37a (cycle state + the root-cause round),
+`Issues.md` §A5 / §A6 / §A7 (TMX-093, TMX-094, TMX-095), and
+`docs/qa/2026-09-01-heading-regex-widening/closure-evidence.md` (full
+measurement record, mutation ledger, discarded instruments, review trail).
+
+---
+
 ## [tmux-1.0.44] (also v1.0.44) — 2026-09-01
 
 ### Fixed

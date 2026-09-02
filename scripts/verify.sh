@@ -874,6 +874,82 @@ _check_CM_NO_SUDO_NO_INTERACTION() {
     return "$rc"
 }
 
+# ── CM-TRACKER-STRUCTURAL-INTEGRITY (§11.4.19 / §11.4.227(A)) ─────────
+# The tracker section-survival check is EXECUTED here, not merely shipped.
+# Forensic anchor (independent review, 2026-09-01): the check was added under
+# scripts/testing/ with no NN_ prefix, so run_all.sh's [0-9][0-9]_*.sh glob
+# never matched it and NOTHING invoked it — it self-tested green by hand while
+# enforcing zero. A gate that runs only when a human asks is not a gate
+# (§11.4.205); this seam is what makes it enforcement (§11.4.227(A)).
+_check_CM_TRACKER_STRUCTURAL_INTEGRITY() {
+    local g="CM-TRACKER-STRUCTURAL-INTEGRITY"
+    local s="$REPO_ROOT/scripts/testing/tracker_structural_integrity.sh"
+    if [ ! -f "$s" ]; then
+        printf '[FAIL] %s missing scripts/testing/tracker_structural_integrity.sh\n' "$g"
+        return 1
+    fi
+    local out npass
+    if out=$(bash "$s" 2>&1); then
+        npass=$(printf '%s\n' "$out" | grep -c '^PASS ')
+        printf '[PASS] %s (%s tracker-structural check(s))\n' "$g" "$npass"
+        return 0
+    fi
+    printf '[FAIL] %s tracker structural integrity FAILed:\n' "$g"
+    printf '%s\n' "$out" | grep -E '^(FAIL|── summary)' | sed 's/^/         /'
+    printf '         reproduce: bash scripts/testing/tracker_structural_integrity.sh\n'
+    return 1
+}
+
+# ── CM-REVIEW-ROUND-RECORD-WIRED (§11.4.134 / §11.4.227(A)) ───────────
+# The review-round recorder's own selftest is EXECUTED here so the tool
+# cannot rot unnoticed. Same forensic anchor as the gate above: shipped
+# under scripts/review/ with no runner, enforcing nothing until now.
+_check_CM_REVIEW_ROUND_RECORD_WIRED() {
+    local g="CM-REVIEW-ROUND-RECORD-WIRED"
+    local s="$REPO_ROOT/scripts/review/review_round_record.sh"
+    local t="$REPO_ROOT/scripts/review/review_round_record_test.sh"
+    if [ ! -f "$s" ] || [ ! -f "$t" ]; then
+        printf '[FAIL] %s missing scripts/review/review_round_record{,_test}.sh\n' "$g"
+        return 1
+    fi
+    local out summary
+    if out=$(bash "$t" 2>&1); then
+        summary=$(printf '%s\n' "$out" | grep -oE 'PASS=[0-9]+ FAIL=[0-9]+' | tail -1)
+        printf '[PASS] %s (%s)\n' "$g" "${summary:-selftest green}"
+        return 0
+    fi
+    printf '[FAIL] %s review-round-record selftest FAILed:\n' "$g"
+    printf '%s\n' "$out" | grep -E '^(FAIL|SUMMARY)' | sed 's/^/         /'
+    printf '         reproduce: bash scripts/review/review_round_record_test.sh\n'
+    return 1
+}
+
+# ── CM-HEADING-GRAMMAR (§11.4.19 / §11.4.227(A)) ──────────────────────
+# Every `###` heading in the trackers MUST carry a block code the parser
+# can read. Forensic anchor (2026-09-01): THREE code-less headings had
+# accumulated from three unrelated triggers — a hand-added sub-note, the
+# ATM-→TMX- prefix migration (89324dc) rewriting a heading whose text began
+# with a ticket-id literal, and a §12.10 status log. Each was silently
+# absorbed into the PRECEDING block's raw_body (measured: D1's parsed block
+# shrank 7703 -> 2200 chars once repaired). No gate covered the class.
+_check_CM_HEADING_GRAMMAR() {
+    local g="CM-HEADING-GRAMMAR"
+    local s="$REPO_ROOT/scripts/testing/heading_grammar_gate.sh"
+    if [ ! -f "$s" ]; then
+        printf '[FAIL] %s missing scripts/testing/heading_grammar_gate.sh\n' "$g"
+        return 1
+    fi
+    local out
+    if out=$(bash "$s" 2>&1); then
+        printf '[PASS] %s (no code-less tracker headings)\n' "$g"
+        return 0
+    fi
+    printf '[FAIL] %s code-less `###` heading(s) the parser cannot read:\n' "$g"
+    printf '%s\n' "$out" | grep -E 'OFFENDER|── summary' | sed 's/^/         /'
+    printf '         reproduce: bash scripts/testing/heading_grammar_gate.sh\n'
+    return 1
+}
+
 # Run the new gates. Aggregate failure into V109_FAIL — Layer 1 must
 # stay fail-fast, so any FAIL aborts before the runtime suite (binary is
 # NOT operator-safe with broken P1-P4 artefacts).
@@ -962,6 +1038,25 @@ if [ "$NOSUDO_FAIL" -ne 0 ]; then
     exit 1
 fi
 echo "  ✓ Layer-1 CM-NO-SUDO-NO-INTERACTION gate GREEN"
+
+# ── Layer-1 — tracker/governance gates (§11.4.19/§11.4.134/§11.4.227(A)) ──
+# Self-contained run block. These two gates were SHIPPED but UNWIRED until
+# 2026-09-01; the independent review caught that enforcement was zero.
+echo ""
+echo "  Layer-1 static gates — tracker + review-record (§11.4.19/§11.4.134/§11.4.227(A))..."
+TRACKGOV_FAIL=0
+_check_CM_TRACKER_STRUCTURAL_INTEGRITY || TRACKGOV_FAIL=1
+_check_CM_REVIEW_ROUND_RECORD_WIRED    || TRACKGOV_FAIL=1
+_check_CM_HEADING_GRAMMAR              || TRACKGOV_FAIL=1
+if [ "$TRACKGOV_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: a tracker/governance gate FAILed. Either a tracked Issues.md/Fixed.md"
+    echo "     section was removed or emptied without a declared removal (§11.4.19),"
+    echo "     or the review-round recorder's selftest broke. Investigate the"
+    echo "     individual [FAIL] lines above. setup.sh will REFUSE."
+    exit 1
+fi
+echo "  ✓ Layer-1 tracker/governance gates GREEN"
 
 # Run the full test suite
 echo ""

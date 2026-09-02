@@ -69,6 +69,23 @@ func CloseItem(db *DB, p CloseItemParams) (*Item, error) {
 				it.Type, want, statusValue)
 		}
 	}
+	// §11.4.54 + §11.4.19 — the block-identity destination must be FREE.
+	//
+	// A close is a BLOCK-IDENTITY MIGRATION, not only a status change: the
+	// identity triple (current_location, category, code_ordinal) is a pointer to
+	// one markdown block, and flipping current_location re-points it from
+	// (Issues, cat, ord) to (Fixed, cat, ord). Block codes are CATEGORY-LOCAL and
+	// are NOT unique across the two trackers, so that destination can already be
+	// occupied — and this function used to write it regardless, producing the
+	// two-items-one-block state ValidateBlockIdentity exists to report.
+	//
+	// Checked BEFORE any write so the refusal is side-effect free
+	// (§11.4.252 fail-closed) and the row is left exactly as it was.
+	if err := checkDestinationBlockIdentityFree(db, it, statusValue); err != nil {
+		return nil, err
+	}
+
+	fromLocation := it.CurrentLocation
 	it.Status = statusValue
 	it.CurrentLocation = LocationFixed
 	if err := db.UpsertItem(it); err != nil {
@@ -81,6 +98,12 @@ func CloseItem(db *DB, p CloseItemParams) (*Item, error) {
 		OnDate:       p.OnDate,
 		Reason:       p.Reason,
 		EvidencePath: p.Evidence,
+	}
+	// §11.4.226 — a rewrite with no recorded evidence is indistinguishable from
+	// a row that was always that way. The block identity moved files here; say
+	// so on the closure event, alongside any operator-supplied reason.
+	if fromLocation != LocationFixed {
+		ev.Reason = appendIdentityMigrationNote(ev.Reason, it, fromLocation)
 	}
 	if err := db.InsertItemHistory(ev); err != nil {
 		return nil, fmt.Errorf("insert history: %w", err)
@@ -110,6 +133,75 @@ func CloseItem(db *DB, p CloseItemParams) (*Item, error) {
 		}
 	}
 	return it, nil
+}
+
+// checkDestinationBlockIdentityFree refuses a closure that would move the item's
+// block identity onto a (Fixed, category, code_ordinal) triple ALREADY held by a
+// DIFFERENT item.
+//
+// FALSE-POSITIVE GUARDS (§11.4.201(1) — a wrong refusal is as bad as a missed
+// defect). Each mirrors a guard ValidateBlockIdentity already applies, so the
+// two components agree on what "claims a block" means:
+//
+//   - code_ordinal <= 0 is the "unknown ordinal" sentinel, not a block claim
+//     (every `workable-items add` row carries it), so it can never collide.
+//   - an Obsolete closure legitimately SHARES the block of the item that
+//     superseded it (§11.4.90). Measured live: (Fixed, B, 3) is held by both
+//     TMX-001 (Obsolete) and TMX-054, and validate_identity.go skips exactly
+//     this case for exactly this reason. Refusing it would break a correct
+//     supersession.
+//   - the item itself is excluded, so re-closing an already-closed item (an
+//     idempotent double-close) is never refused by its own row.
+//
+// Only a DIFFERENT, non-Obsolete-destination holder is a genuine collision.
+func checkDestinationBlockIdentityFree(db *DB, it *Item, statusValue string) error {
+	if it.CodeOrdinal <= 0 {
+		return nil // sentinel ordinal — asserts no block claim.
+	}
+	if statusValue == StatusObsolete {
+		return nil // §11.4.90 supersession may share its successor's block.
+	}
+	rows, err := db.conn.Query(
+		`SELECT atm_id FROM items
+		  WHERE current_location = ? AND category = ? AND code_ordinal = ? AND atm_id <> ?
+		  ORDER BY atm_id`,
+		LocationFixed, it.Category, it.CodeOrdinal, it.ATMID)
+	if err != nil {
+		return fmt.Errorf("check destination block identity: %w", err)
+	}
+	defer rows.Close()
+	var holders []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return fmt.Errorf("check destination block identity: %w", err)
+		}
+		holders = append(holders, id)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("check destination block identity: %w", err)
+	}
+	if len(holders) == 0 {
+		return nil
+	}
+	code := fmt.Sprintf("%s%d", it.Category, it.CodeOrdinal)
+	return fmt.Errorf(
+		"§11.4.54: closing %s would move its block identity to %s in Fixed.md, "+
+			"but that block is already held by %s — two items would claim one block. "+
+			"Renumber %s's block to a free %s-category code in Issues.md, re-run "+
+			"`workable-items sync md-to-db`, then close again",
+		it.ATMID, code, strings.Join(holders, ", "), it.ATMID, it.Category)
+}
+
+// appendIdentityMigrationNote records the block-identity file transition on the
+// closure history event, preserving any operator-supplied reason verbatim.
+func appendIdentityMigrationNote(reason string, it *Item, from string) string {
+	note := fmt.Sprintf("block identity %s%d migrated %s -> %s",
+		it.Category, it.CodeOrdinal, from, LocationFixed)
+	if reason == "" {
+		return note
+	}
+	return reason + "; " + note
 }
 
 func closeStatusMapping(rawStatus string) (statusValue, eventType string, err error) {

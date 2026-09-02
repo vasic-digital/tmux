@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>good_repaired</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+<h1
+id="issues--fixture-golden-false-the-repair-that-actually-landed">Issues
+— FIXTURE golden-FALSE: the repair that actually landed</h1>
+<p>The SAME intended removal as <code>bad_over_deleted.md</code> — the
+four <code>### G1..G4</code> item blocks are gone — done correctly: the
+<code>## G.</code> header is TOMBSTONED (kept and annotated, the
+corpus's own precedent in commit 8dad4e3), and the <code>## H.</code>
+header plus its §11.4.114 preamble are untouched.</p>
+<p>The gate MUST NOT fire on this file. Removing items is legitimate and
+routine; only removing SECTIONS and their governing preambles is
+not.</p>
+<hr />
+<h2 id="f-runtime-crash--operator-gated-reproduction">F. Runtime crash —
+operator-gated reproduction</h2>
+<p>Kept here so the fixture has a section BEFORE the damaged pair; a
+guard that only ever looks at the last section would pass this file by
+accident.</p>
+<h3
+id="f1-wrapper-tmuxbin-001--stale-wrapper-points-at-a-missing-binary">F1
+WRAPPER-TMUXBIN-001 — stale wrapper points at a missing binary</h3>
+<p><strong>Type:</strong> Bug <strong>Status:</strong> Fixed (→
+Fixed.md)</p>
+<p>Body text.</p>
+<hr />
+<h2 id="g-interactive-wizard--session-password-redesign-2026-07-05">G.
+Interactive wizard + session-password redesign (2026-07-05)</h2>
+<p>New OPEN work from the 14-task wizard + session-password redesign
+plan. Code lands across sibling tasks of that plan; these four entries
+track the four user-visible requirements from the operator mandate.</p>
+<p><strong>Section closed 2026-09-01.</strong> All four entries have
+landed and now live in <code>Fixed.md</code>. Their blocks were
+duplicated here while they were also in <code>Fixed.md</code>; the
+duplicates were retired on operator decision so each item has exactly
+one block. The heading is kept for the historical context above — it is
+deliberately empty of items, not missing them.</p>
+<hr />
+<h2
+id="h-pre-existing-timing-issues-surfaced-during-the-2026-08-10-no-limits-by-default-cycle">H.
+Pre-existing timing issues surfaced during the 2026-08-10
+no-limits-by-default cycle</h2>
+<p>Discovered while validating TMX-079 (see <code>Fixed.md</code>).
+Confirmed via §11.4.114 A/B isolation against the v1.0.38 baseline
+(identical failures reproduced BEFORE any of TMX-079's changes were
+applied) — NOT caused by TMX-079, and TMX-079's own fix + tests are
+unaffected. Tracked here so they are not lost.</p>
+<h3
+id="h1-state-hook-race-001--test-27-sub-check-18-intermittently-fails">H1
+STATE-HOOK-RACE-001 — test 27 sub-check "18" intermittently fails</h3>
+<p><strong>Type:</strong> Bug <strong>Status:</strong> Reopened</p>
+<p>Body text.</p>
+<hr />
+<h2 id="i-live-copy-mode-wheel-binding-2026-09-01">I. Live copy-mode
+wheel binding (2026-09-01)</h2>
+<p>A section AFTER the damaged pair, so the fixture proves the guard
+walks the whole file rather than stopping at the first divergence.</p>
+<h3 id="i1-wheel-binding-001--placeholder">I1 WHEEL-BINDING-001 —
+placeholder</h3>
+<p><strong>Type:</strong> Bug <strong>Status:</strong> Queued</p>
+<p>Body text.</p>
+</body>
+</html>

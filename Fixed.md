@@ -2832,10 +2832,22 @@ M22 paired mutations.
 
 ---
 
-### TMX-051 — Per-session color via `name:color[:ignored]`
+### D2. Per-session color via `name:color[:ignored]` — `IMPLEMENTED`
 
+**TMX-ID:** TMX-096
 **Status:** Implemented (→ Fixed.md)
 **Type:** Feature
+**Heading provenance (§9.2 / §11.4.54):** this block was landed by commit
+`5244f4e` under the heading `### ATM-051 — Per-session color via …`, and the
+ATM-→TMX- prefix migration (`89324dc`) rewrote that leading literal to
+`TMX-051`. The literal was never a binding: `TMX-051` is the id of a
+*different* item (`A43` — "Copy/paste: terminal owns the mouse by default"),
+and this block carried **no block code**, so the parser skipped it and its
+body was absorbed into the preceding `D1.` block. Repaired 2026-09-01 by
+minting the free block code `D2.` and the first free ticket id `TMX-096`.
+Referencing prose elsewhere that still says "TMX-051" when it means the
+per-session-color feature is referring to this block by its *historical*
+label, not by its ticket id.
 **Closure cycle:** shipped in v1.0.26 (2026-06-19); operator request 2026-06-18 "Make sure we can choose the color for the session in form: session_name:color:some:other:params:we:could:pass."
 **Closure source (§11.4.34):** By **AI** (in-loop verification); On 2026-06-19; Reason: `captured-evidence-contradicts` (the prior absence-of-feature is superseded by live captured evidence); Evidence: `scripts/tests/63_session_color.sh` 8/8 PASS reading live `show-options`, deterministic 3×.
 
@@ -2855,16 +2867,24 @@ M22 paired mutations.
 - **Layer 3 (runtime):** `63_session_color.sh` 8 sub-tests, live readback, 3× deterministic.
 - **Layer 4 (paired mutation):** M25 + M26 CAUGHT.
 
-**Known / tracked separately.** `M24-ESCAPE-001` (pre-existing hostname 4-surface mutation escape since v1.0.9) — OPEN in Issues.md, unrelated to this feature.
+**Known / tracked separately.** `M24-ESCAPE-001` (pre-existing hostname 4-surface mutation escape since v1.0.9) — was OPEN in `Issues.md` when this block was written; it has since been fixed and now lives in this file as `B54` / `TMX-098`. Unrelated to this feature.
 
 **Key commits:** `e9e71c9` (validColor), `e97d561` (Color field+schema2), `76a1c61` (set-color/get-color), `72aeb4b` (list col+v1.1.0), `af04f89` (bash lib), `255ab68` (wrapper wiring), `9b36e6a` (test 63), M25/M26 commit (mutations), `6768ee5` (TMUX-CH-53), v1.0.26 docs/release.
 
 ---
 
-### NEZHA-INSTALL-v1.0.26-001 (closed) — v1.0.26 installed on nezha
+### D3. NEZHA-INSTALL-v1.0.26-001 — v1.0.26 installed on nezha — `COMPLETED`
 
+**TMX-ID:** TMX-097
 **Status:** Completed (→ Fixed.md)
 **Type:** Task
+**Heading provenance (§9.2 / §11.4.54):** this block was landed (commit
+`7aefdf2`, a §12.10 doc update) under the code-less heading
+`### NEZHA-INSTALL-v1.0.26-001 (closed) — …`, so the parser skipped it and
+its body was absorbed into the preceding block. Repaired 2026-09-01 by
+minting the free block code `D3.` and the free ticket id `TMX-097`. The
+`(closed)` marker is superseded by the `**Status:**` line and was dropped
+from the heading.
 **Closure cycle:** 2026-06-19. Unblock condition met: operator confirmed nezha back online; `ssh -i ~/.ssh/id_ed25519 milosvasic@nezha.local` resolved + returned `Linux x86_64` (ALT Linux).
 **Closure source (§11.4.34):** By **AI** (in-loop verification); On 2026-06-19; Reason: `captured-evidence-contradicts` (prior offline-blocked superseded by live install + captured evidence); Evidence: nezha verify gate PASS=49/0/14 GREEN + live color proof below.
 
@@ -3024,7 +3044,7 @@ install HTTPS-rewrite edge in `docs/guides` + `docs/scripts` so an end user hitt
 can self-recover. **Acceptance:** a docs page (synced HTML/PDF per §11.4.65) reproduces the
 repair steps, verified against the v1.0.30 `setup.sh` fallback path.
 
-### A52. META-TEST-72-73-REGISTER-001 — register persistent meta-test mutations for §11.4.110 wiring — `Obsolete`
+### A56. META-TEST-72-73-REGISTER-001 — register persistent meta-test mutations for §11.4.110 wiring — `Obsolete`
 
 **TMX-ID:** TMX-071
 **Status:** Obsolete (→ Fixed.md)
@@ -3449,3 +3469,32 @@ Per §11.4.122 a previously-working, user-visible capability may not be silently
 **§11.4.120 reconciliation:** none required. Test 71 C4 FAILING under `next-3.8` was the gate CORRECTLY catching a real capability regression — exactly the case §11.4.120 says must NOT be resolved by weakening the gate. The gate was left untouched and the PIN was moved instead.
 
 **Discovery-pressure note (§11.4.118):** neither M1 nor M2 was operator-reported — M1 came from an independent post-hoc review, M2 from a test that measured a capability withdrawal. That is the intended direction (§11.4.238: automated review and automated tests should be the discoverers). The coverage this cycle exercised is the zig/root-free build path and the pin; subsystems outside it were not exercised by this work and are stated as an honest coverage gap rather than implied clean. Specifically still open at the time of writing: the full `run_all.sh` sweep, the full meta-test mutation sweep, test 71 C4 on `3.7b`, test 68 C6/C7 (TMX-080/TMX-081 family), and TMX-090 (`Issues.md` §I1).
+
+### B54 M24-ESCAPE-001 — meta-test M24 (hostname 4-surface color) escapes: test 26 misses a 3-set-line removal — `FIXED`
+
+**TMX-ID:** TMX-098
+**Status:** Fixed (→ Fixed.md)
+**Type:** Bug
+**Severity:** Minor (test-coverage gap, no user-facing break — closed v1.0.27: `count=1` removed from M24 regex → strips from BOTH `_apply_color` and `_apply_host_color`, test 26 now FAILs on the mutation → CAUGHT)
+**Closure:** meta-test 37 CAUGHT / 0 ESCAPED (was 34 CAUGHT / 3 ESCAPED pre-fix)
+
+**What:** The §1.1 paired-mutation `M24` in `scripts/tests/meta_test_false_positive_proof.sh` removes three of the four `tmux set -g …` lines in `_apply_host_color()` and expects test 26 to FAIL. The harness reports `MUTATION ESCAPED` — test 26 does not FAIL, because it asserts only a subset of the four surfaces, so removing the un-asserted set-lines leaves the test green.
+
+**Evidence:** `bash scripts/tests/meta_test_false_positive_proof.sh 2>&1 | grep M24` → `FAIL: M24: MUTATION ESCAPED — test 26 did not FAIL with the three set-lines removed`. Confirmed pre-existing (M24 added in commit `f151d13`, v1.0.9 — before the per-session-color feature). Surfaced 2026-06-19 during the per-session-color M25/M26 verification run.
+
+**Fix direction:** strengthen test 26 to assert ALL FOUR surfaces (`status-style`, `pane-active-border-style`, `clock-mode-colour`, `window-status-current-style`) so the M24 mutation (removing any 3) reliably FAILs it — mirroring the all-4-surfaces assertion already proven in test 63 T3 for the per-session path. (This also closes the symmetry gap: the per-session path has a 4-surface guard; the hostname path should too.)
+
+**Out of scope:** the per-session-color feature (TMX-051). Tracked separately so the color release is not blocked by an unrelated pre-existing test-gap.
+
+**Migration provenance (§11.4.19 / §9.2):** this block lived in `Issues.md`
+carrying a terminal `Fixed (→ Fixed.md)` status — a §11.4.19 atomic-migration
+miss — under the code-less heading `### M24-ESCAPE-001 — …`, so the parser
+skipped it and its body was absorbed into the preceding `D2 TMPDIR-HARDCODE-001`
+block. Migrated to `Fixed.md` 2026-09-01 with the free block code `B54` and the
+free ticket id `TMX-098`; the body above is byte-identical to the `Issues.md`
+original (sha256 `f5fedfb7484ffe85055f777b458593099aac09938c95aa410529bd49f33625db`
+over the 13 body lines). One stale literal is deliberately preserved rather
+than rewritten: the "Out of scope" line says the per-session-color feature is
+`TMX-051`; that was its *historical* label — the feature's block is now
+`D2.` / `TMX-096`, and `TMX-051` is the id of `A43` (see `D2.`'s own heading
+provenance).

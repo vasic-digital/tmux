@@ -224,6 +224,49 @@ corresponding source block (appended to its category section), so a
 round-trip after `add` is lossless; covered by a test that adds a row, renders,
 and asserts the block is present, with its §1.1 mutation removing the emit.
 
+### A7. ADD-CATEGORY-UNVALIDATED-001 — `add` accepts a category that renders a block the parser can never read
+
+**TMX-ID:** TMX-095
+**Type:** Bug
+**Status:** Ready for testing
+
+**What.** `headingRE` (`parser.go`) accepts a block code of exactly ONE letter
+followed by digits. `AddItem` (`add.go`) accepted ANY `Category` string and
+merely uppercased it, so a category that is not a single ASCII letter produced
+a heading the parser can never match.
+
+**How it manifests.** Measured 2026-09-01: category `"AB"` renders
+`### AB1.` and `"1"` renders `### 11.`; neither matches `headingRE`. The row
+lands in the SSoT and the writer emits its block, but the parser cannot see it
+— the item is invisible in every derived document while appearing present in
+the DB. This is the same invisible-block class as TMX-079..092, reached through
+the `add` seam instead of a heading-form gap.
+
+**Why this is filed.** Surfaced as an honest gap by the independent stream that
+fixed TMX-093, which correctly declined to fix it out of scope. Filed rather
+than carried in that stream's narrative (§11.4.197 — a known defect with no
+tracked item evaporates).
+
+**Reproduction.** `AddItem` with `Category: "AB"` into a scratch DB, render via
+`SyncDBToMD`, parse with `ParseFile`: no block for the allocated id is returned.
+
+**Acceptance.** `AddItem` refuses any category that is not exactly one letter
+`A-Z`, with an actionable error; a §11.4.115 RED/GREEN polarity test drives
+add → render → parse end-to-end (not a tautological "returns an error"), carries
+a §11.4.201(7)(b) control needle proving the probe can observe a readable block,
+and a §1.1 mutation removing the validation makes it FAIL. Legitimate
+categories (`A`, `Z`, lowercase `a`, and empty defaulting to `Z`) MUST still be
+accepted — a guard that refuses them is a §11.4.201(1) false-positive refusal.
+
+**Closure evidence (2026-09-01).** Fixed in `add.go`; guard
+`cmd/workable-items/add_category_validation_test.go`
+(`TestAddRejectsCategoriesThatCannotRenderAReadableBlock`). RED_MODE=1 PASSED
+pre-fix reproducing all four malformed categories with the control needle
+green; RED_MODE=0 FAILED pre-fix (the RED baseline) and PASSES post-fix;
+RED_MODE=1 now FAILS with the honest-boundary message. §1.1 mutation removing
+the validation makes RED_MODE=0 FAIL; restored clean. False-positive check:
+`A` / `Z` / `a` / empty all still accepted.
+
 ---
 
 ## B. Anti-bluff completeness across the existing test surface
@@ -277,23 +320,6 @@ an induced-disk-full run shows SKIP-with-reason, not FAIL.
 [name:color prompt rejection] FIXED — shell-init + SSH-dispatcher char-set now
 allows `:` and `#`, max-length 64→80; test 65 operator-escape guard PASS=6/6.
 M24/A2/D2 in parallel streams per §11.4.103.)
-
----
-
-### M24-ESCAPE-001 — meta-test M24 (hostname 4-surface color) escapes: test 26 misses a 3-set-line removal
-
-**Status:** Fixed (→ Fixed.md)
-**Type:** Bug
-**Severity:** Minor (test-coverage gap, no user-facing break — closed v1.0.27: `count=1` removed from M24 regex → strips from BOTH `_apply_color` and `_apply_host_color`, test 26 now FAILs on the mutation → CAUGHT)
-**Closure:** meta-test 37 CAUGHT / 0 ESCAPED (was 34 CAUGHT / 3 ESCAPED pre-fix)
-
-**What:** The §1.1 paired-mutation `M24` in `scripts/tests/meta_test_false_positive_proof.sh` removes three of the four `tmux set -g …` lines in `_apply_host_color()` and expects test 26 to FAIL. The harness reports `MUTATION ESCAPED` — test 26 does not FAIL, because it asserts only a subset of the four surfaces, so removing the un-asserted set-lines leaves the test green.
-
-**Evidence:** `bash scripts/tests/meta_test_false_positive_proof.sh 2>&1 | grep M24` → `FAIL: M24: MUTATION ESCAPED — test 26 did not FAIL with the three set-lines removed`. Confirmed pre-existing (M24 added in commit `f151d13`, v1.0.9 — before the per-session-color feature). Surfaced 2026-06-19 during the per-session-color M25/M26 verification run.
-
-**Fix direction:** strengthen test 26 to assert ALL FOUR surfaces (`status-style`, `pane-active-border-style`, `clock-mode-colour`, `window-status-current-style`) so the M24 mutation (removing any 3) reliably FAILs it — mirroring the all-4-surfaces assertion already proven in test 63 T3 for the per-session path. (This also closes the symmetry gap: the per-session path has a 4-surface guard; the hostname path should too.)
-
-**Out of scope:** the per-session-color feature (TMX-051). Tracked separately so the color release is not blocked by an unrelated pre-existing test-gap.
 
 ---
 
@@ -403,3 +429,43 @@ FAIL: T3: live WheelUpPane binding is not the copy-mode override
 **Note on a sibling check (not asserted as the same defect):** `scripts/tests/47_alt_screen_scroll.sh` **T6** asserts a related live-`WheelUpPane`-override property. Whether T6 currently passes or fails on this tree has NOT been measured this cycle and is NOT claimed either way.
 
 **Fix direction:** none proposed. Per §11.4.102 the systematic-debugging arc (reproduce → characterise → falsifiable hypothesis → fix against the PROVEN cause) must complete before any fix is written; proposing a direction now would be the guess-and-retry pattern that clause exists to prevent.
+
+### A99. set_status.go strands block identity onto an occupied Issues triple on reopen — `OPEN`
+**TMX-ID:** TMX-099
+**Type:** Bug
+**Status:** `Queued`
+**Severity:** MEDIUM
+
+set_status.go carries the identical defect close.go had before TMX-099: it mutates only Status and CurrentLocation (it.CurrentLocation = LocationIssues) with NO check that the destination (Issues, category, code_ordinal) triple is free. A reopen can therefore strand an item onto a block another item already holds — the mirror image of the close-side collision fixed this cycle. Measured basis: block codes are category-local and NOT unique across the two trackers (9 of 10 codes present in both files), and 8 of 10 open items would collide on close before the close.go guard landed. Repro: reopen an item whose Issues-side triple is already held. Fix direction: apply the same checkDestinationBlockIdentityFree fail-closed guard, with the same three false-positive guards (ordinal<=0 sentinel, Obsolete supersession, self-exclusion). Acceptance: a RED test reproducing the reverse collision, flipped GREEN by the guard, plus a paired 1.1 mutation.
+
+### A100. Identity audit cannot locate the block for 57 of 95 items — `OPEN`
+**TMX-ID:** TMX-100
+**Type:** Task
+**Status:** `Queued`
+**Severity:** MEDIUM
+
+workable-items validate reports: 57 item(s) skipped by the identity audit — their block could not be located. These are rows whose stored (location, category, code_ordinal) names a block the parser cannot find in the file that location names. This is a DISTINCT defect from the close-side collision guard (TMX-099) and is NOT closed by it; it is also distinct from TMX-050 (Obsolete rows are skipped BEFORE the unlocated counter increments, so TMX-050 is not among the 57). Two contributing causes are already measured: 58 blocks carry no **TMX-ID:** line for the audit to join on, and any block migrated by hand leaves the DB pointer behind. Fix direction: backfill the missing TMX-ID lines, then add an audit fallback keying tier so a block is locatable by (category, ordinal) when the id line is absent. Acceptance: the skipped count falls to zero or every residual is enumerated as an honest, justified gap.
+
+### A101. §11.4.44 revision headers absent from Issues.md, Fixed.md and CONTINUATION.md — `OPEN`
+**TMX-ID:** TMX-101
+**Type:** Task
+**Status:** `Queued`
+**Severity:** MEDIUM
+
+Measured 2026-09-02: §11.4.44 names Issues.md, Fixed.md and CONTINUATION.md as in-scope and requires BOTH **Revision:** N and **Last modified:** ISO-8601-UTC directly below the H1. Issues.md carries neither field (Revision=0, LastMod=0); Fixed.md carries neither (0/0); CONTINUATION.md carries Last updated but no Revision (0/1). Control needle: docs/workable-items/Status.md carries Revision=1, so the detecting grep is not blind. Repo-wide 60 of 86 tracked .md carry the field, so 26 do not. PRE-EXISTING, not introduced by the v1.0.45 tracker-integrity batch. Repro: for f in Issues.md Fixed.md CONTINUATION.md; do grep -c '^..Revision:..' $f; done. Acceptance: all three carry both mandatory fields, the doc_revision_bump helper covers them, and a gate FAILs when a field is stripped (paired §1.1 mutation).
+
+### A102. Issues_Summary.md and Fixed_Summary.md do not exist anywhere in the repository — `OPEN`
+**TMX-ID:** TMX-102
+**Type:** Task
+**Status:** `Queued`
+**Severity:** MEDIUM
+
+Measured 2026-09-02: §11.4.12 mandates Issues_Summary.md and §11.4.53 mandates Fixed_Summary.md, each always in sync with its source tracker and exported to HTML and PDF. Neither file is tracked anywhere: git ls-files | grep -iE 'Issues_Summary|Fixed_Summary' returns empty, while the same search finds Issues.md and Fixed.md (control needle, so the search is not blind). scripts/tests/51_workable_items_db_integrity.sh references the summary names, so tooling already assumes them. PRE-EXISTING, not introduced by the v1.0.45 batch. Acceptance: both summaries generated from the workable-items DB with ATM/TMX-ID, Status, Type and Reopens columns per §11.4.19/§11.4.54/§11.4.55, exported per §11.4.65, reachable from README per §11.4.212, and a gate FAILs when a summary is stale or absent.
+
+### A103. sync db-to-md writes the git-tracked SSoT DB on every run, including read-only verification round-trips — `OPEN`
+**TMX-ID:** TMX-103
+**Type:** Bug
+**Status:** `Queued`
+**Severity:** MEDIUM
+
+Measured 2026-09-02 by an independent review: 'workable-items sync db-to-md' rewrites meta.last_sync_direction and meta.last_sync_timestamp (cmd/workable-items/sync_db_to_md.go:131-134) on EVERY invocation, including a pure verification round-trip that renders into a throwaway --out-dir and touches no tracker. Consequence: the documented byte-identity verification procedure DIRTIES the git-tracked SSoT docs/workable_items.db, so any reviewer or CI pass that verifies the round-trip leaves the tree modified and cannot restore it byte-exactly (the prior stamp bytes are unrecoverable; inventing them would fabricate state). This is an observer-effect defect per 11.4.128(1) and a no-commit-during-verification hazard per 11.4.121. PRE-EXISTING: the stamp write is present at HEAD:cmd/workable-items/sync_db_to_md.go, but the v1.0.45 batch newly enshrines the round-trip as the documented verification mechanism without tracking the side effect. Scope proof: successive db-to-md runs on copies differ ONLY in those two meta rows (full logical table dump); validate is byte-neutral. Repro: cp docs/workable_items.db /tmp/a.db; sync db-to-md --db /tmp/a.db --out-dir /tmp/o1; sha256sum /tmp/a.db; repeat; hashes differ. Acceptance: a read-only verification mode that renders without writing the DB, or the stamp moved out of the tracked artifact, proven by a test asserting the DB sha256 is unchanged across a verification round-trip, plus a paired 1.1 mutation.

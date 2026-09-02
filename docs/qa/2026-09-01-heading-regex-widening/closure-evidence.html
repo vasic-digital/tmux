@@ -4,176 +4,32 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>closure-evidence</title>
+  <title>tmux documentation</title>
   <style>
-    /* Default styles provided by pandoc.
-    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
-    */
-    html {
-      color: #1a1a1a;
-      background-color: #fdfdfd;
-    }
-    body {
-      margin: 0 auto;
-      max-width: 36em;
-      padding-left: 50px;
-      padding-right: 50px;
-      padding-top: 50px;
-      padding-bottom: 50px;
-      hyphens: auto;
-      overflow-wrap: break-word;
-      text-rendering: optimizeLegibility;
-      font-kerning: normal;
-    }
-    @media (max-width: 600px) {
-      body {
-        font-size: 0.9em;
-        padding: 12px;
-      }
-      h1 {
-        font-size: 1.8em;
-      }
-    }
-    @media print {
-      html {
-        background-color: white;
-      }
-      body {
-        background-color: transparent;
-        color: black;
-      }
-      p, h2, h3 {
-        orphans: 3;
-        widows: 3;
-      }
-      h2, h3, h4 {
-        page-break-after: avoid;
-      }
-    }
-    p {
-      margin: 1em 0;
-    }
-    a {
-      color: #1a1a1a;
-    }
-    a:visited {
-      color: #1a1a1a;
-    }
-    img {
-      max-width: 100%;
-    }
-    svg {
-      height: auto;
-      max-width: 100%;
-    }
-    h1, h2, h3, h4, h5, h6 {
-      margin-top: 1.4em;
-    }
-    h5, h6 {
-      font-size: 1em;
-      font-style: italic;
-    }
-    h6 {
-      font-weight: normal;
-    }
-    ol, ul {
-      padding-left: 1.7em;
-      margin-top: 1em;
-    }
-    li > ol, li > ul {
-      margin-top: 0;
-    }
-    blockquote {
-      margin: 1em 0 1em 1.7em;
-      padding-left: 1em;
-      border-left: 2px solid #e6e6e6;
-      color: #606060;
-    }
-    code {
-      white-space: pre-wrap;
-      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
-      font-size: 85%;
-      margin: 0;
-      hyphens: manual;
-    }
-    pre {
-      margin: 1em 0;
-      overflow: auto;
-    }
-    pre code {
-      padding: 0;
-      overflow: visible;
-      overflow-wrap: normal;
-    }
-    .sourceCode {
-     background-color: transparent;
-     overflow: visible;
-    }
-    hr {
-      border: none;
-      border-top: 1px solid #1a1a1a;
-      height: 1px;
-      margin: 1em 0;
-    }
-    table {
-      margin: 1em 0;
-      border-collapse: collapse;
-      width: 100%;
-      overflow-x: auto;
-      display: block;
-      font-variant-numeric: lining-nums tabular-nums;
-    }
-    table caption {
-      margin-bottom: 0.75em;
-    }
-    tbody {
-      margin-top: 0.5em;
-      border-top: 1px solid #1a1a1a;
-      border-bottom: 1px solid #1a1a1a;
-    }
-    th {
-      border-top: 1px solid #1a1a1a;
-      padding: 0.25em 0.5em 0.25em 0.5em;
-    }
-    td {
-      padding: 0.125em 0.5em 0.25em 0.5em;
-    }
-    header {
-      margin-bottom: 4em;
-      text-align: center;
-    }
-    #TOC li {
-      list-style: none;
-    }
-    #TOC ul {
-      padding-left: 1.3em;
-    }
-    #TOC > ul {
-      padding-left: 0;
-    }
-    #TOC a:not(:hover) {
-      text-decoration: none;
-    }
-    span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: 1.5em;}
-    div.column{flex: auto;}
-    @media screen {
-    div.columns{gap: min(4vw, 1.5em);}
-    div.column{overflow-x: auto;}
-    }
-    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-    /* The extra [class] is a hack that increases specificity enough to
-       override a similar rule in reveal.js */
-    ul.task-list[class]{list-style: none;}
-    ul.task-list li input[type="checkbox"] {
-      font-size: inherit;
-      width: 0.8em;
-      margin: 0 0.8em 0.2em -1.6em;
-      vertical-align: middle;
-    }
-  </style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+</style>
+  <style type="text/css"></style>
 </head>
 <body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
 <h1 id="closure-evidence--heading-regex-widening--corpus-repair">Closure
 evidence — heading-regex widening + corpus repair</h1>
 <p>Captured: 2026-09-01T18:36:11Z HEAD: ec25327</p>
@@ -201,7 +57,7 @@ unlocated count (review MINOR-5)</h2>
 not a silent one, and it is explained: 14 previously-invisible blocks
 now parse into the SSoT, and the audit can only LOCATE a block that
 declares a <code>**TMX-ID:**</code> line. Blocks with no such line
-assert no ownership and are skipped by design (the audit's own
+assert no ownership and are skipped by design (the audit&#39;s own
 false-positive guard) — they are counted, never hidden.</p>
 <table>
 <thead>
@@ -243,7 +99,7 @@ vs the current DB.</p>
 <td>3 (of 94 rows)</td>
 </tr>
 <tr>
-<td>rows with <code>category = 'Z'</code></td>
+<td>rows with <code>category = &#39;Z&#39;</code></td>
 <td>4</td>
 <td>0</td>
 </tr>
@@ -256,15 +112,14 @@ they are TMX-038 / TMX-039 / TMX-041, the genuine <code>### A0.</code> /
 <code>### B0</code> / <code>### C0</code> blocks at
 <code>Fixed.md:2585 / 2652 / 2718</code>, whose ordinal legitimately IS
 zero.</p>
-<p>CORRECTION (§11.4.6): an earlier revision of this file published "7 →
-3" for this row. That figure reproduces under no definition of
-"sentinel" the current DB supports (category-Z-only = 4; category-Z AND
+<p>CORRECTION (§11.4.6): an earlier revision of this file published &quot;7 →
+3&quot; for this row. That figure reproduces under no definition of
+&quot;sentinel&quot; the current DB supports (category-Z-only = 4; category-Z AND
 ordinal-0 = 4; <code>code_ordinal &lt;= 0</code> = 17; true sentinels =
-14) and it contradicted this document's own adjacent "14 newly-visible
-blocks" figure. The table above is the re-measured, reproducible
+14) and it contradicted this document&#39;s own adjacent &quot;14 newly-visible
+blocks&quot; figure. The table above is the re-measured, reproducible
 replacement.</p>
-<h2
-id="why-the-db-holds-94-rows-while-sync-parses-92-blocks-measured-reproducible">Why
+<h2 id="why-the-db-holds-94-rows-while-sync-parses-92-blocks-measured-reproducible">Why
 the DB holds 94 rows while <code>sync</code> parses 92 blocks (measured,
 reproducible)</h2>
 <table>
@@ -289,18 +144,54 @@ reproducible)</h2>
 </tr>
 </tbody>
 </table>
-<p>94 = 91 distinct identities + 2 rows that SHARE an identity with a
-live successor (TMX-001 shares Fixed <code>B3</code> with TMX-054;
-TMX-071 shares Fixed <code>A52</code> with TMX-062) + 1 row whose
-claimed identity has no block at all (TMX-050 at Fixed <code>F1</code>).
-92 = 91 distinct + 1 DUPLICATE markdown heading — <code>### A52.</code>
-occurs twice in <code>Fixed.md</code>, at line 2890 (TMX-062) and line
-3027 (TMX-071).</p>
+<p>94 = 91 distinct identities + 2 rows that SHARE a block CODE with
+another row (TMX-001 / TMX-054 at Fixed <code>B3</code>; TMX-071 /
+TMX-062 at Fixed <code>A52</code>) + 1 row whose claimed identity has no
+block at all (TMX-050 at Fixed <code>F1</code>). 92 = 91 distinct + 1
+duplicated block CODE: <code>A52</code> heads TWO blocks in
+<code>Fixed.md</code> — the SPACE-form <code>### A52 NO-SUDO-…</code> at
+line 2890 (TMX-062) and the PERIOD-form
+<code>### A52. META-TEST-72-73-REGISTER-001</code> at line 3027
+(TMX-071). The literal <code>### A52.</code> occurs exactly ONCE; it is
+the CODE that repeats, across the two heading forms. (Measured
+<strong>at HEAD <code>5191e82</code>, BEFORE the renumber recorded
+below</strong>: <code>grep -c &#39;^### A52\.&#39;</code> = 1;
+<code>grep -cE &#39;^### A52(\.| )&#39;</code> = 2. The 2890 heading is itself a
+live specimen of the space form this widening made parseable.)</p>
+<p><strong>RESOLVED — and these two measurements NO LONGER reproduce, by
+design.</strong> The collision was a genuine §11.4.19 one-item-one-block
+violation with measured data loss: <code>Fixed.md</code> carried 25
+blocks declaring a <code>**TMX-ID:**</code> while the owner map held 24
+keys, because first-declarer-wins silently discarded TMX-071&#39;s
+assertion. The <code>Fixed.md</code> TMX-071 block was renumbered
+<code>### A52.</code> → <code>### A56.</code> (A56 was free; highest was
+A55), and the sync&#39;s <code>ExplicitATM</code> path recorded the identity
+rebind
+(<code>TMX-071 (was A52 … in Fixed -&gt; now A56 … in Fixed)</code>).
+Post-renumber the same two commands measure <code>0</code> and
+<code>1</code>, and the owner map holds 25 keys with
+<code>owners[&#39;A52&#39;]=TMX-062</code>, <code>owners[&#39;A56&#39;]=TMX-071</code>.
+An independent review (2026-09-01) correctly flagged that leaving the
+pre-renumber figures in the present tense made this record cite
+measurements its own batch had falsified — §11.4.6. They are pinned to
+their revision above rather than deleted, because the collision they
+document was real.</p>
+<p>CODE-LEVEL vs BLOCK-LEVEL — both true, different joins. At the BLOCK
+level the sync binds 92 blocks to 92 rows 1:1, INCLUDING TMX-071, which
+binds to its OWN block at 3027; only TMX-001 (genuinely sharing
+TMX-054&#39;s single <code>B3</code> block) and TMX-050 (no block) fall
+outside the binding, so 94 = 92 + 2. At the CODE level the decomposition
+above gives 94 = 91 + 2 + 1. The two reconcile exactly; TMX-071 shares a
+CODE with TMX-062, not a BLOCK.</p>
 <p>All three extra rows carry status <code>Obsolete (→ Fixed.md)</code>,
-which is precisely the case <code>validate_identity.go</code>'s Obsolete
-guard skips (§11.4.90 — a superseded record may legitimately share its
-successor's block), so <code>validate</code> correctly reports 0
-findings.</p>
+and the operative reason <code>validate</code> reports 0 findings is
+simply <code>validate_identity.go</code>&#39;s Obsolete-status skip. The
+§11.4.90 &quot;a superseded record may share its successor&#39;s block&quot; rationale
+applies ONLY to the TMX-001 / TMX-054 <code>B3</code> pair: TMX-071&#39;s
+own <code>Obsolete-Details</code> names its superseding item as
+<strong>TMX-076</strong> (<code>Issues.md</code> §A3), NOT TMX-062 — the
+two <code>A52</code> items are unrelated — and TMX-050 shares a block
+with nothing.</p>
 <p>RETRACTION (§11.4.6): an earlier account of this gap attributed it to
 the two headings the tightened regex refuses
 (<code>### TMX-051 — …</code>, <code>### NEZHA-INSTALL-… —</code>). That
@@ -310,17 +201,64 @@ id literal in <code>### TMX-051 —</code> as the row whose
 <code>atm_id</code> is TMX-051; that row is a different item entirely
 (Copy/paste mouse ownership, <code>A43</code>). That is the §11.4.201(9)
 field-identity class — an id literal matched as a row key — the same
-shape as the discarded 62-row instrument below. The conclusions were
-unaffected (gap = 2, no live collision, <code>validate</code> 0
+shape as the discarded 62-row instrument described next. The conclusions
+were unaffected (gap = 2, no live collision, <code>validate</code> 0
 findings) but they were reached via the wrong rows, and the arithmetic
 above is the reproducible replacement.</p>
+<h2 id="instruments-discarded-during-this-investigation-114201">Instruments
+discarded during this investigation (§11.4.201)</h2>
+<p>Three measurement attempts produced confident wrong numbers before
+the arithmetic above was reached. Each is recorded because the failure
+shape, not the number, is the lesson.</p>
+<table>
+<thead>
+<tr>
+<th>Reported</th>
+<th>Instrument</th>
+<th>Why it was wrong</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&quot;62 rows missing from markdown&quot;</td>
+<td>joined rows to blocks on the <code>**TMX-ID:**</code> literal</td>
+<td>60 of 85 <code>Fixed.md</code> blocks declare no such line at all,
+so the join measured the KNOWN missing-id-line gap, not row absence
+(§11.4.201(9) — an id literal read as a row key)</td>
+</tr>
+<tr>
+<td>&quot;79 rows unbound by heading hash&quot;</td>
+<td>reimplemented <code>computeHeadingHash</code> over the RAW heading
+remainder</td>
+<td><code>parser.go:201</code> hashes <code>cleanTitle</code> — the
+remainder with its trailing <code>— `STATUS`</code> hint stripped by
+<code>trailingStatusRE</code>. With the strip the same computation
+yields unbound=2; without it, 79. The 79 are exactly the rows whose
+blocks carry a trailing hint</td>
+</tr>
+<tr>
+<td>&quot;the gap is the two refused headings&quot;</td>
+<td>read the id literal in <code>### TMX-051 —</code> as the row whose
+<code>atm_id</code> is TMX-051</td>
+<td>that row is an unrelated item (Copy/paste mouse ownership,
+<code>A43</code>); no row corresponds to either refused heading
+(§11.4.201(9), the same class as the first row)</td>
+</tr>
+</tbody>
+</table>
+<p>The &quot;79 = stored-hash convention drift (TMX-093)&quot; reading is refuted
+twice: numerically above, and by the live sync itself — round 4&#39;s
+<code>itemContentEqual</code> now compares <code>HeadingHash</code>, so
+an idempotent <code>unchanged=92, updated=0</code> with zero rebinds
+PROVES stored hash == parser hash for all 92 bound rows. 79 drifted
+hashes would have produced 79 updates, not zero. TMX-093&#39;s convention
+split reaches only <code>add</code>-created rows.</p>
 <h2 id="corpus-duplication">Corpus duplication</h2>
 <p>Cross-tracker duplicates BEFORE: 5 (G1..G4 in both trackers; A50
 claimed by two items). AFTER: 0 — enforced at the sync seam, which now
 refuses on the union of <code>**TMX-ID:**</code> and heading-identity
 across every parsed block in both files.</p>
-<h2
-id="mutation-ledger-11--every-guard-pinned-each-mutation-verified-to-land-before-running">Mutation
+<h2 id="mutation-ledger-11--every-guard-pinned-each-mutation-verified-to-land-before-running">Mutation
 ledger (§1.1) — every guard pinned, each mutation verified to land
 before running</h2>
 <table>
@@ -361,13 +299,13 @@ before running</h2>
 <td>R1</td>
 <td>disable the byHash key</td>
 <td><code>…RefusesIdLessDuplicateAcrossTrackers</code></td>
-<td>reviewer (SURVIVED round 2 — it IS round 2's IMPORTANT-N1)</td>
+<td>reviewer (SURVIVED round 2 — it IS round 2&#39;s IMPORTANT-N1)</td>
 </tr>
 <tr>
 <td>R5</td>
 <td>swap identity-resolution precedence</td>
 <td><code>…HeadingHashWinsAndNoSpuriousRebindIsRecorded</code></td>
-<td>reviewer (SURVIVED round 2 — it IS round 2's MINOR-N4)</td>
+<td>reviewer (SURVIVED round 2 — it IS round 2&#39;s MINOR-N4)</td>
 </tr>
 <tr>
 <td>R17</td>
@@ -389,7 +327,7 @@ before running</h2>
 </tr>
 <tr>
 <td>—</td>
-<td>remove the rebind's history recording</td>
+<td>remove the rebind&#39;s history recording</td>
 <td><code>…IdentityRebindIsRecordedInHistory</code></td>
 <td>me</td>
 </tr>
@@ -413,7 +351,7 @@ before running</h2>
 </tr>
 <tr>
 <td>R4</td>
-<td>weaken <code>headingRE</code>'s title group to
+<td>weaken <code>headingRE</code>&#39;s title group to
 <code>(.*)$</code></td>
 <td><code>TestHeadingRE_AcceptedAndRefused</code> +
 <code>…AgreeOnAcceptance</code></td>
@@ -455,7 +393,7 @@ before running</h2>
 </table>
 <p>Two of my own tests were BLIND on first write and were caught by
 running these mutations rather than trusting the green: the rebind
-test's assertions sat behind an inverted condition that skipped them
+test&#39;s assertions sat behind an inverted condition that skipped them
 every run, and the precedence test asserted a row outcome that is
 identical under both orderings (<code>UpsertItem</code> re-resolves by
 heading-hash internally, so the sync-layer order changes only the audit
@@ -477,10 +415,10 @@ figures, and a superseded gitignored copy of this file) — all three
 remediated.</p>
 <p>Round-numbering note (§11.4.6): no per-round review artifact was
 written to disk, so I could not reconstruct the round-1/2 boundary from
-local state. The numbering is the reviewer's record, now stated
-explicitly by it with a decisive argument: R1 and R5 ARE round 2's own
+local state. The numbering is the reviewer&#39;s record, now stated
+explicitly by it with a decisive argument: R1 and R5 ARE round 2&#39;s own
 findings (IMPORTANT-N1 and MINOR-N4), and a mutation that BECAME a
-round-2 finding cannot have survived round 1 — round 1's suite had never
+round-2 finding cannot have survived round 1 — round 1&#39;s suite had never
 seen it. Only M-A survived round 1. Two revisions of this file got this
 wrong in opposite directions: the first folded round 1 into round 2 and
 mis-dated the BLOCKING; the second over-rotated and moved all three

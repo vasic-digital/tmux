@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>heading_grammar_gate</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1
+id="heading_grammar_gatesh--tracker-heading-code-bearing-guard">heading_grammar_gate.sh
+— tracker heading code-bearing guard</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-09-01T20:48:54Z</p>
+<p>Companion guide (§11.4.18) for
+<code>scripts/testing/heading_grammar_gate.sh</code> and its paired test
+<code>scripts/testing/heading_grammar_gate_test.sh</code>.</p>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>A §11.4.135 permanent regression guard for one captured defect class:
+a <code>### </code> item heading in <code>Issues.md</code> or
+<code>Fixed.md</code> that carries <strong>no block code</strong>.</p>
+<p><code>cmd/workable-items/parser.go</code> reads an item heading with
+exactly this grammar:</p>
+<pre><code>^###\s+([A-Z])(\d+)(?:\.\s+|\s+)(\S.*)$</code></pre>
+<p>— one uppercase letter, at least one digit, then either
+<code>. </code> or <code> </code>, then a non-blank title. A
+<code>### </code> line that does not match is <strong>not skipped
+harmlessly</strong>: the parser keeps walking, so everything under that
+heading — its <code>**Status:**</code>, its <code>**Type:**</code>, its
+whole body — is absorbed into the <code>raw_body</code> of the
+<strong>preceding coded block</strong>. The item then has no row, no
+<code>TMX-ID</code>, no status of its own, and cannot be reported on,
+closed, or validated. It is invisible to the SQLite single source of
+truth (§11.4.93) while still <em>looking</em> like a tracked item to a
+human reader.</p>
+<h3 id="the-three-captured-instances-2026-09-01">The three captured
+instances (2026-09-01)</h3>
+<p>One architectural root cause — the tracker grammar never
+<em>required</em> a <code>### </code> heading to carry a block code —
+reached by three unrelated triggers:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Heading</th>
+<th>Trigger</th>
+<th>Absorbed into</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>Issues.md</code></td>
+<td><code>### M24-ESCAPE-001 — …</code></td>
+<td>a <strong>closed</strong> record hand-written into the
+<strong>open</strong> tracker — a §11.4.19 atomic-migration miss</td>
+<td><code>D2 TMPDIR-HARDCODE-001</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>Fixed.md</code></td>
+<td><code>### TMX-051 — Per-session color …</code></td>
+<td>commit <code>89324dc</code>, the <code>ATM-</code> →
+<code>TMX-</code> ticket-prefix migration, rewrote a heading whose text
+<em>happened</em> to begin with a ticket-id literal</td>
+<td><code>D1.</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>Fixed.md</code></td>
+<td><code>### NEZHA-INSTALL-v1.0.26-001 (closed) — …</code></td>
+<td>commit <code>7aefdf2</code>, a §12.10 doc update</td>
+<td><code>D1.</code></td>
+</tr>
+</tbody>
+</table>
+<p>Instance 2 is the sharpest illustration that the leading literal is
+<strong>not</strong> a binding. <code>TMX-051</code> is the id of a
+<em>different</em> item (<code>A43</code>, "Copy/paste: terminal owns
+the mouse by default"); the colour block simply carried the string.
+Measured with <code>workable-items report</code>: 95 rows existed and
+<strong>none</strong> of the three blocks had one.</p>
+<p>Measured absorption, before and after the repair:</p>
+<pre><code>PRE : D1. block spans 7703 chars; contains &#39;Per-session color&#39;=True  &#39;nezha&#39;=True
+POST: D1. block spans 2200 chars; contains &#39;Per-session color&#39;=False &#39;nezha&#39;=False
+
+md-to-db BEFORE: fixed_parsed=83 inserted=0 allocated=0
+md-to-db AFTER : fixed_parsed=86 inserted=3 allocated=3   → TMX-096/097/098</code></pre>
+<h3 id="why-nothing-existing-caught-it">Why nothing existing caught
+it</h3>
+<p>Every other check in this repo reasons about blocks the parser
+<strong>already sees</strong>. To <code>validate</code>, to the
+<code>md-to-db</code> → <code>db-to-md</code> round trip, to
+<code>scripts/tests/51_workable_items_db_integrity.sh</code>, and to the
+sibling <code>tracker_structural_integrity.sh</code>, a heading the
+parser skips is <em>not a heading at all</em> — so a corpus with three
+invisible items and a corpus with none return the identical quiet zero.
+That is the §11.4.201(6) <strong>false null</strong>. This gate is the
+only one that asserts on the raw document grammar,
+<strong>before</strong> the parser's own filter has a chance to hide the
+defect.</p>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li><code>awk</code> and <code>grep</code> (POSIX). Nothing else — no
+<code>git</code>, no network, no build, no database.</li>
+<li><code>bash</code> to invoke it. The script itself is
+<code>sh -n</code> clean as well (§11.4.67): no arrays, no
+<code>[[ ]]</code>, no here-strings, no <code>local</code>.</li>
+<li>A writable <code>${TMPDIR:-/tmp}</code>. The scratch directory is
+honoured from <code>TMPDIR</code> and never hardcoded to
+<code>/tmp</code> — the defect <code>Fixed.md</code> <code>D2</code>
+(<code>TMPDIR-HARDCODE-001</code> / <code>TMX-092</code>) records
+why.</li>
+</ul>
+<hr />
+<h2 id="usage">Usage</h2>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># default: Issues.md + Fixed.md at the repo root</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/testing/heading_grammar_gate.sh</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># explicit files (repeatable; absolute or repo-root-relative)</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/testing/heading_grammar_gate.sh <span class="at">--file</span> Issues.md <span class="at">--file</span> Fixed.md</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># suppress the per-file inventory line</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/testing/heading_grammar_gate.sh <span class="at">--quiet</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># the header itself</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/testing/heading_grammar_gate.sh <span class="at">--help</span></span></code></pre></div>
+<p>Exit codes: <strong>0</strong> = PASS or SKIP-with-reason,
+<strong>1</strong> = FAIL (at least one code-less heading). A SKIP
+always prints its reason and is never silently counted as a pass
+(§11.4.3).</p>
+<h3 id="output">Output</h3>
+<pre><code>[evidence heading-grammar] control needle: 3 synthetic headings pushed through the SAME scanner → seen=3 coded=2 code-less=1 (expected seen=3 coded=2 code-less=1)
+[evidence heading-grammar] Issues.md: scanner SEES headings=10 coded=10 code-less=0
+PASS heading-grammar: G1 Issues.md — all 10 `### ` heading(s) carry a parser-readable block code
+[evidence heading-grammar] Fixed.md: scanner SEES headings=86 coded=86 code-less=0
+PASS heading-grammar: G1 Fixed.md — all 86 `### ` heading(s) carry a parser-readable block code
+── summary heading-grammar: PASS=2 FAIL=0 SKIP=0 ──</code></pre>
+<p>On a refusal, every offender is printed with <strong>resolved
+evidence</strong> (§11.4.201(5)) — the exact path, line number, and
+heading text — so the finding is actionable in one step:</p>
+<pre><code>[evidence heading-grammar] OFFENDER /…/Fixed.md:2835: ### TMX-051 — Per-session color via `name:color[:ignored]`
+FAIL heading-grammar: G1 Fixed.md — 2 of 85 `### ` heading(s) carry NO block code, …</code></pre>
+<h3 id="fixing-a-finding">Fixing a finding</h3>
+<p>Give the heading a <strong>free</strong>
+<code>&lt;LETTER&gt;&lt;DIGITS&gt;</code> code. Both forms are valid and
+the gate accepts either:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">### D2. Per-session color via `name:color[:ignored]` — `IMPLEMENTED`   ← period form</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">### B54 M24-ESCAPE-001 — meta-test M24 … — `FIXED`                     ← space form</span></span></code></pre></div>
+<p>Then add a <code>**TMX-ID:**</code> line so the binding is explicit
+rather than allocation-order dependent, and — if the block carries a
+terminal status — make sure it lives in <code>Fixed.md</code>, not
+<code>Issues.md</code> (§11.4.19). Free codes are found by listing the
+existing ones per file:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="at">-oE</span> <span class="st">&#39;^### [A-Z][0-9]+&#39;</span> Fixed.md <span class="kw">|</span> <span class="fu">sort</span> <span class="at">-u</span></span></code></pre></div>
+<p>Block codes are a <strong>per-file</strong> namespace:
+<code>Issues.md</code> and <code>Fixed.md</code> both legitimately carry
+an <code>H1</code> and an <code>I1</code>.</p>
+<hr />
+<h2 id="edge-cases">Edge cases</h2>
+<p>Deliberately <strong>not</strong> flagged — a false-positive refusal
+is a FAIL-bluff exactly as a false-negative pass is a PASS-bluff
+(§11.4.201(1)):</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Verdict</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>### A7. Title</code></td>
+<td>coded</td>
+<td>period form, the parser's <code>\.\s+</code> branch</td>
+</tr>
+<tr>
+<td><code>### G5 Title</code></td>
+<td>coded</td>
+<td>space form, the parser's <code>\s+</code> branch</td>
+</tr>
+<tr>
+<td><code>### B123 Title</code></td>
+<td>coded</td>
+<td>multi-digit ordinals are fine</td>
+</tr>
+<tr>
+<td><code>## D. Section</code></td>
+<td>ignored</td>
+<td>section header; the item grammar does not apply</td>
+</tr>
+<tr>
+<td><code>#### Sub-heading</code></td>
+<td>ignored</td>
+<td>not an item heading (<code>^###</code> requires a non-<code>#</code>
+next char)</td>
+</tr>
+<tr>
+<td><code>###foo</code></td>
+<td>ignored</td>
+<td>not a Markdown ATX heading at all — <code>anyHeadingRE</code> needs
+<code>#{1,6}\s</code></td>
+</tr>
+<tr>
+<td><code>  ### X</code> (indented)</td>
+<td>ignored</td>
+<td>the parser anchors at column 0</td>
+</tr>
+<tr>
+<td><code>### X</code> inside <code>```</code> or <code>~~~</code></td>
+<td>ignored</td>
+<td>sample text inside a fenced block, not a heading</td>
+</tr>
+</tbody>
+</table>
+<p>Correctly flagged as <strong>code-less</strong>, because the parser
+cannot read them either:</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>### NEZHA-INSTALL-001 — …</code></td>
+<td><code>N</code> is followed by <code>E</code>, not a digit</td>
+</tr>
+<tr>
+<td><code>### AB1 Title</code></td>
+<td><code>([A-Z])</code> is <em>one</em> letter; <code>B</code> is not a
+digit</td>
+</tr>
+<tr>
+<td><code>### A7.Title</code></td>
+<td>the separator needs whitespace after the <code>.</code></td>
+</tr>
+<tr>
+<td><code>### A7</code></td>
+<td>no title after the code</td>
+</tr>
+</tbody>
+</table>
+<p>The gate mirrors <code>headingRE</code> <strong>exactly</strong>
+rather than inventing a stricter rule of its own — the property under
+test is "can <code>parser.go</code> read this heading", so the check
+probes the real grammar rather than a proxy (§11.4.201(11)).</p>
+<hr />
+<h2 id="internal-behaviour">Internal behaviour</h2>
+<h3 id="one-scanner-one-code-path">One scanner, one code path</h3>
+<p>A single <code>awk</code> program (<code>_scan</code>) does all
+classification and is used for <strong>both</strong> the real trackers
+and the control needle. There is no second, divergent implementation
+that could drift.</p>
+<p>It walks each file once, tracking fenced code blocks
+(<code>```</code> and <code>~~~</code>, any fence length, indented or
+not — a fence of one character closes only on the same character), skips
+<code>####</code>+ and non-column-0 lines, and classifies each surviving
+<code>### </code> line with <code>_hg_coded</code>. It emits
+<code>HEADINGS</code>/<code>CODED</code>/<code>CODELESS</code> counts
+plus one <code>OFFENDER &lt;line&gt;\t&lt;text&gt;</code> row per
+code-less heading.</p>
+<h3 id="the-control-needle-1142017b">The control needle
+(§11.4.201(7)(b))</h3>
+<p>A zero-finding result is refused unless the instrument is proven to
+see — <strong>in both polarities, through the same code path</strong> —
+before any file is judged:</p>
+<ul>
+<li><strong>Seeing</strong> — the scanner must extract more than zero
+<code>### </code> headings from the file. Zero extracted means BLIND,
+and the gate SKIPs with that reason rather than reporting a confident
+clean zero.</li>
+<li><strong>Polarity</strong> — three synthetic needle lines (two
+known-coded, one known-code-less) are pushed through the identical
+<code>_scan</code>. A classifier stuck at <em>"everything is coded"</em>
+would return a clean zero on a genuinely broken file; the code-less
+needle is what refutes that. If the needle lands <code>3/2/1</code> the
+instrument discriminates; anything else is BLIND → SKIP.</li>
+</ul>
+<p>The needle counts are <strong>printed on every run</strong>, so the
+null is auditable rather than merely asserted. <code>T7</code> in the
+paired test breaks the needle deliberately and proves the gate then
+refuses to emit a <code>PASS</code> at all.</p>
+<h3 id="the-load-bearing-assertion">The load-bearing assertion</h3>
+<p><code>_hg_coded</code>'s regex is the whole verdict. The paired test
+weakens it (<code>M1</code>) and neuters the code-less counter
+(<code>M2</code>) in <strong>copies</strong> under
+<code>${TMPDIR}</code> — the tracked gate is never edited, so no
+mutation residue can be staged (§11.4.84) — and asserts that each
+weakened copy then <strong>misses</strong> the golden-bad fixture.</p>
+<hr />
+<h2 id="validation-evidence">Validation evidence</h2>
+<p><code>§11.4.115(F)</code> — a guard never observed failing on the
+genuinely-broken artifact is unvalidated instrumentation. This one
+was:</p>
+<pre><code>$ git show HEAD:Issues.md &gt; /tmp/pre_Issues.md
+$ git show HEAD:Fixed.md  &gt; /tmp/pre_Fixed.md
+$ bash scripts/testing/heading_grammar_gate.sh --file /tmp/pre_Issues.md --file /tmp/pre_Fixed.md
+FAIL heading-grammar: G1 pre_Issues.md — 1 of 10 … code-less
+FAIL heading-grammar: G1 pre_Fixed.md  — 2 of 85 … code-less
+── summary heading-grammar: PASS=0 FAIL=2 SKIP=0 ──   (rc=1)</code></pre>
+<p><code>T5</code> of the paired test performs exactly this,
+automatically, so the observation is re-run on every invocation rather
+than being a one-off claim.</p>
+<p>— exactly the three known offenders, and no false positives. After
+the repair the same gate reports <code>PASS=2 FAIL=0 SKIP=0</code>
+(rc=0).</p>
+<p>Paired test: <code>9 PASS / 0 FAIL</code>, identical across three
+consecutive runs (§11.4.50).</p>
+<hr />
+<h2 id="related-scripts">Related scripts</h2>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Relationship</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scripts/testing/heading_grammar_gate_test.sh</code></td>
+<td>the §1.1 paired test for this gate</td>
+</tr>
+<tr>
+<td><code>scripts/testing/tracker_structural_integrity.sh</code></td>
+<td>sibling guard. That one asserts a tracker did not
+<strong>lose</strong> structure across revisions; this one asserts every
+heading <strong>is</strong> structure the parser can read. Neither
+subsumes the other.</td>
+</tr>
+<tr>
+<td><code>cmd/workable-items/parser.go</code></td>
+<td><code>headingRE</code> — the grammar this gate mirrors</td>
+</tr>
+<tr>
+<td><code>cmd/workable-items/sync_md_to_db.go</code></td>
+<td>the verbatim absorption that makes a code-less heading
+invisible</td>
+</tr>
+<tr>
+<td><code>scripts/tests/51_workable_items_db_integrity.sh</code></td>
+<td>the self-referential round trip that cannot see this defect
+class</td>
+</tr>
+</tbody>
+</table>
+<h2 id="honest-boundary-1146">Honest boundary (§11.4.6)</h2>
+<p>This gate proves every <code>### </code> heading is <strong>readable
+by the parser</strong>. It does <strong>not</strong> prove the heading's
+code is the <em>right</em> one (a duplicate code is
+<code>validate</code>'s job, via the <code>§11.4.54</code> duplicate/gap
+checks), that the block's <code>**Status:**</code> matches its file
+(<code>§11.4.19</code>/<code>§11.4.33</code>), or that the item's
+content is correct. It is one layer, and it is the earliest one.</p>
+<h2 id="sources-verified-2026-09-01">Sources verified 2026-09-01</h2>
+<ul>
+<li><code>cmd/workable-items/parser.go</code> — <code>headingRE</code>,
+<code>anyHeadingRE</code> (read in-tree at commit
+<code>2c8187a</code>).</li>
+<li><code>cmd/workable-items/validate.go</code> — the
+<code>§11.4.54</code> id sequence/duplicate rules that this gate
+deliberately does <strong>not</strong> duplicate.</li>
+<li>Measured with <code>workable-items report</code> /
+<code>sync md-to-db</code> against a <strong>copy</strong> of
+<code>docs/workable_items.db</code>; the tracked database was not
+modified.</li>
+</ul>
+</body>
+</html>

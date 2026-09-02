@@ -48,15 +48,41 @@ blocks" figure. The table above is the re-measured, reproducible replacement.
 | parsed blocks | 92 |
 | DISTINCT block identities `(location, CAT, ORD)` | 91 |
 
-94 = 91 distinct identities + 2 rows that SHARE an identity with a live successor
-(TMX-001 shares Fixed `B3` with TMX-054; TMX-071 shares Fixed `A52` with TMX-062) + 1 row
-whose claimed identity has no block at all (TMX-050 at Fixed `F1`). 92 = 91 distinct +
-1 DUPLICATE markdown heading — `### A52.` occurs twice in `Fixed.md`, at line 2890
-(TMX-062) and line 3027 (TMX-071).
+94 = 91 distinct identities + 2 rows that SHARE a block CODE with another row
+(TMX-001 / TMX-054 at Fixed `B3`; TMX-071 / TMX-062 at Fixed `A52`) + 1 row whose claimed
+identity has no block at all (TMX-050 at Fixed `F1`). 92 = 91 distinct + 1 duplicated
+block CODE: `A52` heads TWO blocks in `Fixed.md` — the SPACE-form `### A52 NO-SUDO-…` at
+line 2890 (TMX-062) and the PERIOD-form `### A52. META-TEST-72-73-REGISTER-001` at line
+3027 (TMX-071). The literal `### A52.` occurs exactly ONCE; it is the CODE that repeats,
+across the two heading forms. (Measured **at HEAD `5191e82`, BEFORE the renumber
+recorded below**: `grep -c '^### A52\.'` = 1; `grep -cE '^### A52(\.| )'` = 2. The 2890
+heading is itself a live specimen of the space form this widening made parseable.)
 
-All three extra rows carry status `Obsolete (→ Fixed.md)`, which is precisely the case
-`validate_identity.go`'s Obsolete guard skips (§11.4.90 — a superseded record may
-legitimately share its successor's block), so `validate` correctly reports 0 findings.
+**RESOLVED — and these two measurements NO LONGER reproduce, by design.** The collision
+was a genuine §11.4.19 one-item-one-block violation with measured data loss: `Fixed.md`
+carried 25 blocks declaring a `**TMX-ID:**` while the owner map held 24 keys, because
+first-declarer-wins silently discarded TMX-071's assertion. The `Fixed.md` TMX-071 block
+was renumbered `### A52.` → `### A56.` (A56 was free; highest was A55), and the sync's
+`ExplicitATM` path recorded the identity rebind
+(`TMX-071 (was A52 … in Fixed -> now A56 … in Fixed)`). Post-renumber the same two
+commands measure `0` and `1`, and the owner map holds 25 keys with
+`owners['A52']=TMX-062`, `owners['A56']=TMX-071`. An independent review (2026-09-01)
+correctly flagged that leaving the pre-renumber figures in the present tense made this
+record cite measurements its own batch had falsified — §11.4.6. They are pinned to their
+revision above rather than deleted, because the collision they document was real.
+
+CODE-LEVEL vs BLOCK-LEVEL — both true, different joins. At the BLOCK level the sync binds
+92 blocks to 92 rows 1:1, INCLUDING TMX-071, which binds to its OWN block at 3027; only
+TMX-001 (genuinely sharing TMX-054's single `B3` block) and TMX-050 (no block) fall
+outside the binding, so 94 = 92 + 2. At the CODE level the decomposition above gives
+94 = 91 + 2 + 1. The two reconcile exactly; TMX-071 shares a CODE with TMX-062, not a BLOCK.
+
+All three extra rows carry status `Obsolete (→ Fixed.md)`, and the operative reason
+`validate` reports 0 findings is simply `validate_identity.go`'s Obsolete-status skip.
+The §11.4.90 "a superseded record may share its successor's block" rationale applies ONLY
+to the TMX-001 / TMX-054 `B3` pair: TMX-071's own `Obsolete-Details` names its superseding
+item as **TMX-076** (`Issues.md` §A3), NOT TMX-062 — the two `A52` items are unrelated —
+and TMX-050 shares a block with nothing.
 
 RETRACTION (§11.4.6): an earlier account of this gap attributed it to the two headings the
 tightened regex refuses (`### TMX-051 — …`, `### NEZHA-INSTALL-… —`). That mechanism is
@@ -64,9 +90,26 @@ WRONG and is withdrawn — measured, NO DB row corresponds to either heading, so
 contribute ZERO rows. The error was reading the id literal in `### TMX-051 —` as the row
 whose `atm_id` is TMX-051; that row is a different item entirely (Copy/paste mouse
 ownership, `A43`). That is the §11.4.201(9) field-identity class — an id literal matched as
-a row key — the same shape as the discarded 62-row instrument below. The conclusions were
+a row key — the same shape as the discarded 62-row instrument described next. The conclusions were
 unaffected (gap = 2, no live collision, `validate` 0 findings) but they were reached via
 the wrong rows, and the arithmetic above is the reproducible replacement.
+
+## Instruments discarded during this investigation (§11.4.201)
+
+Three measurement attempts produced confident wrong numbers before the arithmetic above
+was reached. Each is recorded because the failure shape, not the number, is the lesson.
+
+| Reported | Instrument | Why it was wrong |
+|---|---|---|
+| "62 rows missing from markdown" | joined rows to blocks on the `**TMX-ID:**` literal | 60 of 85 `Fixed.md` blocks declare no such line at all, so the join measured the KNOWN missing-id-line gap, not row absence (§11.4.201(9) — an id literal read as a row key) |
+| "79 rows unbound by heading hash" | reimplemented `computeHeadingHash` over the RAW heading remainder | `parser.go:201` hashes `cleanTitle` — the remainder with its trailing `` — `STATUS` `` hint stripped by `trailingStatusRE`. With the strip the same computation yields unbound=2; without it, 79. The 79 are exactly the rows whose blocks carry a trailing hint |
+| "the gap is the two refused headings" | read the id literal in `### TMX-051 —` as the row whose `atm_id` is TMX-051 | that row is an unrelated item (Copy/paste mouse ownership, `A43`); no row corresponds to either refused heading (§11.4.201(9), the same class as the first row) |
+
+The "79 = stored-hash convention drift (TMX-093)" reading is refuted twice: numerically
+above, and by the live sync itself — round 4's `itemContentEqual` now compares
+`HeadingHash`, so an idempotent `unchanged=92, updated=0` with zero rebinds PROVES stored
+hash == parser hash for all 92 bound rows. 79 drifted hashes would have produced 79
+updates, not zero. TMX-093's convention split reaches only `add`-created rows.
 
 ## Corpus duplication
 

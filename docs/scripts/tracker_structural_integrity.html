@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>tmux documentation</title>
+  <style>
+
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+
+ul.task-list[class]{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+font-size: inherit;
+width: 0.8em;
+margin: 0 0.8em 0.2em -1.6em;
+vertical-align: middle;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } 
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.at { color: #204a87; } 
+code span.bn { color: #0000cf; } 
+code span.cf { color: #204a87; font-weight: bold; } 
+code span.ch { color: #4e9a06; } 
+code span.cn { color: #8f5902; } 
+code span.co { color: #8f5902; font-style: italic; } 
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.dt { color: #204a87; } 
+code span.dv { color: #0000cf; } 
+code span.er { color: #a40000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #0000cf; } 
+code span.fu { color: #204a87; font-weight: bold; } 
+code span.im { } 
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
+code span.kw { color: #204a87; font-weight: bold; } 
+code span.op { color: #ce5c00; font-weight: bold; } 
+code span.ot { color: #8f5902; } 
+code span.pp { color: #8f5902; font-style: italic; } 
+code span.sc { color: #ce5c00; font-weight: bold; } 
+code span.ss { color: #4e9a06; } 
+code span.st { color: #4e9a06; } 
+code span.va { color: #000000; } 
+code span.vs { color: #4e9a06; } 
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
+</style>
+  <style type="text/css"></style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">tmux documentation</h1>
+</header>
+<h1 id="tracker_structural_integritysh--tracker-sectionpreamble-survival-guard">tracker_structural_integrity.sh
+— tracker section/preamble survival guard</h1>
+<p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
+2026-09-01T00:00:00Z</p>
+<p>Companion guide (§11.4.18) for
+<code>scripts/testing/tracker_structural_integrity.sh</code> and its
+paired test
+<code>scripts/testing/tracker_structural_integrity_test.sh</code>.</p>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>A §11.4.135 permanent regression guard for one captured defect: on
+2026-09-01, during the corpus repair that became commit
+<code>8dad4e3</code>, an ad-hoc removal loop asked to delete four
+<code>### G1..G4</code> item blocks from <code>Issues.md</code> ran past
+the last one and also deleted the <strong><code>## H.</code> section
+header</strong> and that section&#39;s <strong>§11.4.114 preamble</strong>.
+An independent code review caught it as a BLOCKING finding and it was
+restored verbatim from <code>git show HEAD:Issues.md</code> before the
+commit landed.</p>
+<p>The guard compares each tracker document against its <strong>previous
+committed revision</strong> and refuses a silent loss of a section or of
+a section&#39;s governing preamble text.</p>
+<h3 id="why-the-existing-machinery-did-not-catch-it">Why the existing
+machinery did not catch it</h3>
+<p><code>cmd/workable-items</code> plus
+<code>scripts/tests/51_workable_items_db_integrity.sh</code> already
+assert that a <code>sync md-to-db</code> → <code>sync db-to-md</code>
+round trip is byte-identical. That check cannot see this defect, and the
+reason is structural rather than incidental:
+<code>sync_md_to_db.go</code> reads each tracker
+<strong>verbatim</strong> into the <code>document_sources</code> table
+(its own comment: &quot;the verbatim source is what lets db→md replay
+byte-identical&quot;). Content deleted <em>before</em> a sync is therefore
+absorbed into the DB and replayed back identically — the round trip
+compares a document to a database derived from that same document, so it
+stays green on a damaged file. It is a self-referential check, and
+self-referential checks cannot detect content that vanished before they
+ran.</p>
+<p><code>cmd/workable-items/reconcile_test.go</code> does assert that a
+preamble survives, but only for the reconciler code path, on a synthetic
+in-test fixture, for one hard-coded string. Nothing asserted anything
+about the live corpus.</p>
+<p>A search of the gate corpus (<code>scripts/verify.sh</code>,
+<code>scripts/tests/</code>, <code>scripts/challenges/</code>,
+<code>cmd/workable-items/</code>) found <strong>zero</strong>
+occurrences of any check that reads a tracker&#39;s previous revision
+(<code>git show &lt;ref&gt;:Issues.md</code> or equivalent) and zero
+shell assertions over <code>^## </code> section headers — while a
+control-needle query for a string known to be present in that same
+corpus returned 190 matches through the identical search path, so the
+zero is a real absence and not a blind instrument (§11.4.201(6)).</p>
+<p>This defect class has occurred before. <code>Issues.md</code> section
+headers A–E were restored by hand in an earlier cycle (&quot;restored
+A/B/C/D/E section headers (C and D were missing despite conventions list
+referencing them)&quot;) — recorded in the tracker snapshot under
+<code>cmd/workable-items/testdata/</code>. That makes 2026-09-01 the
+second documented instance, and both were repaired by a human noticing
+an absence rather than by any gate.</p>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li><code>awk</code>, <code>grep</code>, <code>sed</code>,
+<code>sort</code> (POSIX).</li>
+<li><code>git</code> only for the default live-repo mode. Without git
+the gate emits an explicit <code>SKIP</code> with its reason and exits 0
+— a detective doc gate that refuses the whole sweep because git is
+unavailable would be the false-positive refusal §11.4.201(1)
+forbids.</li>
+</ul>
+<h2 id="usage">Usage</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Default: Issues.md and Fixed.md, working tree vs HEAD.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/testing/tracker_structural_integrity.sh</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Against another revision, or a specific file.</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/testing/tracker_structural_integrity.sh <span class="at">--baseline</span> 8dad4e3^</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/testing/tracker_structural_integrity.sh <span class="at">--file</span> Issues.md</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Fixture mode: compare two plain files, no git involved.</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/testing/tracker_structural_integrity.sh <span class="dt">\</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">--pair</span> <span class="st">&quot;label:path/to/baseline.md:path/to/current.md&quot;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># The paired test (RED + golden-FALSE + §1.1 mutations).</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/testing/tracker_structural_integrity_test.sh</span></code></pre></div>
+<p>Exit codes: <code>0</code> = PASS or SKIP-with-reason, <code>1</code>
+= at least one assertion FAILed. Every SKIP prints its reason and is
+never counted as a pass.</p>
+<h2 id="what-it-asserts">What it asserts</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Assertion</th>
+<th>Fires when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A1</strong></td>
+<td>Section survival</td>
+<td>A <code>## &lt;LETTER&gt;.</code> section present in the baseline is
+absent from the current file and not declared. Identity is the
+<strong>letter</strong>, not the title, so retitling a section is
+legitimate (§11.4.111).</td>
+</tr>
+<tr>
+<td><strong>A2</strong></td>
+<td>Preamble not emptied</td>
+<td>A surviving section whose baseline preamble had content now has
+none. Binary and threshold-free — rewording and annotating pass, gutting
+fires.</td>
+</tr>
+<tr>
+<td><strong>A3</strong></td>
+<td>Anchor survival</td>
+<td>A governing <code>§N.N…</code> citation present in a baseline
+preamble is missing from that section&#39;s current preamble. This is the
+clause that catches the exact historical loss: the <code>## H.</code>
+preamble cited §11.4.114.</td>
+</tr>
+</tbody>
+</table>
+<p>A section&#39;s <em>preamble</em> is the content between its
+<code>## X.</code> header and the first <code>### </code> item heading
+(or the next <code>## </code> / end of file), with blank lines and
+<code>---</code> rules excluded as scaffolding.</p>
+<h3 id="the-honest-boundary">The honest boundary</h3>
+<p>A2 catches <strong>total</strong> preamble loss, not partial erosion.
+A partial-erosion rule needs a &quot;how much may disappear&quot; threshold, and
+no evidence in this repo calibrates one — inventing a number would be
+the guess §11.4.6 forbids. A3 narrows the gap where it matters most (a
+governing citation cannot be dropped even by a partial rewrite), and the
+residual gap is stated here rather than papered over.</p>
+<p>The guard also says nothing about whether an item&#39;s <em>content</em>
+is correct, whether the DB agrees with the markdown (that is test 51&#39;s
+job), or whether a removal was a good idea (that is the operator&#39;s,
+§11.4.122).</p>
+<hr />
+<h2 id="how-to-remove-a-section">How to remove a section</h2>
+<p>Removals must be possible; silent removals must not. Two paths:</p>
+<p><strong>(a) Tombstone — preferred.</strong> Keep the
+<code>## X.</code> header and annotate it as closed. A1 passes
+naturally, the historical context stays readable, and no manifest row is
+needed. This is the corpus&#39;s own precedent: <code>## G.</code> was
+annotated rather than deleted in <code>8dad4e3</code>, and that
+annotated section is what the guard&#39;s <code>good_repaired.md</code>
+fixture reproduces.</p>
+<p><strong>(b) Manifest — when the header itself must go.</strong> Add a
+row to <code>scripts/testing/tracker_section_removals.tsv</code>:</p>
+<pre><code>Issues.md&lt;TAB&gt;G&lt;TAB&gt;2026-09-01&lt;TAB&gt;superseded by Fixed.md&lt;TAB&gt;operator, commit 8dad4e3</code></pre>
+<p>All five fields must be non-empty. A row with a blank reason or
+authority is <strong>not</strong> a declaration and the gate still fails
+— a rubber stamp is not a decision.</p>
+<h3 id="why-a-checked-in-manifest-and-not-an-environment-flag">Why a
+checked-in manifest and not an environment flag</h3>
+<p>The review that caught this defect had to notice an
+<strong>absence</strong> — that something which should have been in the
+diff was not. Absence-detection is the hard direction for a reviewer;
+presence-detection is the easy one. A manifest row lands in the same
+commit as the removal and turns the removal into an <strong>added
+line</strong> in the diff, which a reviewer reads directly. An env-var
+or CLI override would leave no trace in the tree at all, which makes it
+a bypass rather than a recorded deferral — so the gate deliberately has
+none.</p>
+<p>The tombstone path is listed first because it is strictly better
+where it applies: it keeps the context a reader of the tracker actually
+wants, and it needs no second file to stay in sync.</p>
+<hr />
+<h2 id="internal-behaviour">Internal behaviour</h2>
+<p><strong>Control needle (§11.4.201(6)/(7)(b)).</strong> A baseline
+with zero extracted sections and a genuinely clean comparison both
+produce &quot;0 missing&quot;. Before reporting a clean result the gate prints the
+number of sections its extractor actually saw, and if the baseline
+yields zero it reports <code>BLIND</code> and SKIPs instead of returning
+a confident zero.</p>
+<p><strong>Two instrument defects found while building this
+guard</strong>, both caught by running the assertions rather than
+trusting a green summary, and both fixed:</p>
+<ol type="1">
+<li><code>grep -c . &quot;$f&quot; || echo 0</code> prints <code>0</code>
+<strong>and</strong> exits 1 on an empty file, so the
+<code>|| echo 0</code> appended a second zero. Every later
+<code>[ &quot;$n&quot; -gt 0 ]</code> then died with <code>integer expected</code>
+and evaluated false — <strong>A2 was silently blind</strong>. Replaced
+with <code>awk &#39;NF{n++} END{print n+0}&#39;</code>, which always emits one
+integer and always exits 0. The test caught this only because it asserts
+the <em>specific</em> assertion name in the output rather than the exit
+code alone; an exit-code-only test would have passed on A3&#39;s
+coincidental failure and shipped a blind A2.</li>
+<li>The T11 mutation&#39;s <code>sed</code> pattern carried the wrong
+leading indentation, so the mutation never landed in the copy and the
+&quot;mutation missed the defect&quot; result would have proven nothing. The test
+now checks that the mutation marker is present in the copy
+<em>before</em> trusting the run — a mutation that did not land is a
+finding, not a pass.</li>
+</ol>
+<p><strong>Fixtures.</strong>
+<code>scripts/testing/fixtures/tracker_structural/</code> holds the
+three load-bearing historical shapes as checked-in files
+(<code>baseline_issues.md</code>, <code>bad_over_deleted.md</code>,
+<code>good_repaired.md</code>). The four narrower variants (item-added,
+retitled, item-migrated, preamble-gutted, anchor-lost) are derived
+inside the test by a single documented transformation each, so a fired
+assertion can only be attributed to that one transformation — a
+hand-written variant could differ somewhere else and make the
+attribution unprovable.</p>
+<hr />
+<h2 id="related-scripts">Related scripts</h2>
+<ul>
+<li><code>scripts/tests/51_workable_items_db_integrity.sh</code> — the
+DB round-trip this gate complements. Neither subsumes the other: 51
+proves the DB and the markdown agree; this gate proves the markdown did
+not silently lose content before they were compared.</li>
+<li><code>cmd/workable-items/sync_md_to_db.go</code> — the verbatim
+absorption that makes the round trip self-referential.</li>
+<li><code>scripts/testing/tracker_structural_integrity_test.sh</code> —
+the paired test.</li>
+</ul>
+<h2 id="wiring">Wiring</h2>
+<p>Not wired into <code>scripts/verify.sh</code> by this change: the
+sweep is owned by another stream and is wired serially by the conductor.
+Until then the guard runs standalone, and its own test exercises it
+against the live corpus.</p>
+<h2 id="last-verified">Last verified</h2>
+<p>2026-09-01 — full test suite <code>PASS=12 FAIL=0</code>, three
+consecutive identical iterations (§11.4.50); RED reproduced on the real
+<code>Issues.md</code> at <code>8dad4e3^</code>; golden-FALSE on the
+real repair commit <code>8dad4e3^ → 8dad4e3</code>.</p>
+</body>
+</html>

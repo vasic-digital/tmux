@@ -97,3 +97,12 @@ qa-results/
 .superpowers/
 .remember/
 .docs_chain/state.json
+
+# §11.4.30 + §11.4.77 — `sync db-to-md` regeneration output. These are
+# REGENERABLE duplicate copies of the live trackers, written by a
+# verification run to be diffed against Issues.md / Fixed.md. Committing
+# them would version a build derivative that then silently drifts from
+# the tracked originals (§11.4.186 divergence class). The regen mechanism
+# is `workable-items sync db-to-md --out-dir docs/workable-items/regen`.
+# docs/workable-items/README.md already documents this path as ignored.
+docs/workable-items/regen/

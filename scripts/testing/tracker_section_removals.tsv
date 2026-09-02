@@ -1,0 +1,33 @@
+# tracker_section_removals.tsv — DECLARED tracker-section removals
+# ─────────────────────────────────────────────────────────────────────────
+# Read by scripts/testing/tracker_structural_integrity.sh (assertion A1).
+#
+# A `## <LETTER>.` section header that exists in the baseline revision and
+# not in the current file FAILS the gate — UNLESS a row here declares it.
+# Removals are possible; silent removals are not.
+#
+# PREFER THE TOMBSTONE INSTEAD. If the section's historical context is
+# still worth reading, KEEP the header and annotate it as closed — the
+# corpus's own precedent is `## G.` in Issues.md, annotated (not deleted)
+# in commit 8dad4e3. A tombstoned section needs no row here.
+#
+# Use a row here only when the header itself must go. Add it in the SAME
+# commit as the removal, so the reviewer sees an ADDED line rather than
+# having to notice an ABSENCE — noticing an absence is exactly the review
+# burden that let the 2026-09-01 over-deletion reach round 2.
+#
+# FORMAT — five TAB-separated fields, ALL of which must be non-empty
+# (a blank reason or authority is NOT a declaration):
+#
+#   file<TAB>letter<TAB>ISO-date<TAB>reason<TAB>authority
+#
+#   file      basename of the tracker (Issues.md | Fixed.md)
+#   letter    the section letter, without the trailing period (e.g. G)
+#   date      YYYY-MM-DD of the operator decision
+#   reason    why the section is gone, in plain words
+#   authority who approved it (§11.4.122 — an operator decision, not an
+#             autonomous one) plus the commit / evidence path
+#
+# Lines beginning with `#` are comments. There are no declared removals
+# yet; the entries below the header line are intentionally empty.
+# ─────────────────────────────────────────────────────────────────────────

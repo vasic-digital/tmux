@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-09-01T19:45:59Z
+**Last updated:** 2026-09-02T06:35:42Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -36,8 +36,11 @@ Paste this prompt:
 
 ### §3.37 — Heading-regex widening + corpus repair (TMX-072..075, TMX-078, TMX-093, TMX-094) → 2026-09-01
 
-**Status:** IN PROGRESS — landed in the working tree, independent review CLOSED with a
-clean GO, full `verify.sh` sweep on the final tree in flight. NOT yet committed.
+**Status:** IN PROGRESS — landed in the working tree. A LATER independent review
+(2026-09-01, covering the 5-stream fan-out batch) returned **NO-GO** — 3 BLOCKING,
+6 IMPORTANT, 5 MINOR, with FOUR reviewer-authored mutations SURVIVING. Remediation is
+recorded in §3.37a below. The earlier "clean GO" applied only to the pre-fan-out batch
+and is NOT a verdict on the current tree. NOT yet committed.
 
 **The defect.** `cmd/workable-items/parser.go`'s `headingRE` required a period after
 the block ordinal (`### A52.`), so every SPACE-form heading (`### G5 NAME-001 — …`)
@@ -109,6 +112,142 @@ on the exact committable tree is IN FLIGHT — outcome NOT known; two earlier sw
 terminated as stale (each started before a later fix) rather than quoted; (2) NOT
 committed and NOT pushed; (3) §11.4.185 manual QA not performed; (4) this cycle does not
 close any of §3.36's known-open items.
+
+---
+
+### §3.37a — Root-cause round: 5-stream fan-out + review NO-GO remediation → 2026-09-01
+
+**Trigger.** Operator mandate: *"everything discovered MUST BE exhaustively and
+systhematically investigated, debugged and fixed by addressing the real root causes."*
+Five parallel subagent streams (§11.4.230(C)) plus conductor work.
+
+**Landed (each RED-first, root cause not symptom):**
+
+| Item | Defect | Root-cause fix |
+|---|---|---|
+| TMX-093 | `add.go` hashed the ATM id where `parser.go:201` hashes the BLOCK CODE | `blockCode := category + atmOrdinal(atm)`, hashed via the parser's own convention |
+| **TMX-095** (NEW) | `add --category` accepted values rendering a heading the parser can NEVER read (e.g. `--category=ab`) | reject anything not exactly one letter `A-Z`, with an actionable message |
+| TMX-094 | `db-to-md` never rendered `add`-created rows — §11.4.148 all-surfaces contract unmet | `sourcelessItems()` + `appendRenderedItems()` after reconciliation, gated on three signals |
+| — | `validate_identity.go` DISCARDED a second ownership assertion (first-declarer-wins), so a real collision could not be reported | duplicates RETURNED and raised as §11.4.54 findings |
+| — | a code-less `###` did not reset the id-scan cursor, so an id line could bind to the PRECEDING block | cursor reset on a non-block heading |
+| A52 collision | `### A52` was declared by BOTH TMX-062 and TMX-071 (25 blocks, 24 owner keys — one assertion silently lost) | `Fixed.md` TMX-071 block renumbered `A52.` → `A56.`; the sync's `ExplicitATM` path recorded the identity rebind |
+
+**Independent review returned NO-GO. All three BLOCKING findings confirmed by my own
+measurement before acceptance:**
+
+- **B1 — two shipped gates enforced NOTHING.** `tracker_structural_integrity.sh` and
+  `review_round_record.sh` live outside `run_all.sh`'s `scripts/tests/[0-9][0-9]_*.sh`
+  glob; grep proved **zero** invocations from any runner. They self-tested green by hand
+  while gating nothing — §11.4.205 / §11.4.227(A). **FIXED:** both wired into `verify.sh`
+  as `CM-TRACKER-STRUCTURAL-INTEGRITY` + `CM-REVIEW-ROUND-RECORD-WIRED`, each validated
+  in BOTH polarities (golden-TRUE PASS on the healthy tree with resolved evidence;
+  golden-FALSE FAIL, rc=1, when the script is absent).
+- **B2 — this file's freshness stamp was bumped with ZERO content change.** Measured:
+  `TMX-095`, `A56`, `review_round_record`, `tracker_structural_integrity` each returned
+  0 hits. A stamp asserting a currency the file did not have (§12.10 / §11.4.6).
+  **FIXED:** this subsection.
+- **B3 — `closure-evidence.md` cited two greps this same batch falsified.** The A52→A56
+  renumber made its `= 1` / `= 2` measurements reproduce as `0` / `1`. **FIXED:** the
+  measurements are pinned to the revision they were taken at, with the renumber recorded
+  as the resolution.
+
+**FOUR reviewer-authored mutations SURVIVED at the time that paragraph was written** (M1
+ordinal factor, M3 finding-emission, M4/M5 two of `sourcelessItems`' three signals) — the
+§11.4.194(6)(d) pattern repeating: my own six mutations were all caught, an independent
+reviewer's different ones sailed through. **That remediation has since LANDED** — see the
+"State of the tree NOW" block below; the earlier "remediation in flight" wording is
+superseded and is kept here only as the record of what was true when it was written.
+
+**Root causes — as CORRECTED (§11.4.6: a measured claim later refuted is recorded as
+refuted, never silently deleted):**
+
+- **`close.go` identity re-pointing — the ORIGINAL framing was REFUTED, then the real
+  defect was found and fixed.** The earlier statement in this section read *"`close.go`
+  re-points STATUS and LOCATION but never IDENTITY (verified: `Category` and `CodeOrdinal`
+  appear 0 times)"*. Two things are now known: (i) that grep measurement no longer
+  reproduces — `grep -c 'CodeOrdinal' cmd/workable-items/close.go` → **4**,
+  `grep -c 'Category' cmd/workable-items/close.go` → **4** (this batch's own fix added
+  them), and the original count was never pinned to a revision, so it could not have been
+  re-checked without re-measuring; (ii) the *root-cause statement itself* was wrong and was
+  corrected earlier in this same batch — `rewriteBlockForStatus` moves the block VERBATIM
+  between trackers, so the item's identity pointer stays valid across a closure; "never
+  re-points identity" was therefore not the defect. **The real defect:** `close` wrote the
+  destination triple `(Fixed, category, code_ordinal)` with NO check that that triple was
+  free, so a closure could strand the item onto a block another item already held.
+  **FIXED:** `checkDestinationBlockIdentityFree` (`cmd/workable-items/close.go:157`) is
+  called at `close.go:84` and **fails closed BEFORE any write**, with three false-positive
+  guards (ordinal ≤ 0 sentinel, Obsolete supersession, self-exclusion).
+- **Three code-less `###` headings — root cause unchanged, repairs now DONE.** The shared
+  architectural cause stands: the tracker grammar never required a heading to carry a block
+  code, so hand-added headings were absorbed into the preceding block's `raw_body`; three
+  unrelated triggers (a sub-note, the ATM→TMX prefix migration `89324dc`, a §12.10 status
+  log). `M24-ESCAPE-001` is a CLOSED record that was in the wrong file (§11.4.19 migration
+  miss), NOT un-wired open work. **All three repaired in this tree:** `### D2.` / `TMX-096`
+  (per-session color) and `### D3.` / `TMX-097` (nezha install) in `Fixed.md`; `M24-ESCAPE-001`
+  migrated out of `Issues.md` into `Fixed.md` as `### B54` / `TMX-098` with its body
+  byte-identical to the original (sha256 `f5fedfb7484ffe85055f777b458593099aac09938c95aa410529bd49f33625db`
+  over the 13 body lines, recorded in the block's own migration-provenance note). Measured
+  now: `grep -n '^### D2\.\|^### D3\.' Fixed.md` → lines 2835 / 2876; `grep -n '^### B54' Fixed.md`
+  → line 3473; the gate's own scan reports `Issues.md: headings=12 coded=12 code-less=0` and
+  `Fixed.md: headings=86 coded=86 code-less=0`.
+- **"No existing gate covers the class" — was TRUE when written, is FALSE now: the gate
+  EXISTS and is WIRED.** `scripts/testing/heading_grammar_gate.sh` refuses any `### ` heading
+  the parser cannot read a block code from; it is wired into `scripts/verify.sh` as
+  `CM-HEADING-GRAMMAR` (`_check_CM_HEADING_GRAMMAR` defined `verify.sh:935`, invoked
+  `verify.sh:1050`) — not a hand-run script (the §11.4.205 / §11.4.227(A) trap B1 caught).
+  Its paired suite `scripts/testing/heading_grammar_gate_test.sh` runs **PASS=9 FAIL=0**,
+  including T5 RED on the pre-repair `HEAD:Issues.md` + `HEAD:Fixed.md` (3 resolved
+  offenders — observed FAILing before the gate was trusted, §11.4.115(F)), T7 proving the
+  gate reports BLIND and SKIPs when its control needle is broken rather than emitting a
+  clean PASS on an unproven instrument, and T8/T9 two §1.1 mutations proving the verdict
+  depends on the assertion and the counter, not on incidental output.
+- **57 of 95 items are unlocatable by the identity audit** — reported out loud by
+  `validate` rather than counted clean (§11.4.201(6)). **Still open** — tracked as
+  **TMX-100** (`Issues.md`), NOT closed by the close-side guard and NOT the same defect.
+
+**State of the tree NOW (each line measured on this exact tree):**
+
+- **The mutation-survival remediation LANDED.** `cmd/workable-items/sourceless_signals_test.go`
+  exists and carries 7 tests, each isolating ONE suppression signal against a positive
+  control. A FRESH independent §11.4.209 re-review then ran **9 reviewer-authored
+  mutations: 8 CAUGHT, 1 SURVIVED — exactly the one the author had PRE-DECLARED** as
+  defensive redundancy rather than a load-bearing signal (the `owners[it.ATMID]` half of
+  `blockClaimedBy`, unreachable in isolation by construction; the test file's own HONEST
+  BOUNDARY note records it and states "Claiming a test for it would be a false coverage
+  claim"). The tree was restored byte-identically after the sweep — `git diff | sha256sum`
+  = `453ee63432e6dd333a1d07d21063cf0bf936df9cab9db7ab68185c6e41fe8ba7` before and after,
+  independently re-measured here before this edit.
+- **The FULL `verify.sh` sweep COMPLETED on this exact tree and is GREEN.**
+  `SUMMARY: PASS=79  FAIL=0  SKIP=11` → `GREEN: tmux binary verified — safe to PATH-export.`
+  The 11 SKIPs are the host-topology set (`08` `12` `13` `14` `22` `32` `44` `45` `46` `48` `62`),
+  each an honest §11.4.3 SKIP-with-reason. This SUPERSEDES §3.37's "the FINAL full
+  `verify.sh` sweep is IN FLIGHT — outcome NOT known".
+- **The re-review's VERDICT was NO-GO, and that is recorded as-is.** No clean GO has been
+  obtained. Its 4 IMPORTANT + 1 MINOR findings are all documentation / hygiene — this
+  section's staleness being one of them — and the **code layer was found clean**. §11.4.134
+  requires iterating to ZERO findings AND ZERO warnings, so a further re-review is owed.
+
+**KNOWN-OPEN, explicitly NOT claimed (§11.4.6):**
+
+1. **The review has NOT returned a clean GO.** The latest verdict is NO-GO (documentation /
+   hygiene findings). §11.4.134 iterate-to-GO is owed before the tag.
+2. **NOT committed, NOT pushed.** No tag cut.
+3. **§11.4.185 manual QA not performed** — a human sufficiency gate that cannot be
+   self-certified, no matter how green the automation is.
+4. **TMX-099 — `set_status.go` carries the REVERSE of the defect `close.go` just fixed.**
+   It mutates only `Status` + `CurrentLocation` with no check that the destination
+   `(Issues, category, code_ordinal)` triple is free, so a reopen can strand an item onto a
+   block another item already holds. OPEN in `Issues.md`; fix direction is the same
+   fail-closed guard with the same three false-positive guards.
+5. **TMX-100 — 57 items unlocatable by the identity audit.** OPEN in `Issues.md`. Two
+   contributing causes are measured (58 blocks carry no `**TMX-ID:**` line to join on; a
+   hand-migrated block leaves the DB pointer behind).
+6. **TMX-050's stale pointer still names `F1`.** Measured now: `grep -n '^### F1' Issues.md Fixed.md`
+   → **no match in either tracker**. The repair command is documented; it has **NOT been
+   run**, and no repair is claimed here.
+7. **Export regeneration is owed.** The `.html` / `.pdf` / `.docx` twins of the trackers and
+   of this document are NOT regenerated by this edit — the conductor runs the export
+   pipeline last (§11.4.106(E) honest stale, never a faked transform).
 
 ### §3.36 — v1.0.44 release cycle — consolidated state (TMX-086 / TMX-087 / TMX-088 / TMX-089) → 2026-09-01
 
@@ -1414,6 +1553,63 @@ inherited further.
   10/0/10).
 - Full gate this cycle (Darwin arm64, 2026-05-21): `setup.sh --rebuild`
   GREEN, suite PASS=13/0/SKIP=5, meta-test 18/0/6, e2e 9/0/0.
+
+### §3.37b — Review round 2: NO-GO, four self-inflicted findings → 2026-09-02
+
+**Round 2 verdict: NO-GO** — 0 BLOCKING, 5 IMPORTANT, 1 MINOR. The code layer
+held again (4 of 5 fresh reviewer-authored mutations CAUGHT, all 5 distinct from
+round 1's 9). **Four of the six findings were introduced BY the round-1
+remediation** — the §11.4.1 fix-A-creates-B mode, caught exactly where §11.4.134
+exists to catch it.
+
+- **F1 (mine).** `docs/changelogs/v1.0.45.md` Known-open items 8/9 were appended
+  to EOF — after `## Files changed` and `## Sources verified` — instead of into
+  the section they were numbered into. Cause: an `rstrip + append` edit. FIXED:
+  relocated to lines 466/472, item 10 (TMX-103) added, header Rev 2→3.
+- **F2 (mine).** `CHANGELOG.md` Known-open items 1-2 stayed stale while their
+  `v1.0.45.md` twins were refreshed — the round-1 root cause (sync one doc, not
+  its twin) RECURRING INSIDE ITS OWN FIX. FIXED: both refreshed, "Remediation is
+  in flight" now 0 occurrences.
+- **F3 (mine).** Both changelogs cited the 05:42Z sweep (`verify_full.log`) as
+  validating this tree and claimed the only post-sweep edits were
+  documentation-only. FALSE on both counts: `.gitignore`, `README.md`,
+  `CONTINUATION.md`, `Issues.md`, `Fixed.md` and 14 exports were written between
+  the two sweeps, and `verify.sh` DOES read `README.md` + `CONTINUATION.md`
+  (grep: 1 reference each). The validating sweep is 06:09Z
+  (`verify_final.log`). FIXED in both files, with the real post-sweep edit set
+  named. No verification gap existed — the 06:09Z sweep did run on the final
+  tree and is GREEN; the defect was a wrong citation, not a missing sweep.
+- **F4 (mine).** `v1.0.45.md` header stamped 05:47:05Z while content changed at
+  05:54:04Z. FIXED.
+- **F5 (pre-existing coverage gap).** Deleting
+  `strings.TrimLeft(m[2], "0")` at `sync_db_to_md.go:218` SURVIVED the entire
+  pre-existing Go suite — measured, then reproduced by moving the new test aside
+  and re-running everything that existed before. FIXED:
+  `cmd/workable-items/sourceless_zeropad_test.go` (RED observed under the
+  mutation, GREEN after byte-identical restore `sha256 814f9554…`, `-count=3`,
+  plus a §11.4.201(1) false-positive guard). Honest boundary recorded in the
+  file: the branch is DEFENSIVE — `grep -nE '^### [A-Z]0[0-9]'` finds no padded
+  ordinal in the corpus (control-needle proven against a planted `### A052.`) —
+  and load-bearing because operator-written nonconforming headings are this
+  cycle's origin.
+- **F6 (pre-existing, TRACKED not fixed).** `sync db-to-md` rewrites
+  `meta.last_sync_direction`/`meta.last_sync_timestamp` at
+  `sync_db_to_md.go:131-134` on EVERY run, so the documented byte-identity
+  verification dirties the tracked SSoT DB and cannot be restored byte-exactly.
+  The round-2 reviewer tripped over this itself and disclosed it rather than
+  hiding it. Tracked as **TMX-103** (Bug/Queued), named in both changelogs.
+
+**Also recorded:** a haiku-tier subagent dispatch FAILED deterministically —
+`Prompt is too long · ~353953 tokens (limit 200000)`. The ambient governance
+context alone exceeds haiku's window, so haiku is unusable for subagents in this
+repository and sonnet is the effective §11.4.231 floor. Not transient; retrying
+would be a blind retry.
+
+**Known-open after round 2** (none promoted): TMX-099, TMX-100, TMX-101,
+TMX-102, TMX-103; TMX-050's stale `F1` pointer (`grep '^### F1'` matches in
+NEITHER tracker); the whole-suite meta-test mutation sweep NOT RUN; §11.4.185
+manual QA NOT performed. Round 3 review, a post-remediation sweep, and the
+§11.4.40 full retest all still gate the tag. `VERSION` remains 1.0.44/45.
 
 ## §4 — Recent commits
 

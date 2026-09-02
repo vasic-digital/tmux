@@ -729,6 +729,21 @@ href="docs/scripts/obtain_local_deps.md"><code>docs/scripts/obtain_local_deps.md
 (jemalloc)</td>
 </tr>
 <tr>
+<td>Tracker + review gates (§11.4.19/§11.4.134)</td>
+<td><a
+href="docs/scripts/tracker_structural_integrity.md"><code>docs/scripts/tracker_structural_integrity.md</code></a>
+— Issues/Fixed section-survival gate; <a
+href="docs/scripts/review_round_record.md"><code>docs/scripts/review_round_record.md</code></a>
+— append-only review-round ledger; <a
+href="docs/scripts/heading_grammar_gate.md"><code>docs/scripts/heading_grammar_gate.md</code></a>
+— tracker heading-grammar gate (every <code>###</code> heading carries a
+block code, mirroring <code>parser.go</code>'s <code>headingRE</code>).
+All three run from <code>verify.sh</code> as
+<code>CM-TRACKER-STRUCTURAL-INTEGRITY</code> /
+<code>CM-REVIEW-ROUND-RECORD-WIRED</code> /
+<code>CM-HEADING-GRAMMAR</code></td>
+</tr>
+<tr>
 <td>Build &amp; install troubleshooting</td>
 <td><a
 href="docs/guides/troubleshooting.md"><code>docs/guides/troubleshooting.md</code></a>
