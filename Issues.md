@@ -78,24 +78,6 @@ Categories:
 
 ## A. Tooling / harness gaps
 
-### A2 RUNALL-NATIVE-RESOLVE-001 — standalone run_all.sh mis-resolves the binary on native macOS
-
-**Status:** Fixed (→ Fixed.md)
-**Type:** Task
-
-CLOSED v1.0.27. `scripts/tests/run_all.sh` hardcodes `TMUX_BIN=tmux/build/bin/tmux` (the
-`build_containerized.sh` output path) and is the containerized-build validator. On
-native macOS the authoritative validator is `setup.sh` (builds + verifies against
-`tmux/build-darwin/`). Invoked standalone on macOS with a stale `tmux/build/` present
-(a prior Linux containerized build), run_all.sh resolved the wrong-arch binary →
-`Exec format error` mass-FAIL (observed 2026-06-16; NOT a product defect — `setup.sh`
-run_all `55/0/6` + installed-binary smoke GREEN the same session; removing the stale
-`tmux/build/` then gave `not executable` because run_all expects that path). **Fix
-direction:** make run_all.sh OS-aware (prefer `tmux/build-darwin/` on Darwin) OR
-document that native-macOS validation is `setup.sh`-only and run_all.sh is the
-containerized path. Captured-evidence requirement: a clean native-macOS run_all GREEN
-after the fix.
-
 ---
 
 ### A3. META-TEST-72-73-COVERAGE-001 — tests 72/73 need persistent meta-test mutations
@@ -286,22 +268,6 @@ B1 CHAL-COVER-001, B2 TEST-AUDIT-001 also in `Fixed.md`. New open work below.)
 
 ## D. Host-capability + topology dispatch gaps
 
-### D2 TMPDIR-HARDCODE-001 — tests hardcoding /tmp false-FAIL under host disk-pressure
-
-**Status:** Fixed (→ Fixed.md)
-**Type:** Task
-
-CLOSED v1.0.27. Several tests create scratch under a hardcoded `/tmp` (e.g. `27_state_persistence.sh`
-target `tmx-test-18-target-*`). When the host root volume is full (observed 2026-06-16
-on macOS, `/` at <200 MiB during the operator's away-window), the `cd`/mkdir into `/tmp`
-fails → `pane_current_path=''` false-FAIL instead of an honest §11.4.3 SKIP-with-reason.
-The tests pass normally + standalone (27 `3/3`, 38 `3/3`, 43 `15/0` re-run the same
-session) — the failure is purely the abnormal host-disk condition (a §11.4.1 FAIL-bluff
-class: environment, not product). **Fix direction:** route test scratch through `$TMPDIR`
-(operator now sets `/Volumes/T7/tmp` via ~/.zshrc + ~/.bashrc) OR guard each test on
-`/tmp` writability and SKIP-with-reason (§11.4.3/§11.4.50). Captured-evidence requirement:
-an induced-disk-full run shows SKIP-with-reason, not FAIL.
-
 ---
 
 ## E. Documentation / Continuation drift
@@ -399,36 +365,6 @@ TMX-079's own fix + tests are unaffected. Tracked here so they are not lost.
 ## I. Live copy-mode wheel binding (2026-09-01)
 
 Surfaced during the v1.0.44 verification work. Tracked here because it is a real, currently-failing check that was not previously recorded anywhere — leaving it only in a test log would be a §11.4.238 coverage escape at the tracking layer.
-
-### I1 WHEEL-COPY-MODE-OVERRIDE-001 — test 17 sub-check T3: the LIVE `WheelUpPane` binding is not the copy-mode override
-
-**TMX-ID:** TMX-090
-**Type:** Bug
-**Status:** In progress
-
-**What:** `scripts/tests/17_scrollback_copy_mode.sh` sub-check **T3** reads the binding actually installed on the LIVE tmux server —
-
-```
-tmux -L "$S_SOCK" list-keys -T root WheelUpPane
-```
-
-— and requires the returned binding text to mention BOTH `copy-mode` and `scroll-up`. The project's `tmux.conf.template` deliberately OVERRIDES tmux's default `WheelUpPane` binding: the tmux default consults `#{mouse_any_flag}` and FORWARDS the wheel event to the running application, whereas the override enters copy-mode unconditionally so scrollback works even under mouse-tracking. T3 exists to prove the override is live on the server, not merely present in the config file.
-
-**Observed (current):**
-
-```
-FAIL: T3: live WheelUpPane binding is not the copy-mode override
-```
-
-**Status of the investigation:** an investigation is IN FLIGHT. **The cause is NOT established.** No hypothesis is recorded here, because none has been confirmed against captured evidence — per §11.4.6 a cause may be stated only as a proven FACT or explicitly marked `UNCONFIRMED:` / `PENDING_FORENSICS:`, and a guess dressed as a lead is exactly what that clause forbids. What is known is only what is written above: the check reads the live server's binding, and on the current tree it does not match.
-
-**PENDING_FORENSICS:** the `observed:` line the test prints immediately after the FAIL (`echo "  observed: $WHEEL_BIND"`) carries the ACTUAL binding text the live server returned. That output has not been captured into this entry. Capturing it is the first concrete step — it distinguishes at least three materially different situations that the FAIL alone cannot: the override never reached the server (config not loaded / loaded from a different path), the override reached the server but in a form whose text does not contain both required tokens (a matcher-side problem in the test, i.e. potentially a §11.4.1 FAIL-bluff rather than a product defect), or the binding was subsequently replaced. Which of these holds is UNKNOWN until that output is read.
-
-**Relationship to other items:** DISTINCT from TMX-080 / TMX-081 (§H1 / §H2) — those are timing/settle races around `#{pane_current_path}` and cgroup throttle windows. This one is a key-binding-presence check. No shared-cause hypothesis is asserted; whether one exists is UNCONFIRMED and would itself require evidence (§11.4.214 — this is a NEW id rather than a reopen precisely because no existing item describes this defect).
-
-**Note on a sibling check (not asserted as the same defect):** `scripts/tests/47_alt_screen_scroll.sh` **T6** asserts a related live-`WheelUpPane`-override property. Whether T6 currently passes or fails on this tree has NOT been measured this cycle and is NOT claimed either way.
-
-**Fix direction:** none proposed. Per §11.4.102 the systematic-debugging arc (reproduce → characterise → falsifiable hypothesis → fix against the PROVEN cause) must complete before any fix is written; proposing a direction now would be the guess-and-retry pattern that clause exists to prevent.
 
 ### A99. set_status.go strands block identity onto an occupied Issues triple on reopen — `OPEN`
 **TMX-ID:** TMX-099

@@ -851,14 +851,18 @@ explicitly NOT claimed fixed (§11.4.6)</h2>
 <ol type="1">
 <li><strong>The independent review of the current batch returned
 NO-GO</strong> — the LATEST round (2026-09-02, §11.4.209 substrate)
-reported 0 BLOCKING, 4 IMPORTANT, 1 MINOR, all documentation/hygiene,
-code layer clean; the PRIOR round reported 3 BLOCKING, 6 IMPORTANT, 5
-MINOR — and has NOT returned a clean GO. §11.4.134 requires iterating to
-ZERO findings AND ZERO warnings. All three BLOCKING findings were
-confirmed by independent re-measurement before acceptance and are fixed
-in this release (the two unwired gates; a <code>CONTINUATION.md</code>
-freshness stamp bumped with zero content change; a closure-evidence
-citation this same batch falsified).</li>
+reported 0 BLOCKING, 5 IMPORTANT, 1 MINOR (six findings total — F1
+through F6 in <code>CONTINUATION.md</code> §3.37b; corrected 2026-09-29,
+this document previously undercounted "4 IMPORTANT" here, one short of
+the correct, enumerated count that <code>CONTINUATION.md</code> and
+<code>CHANGELOG.md</code> both already carried correctly), all
+documentation/ hygiene, code layer clean; the PRIOR round reported 3
+BLOCKING, 6 IMPORTANT, 5 MINOR — and has NOT returned a clean GO.
+§11.4.134 requires iterating to ZERO findings AND ZERO warnings. All
+three BLOCKING findings were confirmed by independent re-measurement
+before acceptance and are fixed in this release (the two unwired gates;
+a <code>CONTINUATION.md</code> freshness stamp bumped with zero content
+change; a closure-evidence citation this same batch falsified).</li>
 <li><strong>The four reviewer-authored mutations that SURVIVED the prior
 round are REMEDIATED</strong>
 (<code>cmd/workable-items/sourceless_signals_test.go</code>). The LATEST

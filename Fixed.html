@@ -5618,5 +5618,193 @@ per-session-color feature is <code>TMX-051</code>; that was its
 <em>historical</em> label — the feature's block is now <code>D2.</code>
 / <code>TMX-096</code>, and <code>TMX-051</code> is the id of
 <code>A43</code> (see <code>D2.</code>'s own heading provenance).</p>
+<h3
+id="i2-wheel-copy-mode-override-001--test-17-sub-check-t3-the-live-wheeluppane-binding-is-not-the-copy-mode-override">I2
+WHEEL-COPY-MODE-OVERRIDE-001 — test 17 sub-check T3: the LIVE
+<code>WheelUpPane</code> binding is not the copy-mode override</h3>
+<p><strong>Identity note (§11.4.54, 2026-09-29):</strong> originally
+filed as <code>I1</code>. Renumbered to <code>I2</code> before closure —
+<code>I1</code> in the <code>I</code>-category was already held by
+<code>TMX-082</code> in <code>Fixed.md</code> (a pre-existing, unrelated
+item), and block codes are category-local, NOT unique across the two
+trackers. Closing this item under <code>I1</code> would have moved its
+block identity onto that already-occupied <code>(Fixed, I, 1)</code>
+slot — a real two-items-one-block collision, caught by
+<code>checkDestinationBlockIdentityFree</code>'s §11.4.54 guard (added
+in commit <code>1c8c862</code>) on a freshly-rebuilt binary, after an
+earlier close attempt using a stale pre-guard binary (built 2026-09-01,
+11h before the guard landed in source) wrote the collision undetected.
+See <code>docs/qa/2026-09-29-tmx-090-closure/closure-evidence.md</code>
+for the full forensic trail.</p>
+<p><strong>TMX-ID:</strong> TMX-090 <strong>Type:</strong> Bug
+<strong>Status:</strong> Fixed (→ Fixed.md)</p>
+<p><strong>What:</strong>
+<code>scripts/tests/17_scrollback_copy_mode.sh</code> sub-check
+<strong>T3</strong> reads the binding actually installed on the LIVE
+tmux server and requires the returned binding text to mention BOTH
+<code>copy-mode</code> and <code>scroll-up</code>. The project's
+<code>tmux.conf.template</code> deliberately OVERRIDES tmux's default
+<code>WheelUpPane</code> binding: the tmux default consults
+<code>#{mouse_any_flag}</code> and FORWARDS the wheel event to the
+running application, whereas the override enters copy-mode
+unconditionally so scrollback works even under mouse-tracking. T3 exists
+to prove the override is live on the server, not merely present in the
+config file.</p>
+<p><strong>Originally observed:</strong></p>
+<pre><code>FAIL: T3: live WheelUpPane binding is not the copy-mode override</code></pre>
+<p><strong>Root cause (proven, not inferred — matches the tmux 3.7b
+source directly):</strong> tmux 3.7b's <code>cmd-list-keys.c</code>
+print branch is
+<code>if ((single &amp;&amp; tc != NULL) || n == 1)</code>. The
+<code>|| n == 1</code> arm has NO <code>tc != NULL</code> guard, so ANY
+<code>list-keys</code> query matching exactly one row is routed to a
+nonexistent client's status line and DISCARDED when run from a script
+(no attached client). The raw single-key query form T3 originally used,
+<code>tmux -L "$S_SOCK" list-keys -T root WheelUpPane</code>, therefore
+returned <code>rc=0</code> with EMPTY output even though the binding was
+genuinely present and correct the whole time — a §11.4.201(6) false
+null, not a missing binding.</p>
+<p><strong>Fix (landed 2026-09-01, commit
+<code>2e4ec22</code>):</strong>
+<code>scripts/tests/lib/list_key.sh</code> — a version-stable
+<code>tmx_list_key</code> helper that lists the WHOLE key table and
+field-matches via <code>awk</code>, rather than querying a single key.
+Wired into 10 call sites across tests 17/44/46/47/48, replacing the raw
+single-key form. Paired mutation <code>M-LIST-KEY-VERSION-STABLE</code>
+(<code>scripts/tests/meta_test_false_positive_proof.sh</code>) reverts
+the helper and asserts test 17's T3 goes FAIL, proving the regression
+guard is real.</p>
+<p><strong>Tracker-sync gap (the reason this item stayed open after its
+own fix landed):</strong> this Issues.md entry was added by the SAME
+commit (<code>2e4ec22</code>) that fixed the root cause, but it
+documented the investigation's pre-diagnosis state — written before the
+root cause was found later in that same work session — and was never
+updated afterward. The live product behaviour has been correct since
+2026-09-01; only the tracker entry was stale.</p>
+<p><strong>Independent re-verification performed 2026-09-29, on
+freshly-built binaries (two separate rebuilds via
+<code>bash scripts/setup.sh --rebuild</code>):</strong></p>
+<ul>
+<li>Standalone run of
+<code>scripts/tests/17_scrollback_copy_mode.sh</code>:
+<code>PASS=13 FAIL=0 SKIP=0</code>, <code>EXIT=0</code>, including
+explicit
+<code>PASS: T3: live WheelUpPane binding drives copy-mode scroll-up (override active, not tmux default)</code>.
+Reproduced identically inside the full <code>setup.sh</code>
+verification-gate run.</li>
+<li>The raw single-key form was independently re-queried live and
+reproduced the documented tmux 3.7b quirk exactly (<code>rc=0</code>,
+empty output); the full <code>list-keys -T root</code> table (27 rows)
+shows <code>WheelUpPane</code> present exactly once, correctly formed,
+matching <code>scripts/tmux.conf.template:81</code> verbatim — no
+double-binding, no stale config.</li>
+<li>Sibling check <code>scripts/tests/47_alt_screen_scroll.sh</code>
+(identical <code>tmx_list_key</code> mechanism, its own T6): run twice,
+deterministic <code>PASS=8 FAIL=0 SKIP=0</code> both times, including
+<code>PASS: T6: live WheelUpPane binding overrides tmux default — drives copy-mode unconditionally even under mouse-tracking</code>.</li>
+<li>Static trace confirmed the config mechanism is unchanged and clean:
+the binding was introduced once in commit <code>d0825e1c7</code>
+(2026-05-21) and never modified since; <code>tmx</code> (Linux and
+Darwin) loads the exact tracked template file directly on every
+<code>new</code>/<code>attach</code>/<code>reload</code>, no templating
+or OS-conditional exclusion touches this line; syntax confirmed valid
+for the pinned tmux 3.7b by both the shipped man page and tmux's own
+compiled-in default <code>WheelUpPane</code> binding using the identical
+grammar form.</li>
+<li>A structural diff of test 17 vs test 47 (both use the identical
+session-creation code path, identical config, identical helper) found no
+material difference that would explain a persistent divergence —
+consistent with the "stale tracker, not a live defect" finding.</li>
+</ul>
+<p>Full forensic trail:
+<code>docs/qa/2026-09-29-tmx-090-closure/closure-evidence.md</code>.</p>
+<p><strong>Relationship to other items:</strong> DISTINCT from TMX-080 /
+TMX-081 (§H1 / §H2) — those are timing/settle races around
+<code>#{pane_current_path}</code> and cgroup throttle windows. This one
+was a key-binding-readback query defect (in the test's query mechanism,
+not the product), now fixed and re-verified.</p>
+<p><strong>Note on a sibling check (not asserted as the same
+defect):</strong> <code>scripts/tests/47_alt_screen_scroll.sh</code>
+<strong>T6</strong> asserts a related
+live-<code>WheelUpPane</code>-override property. Whether T6 currently
+passes or fails on this tree has NOT been measured this cycle and is NOT
+claimed either way.</p>
+<p><strong>Fix direction:</strong> none proposed. Per §11.4.102 the
+systematic-debugging arc (reproduce → characterise → falsifiable
+hypothesis → fix against the PROVEN cause) must complete before any fix
+is written; proposing a direction now would be the guess-and-retry
+pattern that clause exists to prevent.</p>
+<h3
+id="a57-runall-native-resolve-001--standalone-run_allsh-mis-resolves-the-binary-on-native-macos">A57.
+RUNALL-NATIVE-RESOLVE-001 — standalone run_all.sh mis-resolves the
+binary on native macOS</h3>
+<p><strong>Identity note (§11.4.54, 2026-09-29):</strong> originally
+filed under block code <code>A2</code> with no <code>**TMX-ID:**</code>
+line at all — status already read <code>Fixed (→ Fixed.md)</code> but
+the item was never actually migrated (current_location stayed
+<code>Issues</code> in the SSoT DB, where the row already existed as
+<code>TMX-091</code> with <code>status=Completed</code>). Renumbered
+<code>A2</code> → <code>A57</code> (the next free
+<code>A</code>-category ordinal) before closure: <code>A2</code> in
+Fixed.md was already held by the unrelated <code>TMX-036</code> ("Audit
+cycle 2026-05-13 — tmux submodule pin-drift caught"), and block codes
+are category-local, NOT unique across the two trackers, so closing under
+<code>A2</code> would have collided. See
+<code>docs/qa/2026-09-29-tmx-090-closure/closure-evidence.md</code> for
+the sibling TMX-090 case this same collision class was first caught on
+today.</p>
+<p><strong>TMX-ID:</strong> TMX-091 <strong>Status:</strong> Completed
+(→ Fixed.md) <strong>Type:</strong> Task</p>
+<p>CLOSED v1.0.27. <code>scripts/tests/run_all.sh</code> hardcodes
+<code>TMUX_BIN=tmux/build/bin/tmux</code> (the
+<code>build_containerized.sh</code> output path) and is the
+containerized-build validator. On native macOS the authoritative
+validator is <code>setup.sh</code> (builds + verifies against
+<code>tmux/build-darwin/</code>). Invoked standalone on macOS with a
+stale <code>tmux/build/</code> present (a prior Linux containerized
+build), run_all.sh resolved the wrong-arch binary →
+<code>Exec format error</code> mass-FAIL (observed 2026-06-16; NOT a
+product defect — <code>setup.sh</code> run_all <code>55/0/6</code> +
+installed-binary smoke GREEN the same session; removing the stale
+<code>tmux/build/</code> then gave <code>not executable</code> because
+run_all expects that path). <strong>Fix direction:</strong> make
+run_all.sh OS-aware (prefer <code>tmux/build-darwin/</code> on Darwin)
+OR document that native-macOS validation is <code>setup.sh</code>-only
+and run_all.sh is the containerized path. Captured-evidence requirement:
+a clean native-macOS run_all GREEN after the fix.</p>
+<h3
+id="d4-tmpdir-hardcode-001--tests-hardcoding-tmp-false-fail-under-host-disk-pressure">D4.
+TMPDIR-HARDCODE-001 — tests hardcoding /tmp false-FAIL under host
+disk-pressure</h3>
+<p><strong>Identity note (§11.4.54, 2026-09-29):</strong> originally
+filed under block code <code>D2</code> with no <code>**TMX-ID:**</code>
+line at all — status already read <code>Fixed (→ Fixed.md)</code> but
+the item was never actually migrated (current_location stayed
+<code>Issues</code> in the SSoT DB, where the row already existed as
+<code>TMX-092</code> with <code>status=Completed</code>). Renumbered
+<code>D2</code> → <code>D4</code> (the next free <code>D</code>-category
+ordinal) before closure: <code>D2</code> in Fixed.md was already held by
+the unrelated <code>TMX-096</code> ("Per-session color via
+name:color[:ignored]"), and block codes are category-local, NOT unique
+across the two trackers, so closing under <code>D2</code> would have
+collided.</p>
+<p><strong>TMX-ID:</strong> TMX-092 <strong>Status:</strong> Completed
+(→ Fixed.md) <strong>Type:</strong> Task</p>
+<p>CLOSED v1.0.27. Several tests create scratch under a hardcoded
+<code>/tmp</code> (e.g. <code>27_state_persistence.sh</code> target
+<code>tmx-test-18-target-*</code>). When the host root volume is full
+(observed 2026-06-16 on macOS, <code>/</code> at &lt;200 MiB during the
+operator's away-window), the <code>cd</code>/mkdir into
+<code>/tmp</code> fails → <code>pane_current_path=''</code> false-FAIL
+instead of an honest §11.4.3 SKIP-with-reason. The tests pass normally +
+standalone (27 <code>3/3</code>, 38 <code>3/3</code>, 43
+<code>15/0</code> re-run the same session) — the failure is purely the
+abnormal host-disk condition (a §11.4.1 FAIL-bluff class: environment,
+not product). <strong>Fix direction:</strong> route test scratch through
+<code>$TMPDIR</code> (operator now sets <code>/Volumes/T7/tmp</code> via
+~/.zshrc + ~/.bashrc) OR guard each test on <code>/tmp</code>
+writability and SKIP-with-reason (§11.4.3/§11.4.50). Captured-evidence
+requirement: an induced-disk-full run shows SKIP-with-reason, not
+FAIL.</p>
 </body>
 </html>

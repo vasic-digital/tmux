@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-09-02T06:35:42Z
+**Last updated:** 2026-09-29T17:10:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -1610,6 +1610,107 @@ TMX-102, TMX-103; TMX-050's stale `F1` pointer (`grep '^### F1'` matches in
 NEITHER tracker); the whole-suite meta-test mutation sweep NOT RUN; §11.4.185
 manual QA NOT performed. Round 3 review, a post-remediation sweep, and the
 §11.4.40 full retest all still gate the tag. `VERSION` remains 1.0.44/45.
+
+### §3.38 — TMX-090 root-cause investigation + closure; a NEW `workable-items` stale-binary defect found + fixed in the process → 2026-09-29
+
+**Status:** CLOSED (TMX-090). One new tooling defect found and fixed as a
+byproduct; not separately filed since it is fully resolved here.
+
+**TMX-090 (I1/I2 WHEEL-COPY-MODE-OVERRIDE-001) was already fixed, only the
+tracker was stale.** Systematic-debugging investigation (three independent
+subagent evidence-gathering streams — live capture on a fresh build, the test
+47 T6 sibling check, and a static trace of the config-loading mechanism, plus
+a fourth diff-comparison agent) established: the underlying defect (test 17
+T3's live `list-keys -T root WheelUpPane` readback reporting the override
+absent) was root-caused and fixed in commit `2e4ec22` (2026-09-01) — tmux
+3.7b's `cmd-list-keys.c` has an unguarded `|| n == 1` print branch that routes
+any single-row `list-keys` query to a nonexistent client and discards it when
+run from a script, a §11.4.201(6) false null, not a missing binding. The fix
+(`scripts/tests/lib/list_key.sh`'s `tmx_list_key`, whole-table + `awk`
+field-match) was already landed and already wired into 10 call sites. The
+Issues.md I1 entry, however, was added by that SAME commit, documenting the
+investigation's pre-diagnosis state (written before the root cause was found
+later in the same work session), and was never updated afterward.
+
+**Re-verified live today, two independent fresh builds** (`bash
+scripts/setup.sh --rebuild`, `tmux 3.7b` both times): test 17 standalone
+`PASS=13 FAIL=0 SKIP=0` (T3 explicit PASS), reproduced inside the full
+`setup.sh` gate run; test 47 (sibling, identical `tmx_list_key` mechanism)
+run twice, deterministic `PASS=8 FAIL=0 SKIP=0` both times (T6 explicit
+PASS). Raw single-key query re-confirmed to still reproduce the tmux-side
+quirk (`rc=0`, empty); full `list-keys -T root` table confirms the binding
+present exactly once, correctly formed. Static trace: the config binding
+(`scripts/tmux.conf.template:81`) was introduced once in `d0825e1c7`
+(2026-05-21), never modified since; `tmx` loads it directly on every
+`new`/`attach`/`reload` (Linux + Darwin identical), no templating/OS-branch
+touches it; syntax valid for the pinned 3.7b per both the shipped man page
+and tmux's own compiled-in default binding. Full trail:
+`docs/qa/2026-09-29-tmx-090-closure/closure-evidence.md`.
+
+**NEW defect found + fixed while closing this out:** `workable-items close`
+carries a §11.4.54 collision guard (`checkDestinationBlockIdentityFree`,
+added in commit `1c8c862`, 2026-09-02 08:40:28) that refuses a close whose
+destination block identity is already held by a different item in Fixed.md.
+The LOCAL `cmd/workable-items/workable-items` binary on this host was built
+2026-09-01 21:12 — **11 hours before that guard existed in source** — a
+§11.4.108 source-vs-artifact staleness. Running `close TMX-090` with that
+stale binary wrote a real collision (`I1` in Fixed.md already held by
+`TMX-082`), undetected, until `workable-items validate` caught it
+post-hoc (`§11.4.54: ... two items claim one block`). Manually reproducing
+the guard's exact SQL query against the live DB confirmed the guard LOGIC is
+correct; only the compiled binary was stale. Remediated: `git checkout --
+docs/workable_items.db` (clean revert, DB is the only thing that changed, no
+loss — confirmed via `git status` before reverting), rebuilt the binary fresh
+(`go build` in `cmd/workable-items/`), renumbered TMX-090's block `I1` → `I2`
+in Issues.md (a free ordinal in the `I` category) with an identity note
+explaining why, re-synced, re-closed with the fresh binary —
+`validate OK: 0 findings`, round-trip byte-identical. The item's Fixed.md
+body was also rewritten from the stale "investigation IN FLIGHT, cause NOT
+established" pre-fix narrative to an accurate closure summary (root cause +
+fix + today's re-verification) — `close` only flips Status/Type/
+CurrentLocation metadata, it does not rewrite body prose, so that step is
+manual and was missed on the first pass here too before being caught and
+corrected.
+
+**Composes with the already-tracked TMX-099 finding** (`set_status.go`
+strands identity onto an occupied triple on reopen, no collision check) —
+this is the mirror-image on `close`'s OWN guard being present-in-source-but-
+absent-from-the-running-binary, not a logic gap in the guard itself. No new
+item filed; recorded here since the underlying cause (a locally-built,
+gitignored binary not rebuilt after a source change) is host-state, not a
+committed defect, and is now resolved for this checkout.
+
+**Full-suite meta-test mutation sweep result (completed, same session, same
+fresh build):** GREEN — `MUTATIONS CAUGHT (PASS): 87, MUTATIONS ESCAPED
+(FAIL): 0, MUTATIONS SKIPPED: 9`. Directly satisfies this section's own
+"whole-suite meta-test mutation sweep NOT RUN" item from round 2 above, and
+independently re-confirms `M-LIST-KEY-VERSION-STABLE` (TMX-090's own
+regression guard) still catches a reversion (`FAIL: T3`). Of the 9 skips: 6
+are honestly-explained RETIRED/topology-gated mutations (dead
+`scripts/tmx-vm` legacy path already covered elsewhere, or Darwin-only
+primitives correctly SKIPping per §11.4.3/§11.4.81 on this Linux host); the
+other 3 (`P5-M23`, `P5-M24`, `M82`) reported "mutation command failed to
+apply" — their target pattern no longer matches current source, meaning
+those three specific mutations are STALE/untested (not that anything
+escaped a real check). Not chased down as part of this cycle; recorded as an
+honest gap for a future pass, distinct from items 1-3 this session was
+asked to work.
+
+**Second, independent A2/D2 stale-Fixed-migration defect found + fixed while
+investigating item 2 below (composes with this section rather than
+duplicating it):** the SAME "status says closed, current_location never
+migrated" pattern as TMX-090's own tracker gap, but with a DIFFERENT root
+cause — `A2 RUNALL-NATIVE-RESOLVE-001` and `D2 TMPDIR-HARDCODE-001` carried
+`**Status:** Fixed (→ Fixed.md)` in Issues.md with NO `**TMX-ID:**` line at
+all, so the identity audit could never locate or migrate them. Their DB rows
+already existed — as **TMX-091** and **TMX-092** respectively, already
+`status=Completed` — just never had `current_location` flipped, and the
+markdown carried no id to resolve them by. Root-caused by direct DB lookup
+(category+ordinal, not id — since no id existed to look up by), fixed the
+same way as TMX-090: renumbered (`A2`→`A57`, `D2`→`D4`, both had real
+Fixed.md collisions with unrelated items TMX-036 and TMX-096), added the
+now-known `**TMX-ID:**` lines, re-synced, closed with the fresh binary —
+`validate OK: 0 findings` both times, round-trip byte-identical.
 
 ## §4 — Recent commits
 
