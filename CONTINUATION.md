@@ -1,6 +1,6 @@
 # CONTINUATION.md — vasic-digital tmux
 
-**Last updated:** 2026-09-29T17:10:00Z
+**Last updated:** 2026-09-29T17:45:00Z
 
 ## §0 — How to resume work in any CLI agent
 
@@ -1711,6 +1711,74 @@ same way as TMX-090: renumbered (`A2`→`A57`, `D2`→`D4`, both had real
 Fixed.md collisions with unrelated items TMX-036 and TMX-096), added the
 now-known `**TMX-ID:**` lines, re-synced, closed with the fresh binary —
 `validate OK: 0 findings` both times, round-trip byte-identical.
+
+### §3.39 — H1/TMX-080 fresh investigation: root cause UNCONFIRMED, does NOT currently reproduce, no third fix attempted (2026-09-29)
+
+Governing instruction: "do 1, 2 and 3, one by one, validated and verified fully
+deterministically on LIVE installed latest version of the codebase" — item 3
+is the highest-risk item, already carrying TWO prior fix attempts that were
+both REVERTED (one made failures worse, 5/5 vs ~20-25% baseline). Per the
+Iron Law, a third attempt requires a CONFIRMED root cause, not a guess.
+
+Three parallel, read-only evidence streams were run (no source edits):
+
+**(A) Forensics on the two 2026-08-13 attempts.** Neither was ever
+committed — both applied and reverted entirely in the uncommitted working
+tree between two doc-only commits (`84d5201`, `f99a9de`). Confirmed via
+`git log`/`git reflog`/`git fsck --unreachable --dangling`. The current tree
+(`scripts/tmx.template`, `scripts/tmx-recycler.sh`,
+`scripts/tests/27_state_persistence.sh` — unchanged since `5a241d6`,
+2026-06-28) is byte-for-byte the pre-both-attempts state. Both attempts were
+validated only against a hand-constructed, artificially-slowed manual repro
+— never a driven replay of the real test's exact sequence — the likely
+reason both "worked in isolation" yet failed the real test.
+
+**(B) Mechanism deep-dive, `#{pane_current_path}`/`tcgetpgrp`.**
+Source-confirmed in full: `tmux/osdep-linux.c`'s `osdep_get_cwd()` calls
+`tcgetpgrp(wp->fd)` then reads `/proc/<pgrp>/cwd` fresh on every call, no
+caching; `format_cb_current_path` (`tmux/format.c`) calls it directly; test
+27 sub-check 18 queries this path THREE times per iteration, all resolved
+synchronously. The GENERAL mechanism (tmux intentionally reports whatever is
+CURRENTLY the foreground process group, by design) is well externally
+corroborated. The SPECIFIC "oh-my-bash prompt-render subprocess" trigger is
+NOT externally corroborated (original analysis) — and a genuine nuance
+narrows it further: bash command-substitution subshells (`$(...)`, the shape
+of the active "font" theme's per-prompt git-status calls, confirmed to fork
+real `git` subprocesses on every prompt draw) do not, under standard bash
+job-control semantics, receive a `tcsetpgrp()` foreground handoff the way a
+directly-launched foreground pipeline does — so confirming the forks exist
+does not by itself confirm they can become the pane's foreground pgrp.
+
+**(C) Fresh live reproduction, today's build.** `setup.sh --rebuild`
+succeeded first attempt. 13 independent invocations of
+`27_state_persistence.sh` (10 standalone + 2 live-pgrp-sampling + 1 from the
+rebuild's own `run_all.sh` sweep), 39 internal iterations, **0 failures
+(0%)** — vs. the 2026-08-13 baseline of 2/8 ≈ 25%. Live foreground-pgrp
+sampling (110 + 107 samples across two full runs, ~10-60ms apart, spanning
+pane-creation → cd → hook-fire → kill every iteration): every populated
+sample showed `bash` as the sole foreground process; no other command was
+ever observed foreground, including immediately around the hook fire.
+Honest limitation: sampling was `ps`-fork-bound at 10-60ms intervals, so a
+reassignment lasting only a few ms could fall between samples undetected.
+
+**Disposition:** neither candidate mechanism (the kill-session
+`KillMode=control-group` race, nor the `tcgetpgrp` pane-state race) is
+confirmed against a live failure, because none occurred in 39 fresh
+iterations to study. Per §11.4.7 (demotion-evidence — same target, same
+unchanged-since-06-28 test file, same methodology as the original 8-run
+investigation, ~5× the sample size) and systematic-debugging's own "no root
+cause found" guidance: the process is complete, what was investigated is
+documented (`Issues.md` §H1), the existing test's condition-based polling
+(never touched by either reverted attempt) is confirmed as the correct
+standing mitigation, and this write-up + the live-pgrp-sampling methodology
+are the foundation for any future recurrence. **No fix was applied — status
+stays `Reopened` in Issues.md** (moving it to `Fixed.md` would be a
+PASS-bluff); its priority is downgraded from "urgently needs a third
+attempt" to "monitor — does not currently reproduce on the live codebase
+under extensive deterministic testing."
+
+Composes with, does not supersede, §3.37b's original H1/H2 diagnosis. Full
+evidence trail in `Issues.md` §H1 "Investigation update (2026-09-29)".
 
 ## §4 — Recent commits
 

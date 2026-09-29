@@ -176,7 +176,7 @@
 <body>
 <h1 id="continuationmd--vasic-digital-tmux">CONTINUATION.md —
 vasic-digital tmux</h1>
-<p><strong>Last updated:</strong> 2026-09-29T17:10:00Z</p>
+<p><strong>Last updated:</strong> 2026-09-29T17:45:00Z</p>
 <h2 id="0--how-to-resume-work-in-any-cli-agent">§0 — How to resume work
 in any CLI agent</h2>
 <p>Paste this prompt:</p>
@@ -3304,6 +3304,84 @@ unrelated items TMX-036 and TMX-096), added the now-known
 <code>**TMX-ID:**</code> lines, re-synced, closed with the fresh binary
 — <code>validate OK: 0 findings</code> both times, round-trip
 byte-identical.</p>
+<h3
+id="339--h1tmx-080-fresh-investigation-root-cause-unconfirmed-does-not-currently-reproduce-no-third-fix-attempted-2026-09-29">§3.39
+— H1/TMX-080 fresh investigation: root cause UNCONFIRMED, does NOT
+currently reproduce, no third fix attempted (2026-09-29)</h3>
+<p>Governing instruction: "do 1, 2 and 3, one by one, validated and
+verified fully deterministically on LIVE installed latest version of the
+codebase" — item 3 is the highest-risk item, already carrying TWO prior
+fix attempts that were both REVERTED (one made failures worse, 5/5 vs
+~20-25% baseline). Per the Iron Law, a third attempt requires a
+CONFIRMED root cause, not a guess.</p>
+<p>Three parallel, read-only evidence streams were run (no source
+edits):</p>
+<p><strong>(A) Forensics on the two 2026-08-13 attempts.</strong>
+Neither was ever committed — both applied and reverted entirely in the
+uncommitted working tree between two doc-only commits
+(<code>84d5201</code>, <code>f99a9de</code>). Confirmed via
+<code>git log</code>/<code>git reflog</code>/<code>git fsck --unreachable --dangling</code>.
+The current tree (<code>scripts/tmx.template</code>,
+<code>scripts/tmx-recycler.sh</code>,
+<code>scripts/tests/27_state_persistence.sh</code> — unchanged since
+<code>5a241d6</code>, 2026-06-28) is byte-for-byte the pre-both-attempts
+state. Both attempts were validated only against a hand-constructed,
+artificially-slowed manual repro — never a driven replay of the real
+test's exact sequence — the likely reason both "worked in isolation" yet
+failed the real test.</p>
+<p><strong>(B) Mechanism deep-dive,
+<code>#{pane_current_path}</code>/<code>tcgetpgrp</code>.</strong>
+Source-confirmed in full: <code>tmux/osdep-linux.c</code>'s
+<code>osdep_get_cwd()</code> calls <code>tcgetpgrp(wp-&gt;fd)</code>
+then reads <code>/proc/&lt;pgrp&gt;/cwd</code> fresh on every call, no
+caching; <code>format_cb_current_path</code>
+(<code>tmux/format.c</code>) calls it directly; test 27 sub-check 18
+queries this path THREE times per iteration, all resolved synchronously.
+The GENERAL mechanism (tmux intentionally reports whatever is CURRENTLY
+the foreground process group, by design) is well externally
+corroborated. The SPECIFIC "oh-my-bash prompt-render subprocess" trigger
+is NOT externally corroborated (original analysis) — and a genuine
+nuance narrows it further: bash command-substitution subshells
+(<code>$(...)</code>, the shape of the active "font" theme's per-prompt
+git-status calls, confirmed to fork real <code>git</code> subprocesses
+on every prompt draw) do not, under standard bash job-control semantics,
+receive a <code>tcsetpgrp()</code> foreground handoff the way a
+directly-launched foreground pipeline does — so confirming the forks
+exist does not by itself confirm they can become the pane's foreground
+pgrp.</p>
+<p><strong>(C) Fresh live reproduction, today's build.</strong>
+<code>setup.sh --rebuild</code> succeeded first attempt. 13 independent
+invocations of <code>27_state_persistence.sh</code> (10 standalone + 2
+live-pgrp-sampling + 1 from the rebuild's own <code>run_all.sh</code>
+sweep), 39 internal iterations, <strong>0 failures (0%)</strong> — vs.
+the 2026-08-13 baseline of 2/8 ≈ 25%. Live foreground-pgrp sampling (110
++ 107 samples across two full runs, ~10-60ms apart, spanning
+pane-creation → cd → hook-fire → kill every iteration): every populated
+sample showed <code>bash</code> as the sole foreground process; no other
+command was ever observed foreground, including immediately around the
+hook fire. Honest limitation: sampling was <code>ps</code>-fork-bound at
+10-60ms intervals, so a reassignment lasting only a few ms could fall
+between samples undetected.</p>
+<p><strong>Disposition:</strong> neither candidate mechanism (the
+kill-session <code>KillMode=control-group</code> race, nor the
+<code>tcgetpgrp</code> pane-state race) is confirmed against a live
+failure, because none occurred in 39 fresh iterations to study. Per
+§11.4.7 (demotion-evidence — same target, same unchanged-since-06-28
+test file, same methodology as the original 8-run investigation, ~5× the
+sample size) and systematic-debugging's own "no root cause found"
+guidance: the process is complete, what was investigated is documented
+(<code>Issues.md</code> §H1), the existing test's condition-based
+polling (never touched by either reverted attempt) is confirmed as the
+correct standing mitigation, and this write-up + the live-pgrp-sampling
+methodology are the foundation for any future recurrence. <strong>No fix
+was applied — status stays <code>Reopened</code> in Issues.md</strong>
+(moving it to <code>Fixed.md</code> would be a PASS-bluff); its priority
+is downgraded from "urgently needs a third attempt" to "monitor — does
+not currently reproduce on the live codebase under extensive
+deterministic testing."</p>
+<p>Composes with, does not supersede, §3.37b's original H1/H2 diagnosis.
+Full evidence trail in <code>Issues.md</code> §H1 "Investigation update
+(2026-09-29)".</p>
 <h2 id="4--recent-commits">§4 — Recent commits</h2>
 <ul>
 <li>(this commit, 2026-05-21) — <strong>A16 scrolling fix + A17

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>investigation-evidence</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+<h1
+id="tmx-080-h1-state-hook-race-001--fresh-investigation-evidence-2026-09-29">TMX-080
+(H1, STATE-HOOK-RACE-001) — Fresh Investigation Evidence,
+2026-09-29</h1>
+<h2 id="governing-instruction">Governing instruction</h2>
+<p>Operator instruction: investigate item 3 (the highest-risk,
+twice-reverted reopened item) with the SAME rigor as items 1 and 2 —
+validated and verified fully deterministically on the live installed
+latest codebase — before any release. Item carries two prior fix
+attempts, both reverted, one of which made the failure rate WORSE (5/5
+reproducible, up from ~20-25% intermittent). Per the Iron Law, no third
+fix attempt without a confirmed root cause.</p>
+<h2 id="stream-a--forensics-on-the-two-2026-08-13-fix-attempts">Stream A
+— forensics on the two 2026-08-13 fix attempts</h2>
+<ul>
+<li>Method:
+<code>git log --all --grep="TMX-080|H1|STATE-HOOK-RACE" -i</code>,
+<code>git log --all --since=2026-08-08 --until=2026-08-16 -- scripts/tests/27_state_persistence.sh scripts/tmx.template scripts/tmx-recycler.sh</code>,
+<code>git fsck --no-reflogs --unreachable --dangling</code>,
+<code>git reflog show --all</code>.</li>
+<li>Finding: only two real commits bracket this item —
+<code>84d5201</code> (2026-08-10, item creation) and
+<code>f99a9de</code> (2026-08-13, doc-only investigation writeup). Zero
+commits touch any of the three implicated files in the Aug 8-16 window.
+65 dangling commits exist repo-wide but are ALL dated 2026-09-01/02
+(unrelated stash residue from a separate, later investigation) — none
+reference TMX-080/H1/STATE-HOOK-RACE, none are dated August 2026.</li>
+<li>Conclusion: BOTH fix attempts and BOTH reverts happened entirely in
+the uncommitted working tree, between the two doc-only commits. Neither
+was ever committed at any point. The current tree is byte-for-byte
+identical to the pre-both-attempts state for all three implicated
+files.</li>
+<li>Attempt 1: delayed <code>systemctl --user stop "$SCOPE_UNIT"</code>
+(in <code>scripts/tmx.template</code>'s <code>kill-session</code> verb +
+an analogous change in <code>scripts/tmx-recycler.sh</code>) until a new
+<code>_wait_scope_quiescent</code> helper observed the scope's cgroup as
+empty. Recorded outcome: made the failure WORSE (5/5 reproducible,
+always iteration 1 — matching the ORIGINAL, already-disproven diagnosis
+pattern, not the genuinely-intermittent iteration-2/3 pattern this SAME
+investigation had just proven with 8 fresh runs). No causal hypothesis
+is recorded for why it got worse.</li>
+<li>Attempt 2 ("corrected"): resolved the scope's cgroup path ONCE
+instead of re-querying <code>systemctl show</code>'s
+<code>ControlGroup</code> field on every poll iteration (which itself
+has a race — <code>ControlGroup</code> reports empty almost immediately
+once the tracked main PID exits, before a still-running child has
+necessarily finished). Also failed to resolve the real test — DESPITE
+"both fix attempts working correctly in isolated, simplified manual
+reproductions." The manual repro used an artificially-slowed hook
+command (<code>sleep 0.05; tmx-state-bin record ...</code>) — a
+hand-constructed simplification, never a driven replay of the real
+test's exact sequence (<code>cd</code> -&gt; poll-for-landing -&gt;
+<code>run-shell record</code> -&gt; <code>kill-session</code> -&gt;
+poll-for-recall, inside the full harness). This exact-reproduction-
+sequence gap is the likely reason both attempts looked correct in
+isolation while leaving the real test still failing.</li>
+</ul>
+<h2
+id="stream-b--mechanism-deep-dive-pane_current_path--tcgetpgrp">Stream B
+— mechanism deep-dive, <code>#{pane_current_path}</code> /
+<code>tcgetpgrp</code></h2>
+<p>Source read directly from this project's pinned tmux 3.7b
+checkout.</p>
+<p><code>tmux/osdep-linux.c:29-61</code> (<code>osdep_get_name</code>)
+and <code>:63-89</code> (<code>osdep_get_cwd</code>): both call
+<code>tcgetpgrp(fd)</code> on the PANE'S OWN pty master fd
+(<code>wp-&gt;fd</code>, confirmed <code>spawn.c:391</code>), then use
+the returned pgrp value DIRECTLY as a PID against
+<code>/proc/&lt;pgrp&gt;/cmdline</code> or
+<code>/proc/&lt;pgrp&gt;/cwd</code>. No caching — every call performs a
+fresh <code>tcgetpgrp()</code> + <code>/proc</code> read.
+<code>osdep_get_cwd</code> has a session-id fallback on primary-read
+failure; <code>osdep_get_name</code> does not.</p>
+<p>Call sites: <code>tmux/format.c:886-903</code>
+(<code>format_cb_current_command</code>, backs
+<code>#{pane_current_command}</code>) and <code>:911-923</code>
+(<code>format_cb_current_path</code>, backs
+<code>#{pane_current_path}</code>) — both call the osdep functions
+directly on <code>wp-&gt;fd</code>, no intermediate sanity check.</p>
+<p><code>scripts/tests/27_state_persistence.sh</code> confirmed to query
+<code>#{pane_current_path}</code> via exactly this path THREE times per
+iteration: line 121 (Phase 2, right after <code>tmx new</code>), line
+164 (Phase 3, cd-landing poll), line 174 (the hook's own
+<code>run-shell</code> command line). Confirmed (via
+<code>cmd-run-shell.c:136-141</code> /
+<code>cmd-display-message.c:128-129</code>) that all three resolve
+synchronously, at command-processing time, against the same
+<code>target-&gt;wp</code> pane context — none is insulated from the
+mechanism. Also confirmed <code>run-shell</code>'s own spawned job forks
+its OWN separate pty (<code>job.c:116</code>), distinct from
+<code>wp-&gt;fd</code> — ruling out "the hook's own child is the
+confound."</p>
+<p>External research (WebSearch/WebFetch, sources cited):</p>
+<ul>
+<li>General mechanism (tmux intentionally reports whatever is currently
+the foreground process group, by design): well corroborated.</li>
+<li><a
+href="https://github.com/tmux/tmux/issues/1889">tmux/tmux#1889</a> — a
+live, open report of stale <code>#{pane_current_path}</code> reads,
+confirming the SYMPTOM CLASS is real and previously reported
+generically; comment thread did not fetch, so it does NOT corroborate
+this specific mechanism as #1889's cause (unconfirmed either way).</li>
+<li><a
+href="https://github.com/microsoft/WSL/issues/1063">microsoft/WSL#1063</a>
+— independently corroborates <code>tcgetpgrp(fd)</code> on the pty
+MASTER fd is a known-fragile construct in the wild (a different failure
+shape: hard -1 failure on WSL, not staleness) — general corroboration
+only.</li>
+<li><a
+href="https://mirror.cs.princeton.edu/pub/mirrors/slackware/slackware64-15.0/source/a/bash/bash-5.1-patches/bash51-003">bash
+5.1 patch bash51-003</a> — bash's own official patch notes confirm
+command-substitution subprocesses genuinely interact with process-group
+placement (narrower scope than "every <code>$(...)</code>", full diff
+not fetched).</li>
+<li>No external source names "oh-my-bash / shell-framework subprocess
+racing tmux's tcgetpgrp-based resolution" specifically — this is
+original analysis to this project's own investigation, not a
+previously-documented bug pattern.</li>
+</ul>
+<p>Narrowing check performed independently (this session, read-only, on
+this host): the active oh-my-bash theme (<code>font</code>,
+<code>~/.oh-my-bash/themes/font/font.theme.sh</code>) registers
+<code>_omb_theme_PROMPT_COMMAND</code> into bash's native
+<code>PROMPT_COMMAND</code> via
+<code>_omb_util_add_prompt_command</code>
+(<code>~/.oh-my-bash/lib/utils.sh</code>) — this runs on EVERY prompt
+draw, not only at shell startup. <code>_omb_theme_PROMPT_COMMAND</code>
+calls <code>$(scm_prompt_char_info)</code>, which (per
+<code>~/.oh-my-bash/lib/omb-prompt-base.sh</code>) forks real
+<code>git</code> subprocesses via <code>$(...)</code>:
+<code>scm()</code> calls
+<code>_omb_prompt_git rev-parse --is-inside-work-tree</code>; with
+<code>SCM_GIT_SHOW_MINIMAL_INFO=true</code> (set by this theme),
+<code>git_prompt_minimal_info()</code> additionally calls
+<code>git_clean_branch</code> (<code>symbolic-ref -q HEAD</code>), a
+<code>rev-parse --short HEAD</code> fallback, and
+<code>git status --porcelain</code> when inside a git worktree.
+Confirmed: this per-prompt git-forking mechanism genuinely exists and
+fires on this exact host, on the exact code path (every prompt draw,
+including the one right after the test's <code>cd ... Enter</code>).</p>
+<p>HOWEVER — important correction surfaced by the live-reproduction
+agent (Stream C): bash command-substitution subshells
+(<code>$(...)</code>) do not, under standard bash job-control semantics,
+receive a <code>tcsetpgrp()</code> foreground handoff the way a
+directly-launched foreground pipeline does — a command-substitution
+subshell typically inherits the parent's EXISTING process group rather
+than being granted a new one and handed the terminal. So confirming the
+git forks exist does not, by itself, confirm they are mechanically
+capable of becoming the pane's foreground process group the way the
+candidate hypothesis requires. This narrows confidence in the SPECIFIC
+per-prompt-git-fork mechanism without ruling it out entirely (other
+subprocess-launch shapes in the shell's startup/session lifecycle could
+still be eligible under normal job control).</p>
+<h2 id="stream-c--fresh-live-reproduction-todays-build">Stream C — fresh
+live reproduction, today's build</h2>
+<p><code>bash scripts/setup.sh --rebuild</code> succeeded on the first
+attempt. Fresh artifacts confirmed present (scripts/tmx,
+scripts/tmx-state-bin, tmux/build/bin/tmux, all timestamped today).</p>
+<p>10 standalone invocations of
+<code>scripts/tests/27_state_persistence.sh</code> (30 internal
+iterations, 3 per invocation per the test's own §11.4.50 reliability
+loop) + 2 additional invocations run under live foreground-pgrp sampling
+(6 more internal iterations) + 1 independent pass captured from the
+rebuild's own <code>run_all.sh</code> sweep = <strong>13 independent
+invocations, 39 internal iterations, 0 failures (0%)</strong>.</p>
+<p>2026-08-13 baseline: 2/8 ≈ 25% (failures on iterations 2 and 3, never
+iteration 1). Today: 0/10 direct runs, corroborated by 39/39 total
+iterations across every independent invocation this session — a large,
+methodologically-consistent drop.</p>
+<p>Live foreground-process-group observation (captured twice
+independently, via a busy-wait on the test's socket file appearing
+followed by a tight-loop
+<code>ps -o pid,pgid,ppid,stat,comm -t &lt;pane_tty&gt;</code> sampler,
+no forks in the busy-wait itself):</p>
+<ul>
+<li>Run 1: 110 samples across ~2.9s (all 3 iterations, including
+pane-recreate churn between iterations).</li>
+<li>Run 2: 107 samples, same shape.</li>
+<li>Every single populated sample in both runs showed exactly one
+foreground process: <code>bash</code>, state <code>Ss+</code> (session
+leader, sleeping, foreground), <code>PGID == PID</code>. No other
+command name (no <code>git</code>, no oh-my-bash helper) ever appeared
+as foreground in any sample, in either run, including the windows
+immediately following each <code>send-keys "cd ..."</code> and around
+the <code>run-shell</code> hook fire.</li>
+<li>Honest limitation: sampling was <code>ps</code>-fork-overhead-bound
+at roughly 10-60ms per sample; a process-group reassignment lasting only
+a few ms could in principle fall entirely between two samples and go
+undetected. The test emits no per-phase timestamps, so exact correlation
+between sample times and the script's internal phase boundaries could
+not be proven for every iteration.</li>
+</ul>
+<h2 id="disposition">Disposition</h2>
+<p>Neither candidate mechanism (the <code>KillMode=control-group</code>
+kill-session race, nor the <code>tcgetpgrp</code> pane-state race) is
+confirmed against a live failure, because none occurred anywhere in this
+cycle's extensive fresh testing to study. No third fix attempt was made.
+Existing test coverage (condition-based polling, unchanged since
+2026-06-28, never touched by either reverted attempt) is confirmed as
+the correct standing mitigation. Full disposition and status recorded in
+<code>Issues.md</code> §H1 "Investigation update (2026-09-29)" and
+<code>CONTINUATION.md</code> §3.39.</p>
+</body>
+</html>

@@ -669,6 +669,128 @@ prompt-render subprocess activity racing tmux's
 as a CPU-throttle settle-window timeout rather than a stale-path read.
 See §H2 for the shared-cause hypothesis and the recommended confirming
 experiment.</p>
+<p><strong>Investigation update (2026-09-29) — root cause still
+UNCONFIRMED; item does NOT currently reproduce on the live codebase; no
+third fix attempted per the Iron Law.</strong> Per the operator's
+explicit instruction to validate this item deterministically on the live
+installed codebase before any release, a fresh, three-stream
+investigation was run — no source changes, pure evidence-gathering
+(systematic-debugging Phase 1/2 only):</p>
+<ul>
+<li><strong>Forensics on the two 2026-08-13 fix attempts (neither ever
+confirmed committed):</strong>
+<code>git log</code>/<code>git reflog</code>/<code>git fsck --unreachable --dangling</code>
+confirm both attempts and both reverts happened entirely in the
+uncommitted working tree between two doc-only commits
+(<code>84d5201</code> item-creation, <code>f99a9de</code> doc-only
+investigation writeup) — neither attempt was EVER committed at any
+point, and the current tree (<code>scripts/tmx.template</code>,
+<code>scripts/tmx-recycler.sh</code>, and
+<code>scripts/tests/27_state_persistence.sh</code> itself, unchanged
+since <code>5a241d6</code> on 2026-06-28, six weeks before this item was
+even discovered) is confirmed byte-for-byte identical to the
+pre-both-attempts state. Both attempts were validated only against a
+hand-constructed, artificially-slowed manual reproduction
+(<code>sleep 0.05; tmx-state-bin record ...</code> immediately followed
+by <code>systemctl stop</code>) — never against a driven replay of the
+real test's exact sequence (<code>cd</code> → poll-for-landing →
+<code>run-shell record</code> → <code>kill-session</code> →
+poll-for-recall, run inside the full harness). This is the likely reason
+both attempts "worked correctly in isolation" yet failed to fix the real
+test.</li>
+<li><strong>Mechanism deep-dive on the
+<code>#{pane_current_path}</code>/<code>tcgetpgrp</code> candidate
+(mechanism (2) above):</strong> source-confirmed in full —
+<code>tmux/osdep-linux.c:63-89</code>'s <code>osdep_get_cwd()</code>
+calls <code>tcgetpgrp(wp-&gt;fd)</code> then
+<code>readlink("/proc/&lt;pgrp&gt;/cwd", ...)</code> fresh on every
+call, no caching;
+<code>format_cb_current_path</code>/<code>format_cb_current_command</code>
+(<code>tmux/format.c:886-923</code>) call it directly with no
+intermediate sanity check; and <code>27_state_persistence.sh</code>
+sub-check 18 queries <code>#{pane_current_path}</code> via exactly this
+path THREE times per iteration (lines 121, 164, 174), all resolved
+synchronously against the same pane context at command-processing time
+(confirmed via
+<code>tmux/cmd-run-shell.c</code>/<code>cmd-display-message.c</code>).
+This general mechanism — tmux intentionally reporting whatever is
+CURRENTLY the pane's foreground process group — is well corroborated
+externally as tmux's real, by-design behavior. However, the SPECIFIC "an
+oh-my-bash prompt-render helper transiently becomes the foreground
+process group" trigger is NOT corroborated by any external source found
+(original analysis, not a previously-documented bug pattern), and a
+genuine, more precise nuance narrows it further: bash
+command-substitution subshells (<code>$(...)</code>, the shape of
+oh-my-bash's per-prompt SCM/git-status calls) do not, under standard
+bash job-control semantics, receive a <code>tcsetpgrp()</code>
+foreground handoff the way a directly-launched foreground pipeline does
+— so even confirming that this host's active theme (<code>font</code>)
+forks real <code>git</code> subprocesses via <code>$(...)</code> on
+every prompt draw (confirmed: <code>scm_prompt_char_info</code> →
+<code>scm</code> →
+<code>_omb_prompt_git rev-parse --is-inside-work-tree</code>, plus
+<code>git_prompt_minimal_info</code>'s
+<code>symbolic-ref</code>/<code>status --porcelain</code> calls when
+inside a git worktree) does not by itself confirm those forks are
+mechanically capable of becoming the pane's foreground process group in
+the way the candidate hypothesis requires.</li>
+<li><strong>Fresh live reproduction on today's build:</strong>
+<code>bash scripts/setup.sh --rebuild</code> succeeded on the first
+attempt; 10 standalone invocations of
+<code>scripts/tests/27_state_persistence.sh</code> (30 internal
+iterations) plus 2 additional live-pgrp-sampling invocations (6 more
+internal iterations) plus one independent pass from the rebuild's own
+<code>run_all.sh</code> sweep — <strong>13 independent invocations, 39
+internal iterations, 0 failures (0%)</strong> — a large,
+methodologically-consistent drop from the 2026-08-13 baseline of 2/8 ≈
+25%. Live foreground-process-group sampling was captured directly during
+two full test runs (110 + 107 samples, ~10-60ms apart, spanning
+pane-creation → <code>cd</code> → hook-fire → kill for every iteration):
+<strong>every single populated sample showed <code>bash</code>
+(PGID==PID, session leader) as the sole foreground process — no other
+command name was ever observed as foreground, in either run, including
+the windows immediately following the <code>cd</code> and around the
+<code>run-shell</code> hook fire.</strong> (Honest limitation, stated by
+the investigating agent: sampling was <code>ps</code>-fork-bound at
+10-60ms intervals, so a reassignment lasting only a few ms could in
+principle fall between two samples undetected; no per-phase timestamp
+correlation exists in the test's own output to prove the samples caught
+the exact hook-fire instant every time.)</li>
+</ul>
+<p><strong>Conclusion and disposition:</strong> neither candidate
+mechanism — the <code>KillMode=control-group</code> kill-session race,
+nor the <code>tcgetpgrp</code>-based pane-state race — has been
+confirmed against a live failure, because no live failure occurred
+anywhere in this cycle's extensive fresh testing (13 independent
+invocations, 39 iterations, 0 failures) to study. Per the Iron Law and
+this project's own §11.4.7 demotion-evidence discipline (same target,
+same build process, same test file — unchanged since 2026-06-28 — same
+cycle-position methodology as the original 8-run investigation, at ~5×
+the sample size), <strong>a third speculative fix attempt is NOT
+warranted and was NOT made</strong> — attempting one without a confirmed
+root cause would repeat exactly the mistake of the two already-reverted
+attempts. Per systematic-debugging's own guidance for this exact
+situation ("When Process Reveals 'No Root Cause'"): the process was
+completed (this investigation); what was investigated is documented
+(above); appropriate handling is confirmed ALREADY in place —
+<code>27_state_persistence.sh</code> sub-check 18 already uses
+condition-based polling (up to 5s, checking the real
+state-file/pane-path condition) rather than a blind sleep, and was never
+touched by either reverted fix attempt, so it stands on its own merits
+as the correct standing mitigation for a genuinely intermittent,
+unconfirmed-root-cause race; and this write-up + the reusable
+live-pgrp-sampling methodology (busy-wait on the socket appearing, then
+tight-loop
+<code>ps -o pid,pgid,ppid,stat,comm -t &lt;pane_tty&gt;</code> sampling)
+serve as the monitoring/investigative foundation for any future
+recurrence. <strong>Status remains <code>Reopened</code></strong>
+(nothing was fixed — moving this to <code>Fixed.md</code> would be a
+PASS-bluff) but its immediate priority is downgraded from "urgently
+needs a third fix attempt" to "monitor — does not currently reproduce on
+the live codebase under extensive deterministic testing"; a future
+recurrence should re-run this same live-pgrp-sampling methodology fresh
+rather than assume either candidate mechanism without new confirming
+evidence.</p>
 <h3
 id="h2-split-quiet-settle-001--test-87-g4-quiet-phase-control-occasionally-fails-to-observe-a-zero-throttle-settle-window">H2
 SPLIT-QUIET-SETTLE-001 — test 87 G4 ("quiet-phase control") occasionally
