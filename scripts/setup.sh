@@ -599,13 +599,51 @@ case "${NCURSES_SOURCE:-}" in host-system|host-brew|host-probe-fallback|"") : ;;
 # resolution remains Step 2b patchelf rpath (belt-and-suspenders) + the
 # wrapper's absolute LD_PRELOAD + LD_LIBRARY_PATH=$JEMALLOC_LIBDIR.
 
+# ── source-vs-binary version guard (§11.4.108) ───────────────────────────────
+# The pinned tmux submodule can advance (e.g. re-pinned from 3.6a → 3.7b) while
+# an older binary remains in tmux/build*/bin. Relying only on file existence
+# (-x) lets the stale binary pass Step 2 and then fail the verification gate
+# (test 01 version check + terminfo runtime checks). We compare the version
+# the source tree declares (AC_INIT in configure.ac, falling back to the git
+# tag) against the built binary's `tmux -V` and force a rebuild on mismatch.
+_tmux_expected_version() {
+    local cfg="$REPO_ROOT/tmux/configure.ac"
+    if [ -f "$cfg" ]; then
+        local v
+        v="$(grep -E '^AC_INIT\(\[tmux\]' "$cfg" | sed -n 's/.*,[[:space:]]*\([^])[:space:]]*\).*/\1/p')"
+        if [ -n "$v" ]; then
+            printf '%s' "$v"
+            return 0
+        fi
+    fi
+    git -C "$REPO_ROOT/tmux" describe --tags 2>/dev/null || true
+}
+
+_tmux_binary_version() {
+    local bin="$1"
+    [ -x "$bin" ] || return 0
+    "$bin" -V 2>/dev/null | awk '{print $2}'
+}
+
 # Step 2 — build the tmux binary natively for this OS
 echo ""
 echo "[setup] step 2 — native build"
 case "$HOST_OS" in
     Darwin)
         TMUX_BIN_ABS="$REPO_ROOT/tmux/build-darwin/bin/tmux"
-        if [ "$MODE" = "rebuild" ] || [ ! -x "$TMUX_BIN_ABS" ]; then
+        EXPECTED_VERSION="$(_tmux_expected_version)"
+        ACTUAL_VERSION="$(_tmux_binary_version "$TMUX_BIN_ABS")"
+        VERSION_MISMATCH=0
+        if [ -n "$EXPECTED_VERSION" ]; then
+            if [ -n "$ACTUAL_VERSION" ] && [ "$EXPECTED_VERSION" != "$ACTUAL_VERSION" ]; then
+                VERSION_MISMATCH=1
+                echo "  binary version mismatch: source expects $EXPECTED_VERSION, existing binary is $ACTUAL_VERSION — rebuilding"
+            elif [ -z "$ACTUAL_VERSION" ] && [ -x "$TMUX_BIN_ABS" ]; then
+                VERSION_MISMATCH=1
+                echo "  binary version unreadable: source expects $EXPECTED_VERSION, existing binary at $TMUX_BIN_ABS does not report a version — rebuilding"
+            fi
+        fi
+        if [ "$MODE" = "rebuild" ] || [ ! -x "$TMUX_BIN_ABS" ] || [ "$VERSION_MISMATCH" = "1" ]; then
             # §11.4.6/§11.4.81: refuse with an honest, actionable message (and
             # consent-gated auto-install) if the C toolchain cannot LINK, instead
             # of letting ./configure die with the cryptic "C compiler cannot
@@ -613,7 +651,7 @@ case "$HOST_OS" in
             _native_build_preflight || exit 5
             bash scripts/build_native.sh
         else
-            echo "  binary already present at $TMUX_BIN_ABS — use --rebuild to force"
+            echo "  binary already present at $TMUX_BIN_ABS ($ACTUAL_VERSION) — use --rebuild to force"
         fi
         # Refresh jemalloc path now that brew install ran inside build_native.sh.
         JEMALLOC_DYLIB="$(brew --prefix jemalloc 2>/dev/null)/lib/libjemalloc.dylib"
@@ -623,7 +661,19 @@ case "$HOST_OS" in
         ;;
     Linux)
         TMUX_BIN_ABS="$REPO_ROOT/tmux/build/bin/tmux"
-        if [ "$MODE" = "rebuild" ] || [ ! -x "$TMUX_BIN_ABS" ]; then
+        EXPECTED_VERSION="$(_tmux_expected_version)"
+        ACTUAL_VERSION="$(_tmux_binary_version "$TMUX_BIN_ABS")"
+        VERSION_MISMATCH=0
+        if [ -n "$EXPECTED_VERSION" ]; then
+            if [ -n "$ACTUAL_VERSION" ] && [ "$EXPECTED_VERSION" != "$ACTUAL_VERSION" ]; then
+                VERSION_MISMATCH=1
+                echo "  binary version mismatch: source expects $EXPECTED_VERSION, existing binary is $ACTUAL_VERSION — rebuilding"
+            elif [ -z "$ACTUAL_VERSION" ] && [ -x "$TMUX_BIN_ABS" ]; then
+                VERSION_MISMATCH=1
+                echo "  binary version unreadable: source expects $EXPECTED_VERSION, existing binary at $TMUX_BIN_ABS does not report a version — rebuilding"
+            fi
+        fi
+        if [ "$MODE" = "rebuild" ] || [ ! -x "$TMUX_BIN_ABS" ] || [ "$VERSION_MISMATCH" = "1" ]; then
             if [ -n "${ENGINE:-}" ]; then
                 # Prefer the hermetic containerized build, but FALL BACK to a
                 # native build when the container build fails for a reason
@@ -673,7 +723,7 @@ case "$HOST_OS" in
                 bash scripts/build_native.sh
             fi
         else
-            echo "  binary already present at $TMUX_BIN_ABS — use --rebuild to force"
+            echo "  binary already present at $TMUX_BIN_ABS ($ACTUAL_VERSION) — use --rebuild to force"
         fi
         ;;
 esac
