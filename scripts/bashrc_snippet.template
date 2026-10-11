@@ -3,7 +3,7 @@
 # Removes when scripts/setup.sh --uninstall is run.
 #
 # Exposes `tmx` (our cgroup-bounded wrapper around the verified hardened
-# tmux 3.6a build at __PROJECT__/tmux/build/bin/tmux). The system `tmux`
+# tmux __TMUX_VERSION__ build at __PROJECT__/tmux/build/bin/tmux). The system `tmux`
 # command stays reachable as-is — `tmx` and `tmux` coexist side-by-side.
 #
 # Also sources tmx-shell-init.sh — the interactive per-shell session prompt

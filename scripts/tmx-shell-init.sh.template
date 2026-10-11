@@ -6,7 +6,7 @@
 # §11.4.67 — POSIX-parseable (sh -n clean), works under bash 3.2/5+, zsh, dash
 #
 # Behaviour contract (see docs/superpowers/specs/2026-05-22-tmx-shell-session-resume-design.md §4.A, §5, §6):
-#   - $TMUX set                      → silent return 0 (already inside tmux)
+#   - $TMUX set AND shell tty is a tmux pane → silent return 0 (already inside tmux)
 #   - non-TTY stdin/stdout           → silent return 0 (scp/rsync/IDE pipes)
 #   - $TMX_SKIP non-empty            → silent return 0 (operator override)
 #   - `tmx` not on PATH              → silent return 0 (graceful degradation)
@@ -26,33 +26,66 @@
 # every command the operator runs leaves the cwd recorded; the LAST
 # recorded value before `exit` is the state that the NEXT `tmx new -s
 # NAME` recalls via the wrapper's `-c $START_DIR` injection.
-if [ -n "${TMUX:-}" ]; then
-    # Where the wrapper + Go binary live.
-    _tmx_dir="${VDIGITAL_TMUX_DIR:-__PROJECT__/scripts}"
-    _tmx_state_bin="$_tmx_dir/tmx-state-bin"
+#
+# Hardening (2026-10-11): $TMUX alone is NOT proof we are inside tmux.
+# A new terminal window opened from a tmux client inherits $TMUX (the
+# socket path) but has its own pty/tty and is NOT a tmux pane. The old
+# `[ -n "$TMUX" ]` guard false-positively skipped the session-name prompt
+# for those shells (operator report: "after setup.sh, new terminal does
+# not ask for session name"). We now verify that this shell's tty is
+# actually listed as a pane tty on the $TMUX server before treating it
+# as "already inside tmux". If the probe is inconclusive (binary missing,
+# server dead, tty unavailable), we fall back to the legacy "assume
+# inside" behaviour to avoid prompting inside a real tmux session.
+
+# Where the wrapper + Go binary live.
+_tmx_dir="${VDIGITAL_TMUX_DIR:-__PROJECT__/scripts}"
+_tmx_state_bin="$_tmx_dir/tmx-state-bin"
+# CRITICAL: resolve the PROJECT's own tmux binary, NOT bare `tmux` on
+# PATH. The wrapper starts a hardened __TMUX_VERSION__ server; if a DIFFERENT system
+# tmux is first on PATH (e.g. an OS-packaged 3.4) it speaks an
+# incompatible client protocol and `tmux display-message` returns
+# "server exited unexpectedly" → empty session name → the cwd-persist
+# hook silently never installs and the feature is DEAD for the operator
+# — while a dev host whose system tmux happens to be 3.6a passes green
+# (forensic anchor: thinker host, system tmux 3.4 vs 3.6a server,
+# 2026-06-28; §11.4.111 resolve-by-stable-identity-not-ambient-PATH +
+# §11.4.108 green-on-dev-host-dead-on-clean-target). setup.sh substitutes
+# __TMUX_BIN__ with the built binary's absolute path (the same value it
+# injects into scripts/tmx); the build-dir fallbacks keep the raw,
+# un-substituted template working, and bare `tmux` remains the last
+# resort. POSIX-only ([ -x ], ||, $()) — sh -n clean per §11.4.67.
+_tmx_tmux="__TMUX_BIN__"
+[ -x "$_tmx_tmux" ] || _tmx_tmux="$_tmx_dir/../tmux/build/bin/tmux"
+[ -x "$_tmx_tmux" ] || _tmx_tmux="$_tmx_dir/../tmux/build-darwin/bin/tmux"
+[ -x "$_tmx_tmux" ] || _tmx_tmux="$(command -v tmux 2>/dev/null)"
+
+# Returns 0 if the current shell is actually a pane of the tmux server
+# referenced by $TMUX. Returns 1 if $TMUX is unset or this tty is NOT a
+# pane of that server. Returns 0 on any inconclusive probe to preserve
+# the legacy safe default (do not prompt inside tmux).
+_tmx_inside_pane() {
+    [ -n "${TMUX:-}" ] || return 1
+    [ -x "$_tmx_tmux" ] || return 0
+    _tmx_cur_tty="$(tty 2>/dev/null)" || _tmx_cur_tty=""
+    [ -n "$_tmx_cur_tty" ] || return 0
+    _tmux_pane_ttys="$("$_tmx_tmux" list-panes -a -F '#{pane_tty}' 2>/dev/null)" || _tmux_pane_ttys=""
+    [ -n "$_tmux_pane_ttys" ] || return 0
+    for _tmx_ptty in $_tmux_pane_ttys; do
+        if [ "$_tmx_cur_tty" = "$_tmx_ptty" ]; then
+            [ -n "${TMX_INIT_DEBUG:-}" ] && printf 'tmx-shell-init: inside-tmux guard fired (tty %s is a tmux pane)\n' "$_tmx_cur_tty" >&2
+            return 0
+        fi
+    done
+    [ -n "${TMX_INIT_DEBUG:-}" ] && printf 'tmx-shell-init: TMUX set but tty %s is not a tmux pane; prompting anyway\n' "$_tmx_cur_tty" >&2
+    return 1
+}
+
+if _tmx_inside_pane; then
     if [ -x "$_tmx_state_bin" ]; then
         # Resolve session name via tmux (#S = active session). More
         # reliable than env-var propagation — works even if the wrapper
         # didn't `set-environment` for any reason.
-        #
-        # CRITICAL: resolve the PROJECT's own tmux binary, NOT bare `tmux` on
-        # PATH. The wrapper starts a hardened 3.6a server; if a DIFFERENT system
-        # tmux is first on PATH (e.g. an OS-packaged 3.4) it speaks an
-        # incompatible client protocol and `tmux display-message` returns
-        # "server exited unexpectedly" → empty session name → the cwd-persist
-        # hook silently never installs and the feature is DEAD for the operator
-        # — while a dev host whose system tmux happens to be 3.6a passes green
-        # (forensic anchor: thinker host, system tmux 3.4 vs 3.6a server,
-        # 2026-06-28; §11.4.111 resolve-by-stable-identity-not-ambient-PATH +
-        # §11.4.108 green-on-dev-host-dead-on-clean-target). setup.sh substitutes
-        # __TMUX_BIN__ with the built binary's absolute path (the same value it
-        # injects into scripts/tmx); the build-dir fallbacks keep the raw,
-        # un-substituted template working, and bare `tmux` remains the last
-        # resort. POSIX-only ([ -x ], ||, $()) — sh -n clean per §11.4.67.
-        _tmx_tmux="__TMUX_BIN__"
-        [ -x "$_tmx_tmux" ] || _tmx_tmux="$_tmx_dir/../tmux/build/bin/tmux"
-        [ -x "$_tmx_tmux" ] || _tmx_tmux="$_tmx_dir/../tmux/build-darwin/bin/tmux"
-        [ -x "$_tmx_tmux" ] || _tmx_tmux="$(command -v tmux 2>/dev/null)"
         _tmx_sess="$("$_tmx_tmux" display-message -p '#S' 2>/dev/null)" || _tmx_sess=""
         # Reject names with shell-meta chars (defense in depth — tmx
         # wrapper already sanitises, but tmux's session list could in
@@ -113,11 +146,13 @@ fi
 
 # Operator opt-out.
 if [ -n "${TMX_SKIP:-}" ]; then
+    [ -n "${TMX_INIT_DEBUG:-}" ] && printf 'tmx-shell-init: TMX_SKIP guard fired — skipping interactive prompt\n' >&2
     return 0 2>/dev/null || exit 0
 fi
 
 # Wrapper absent — graceful degradation, no prompt, bare shell.
 if ! command -v tmx >/dev/null 2>&1; then
+    [ -n "${TMX_INIT_DEBUG:-}" ] && printf 'tmx-shell-init: tmx not on PATH — skipping interactive prompt\n' >&2
     return 0 2>/dev/null || exit 0
 fi
 
@@ -132,6 +167,7 @@ fi
 # for each NEW shell process, so every new terminal still prompts exactly
 # once. Fixed at the source layer here, never at the rc call sites (§11.4.1).
 if [ -n "${_TMX_SHELL_INIT_PROMPTED:-}" ]; then
+    [ -n "${TMX_INIT_DEBUG:-}" ] && printf 'tmx-shell-init: idempotency guard fired — prompt already shown in this process\n' >&2
     return 0 2>/dev/null || exit 0
 fi
 _TMX_SHELL_INIT_PROMPTED=1

@@ -241,8 +241,20 @@ _update_submodules_safe() {
         fi
     done < <(git -C "$install_dir" submodule --quiet foreach 'printf "%s\n" "$sm_path"')
 
-    git ${GITC[@]+"${GITC[@]}"} -C "$install_dir" submodule update --init --recursive \
-        || _die "submodule update failed even after stashing local changes"
+    local update_ok=0
+    if git ${GITC[@]+"${GITC[@]}"} -C "$install_dir" submodule update --init --recursive; then
+        update_ok=1
+    else
+        # Some nested submodule mappings (e.g. inside constitution/) can be
+        # structurally broken in upstream mirrors. Updating the main-repo
+        # submodules non-recursively still gives us the files we actually need
+        # (Constitution.md, setup.sh, tmx.template) while leaving the nested
+        # submodule unresolved — honest gap, not a faked success (§11.4.6).
+        _warn "recursive submodule update failed; falling back to non-recursive update"
+        if git ${GITC[@]+"${GITC[@]}"} -C "$install_dir" submodule update --init; then
+            update_ok=1
+        fi
+    fi
 
     # Restore stashes in reverse order (LIFO).
     local i
@@ -255,6 +267,10 @@ _update_submodules_safe() {
             _warn "could not automatically restore stashed changes in $s (stash preserved: ${entry#*:})"
         fi
     done
+
+    if [ "$update_ok" = "0" ]; then
+        _die "submodule update failed (recursive and non-recursive both failed)"
+    fi
 }
 
 echo "════════════════════════════════════════════════════════════════"
@@ -286,8 +302,8 @@ else
     _say "  ✓ $TMX_INSTALL_DIR does not exist — will clone"
 fi
 
-# ── PHASE 2 — clone (or update) recursively ──────────────────────────────────
-_say "phase 2 — obtain sources (recursive submodules)"
+# ── PHASE 2 — clone (or update) and initialise submodules ─────────────────────
+_say "phase 2 — obtain sources (submodules initialised separately for resilience)"
 if [ "$MODE" = "update" ]; then
     git ${GITC[@]+"${GITC[@]}"} -C "$TMX_INSTALL_DIR" fetch --all --prune --tags
     # Fast-forward only — never rewrite local history (§11.4.113 / §9).
@@ -300,11 +316,13 @@ else
     # mkdir -p so a clone into ~/Projects/<deep>/tmux works; git clone needs the
     # leaf to be absent or empty (handled in phase 1).
     mkdir -p "$(dirname "$TMX_INSTALL_DIR")"
-    git ${GITC[@]+"${GITC[@]}"} clone --recurse-submodules --branch "$TMX_INSTALL_BRANCH" \
+    # Clone the main repo first; submodule init/update is handled below by
+    # _update_submodules_safe, which falls back to non-recursive update when
+    # nested submodule mappings (e.g. inside constitution/) are broken.
+    git ${GITC[@]+"${GITC[@]}"} clone --branch "$TMX_INSTALL_BRANCH" \
         "$TMX_REPO_URL" "$TMX_INSTALL_DIR" \
-        || git ${GITC[@]+"${GITC[@]}"} clone --recurse-submodules \
+        || git ${GITC[@]+"${GITC[@]}"} clone \
              "$TMX_REPO_URL" "$TMX_INSTALL_DIR"
-    # Belt-and-suspenders recursive init (idempotent after --recurse-submodules).
     _update_submodules_safe "$TMX_INSTALL_DIR"
     _say "  ✓ cloned + submodules initialised"
 fi
