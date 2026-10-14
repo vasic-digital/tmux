@@ -210,8 +210,9 @@ B_MEM_MAX=$(cat "/sys/fs/cgroup${B_CG}/memory.max" 2>/dev/null || echo "?")
 A_MEM_MIN=$(cat "/sys/fs/cgroup${A_CG}/memory.min" 2>/dev/null || echo "?")
 # Elastic model (Constitution §105): NO hard per-scope cap by default — a session
 # uses all available RAM/zram and is never per-scope OOM-killed. A runaway is
-# stopped system-wide by systemd-oomd + the user-slice backstop, not here. TMX_MEM
-# (T5) adds an opt-in soft throttle. A small MemoryMin floor protects the session.
+# stopped system-wide by systemd-oomd + the user-slice backstop, not here. A soft
+# MemoryHigh (memory.high, a throttle) is a hostsafety DEFAULT; T3 asserts only
+# memory.max and T5 sets TMX_MEM explicitly, so neither depends on that default. A small MemoryMin floor protects the session.
 if [ "$A_MEM_MAX" = "max" ] && [ "$B_MEM_MAX" = "max" ]; then
     _pass "T3: memory.max A=$A_MEM_MAX B=$B_MEM_MAX (fully elastic — never per-scope OOM-killed)"
 else

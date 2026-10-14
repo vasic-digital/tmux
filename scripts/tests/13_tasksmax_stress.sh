@@ -135,9 +135,10 @@ _fail() { echo "FAIL: $*"; FAIL=$((FAIL + 1)); }
 _skip() { echo "SKIP: $*"; SKIP=$((SKIP + 1)); }
 
 TEST_NAME="tmx-test-$$-t7"
-# 2026-08-10: production wrapper has NO TasksMax cap by DEFAULT (see test
-# 88); TMX_TASKS=auto opts IN to the legacy fixed 4096, TMX_TASKS=<N> to
-# an explicit cap. This test drives its OWN direct systemd-run invocation
+# hostsafety: the production wrapper DEFAULTS to TasksMax=6000 (see test
+# 88; was infinity since 2026-08-10); TMX_TASKS= (empty) opts OUT to
+# infinity, TMX_TASKS=auto selects the legacy fixed 4096, TMX_TASKS=<N> an
+# explicit cap. This test drives its OWN direct systemd-run invocation
 # (below) with a smaller cap so the fork-storm fits in a reasonable
 # MemoryMax, independent of the wrapper's default/opt-in cap. With 4096
 # sleep processes × ~700KB RSS each = ~3 GB, the test would OOM-kill its

@@ -10,9 +10,13 @@
 #                 isolation only — NO CPU/task cap unless opted in)
 #       - macOS : scripts/tmx-rlimit-wrapper.sh (RLIMIT_AS/CPU/NPROC, all
 #                 unlimited unless opted in) before exec'ing $SHELL
-#   * NO LIMITS BY DEFAULT (2026-08-10 mandate): CPU, memory, tasks/
-#     threads, and session lifetime are all UNBOUNDED unless the operator
-#     explicitly opts in via TMX_CPU / TMX_MEM / TMX_TASKS /
+#   * LIMITS (2026-08-10 no-limits mandate, amended by hostsafety): CPU and
+#     session lifetime are UNBOUNDED unless the operator opts in via
+#     TMX_CPU / TMX_RECYCLE_IDLE_SECS. Memory and tasks carry two SAFE
+#     defaults on Linux: a soft MemoryHigh (TMX_MEM, throttle, never a kill;
+#     value = _tmx_mem_default below) and TasksMax=6000 (TMX_TASKS, fork
+#     backstop; value = _tmx_tasks_default below). `TMX_MEM=` / `TMX_TASKS=`
+#     (set but EMPTY) opt out. Everything else is opt-in via TMX_CPU /
 #     TMX_RECYCLE_IDLE_SECS (env var config or per-invocation param — see
 #     the "Caps (per session, opt-in only)" comment near TMX_MEM_EFFECTIVE
 #     below, and docs/guide/README.md §5.6). The isolation primitive still
@@ -97,6 +101,24 @@ exec 2> >(grep --line-buffered -v 'libtinfo\.so\.[0-9]\+: no version information
 _sanitise() {
     local raw="$1"
     printf '%s' "$raw" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/[[:space:]][[:space:]]*/-/g' | tr -cd 'A-Za-z0-9._-'
+}
+
+# Validate a value tmx forwards verbatim to systemd (hostsafety). Oracle = what a
+# real `systemd-run --user --scope -p Prop=VALUE` accepts, probed on this host:
+#   tasks: integer 1..4294967295 (no leading zero, no K/M/G), 1-99%, infinity
+#   mem  : integer bytes, or decimal with K/M/G/T suffix (1.5G is valid), 1-99%, infinity
+#   never: 0, 0%, >=100%, leading zeros, spaces, multi-line, anything else.
+# The whole string must match; the caller falls back LOUDLY to the default
+# (otherwise systemd-run rejects the scope and the session does not start).
+_tmx_limit_valid() {   # usage: _tmx_limit_valid tasks|mem VALUE
+    local kind="$1" v="$2"
+    [[ "$v" == infinity ]] && return 0
+    [[ "$v" =~ ^[1-9][0-9]?%$ ]] && return 0
+    case "$kind" in
+        tasks) [[ "$v" =~ ^[1-9][0-9]{0,9}$ ]] && [ "$v" -le 4294967295 ] ;;
+        mem)   [[ "$v" =~ ^[1-9][0-9]{0,15}$ ]] || [[ "$v" =~ ^[1-9][0-9]{0,12}([.][0-9]{1,3})?[KMGT]$ ]] ;;
+        *)     return 1 ;;
+    esac
 }
 
 # Host-adaptive default MemoryMax (per Constitution §12.6 budget shared
@@ -633,8 +655,28 @@ case "$SUBCMD" in
         # IN to an explicit numeric cap. Genuine exhaustion is still handled
         # system-wide by systemd-oomd + zram + the user-slice backstop
         # (OOM-Protect) — "never kill prematurely, never stuck".
-        TMX_MEM_EFFECTIVE="${TMX_MEM:-}"
+        # AMENDED (hostsafety): the paragraph above describes the 2026-08-10
+        # policy. Since the hostsafety change memory and tasks are no longer
+        # "unlimited by default" on Linux: a soft MemoryHigh and TasksMax=6000
+        # are the DEFAULTS (never a kill); CPU and lifetime are still unbounded
+        # by default. Opt out with `TMX_MEM=` / `TMX_TASKS=` (set, empty).
+        # hostsafety: DEFAULT soft MemoryHigh (reclaim/throttle only, NEVER a kill:
+        # MemoryMax stays infinity). The default value is the ONE variable
+        # _tmx_mem_default. `${TMX_MEM-...}` applies it only when TMX_MEM is UNSET:
+        # `TMX_MEM=` (set, empty) opts OUT (no MemoryHigh), TMX_MEM=auto uses the
+        # host-adaptive size, TMX_MEM=<N>[KMGT]|<N>%|infinity overrides.
+        # LINUX ONLY: on Darwin TMX_MEM_EFFECTIVE feeds `ulimit -v` (RLIMIT_AS, a HARD
+        # address-space cap), so Darwin keeps "no default".
+        # BEGIN tmx-limits:mem
+        _tmx_mem_default=16G
+        [ "$HOST_OS" = "Linux" ] || _tmx_mem_default=
+        TMX_MEM_EFFECTIVE="${TMX_MEM-$_tmx_mem_default}"
         [ "$TMX_MEM_EFFECTIVE" = auto ] && TMX_MEM_EFFECTIVE="$(_default_mem_mb)M"
+        if [ -n "$TMX_MEM_EFFECTIVE" ] && ! _tmx_limit_valid mem "$TMX_MEM_EFFECTIVE"; then
+            echo "tmx: ignoring invalid TMX_MEM='$TMX_MEM_EFFECTIVE' — using the default '${_tmx_mem_default:-none}'" >&2
+            TMX_MEM_EFFECTIVE="$_tmx_mem_default"
+        fi
+        # END tmx-limits:mem
         # CPU: NO cap by default (unset/empty => no CPUQuota property at all,
         # i.e. unlimited — systemd's own default). TMX_CPU=auto opts IN to
         # the v1.0.37 host-adaptive value (cores x 15%, see _default_cpu_pct
@@ -642,15 +684,44 @@ case "$SUBCMD" in
         # sessions). TMX_CPU=<pct> opts IN to an explicit numeric cap.
         TMX_CPU_EFFECTIVE="${TMX_CPU:-}"
         [ "$TMX_CPU_EFFECTIVE" = auto ] && TMX_CPU_EFFECTIVE="$(_default_cpu_pct)"
-        # Tasks (pids controller): NO cap by default (TasksMax=infinity) —
-        # a large multi-agent fleet on a powerful host can legitimately need
-        # many thousands of threads/processes (universal Constitution
-        # §12.12). TMX_TASKS=auto opts IN to the legacy fixed 4096 ceiling;
-        # TMX_TASKS=<N> opts IN to an explicit numeric cap.
-        TMX_TASKS_EFFECTIVE="${TMX_TASKS:-infinity}"
+        # Tasks (pids controller): hostsafety runaway-fork backstop. DEFAULT
+        # TasksMax=_tmx_tasks_default (6000; was infinity). Why not the old
+        # hardcoded 4096 that TMX-079 (84d5201) removed: that had NO override
+        # knob and was reported as killing legitimate large fleets; 6000 is ~9x
+        # the measured steady state of a busy agent session (~650 tasks incl.
+        # threads, 25+ MCP helpers) and EVERY value is overridable:
+        #   TMX_TASKS=<N>|<N>%|infinity   explicit cap
+        #   TMX_TASKS=                    (set but EMPTY) opt OUT => infinity
+        #   TMX_TASKS=auto                the legacy fixed 4096 ceiling
+        # An unset TMX_TASKS takes the default. A scope at its TasksMax makes
+        # fork()/clone() fail with EAGAIN INSIDE the session; nothing is killed.
+        # With TMX_SERVER_SPLIT=1 the value caps the WORKLOAD SLICE (the server
+        # scope keeps its own TasksMax=256).
+        # BEGIN tmx-limits:tasks
+        _tmx_tasks_default=6000
+        TMX_TASKS_EFFECTIVE="${TMX_TASKS-$_tmx_tasks_default}"
+        [ -z "$TMX_TASKS_EFFECTIVE" ] && TMX_TASKS_EFFECTIVE=infinity
         [ "$TMX_TASKS_EFFECTIVE" = auto ] && TMX_TASKS_EFFECTIVE=4096
+        if ! _tmx_limit_valid tasks "$TMX_TASKS_EFFECTIVE"; then
+            echo "tmx: ignoring invalid TMX_TASKS='$TMX_TASKS_EFFECTIVE' — using the default $_tmx_tasks_default" >&2
+            TMX_TASKS_EFFECTIVE="$_tmx_tasks_default"
+        fi
+        # END tmx-limits:tasks
         TMX_MEM_ARGS=( -p "MemoryMax=infinity" -p "MemoryMin=128M" )
         [ -n "$TMX_MEM_EFFECTIVE" ] && TMX_MEM_ARGS+=( -p "MemoryHigh=$TMX_MEM_EFFECTIVE" )
+        # hostsafety SINGLE SOURCE: the shared-topology systemd-run call, the
+        # dry-run print and the tests all use THESE arrays (the line below is
+        # deliberately kept on its own line, shaped `-p "TasksMax=..."`, so the
+        # meta-test mutations/greps that look for it keep biting).
+        TMX_TASKS_ARGS=(
+            -p "TasksMax=${TMX_TASKS_EFFECTIVE}"
+        )
+        # Split topology only: the SERVER scope keeps memory ELASTIC (fleet memory
+        # pressure lands on the workload slice, see the split comment below), so it
+        # does NOT inherit the default MemoryHigh; only an EXPLICIT TMX_MEM reaches it
+        # (the pre-hostsafety behaviour).
+        TMX_SRV_MEM_ARGS=( -p "MemoryMax=infinity" -p "MemoryMin=128M" )
+        [ -n "${TMX_MEM+set}" ] && [ -n "$TMX_MEM_EFFECTIVE" ] && TMX_SRV_MEM_ARGS+=( -p "MemoryHigh=$TMX_MEM_EFFECTIVE" )
 
         # §11.4.225 opt-in server/workload split (Linux + functional scopes
         # only; see _srv_cpu_pct/_split_cpu_pcts/_slice_unit_for above).
@@ -671,6 +742,30 @@ case "$SUBCMD" in
             else
                 echo "tmx: TMX_SERVER_SPLIT=1 requested but TMX_CPU='$TMX_CPU_EFFECTIVE' is not splittable — using the shared topology. (CPU is unlimited by default since v1.0.39; set TMX_CPU=auto or TMX_CPU=<pct> to opt in to a splittable total and re-enable the split topology.)" >&2
             fi
+        fi
+
+        # Split-topology server-scope props, single source for the real call + dry-run.
+        TMX_SRV_ARGS=( "${TMX_SRV_MEM_ARGS[@]}" -p "CPUQuota=${TMX_SRV_CPU_EFFECTIVE}%" -p "TasksMax=256" )
+
+        # hostsafety dry-run: TMX_DRY_RUN_PROPS=1 prints what THIS topology really
+        # applies (same arrays the systemd-run calls use) and exits 0 BEFORE any
+        # scope, slice or tmux server is created. WARNING: left exported it makes
+        # every `tmx new` exit 0 without creating a session.
+        if [ "${TMX_DRY_RUN_PROPS:-0}" = 1 ]; then
+            if [ "$TMX_SPLIT_EFFECTIVE" -eq 1 ]; then
+                printf 'TMX_DRY_RUN_PROPS: topology=split\n'
+                printf 'TMX_DRY_RUN_PROPS: server-scope:'; printf ' %s' "${TMX_SRV_ARGS[@]}"; printf '\n'
+                _dr_slice="CPUQuota=${TMX_WORK_CPU_EFFECTIVE}% TasksMax=${TMX_TASKS_EFFECTIVE}"
+                [ -n "$TMX_MEM_EFFECTIVE" ] && _dr_slice="$_dr_slice MemoryHigh=$TMX_MEM_EFFECTIVE"
+                [ "${sd_ver:-0}" -ge 249 ] 2>/dev/null && _dr_slice="$_dr_slice ManagedOOMPreference=avoid"
+                printf 'TMX_DRY_RUN_PROPS: workload-slice: %s\n' "$_dr_slice"
+            else
+                printf 'TMX_DRY_RUN_PROPS: topology=shared\n'
+                printf 'TMX_DRY_RUN_PROPS: scope:'; printf ' %s' "${TMX_MEM_ARGS[@]}"
+                [ -n "$TMX_CPU_EFFECTIVE" ] && printf ' -p CPUQuota=%s%%' "$TMX_CPU_EFFECTIVE"
+                printf ' %s' "${TMX_TASKS_ARGS[@]}"; printf '\n'
+            fi
+            exit 0
         fi
 
         INTERACTIVE=1
@@ -865,10 +960,8 @@ case "$SUBCMD" in
                         TMX_OOMD_ARGS=( -p "ManagedOOMPreference=avoid" )
                     systemd-run --user --scope --quiet \
                         --unit="$SCOPE_UNIT" \
-                        "${TMX_MEM_ARGS[@]}" \
+                        "${TMX_SRV_ARGS[@]}" \
                         "${TMX_OOMD_ARGS[@]}" \
-                        -p "CPUQuota=${TMX_SRV_CPU_EFFECTIVE}%" \
-                        -p "TasksMax=256" \
                         -p "Delegate=yes" \
                         "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
                 elif [ "$_scope_ok" -eq 1 ]; then
@@ -912,7 +1005,7 @@ case "$SUBCMD" in
                         "${TMX_MEM_ARGS[@]}" \
                         "${TMX_CPU_ARGS[@]}" \
                         "${TMX_OOMD_ARGS[@]}" \
-                        -p "TasksMax=${TMX_TASKS_EFFECTIVE}" \
+                        "${TMX_TASKS_ARGS[@]}" \
                         -p "Delegate=yes" \
                         "$TMUX_BIN" "${NEW_ARGS[@]}" 2>"$CREATE_ERR"
                 else
