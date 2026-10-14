@@ -984,10 +984,11 @@ if [ "$HOST_OS" = "Darwin" ]; then
 elif [ "$HOST_OS" = "Linux" ]; then
     echo ""
     echo "  Linux isolation: each session in its own cgroup-v2 transient"
-    echo "  scope (tmx-NAME.scope), Delegate=yes. NO resource or lifetime"
-    echo "  cap by default (CPU/tasks/memory all unlimited, no idle-recycle) —"
-    echo "  TMX_CPU / TMX_TASKS / TMX_MEM / TMX_RECYCLE_IDLE_SECS opt IN to a"
-    echo "  cap when one is wanted. OOM in one session contained to that"
-    echo "  scope only."
+    echo "  scope (tmx-NAME.scope), Delegate=yes. NO CPU or lifetime cap by"
+    echo "  default (CPU unlimited, no idle-recycle; TMX_CPU / TMX_RECYCLE_IDLE_SECS"
+    echo "  opt IN). Two SAFE defaults that never kill: TasksMax=6000 (fork"
+    echo "  backstop) and a soft MemoryHigh=16G (throttle); TMX_TASKS= / TMX_MEM="
+    echo "  (set, empty) opt out, TMX_TASKS=<N> / TMX_MEM=<size> override. OOM in"
+    echo "  one session contained to that scope only."
 fi
 echo "════════════════════════════════════════════════════════════════"

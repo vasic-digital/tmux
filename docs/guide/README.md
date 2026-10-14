@@ -99,7 +99,7 @@ The orchestrator runs five gated phases:
 | 06 concurrent panes | 10 panes don't OOM the server | severe leak |
 | 07 long session | 25 s sustained activity grows < 50% | gradual leak |
 | 08 oom_score_adj | wrapper applies -500 | wrapper script broken — biggest §12-protection benefit gone |
-| 09 crash isolation scope | cgroup-v2 transient scope mechanism present (MemoryMax always-on; CPUQuota/TasksMax opt-in, see §5.6); SIGKILL containment does not take user.slice down | per-session isolation broken |
+| 09 crash isolation scope | cgroup-v2 transient scope mechanism present (MemoryMax always-on; CPUQuota opt-in; soft MemoryHigh and TasksMax=6000 defaults, see §5.6); SIGKILL containment does not take user.slice down | per-session isolation broken |
 | 10 hostname colour algorithm | DJB2 → 27-palette deterministic on same hostname; spread ≥ 12/16 across distinct names | host distinguishability broken |
 | 11 hostname colour integration | wrapper applies expected status-bg to running server; persists on second session | colour-on-attach broken |
 | 12 memory pressure under cap (destructive, `TMX_TEST_DESTRUCTIVE=1`) | allocation up to MemoryMax triggers OOM-kill of scope only; user.slice survives | memory cap not enforced |
@@ -135,20 +135,25 @@ Each `tmx new -s NAME` invocation produces its own tmux server running as a **ho
 
 ### Mechanism per OS
 
-**No resource or lifetime limit applies by default on EITHER OS** (2026-08-10
+**No CPU or lifetime limit applies by default on EITHER OS** (2026-08-10
 mandate — root-cause fix for sessions/processes being killed despite ample
-host capacity). The isolation primitive below still gives every session its
-own crash/identity boundary; every cap in the table is strictly opt-in via
-the env vars in the "Caps" section further down.
+host capacity). Since the hostsafety change, **Linux** additionally carries
+two SAFE memory/task defaults that never kill anything: a soft `MemoryHigh`
+(currently `16G`, a throttle) and `TasksMax=6000` (a fork backstop: at the cap
+`fork()` fails with EAGAIN, running processes are untouched). `TMX_MEM=` /
+`TMX_TASKS=` (set but EMPTY) opt out. macOS keeps no memory/task default. The
+isolation primitive below gives every session its own crash/identity
+boundary; every other cap is opt-in via the env vars in the "Caps" section
+further down.
 
 | | Linux | macOS (Darwin) |
 |---|---|---|
 | Binary format | ELF 64 (built via `build_containerized.sh` or `build_native.sh`) | Mach-O 64 (built via `build_native.sh` against Homebrew deps) |
 | Output dir | `tmux/build/bin/tmux` | `tmux/build-darwin/bin/tmux` |
 | Isolation primitive | cgroup-v2 transient scope via `systemd-run --user --scope --unit=tmx-NAME.scope` | POSIX rlimit wrapper (`scripts/tmx-rlimit-wrapper.sh`) applied as session `default-command` |
-| Memory cap | `MemoryMax=infinity` by default (never OOM-killed); `TMX_MEM` opts IN to a *soft* `MemoryHigh` | **NOT ENFORCED** — see "Honest gap" below |
+| Memory cap | `MemoryMax=infinity` always (never OOM-killed); soft `MemoryHigh` (throttle, reclaim never kill) **by default** (value `_tmx_mem_default` in `scripts/tmx.template`, currently `16G`); `TMX_MEM=` (empty) opts OUT, `TMX_MEM=<size>` overrides | **NOT ENFORCED** — see "Honest gap" below (no memory default on macOS: it would become a hard `RLIMIT_AS`) |
 | CPU cap | none by default (no `CPUQuota` property); `TMX_CPU` opts IN | none by default (`RLIMIT_CPU=unlimited`); `TMX_CPU_HARD_SEC` opts IN (kernel-enforced per process, SIGXCPU on hard exhaust) |
-| Task cap | none by default (`TasksMax=infinity`); `TMX_TASKS` opts IN | none by default (`RLIMIT_NPROC=unlimited`); `TMX_PROC_MAX` opts IN (kernel-enforced per user) |
+| Task cap | `TasksMax=6000` by default (fork backstop: at the cap `fork()` fails with EAGAIN inside the session, nothing is killed); `TMX_TASKS=` (empty) opts OUT to `infinity`, `TMX_TASKS=<N>`/`auto`(4096) override | none by default (`RLIMIT_NPROC=unlimited`); `TMX_PROC_MAX` opts IN (kernel-enforced per user) |
 | Session lifetime | unbounded by default; `TMX_RECYCLE_IDLE_SECS` opts IN to idle auto-recycle | same (shared `scripts/tmx-recycler.sh`, cross-platform) |
 | jemalloc preload | `LD_PRELOAD` | `DYLD_INSERT_LIBRARIES` + `DYLD_FORCE_FLAT_NAMESPACE=1` |
 | OOM containment | OOM in scope ⇒ kernel kills only that scope; `user.slice` survives | CPU/NPROC enforced when opted in; **memory: process may grow until host swaps** |
@@ -174,19 +179,27 @@ The `tmx-rlimit-wrapper` on Darwin therefore applies ONLY the limits the kernel 
 - **Scope unit (Linux only)**: `tmx-<sanitised-NAME>.scope`. Operator-targetable: `systemctl --user status tmx-mywork.scope`.
 - **Sanitisation**: characters outside `[A-Za-z0-9._-]` → `_`. Collision (scope already active OR server already running on socket) errors out explicitly.
 
-### Caps (per session, both OSes) — ALL OPT-IN, none applied by default
+### Caps (per session, both OSes) — CPU and lifetime opt-in; Linux memory/tasks have safe defaults
 
-Every cap below is OFF by default — a session gets the full host's CPU,
-memory, task/thread budget, and runs indefinitely until the operator ends
-it. Set the env var (durable in shell rc, or per-invocation) only when a
-cap is genuinely wanted (e.g. a host intentionally shared across many
+CPU and session lifetime are OFF by default — a session gets the full host's
+CPU and runs indefinitely until the operator ends it. On Linux the memory
+throttle (soft `MemoryHigh`) and the task backstop (`TasksMax=6000`) are ON
+by default and can be changed or removed (`TMX_MEM=` / `TMX_TASKS=` empty =
+opt out). Set the env var (durable in shell rc, or per-invocation) when a
+different cap is wanted (e.g. a host intentionally shared across many
 concurrent sessions).
+
+**Dry-run:** `TMX_DRY_RUN_PROPS=1 tmx new -s NAME -d` prints the resolved
+limit properties for the topology and exits 0 without creating anything.
+If `TMX_DRY_RUN_PROPS=1` is left exported in the environment, every
+`tmx new` exits 0 and NO session is created. With no user systemd
+(`tmx-degraded`) tmux is started directly and no cgroup cap applies.
 
 | Cap | Default | `=auto` opt-in | Explicit opt-in | Linux | Darwin |
 |---|---|---|---|---|---|
-| Memory | unlimited (`MemoryMax=infinity`; no soft throttle) | `TMX_MEM=auto` → host-adaptive `max(MemTotal × 60% / 4, 2 GB)` *soft* `MemoryHigh` | `TMX_MEM=8G tmx new -s heavy` | ✓ cgroup `MemoryHigh` (soft, reclaim never kill) | ✗ NOT enforced (XNU gap) |
+| Memory | `MemoryMax=infinity` + soft `MemoryHigh` default (`16G` on Linux; none on macOS) | `TMX_MEM=auto` → host-adaptive `max(MemTotal × 60% / 4, 2 GB)` *soft* `MemoryHigh`; `TMX_MEM=` (empty) removes the default | `TMX_MEM=16G tmx new -s heavy` | ✓ cgroup `MemoryHigh` (soft, reclaim never kill) | ✗ NOT enforced (XNU gap) |
 | CPU | unlimited (no `CPUQuota` / `RLIMIT_CPU=unlimited`) | `TMX_CPU=auto` → cores × 15% (floor 200%, cap cores × 100%) | `TMX_CPU=400` (Linux, %); `TMX_CPU_HARD_SEC=3600` (Darwin, seconds) | ✓ `CPUQuota` | ✓ `RLIMIT_CPU` |
-| Tasks | unlimited (`TasksMax=infinity` / `RLIMIT_NPROC=unlimited`) | `TMX_TASKS=auto` → legacy fixed `4096` | `TMX_TASKS=8192` (Linux); `TMX_PROC_MAX=4096` (Darwin) | ✓ `TasksMax` per scope | ✓ `RLIMIT_NPROC` per user |
+| Tasks | `TasksMax=6000` on Linux (default); `RLIMIT_NPROC=unlimited` on macOS | `TMX_TASKS=auto` → legacy fixed `4096`; `TMX_TASKS=` (empty) → `infinity` (opt out) | `TMX_TASKS=8192` (Linux); `TMX_PROC_MAX=4096` (Darwin) | ✓ `TasksMax` per scope | ✓ `RLIMIT_NPROC` per user |
 | Session lifetime | unbounded (never auto-recycled) | — (no `auto` form) | `TMX_RECYCLE_IDLE_SECS=900` — auto-recycle after N idle (no-client-attached) seconds; state (dir/color/password) always survives | ✓ `scripts/tmx-recycler.sh` watcher | ✓ (same watcher, cross-platform) |
 
 Root-cause note (2026-08-10): the idle-timeout recycler is the ONLY

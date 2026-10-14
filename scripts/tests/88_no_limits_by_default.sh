@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Test 88 — tmx sessions default to NO resource/lifetime limits; every cap
-# is strictly opt-in (§11.4.115 RED/GREEN polarity).
+# Test 88 — tmx sessions default to NO CPU/lifetime limits; CPU and lifetime
+# caps are strictly opt-in, and (hostsafety) Linux memory/tasks carry safe,
+# overridable defaults: soft MemoryHigh + TasksMax=6000 (§11.4.115 RED/GREEN polarity).
 #
 # Forensic anchor (operator report, 2026-08-10): "sessions and processes get
 # killed and wiped out ... on powerful hardware with enough resources".
@@ -29,6 +30,10 @@
 # opt-in cap" pattern:
 #   TMX_CPU_EFFECTIVE="${TMX_CPU:-}"                (was "${TMX_CPU:-auto}")
 #   TMX_TASKS_EFFECTIVE="${TMX_TASKS:-infinity}"    (was hardcoded 4096, no knob)
+#     AMENDED (hostsafety): TasksMax now DEFAULTS to _tmx_tasks_default=6000
+#     (`TMX_TASKS=` empty => infinity opt-out), plus a soft MemoryHigh default
+#     (`_tmx_mem_default`, Linux). CPU and lifetime stay elastic by default;
+#     the G3b/G5a assertions below encode the amended TasksMax default.
 #   TMX_RECYCLE_WINDOW="${TMX_RECYCLE_IDLE_SECS:-0}" (was "${...:-900}")
 # `auto` remains available on TMX_CPU / TMX_TASKS as an explicit OPT-IN to
 # the previous host-adaptive / legacy-fixed values; an explicit numeric
@@ -132,7 +137,10 @@ fi
 # expansion — extract the real assignment lines and RUN them (never
 # grep-only, §11.4.201/§11.4.108).
 _cpu_asn="$(grep -E '^\s*TMX_CPU_EFFECTIVE=|^\s*\[ "\$TMX_CPU_EFFECTIVE" = auto \]' "$TARGET" | sed 's/^[[:space:]]*//')"
-_tasks_asn="$(grep -E '^\s*TMX_TASKS_EFFECTIVE=|^\s*\[ "\$TMX_TASKS_EFFECTIVE" = auto \]' "$TARGET" | sed 's/^[[:space:]]*//')"
+# hostsafety: TasksMax now DEFAULTS to 6000 (was infinity); the resolution lives
+# between the `# BEGIN/END tmx-limits:tasks` markers and uses _tmx_limit_valid().
+_tasks_asn="$(awk '/# BEGIN tmx-limits:tasks/{on=1;next} /# END tmx-limits:tasks/{on=0;next} on' "$TARGET")"
+_tasks_fn="$(sed -n '/^_tmx_limit_valid() {/,/^}/p' "$TARGET")"
 
 # unset FIRST in both helpers (§11.4.201 independent-review finding,
 # 2026-08-10): the inner `bash -c` otherwise INHERITS any TMX_CPU/TMX_TASKS
@@ -153,6 +161,7 @@ _expand_cpu() {  # _expand_cpu <TMX_CPU value or UNSET> → effective value
 _expand_tasks() {  # _expand_tasks <TMX_TASKS value or UNSET> → effective value
     bash -c "
         unset TMX_TASKS
+        $_tasks_fn
         if [ '$1' != UNSET ]; then TMX_TASKS='$1'; fi
         $_tasks_asn
         printf '%s' \"\$TMX_TASKS_EFFECTIVE\"
@@ -171,11 +180,11 @@ else
 fi
 
 if [ -n "$_tasks_asn" ]; then
-    t_unset="$(_expand_tasks UNSET)"; t_auto="$(_expand_tasks auto)"; t_num="$(_expand_tasks 8192)"
-    if [ "$t_unset" = "infinity" ] && [ "$t_auto" = "4096" ] && [ "$t_num" = "8192" ]; then
-        _pass "G3b: TMX_TASKS expansion — unset→infinity (no cap), auto→4096(legacy opt-in), explicit 8192 preserved"
+    t_unset="$(_expand_tasks UNSET)"; t_empty="$(_expand_tasks '')"; t_auto="$(_expand_tasks auto)"; t_num="$(_expand_tasks 8192)"
+    if [ "$t_unset" = "6000" ] && [ "$t_empty" = "infinity" ] && [ "$t_auto" = "4096" ] && [ "$t_num" = "8192" ]; then
+        _pass "G3b: TMX_TASKS expansion — unset→6000 (hostsafety fork backstop), empty→infinity (opt-out), auto→4096(legacy opt-in), explicit 8192 preserved"
     else
-        _fail "G3b: TMX_TASKS expansion wrong: unset→'$t_unset' (want infinity) auto→'$t_auto' (want 4096) 8192→'$t_num' (want 8192)"
+        _fail "G3b: TMX_TASKS expansion wrong: unset→'$t_unset' (want 6000) empty→'$t_empty' (want infinity) auto→'$t_auto' (want 4096) 8192→'$t_num' (want 8192)"
     fi
 else
     _fail "G3b: could not extract TMX_TASKS_EFFECTIVE assignment from $TARGET"
@@ -225,10 +234,10 @@ else
         CPU_MAX="$(cut -d' ' -f1 "/sys/fs/cgroup${CG}/cpu.max" 2>/dev/null)"
         PIDS_MAX="$(cat "/sys/fs/cgroup${CG}/pids.max" 2>/dev/null)"
     fi
-    if [ "$CPU_MAX" = "max" ] && [ "$PIDS_MAX" = "max" ]; then
-        _pass "G5a: default session cgroup — cpu.max=max (no CPUQuota) AND pids.max=max (no TasksMax) — positive cgroup readback"
+    if [ "$CPU_MAX" = "max" ] && [ "$PIDS_MAX" = "6000" ]; then
+        _pass "G5a: default session cgroup — cpu.max=max (no CPUQuota) AND pids.max=6000 (hostsafety TasksMax default) — positive cgroup readback"
     else
-        _fail "G5a: default session cgroup NOT unlimited — cpu.max='$CPU_MAX' (want max) pids.max='$PIDS_MAX' (want max)"
+        _fail "G5a: default session cgroup wrong — cpu.max='$CPU_MAX' (want max) pids.max='$PIDS_MAX' (want 6000)"
     fi
     HOOKS="$("$TMUX_BIN_T88" -L "$SOCK" show-hooks -g -t "$SESS" 2>/dev/null || true)"
     if ! printf '%s' "$HOOKS" | grep -q 'tmx-recycler.sh'; then

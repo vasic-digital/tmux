@@ -92,10 +92,11 @@ challenges:
       The tmx wrapper's systemd-run --user --scope mechanism carries the
       MemoryMax/CPUQuota/TasksMax/Delegate cgroup properties AND survives
       SIGKILL without taking user.slice down. Since 2026-08-10 MemoryMax
-      is always-on (elastic, infinity by default); CPUQuota/TasksMax are
-      OPT-IN only (see test 88 for default-vs-opt-in coverage) — this
-      challenge verifies the MECHANISM is present and wired, not that a
-      cap is always applied. Verifies T1 (host capability), T2 (wrapper
+      is always-on (elastic, infinity by default); CPUQuota is OPT-IN
+      only, while (hostsafety) a soft MemoryHigh and TasksMax=6000 are
+      the Linux DEFAULTS with an empty-value opt-out (see test 88 for
+      default-vs-opt-in coverage) — this challenge verifies the MECHANISM
+      is present and wired, not the value of any cap. Verifies T1 (host capability), T2 (wrapper
       invariants — mechanism presence), T3 (cgroup readback), T4 (SIGKILL
       containment + user.slice survival), T6 (concurrent scopes
       independent).
@@ -129,8 +130,8 @@ challenges:
     title: TasksMax fork-bomb resistance (T7)
     description: |
       Spawn processes inside a test-owned scope (its OWN direct
-      systemd-run invocation, independent of the wrapper's default/opt-in
-      TMX_TASKS since 2026-08-10 — see test 88) until its configured
+      systemd-run invocation, independent of the wrapper's TasksMax default
+      (6000 since hostsafety, `TMX_TASKS=` opts out — see test 88)) until its configured
       TasksMax is hit. Verify pids.current == pids.max and no processes
       leak outside. Destructive test — requires TMX_TEST_DESTRUCTIVE=1.
     test_script: scripts/tests/13_tasksmax_stress.sh
@@ -167,9 +168,12 @@ challenges:
       distinct cgroup-v2 transient scope `tmx-NAME.scope`, with its own
       independent cgroup tree. Closes the Fixed.md A12 bluff where all
       sessions shared one scope (operator-facing isolation claim was
-      false). Since 2026-08-10 a default session is fully elastic — no
-      CPUQuota/TasksMax cap, MemoryMax=infinity — TMX_MEM/TMX_CPU/
-      TMX_TASKS opt IN to a cap (see test 88). Tests the OPERATOR PATH
+      false). A default session is elastic in memory.max (MemoryMax=
+      infinity) and CPU (no CPUQuota); hostsafety adds a soft MemoryHigh
+      and TasksMax=6000 as defaults (TMX_MEM=/TMX_TASKS= empty opt out,
+      TMX_CPU opts IN to a CPU cap; see test 88). This challenge asserts
+      only memory.max/cpu.max/MemoryMin for the default session and sets
+      TMX_MEM explicitly in T5, so it does not depend on those defaults. Tests the OPERATOR PATH
       per §11.4.7.
     test_script: scripts/tests/15_per_session_cgroup_distinct.sh
     pass_condition: |
@@ -1113,7 +1117,7 @@ challenges:
     severity: blocker
 
   - id: TMUX-CH-87
-    title: no resource or lifetime limit by default — every cap is strictly opt-in
+    title: no CPU or lifetime limit by default; Linux memory/tasks carry safe defaults (hostsafety), all opt-out/override-able
     description: |
       Operator report (2026-08-10): "sessions and processes get killed
       and wiped out ... on powerful hardware with enough resources".
@@ -1129,20 +1133,22 @@ challenges:
       §11.4.103 background-work mandates) was killed regardless of
       whether it was doing anything. All three are now opt-in only,
       extending the memory model (already "liquid"/never-killed by
-      default) to CPU, tasks, and session lifetime: TMX_CPU / TMX_TASKS
-      / TMX_RECYCLE_IDLE_SECS default to unlimited/never-recycle;
-      `=auto` (or an explicit value) opts IN to the previous
-      host-adaptive / legacy-fixed behaviour. Darwin's TMX_CPU_HARD_SEC
+      default) to CPU, tasks, and session lifetime: TMX_CPU and
+      TMX_RECYCLE_IDLE_SECS default to unlimited/never-recycle; TMX_TASKS
+      was unlimited too and was later (hostsafety) given a SAFE default of
+      TasksMax=6000 (`TMX_TASKS=` empty restores unlimited), alongside a
+      soft MemoryHigh default; `=auto` (or an explicit value) opts IN to
+      the previous host-adaptive / legacy-fixed behaviour. Darwin's TMX_CPU_HARD_SEC
       / TMX_PROC_MAX default to `unlimited` for the same reason.
     test_script: scripts/tests/88_no_limits_by_default.sh
     pass_condition: |
-      static wiring: TMX_CPU/TMX_TASKS/TMX_RECYCLE_IDLE_SECS all default
-      to unlimited/off (no unconditional CPUQuota, TasksMax configurable
-      not hardcoded, idle-recycle off in BOTH the wrapper's window
+      static wiring: TMX_CPU/TMX_RECYCLE_IDLE_SECS default to unlimited/off
+      and TMX_TASKS defaults to 6000 (no unconditional CPUQuota,
+      TasksMax configurable not hardcoded, idle-recycle off in BOTH the wrapper's window
       resolution AND the recycler script's own internal default);
       functional truth-table for all three knobs' unset/auto/explicit
       expansion; on Linux a session spawned with NONE of the three env
-      vars set reads back cpu.max=max AND pids.max=max on its cgroup
+      vars set reads back cpu.max=max AND pids.max=6000 on its cgroup
       AND installs no idle-recycle tmux hook (§11.4.108 runtime layer);
       a session spawned with all three explicitly opted in still lands
       the bounded values and the recycle hook (regression coverage for

@@ -191,8 +191,8 @@ elif grep -q "systemd-run --user --scope" "$WRAPPER"; then
     _pass "T2.1: tmx wrapper at $WRAPPER invokes systemd-run --user --scope"
     # 2026-08-10 wording note (§11.4.201 independent-review finding): this
     # is a literal-presence check (the mechanism exists somewhere in the
-    # wrapper) — CPUQuota/TasksMax are OPT-IN since 2026-08-10 (no cap by
-    # default; see test 88), so "cap not enforced" would over-claim what a
+    # wrapper) — CPUQuota is OPT-IN since 2026-08-10 (no cap by default) and
+    # TasksMax/MemoryHigh carry hostsafety defaults (see test 88), so "cap not enforced" would over-claim what a
     # grep proves. MemoryMax/Delegate=yes ARE unconditional.
     for inv in "MemoryMax" "CPUQuota" "TasksMax" "Delegate=yes"; do
         if grep -q "$inv" "$WRAPPER"; then
