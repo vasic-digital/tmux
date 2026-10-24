@@ -71,7 +71,10 @@ run_iteration() {
         local raw expected base raw_full expected_full
         raw="$(printf '%s' "$entry" | cut -d'|' -f1)"
         expected="$(printf '%s' "$entry" | cut -d'|' -f2)"
-        base="t82_${iter}_${expected}"
+        # Keep the base short so the sanitised socket label always fits inside
+        # the Unix-domain socket path limit (108 bytes) even when $TMPDIR is
+        # a long path such as /home/$USER/.cache/<tool>/tmp.
+        base="t82_${iter}"
         raw_full="${base} ${raw}"
         expected_full="${base}-${expected}"
         _cleanup_case "$expected_full" >/dev/null 2>&1
@@ -106,7 +109,7 @@ run_iteration() {
     return 0
 }
 
-trap 'for e in "${CASES[@]}"; do b="$(printf "%s" "$e" | cut -d"|" -f2)"; for i in 1 2 3; do _cleanup_case "t82_${i}_${b}-${b}" >/dev/null 2>&1; done; done; rm -rf "$SCRATCH"' EXIT
+trap 'for e in "${CASES[@]}"; do b="$(printf "%s" "$e" | cut -d"|" -f2)"; for i in 1 2 3; do _cleanup_case "t82_${i}-${b}" >/dev/null 2>&1; done; done; rm -rf "$SCRATCH"' EXIT
 
 _hashes=()
 for i in 1 2 3; do

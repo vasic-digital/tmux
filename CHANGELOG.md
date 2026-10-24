@@ -6,16 +6,30 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
-## [tmux-1.0.45] (also v1.0.45) — Unreleased (intended 2026-09-01)
+## [tmux-1.0.45] (also v1.0.45) — 2026-10-24
 
-A **workable-items tracker-integrity** release (versionCode 46). The tmux
-product surface is UNCHANGED from v1.0.44 — same hardened `tmux 3.7b`
-binary, same `tmx` wrapper, same submodule pin
-(`e802909de06012a4df6209d55e86487c56223163`). Everything below is in the
-§11.4.93 SQLite single-source-of-truth engine (`cmd/workable-items/`), the
-release gate (`scripts/verify.sh`), and the tracker corpus itself.
+A **setup robustness + workable-items tracker-integrity** release
+(versionCode 46). The tmux product surface is UNCHANGED from v1.0.44 — same
+hardened `tmux 3.7b` binary, same `tmx` wrapper, same submodule pin
+(`e802909de06012a4df6209d55e86487c56223163`).
 
 ### Fixed
+
+- **`setup.sh` CodeGraph auto-update/index bootstrap could hang or report a
+  version-bluff because live `codegraph serve --mcp` processes held the
+  project SQLite DB open, bash cached the old `codegraph` inode after
+  `npm install`, and a stale lock could block `codegraph init`.**
+  `scripts/setup.sh` now stops project-scoped codegraph processes before
+  update and before reindex, clears bash's command hash after npm update,
+  captures the real exit code of `scripts/codegraph_reindex.sh`, and aborts
+  on genuine reindex failure. `scripts/codegraph_reindex.sh` now unlocks
+  before init, surfaces init failure output, and uses a portable Python
+  file-size helper instead of the BSD-only `stat -f` that silently mis-read
+  on Linux. Measured proof: clean `setup.sh` retest reports `codegraph
+  version: 1.6.2`, index bootstrap completes, verification gate runs. Test
+  82 (`82_session_name_sanitization_live.sh`) is fixed to keep sanitised
+  socket labels short enough for the 108-byte Unix-domain socket path limit
+  when `$TMPDIR` is a long path (e.g. `/home/$USER/.cache/<tool>/tmp`).
 
 - **TMX-094's fix was structurally suppressed on the live corpus — an
   `add`-created row still rendered into NO tracker (found during release

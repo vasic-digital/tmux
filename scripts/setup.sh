@@ -314,6 +314,51 @@ if new != src:
 PYEOF
 }
 
+# Stop any codegraph MCP/indexer processes that hold the project DB open.
+# A running `codegraph serve --mcp` locks the SQLite artefact and can also
+# prevent npm from replacing package files during an update, producing the
+# "npm install succeeded but version unchanged" bluff observed on 2026-10-24.
+# §12 host-safety: only targets processes whose cwd or --path is this repo.
+_stop_codegraph_for_project() {
+    local repo_root="$1"
+    local pids=""
+    for pid in $(ps -eo pid=,args= 2>/dev/null | awk '/codegraph/ && !/awk/ {print $1}'); do
+        local cwd=""
+        cwd="$(readlink "/proc/$pid/cwd" 2>/dev/null || true)"
+        local args=""
+        args="$(ps -p "$pid" -o args= 2>/dev/null || true)"
+        local match=0
+        if [ "$cwd" = "$repo_root" ]; then match=1; fi
+        case "$args" in
+            *"--path $repo_root"*|*"--path=$repo_root"*) match=1 ;;
+        esac
+        # Also match processes that hold this repo's DB or lock file open.
+        if [ -d "/proc/$pid/fd" ]; then
+            for fd in /proc/$pid/fd/*; do
+                local target=""
+                target="$(readlink "$fd" 2>/dev/null || true)"
+                if [ "$target" = "$repo_root/.codegraph/codegraph.db" ] || [ "$target" = "$repo_root/.codegraph/codegraph.lock" ]; then
+                    match=1
+                    break
+                fi
+            done
+        fi
+        if [ "$match" -eq 1 ]; then
+            pids="$pids $pid"
+        fi
+    done
+    if [ -n "$pids" ]; then
+        echo "  stopping codegraph processes holding $repo_root DB: $pids"
+        for pid in $pids; do kill "$pid" 2>/dev/null || true; done
+        sleep 1
+        for pid in $pids; do kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true; done
+    fi
+    # Remove a stale lock left by a killed/crashed daemon so init can proceed.
+    if [ -f "$repo_root/.codegraph/codegraph.lock" ]; then
+        codegraph unlock "$repo_root" >/dev/null 2>&1 || true
+    fi
+}
+
 # ── uninstall logic (callable from both --uninstall mode AND from install
 # mode as a pre-clean-slate step) ───────────────────────────────────────────
 #
@@ -906,11 +951,20 @@ fi
 echo ""
 echo "[setup] step 3c — CodeGraph auto-update + index bootstrap (§11.4.77 + §11.4.80)"
 
+# Stop any live codegraph servers for this project before updating or indexing.
+# Prevents SQLite WAL/DB locks and npm package-file locks that cause the
+# "version unchanged" bluff caught by §11.4.107 anti-bluff.
+_stop_codegraph_for_project "$REPO_ROOT"
+
 # 3c.i — auto-update to npm-latest.
 CG_UPDATE_SCRIPT="$REPO_ROOT/constitution/scripts/codegraph_update.sh"
 if [ -x "$CG_UPDATE_SCRIPT" ]; then
     echo "  invoking constitution-provided update script (§11.4.80)..."
     bash "$CG_UPDATE_SCRIPT" 2>&1 | grep -E "already at|updated to|RED|version" | sed 's/^/    /' || true
+    # npm may have installed a newer codegraph into a prefix already on PATH;
+    # clear bash's command hash so the next `command -v codegraph` resolves the
+    # freshly-installed binary, not a stale cached inode.
+    hash -r 2>/dev/null || true
     # PATH may need a re-probe after a global npm install.
     if ! command -v codegraph >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
         NPM_PREFIX="$(npm config get prefix 2>/dev/null | tr -d '\r\n' || true)"
@@ -927,7 +981,19 @@ fi
 # 3c.ii — regenerate index.
 if command -v codegraph >/dev/null 2>&1; then
     if [ -x scripts/codegraph_reindex.sh ]; then
-        bash scripts/codegraph_reindex.sh 2>&1 | grep -E "regenerated|node|RED|merged|applied|index|sync" | sed 's/^/  /'
+        # Stop any daemon that may have started during the update step and
+        # remove a stale lock before reindex runs.
+        _stop_codegraph_for_project "$REPO_ROOT"
+        codegraph unlock "$REPO_ROOT" >/dev/null 2>&1 || true
+        _reindex_tmp="$(mktemp "${TMPDIR:-/tmp}/tmx_setup_reindex.XXXXXX")"
+        _reindex_rc=0
+        bash scripts/codegraph_reindex.sh >"$_reindex_tmp" 2>&1 || _reindex_rc=$?
+        grep -E "regenerated|node|RED|merged|applied|index|sync|customisations" "$_reindex_tmp" 2>/dev/null | sed 's/^/  /' || true
+        rm -f "$_reindex_tmp"
+        if [ "$_reindex_rc" -ne 0 ]; then
+            echo "[setup] ✗ codegraph reindex failed — see RED line(s) above" >&2
+            exit 1
+        fi
     else
         echo "  ⓘ scripts/codegraph_reindex.sh not executable — skip §11.4.77 bootstrap"
     fi

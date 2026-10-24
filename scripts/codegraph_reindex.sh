@@ -112,18 +112,24 @@ if [ ! -f "$CG_CFG" ] || [ ! -f "$CG_DB" ]; then
 fi
 
 if [ "$NEED_INIT" -eq 1 ]; then
+    # A stale lock from a crashed or forcibly-stopped daemon blocks init.
+    codegraph unlock "$REPO_ROOT" >/dev/null 2>&1 || true
     CG_CFG_BACKUP=""
     if [ -f "$CG_CFG" ]; then
         CG_CFG_BACKUP="$(mktemp)"
         cp "$CG_CFG" "$CG_CFG_BACKUP"
     fi
     echo "  bootstrapping: codegraph init"
-    codegraph init "$REPO_ROOT" >/dev/null 2>&1 || {
+    _init_out="$(mktemp)"
+    if ! codegraph init "$REPO_ROOT" >"$_init_out" 2>&1; then
         echo "RED: codegraph init failed" >&2
+        cat "$_init_out" >&2
+        rm -f "$_init_out"
         [ -n "$CG_CFG_BACKUP" ] && cp "$CG_CFG_BACKUP" "$CG_CFG"
         rm -f "$CG_CFG_BACKUP"
         exit 1
-    }
+    fi
+    rm -f "$_init_out"
     # Always (re-)apply our customisations on top of whatever init wrote.
     # If we had a prior config, also merge its include/exclude (preserves
     # operator-side additions). The CUSTOM_* arrays above are the canonical
@@ -164,8 +170,17 @@ PYEOF
     rm -f "$CG_CFG_BACKUP"
 fi
 
+# Portable file size (bytes). `stat -f '%z'` is BSD/macOS; `stat -c '%s'` is
+# GNU/Linux. Using python3 avoids the divergence and the silent failure of
+# `stat -f` on Linux (it prints filesystem info, not the file size, which
+# caused `[: ...: integer expected` and mis-routed index vs sync).
+_file_size_bytes() {
+    python3 -c 'import os,sys; p=sys.argv[1]; print(os.path.getsize(p) if os.path.exists(p) else 0)' "$1" 2>/dev/null || echo 0
+}
+
 # Step 3: index (first time / post-init) or sync (incremental).
-if [ ! -f "$CG_DB" ] || [ "$(stat -f '%z' "$CG_DB" 2>/dev/null || stat -c '%s' "$CG_DB" 2>/dev/null || echo 0)" -lt 4096 ] || [ "$NEED_INIT" -eq 1 ]; then
+CG_DB_SIZE="$(_file_size_bytes "$CG_DB")"
+if [ ! -f "$CG_DB" ] || [ "$CG_DB_SIZE" -lt 4096 ] || [ "$NEED_INIT" -eq 1 ]; then
     echo "  full index: codegraph index"
     codegraph index "$REPO_ROOT" 2>&1 | tail -3 || {
         echo "RED: codegraph index failed" >&2
