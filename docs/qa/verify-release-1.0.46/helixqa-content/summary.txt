@@ -1,0 +1,2 @@
+SELF_VALIDATION PASS golden-good=PASS golden-bad=FAIL
+SUMMARY total=26 pass=26 fail=0 calibration=CALIBRATED

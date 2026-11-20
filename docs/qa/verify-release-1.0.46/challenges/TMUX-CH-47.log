@@ -1,0 +1,17 @@
+CHALLENGE_ID=TMUX-CH-47
+TITLE=Scroll inside alt-screen + mouse-tracking TUI (Claude Code-like)
+TEST_SCRIPT=scripts/tests/47_alt_screen_scroll.sh
+PASS_CONDITION=FAIL=0. T1 helper script compiles; T2 conf-template carries WheelUpPane override; T3 synthetic helper launches + READY-marker captured; T4 pane alternate_on=1 + mouse_any_flag=1 (hostile surface confirmed); T5 copy-mode engages on WheelUp scroll-up action; T6 live WheelUpPane binding is the override (not the mouse_any_flag-respecting default).
+─── captured runtime output ───
+── Test 47: scroll inside alt-screen + mouse-tracking TUI (operator-path) ──
+PASS: T1: synthetic_alt_screen_app.py compiles (helper structurally valid)
+PASS: T2: tmux.conf.template carries WheelUpPane copy-mode override
+PASS: T3.0: operator-path session created
+PASS: T3.1: synthetic alt-screen helper running (READY marker captured from alt buffer)
+PASS: T4.1: pane alternate_on=1 — alt-screen surface confirmed
+PASS: T4.2: pane mouse_any_flag=1 — Claude-Code-like mouse tracking surface confirmed
+PASS: T5: copy-mode engaged inside alt-screen+mouse-any-flag pane (WheelUp override action works in hostile environment)
+PASS: T6: live WheelUpPane binding overrides tmux default — drives copy-mode unconditionally even under mouse-tracking
+
+  Tests: PASS=8  FAIL=0  SKIP=0
+EXIT_CODE=0

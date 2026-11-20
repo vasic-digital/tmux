@@ -245,6 +245,50 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project's anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
+<h2 id="tmx-1046--2026-11-20">[tmx-1.0.46] — 2026-11-20</h2>
+<p><strong>Full verification:</strong>
+<code>bash scripts/verify.sh</code> → <code>VERIFY_RC=0</code>,
+<code>SUMMARY: PASS=90 FAIL=0 SKIP=7</code>; typed gates: Go 3/3,
+Challenges 42 PASS / 0 FAIL / 5 honest SKIP, Constitution propagation
+106/106, HelixQA-content 26/26. Evidence:
+<code>docs/qa/verify-release-1.0.46/</code>.</p>
+<p><strong>Constitution wiring:</strong> HelixConstitution updated to
+<code>79c9c608</code> (v73.4), all 30 nested submodules at pinned
+commits, anchors §11.4.171–298 wired via
+<code>docs/governance/constitution_anchor_blocks.md</code> + compact
+index; 106/106 propagation gates pass. Stale pin references corrected in
+root governance docs.</p>
+<p><strong>All 12 open workable items closed with evidence</strong>
+(TMX-076/077/080/081/093/094/095/099/100/101/102/103): hash/category
+conventions, add-row rendering, read-only <code>db-to-md</code>, reopen
+identity guard, 55→0 unlocated identities, revision headers,
+deterministic summaries, scope-less collision guard, quiet-phase
+determinism, meta-test mutations. Tracker SSoT: 103 rows, 0 open,
+<code>validate OK: 0 findings</code>, byte-identical round-trip. TMX-101
+additionally fixed at source: <code>db-to-md</code> now emits the
+§11.4.44 revision header on every regeneration (deterministic exporter
+template date).</p>
+<p><strong>Verification infrastructure:</strong> new gates 93–98
+(13-type coverage matrix, security, race/deadlock, benchmark with
+derived thresholds, chaos/fail-closed, HelixQA content oracle with
+golden-good/bad); <code>verify.sh</code> wires
+Go/Challenge/Constitution/HelixQA gates; <code>run_all.sh</code> hang
+fixed (file capture instead of command substitution) + bounded per-test
+watchdog; challenge runner timeout 180 s and zero-count classifier fix;
+meta-test harness hang fixed. <code>TMX_TEST_DESTRUCTIVE=1</code> test
+13 passed (3/3); tests 12/14 SKIP: <code>stress-ng</code> absent and no
+passwordless sudo (honest gap).</p>
+<p><strong>Post-fetch remediation:</strong> merged upstream GitHub
+README badge commit <code>847f1b6</code> onto <code>main</code> (no
+force-push); rebuilt <code>workable-items</code> and
+<code>tmx-state-bin</code> from hardened sources; re-exported all
+tracked Markdown to HTML/PDF/DOCX (115 candidates, 0 failures); summary
+generator deterministic (sha256 of sorted keyset, two runs
+byte-identical).</p>
+<p><strong>Known SKIPs (unchanged, operator-gated):</strong> privileged
+<code>oom_score_adj</code> helper, <code>stress-ng</code> for
+destructive OOM tests, remote-host tests, destructive opt-in by default,
+Kimi CLI not installed.</p>
 <h2 id="tmx-1045--2026-10-24">[tmx-1.0.45] — 2026-10-24</h2>
 <blockquote>
 <p>Tag correction (measured 2026-11-20): the only 1.0.45 tag that exists

@@ -1,7 +1,7 @@
 # Issues — Workable-items Summary (generated)
 
 **Revision:** 1
-**Content SHA256:** 01de5540730e92a61590060da8618c959d2050412330ffb5e5efcef653d5cb5f
+**Content SHA256:** e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 
 > GENERATED FILE — do not hand-edit. Every figure below is derived from
 > `./cmd/workable-items/workable-items report` against the git-tracked
@@ -15,35 +15,18 @@ OPEN / non-terminal items — the rows that live in `Issues.md`.
 
 | Value | Count |
 |---|---:|
-| Queued | 8 |
-| Ready for testing | 3 |
-| Reopened | 1 |
-| **Total** | **12** |
+| **Total** | **0** |
 
 ## Counts by type
 
 | Value | Count |
 |---|---:|
-| Bug | 7 |
-| Task | 5 |
-| **Total** | **12** |
+| **Total** | **0** |
 
 ## Per-item ledger
 
 | TMX-ID | Type | Status |
 |---|---|---|
-| TMX-076 | Task | Ready for testing |
-| TMX-077 | Bug | Ready for testing |
-| TMX-080 | Bug | Reopened |
-| TMX-081 | Bug | Queued |
-| TMX-093 | Task | Queued |
-| TMX-094 | Bug | Queued |
-| TMX-095 | Bug | Ready for testing |
-| TMX-099 | Bug | Queued |
-| TMX-100 | Task | Queued |
-| TMX-101 | Task | Queued |
-| TMX-102 | Task | Queued |
-| TMX-103 | Bug | Queued |
 
 ## Provenance
 

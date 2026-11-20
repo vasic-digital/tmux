@@ -1,0 +1,7 @@
+CHALLENGE_ID=TMUX-CH-26
+TITLE=tmx_ssh_dispatch_nezha — remote SSH dispatch (P3 + P6)
+TEST_SCRIPT=scripts/tests/32_ssh_dispatch_remote_nezha.sh
+PASS_CONDITION=Test exit 0 AND stdout contains `[evidence] listed='<SESS>:'` lines per iteration proving the remote `tmx ls` showed the dispatched session; 3/3 reliability iterations identical evidence-hash per §11.4.50.
+─── captured runtime output ───
+SKIP 23: remote tests require TMX_TEST_REMOTE=1 (opt-in, network-heavy)
+EXIT_CODE=77

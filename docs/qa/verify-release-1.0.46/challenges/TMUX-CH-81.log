@@ -1,0 +1,15 @@
+CHALLENGE_ID=TMUX-CH-81
+TITLE=reopening a password-protected session prompts exactly once
+TEST_SCRIPT=scripts/tests/81_open_existing_password_single_prompt.sh
+PASS_CONDITION=exactly one password prompt on reopen; hash before == hash after; wrong password on reopen is rejected
+─── captured runtime output ───
+── Test 81: reopen recycled protected session shows exactly ONE prompt ──
+[evidence] session created, password set, hash captured: d1ac46053daf...
+[evidence] tmux server torn down (has-session fails), password state SURVIVES (has-password exit 0) — exact recycled-session shape reproduced
+[evidence] reopen shows the verify-style 'is password-protected' prompt
+PASS 81: reopen: correct password attaches
+PASS 81: exactly ONE password prompt shown on reopen (no phantom second create/confirm prompt)
+PASS 81: persisted password hash UNCHANGED after successful reopen (verified, not silently reset)
+PASS 81: wrong password on reopen is correctly rejected (session not attached)
+── Test 81 summary: PASS=4 FAIL=0 SKIP=0 ──
+EXIT_CODE=0

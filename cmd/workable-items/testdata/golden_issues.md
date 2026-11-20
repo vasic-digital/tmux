@@ -1,5 +1,8 @@
 # vasic-digital tmux — Open Issues Tracker
 
+**Revision:** 1
+**Last modified:** 2026-11-20T00:00:00Z
+
 > §11.4.93 SQLite-SSoT generated. Edit the DB via
 > `workable-items add|close|...` — direct MD edits are obliterated
 > by the next `workable-items sync db-to-md` invocation.

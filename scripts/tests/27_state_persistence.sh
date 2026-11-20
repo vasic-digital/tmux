@@ -171,22 +171,21 @@ run_iteration() {
     # client-detached/session-closed firing (no client is attached in
     # this detached-session test). The wrapper installs the SAME command;
     # proving it works here proves the integration end-to-end.
-    "$TMUX_BIN" -L "$SOCK_LABEL" run-shell "$STATE_BIN record $SESS #{pane_current_path}" 2>/dev/null
-    "$WRAPPER" kill-session -t "$SESS" >/dev/null 2>&1 || \
-        "$TMUX_BIN" -L "$SOCK_LABEL" kill-session -t "$SESS" >/dev/null 2>&1 || true
-    # §11.4.1/§11.4.50 source-layer hardening: `tmux run-shell "<cmd>"` spawns
-    # the `tmx-state-bin record` job in tmux's event loop and does NOT guarantee
-    # the spawned child has finished WRITING the state file before run-shell
-    # returns to this shell. Under full-suite CPU contention the async record
-    # lands AFTER a blind `sleep` would elapse, so an immediate `recall` reads
-    # the stale Phase-1 value (observed FAIL: recall='...-target-...' instead of
-    # '...-hook-...'). This is the run-shell-hook fire→record→readable timing
-    # race — a HARNESS race, not a product defect (record is atomic + durable
-    # on exit per tmx-state/main.go). Poll the REAL condition (state file now
-    # contains the hook_target) up to 25 × 0.2 s = 5 s instead of a blind sleep.
-    # The assertion below is UNCHANGED — a genuinely broken hook never writes
-    # the hook_target, so `after_hook` stays != hook_target and still FAILs
-    # after the full timeout.
+    # TMX-080 root-cause fix (source-proven, 2026-11-20): tmux's `run-shell`
+    # is SYNCHRONOUS unless `-b` is passed — tmux/cmd-run-shell.c:100 sets
+    # `wait = !args_has(args, 'b')`. The test's command has no `-b`, so the
+    # child's atomic+durable write (tmx-state/atomic.go: temp → fsync → rename
+    # → parent fsync) completes BEFORE run-shell returns. There is no async
+    # write to wait for; the historical failure was the post-TEARDOWN
+    # observation point plus the missing `-t` target: a bare (`-t`-less)
+    # run-shell resolves `#{pane_current_path}` against tmux's ambiguous
+    # "current" pane, which can be stale (Issues.md TMX-080 anomaly #2).
+    # `-t "$SESS"` binds it to the SAME pane the cd-poll above verified.
+    "$TMUX_BIN" -L "$SOCK_LABEL" run-shell -t "$SESS" "$STATE_BIN record $SESS #{pane_current_path}" 2>/dev/null
+    # Observe the hook write BEFORE teardown — this removes the kill-session
+    # (`systemctl --user stop`, KillMode=control-group) race entirely. The
+    # bounded poll checks the REAL state-file condition (never a blind sleep);
+    # its assertion is UNCHANGED and strict.
     local after_hook _hk_i
     after_hook="MISSING"
     for _hk_i in $(seq 1 25); do
@@ -196,22 +195,43 @@ run_iteration() {
         fi
         sleep 0.2
     done
-    rm -rf "$hook_target"
     if [ "$after_hook" != "$hook_target" ] && [ "$after_hook" != "$hook_target_real" ]; then
         echo "FAIL 18 iter=$iter: run-shell hook did not update state — recall='$after_hook' (expected '$hook_target' or '$hook_target_real')"
+        "$WRAPPER" kill-session -t "$SESS" >/dev/null 2>&1 || true
+        rm -rf "$hook_target"
         return 1
     fi
-    _evidence="iter=$iter recall1=$TARGET_DIR pane_path=$pane_path recall2=$hook_target"
+    # Now tear down and assert the record SURVIVES session teardown (durability
+    # is part of the end-user contract: reopening the session recalls this cwd).
+    "$WRAPPER" kill-session -t "$SESS" >/dev/null 2>&1 || \
+        "$TMUX_BIN" -L "$SOCK_LABEL" kill-session -t "$SESS" >/dev/null 2>&1 || true
+    local after_kill
+    after_kill="$("$STATE_BIN" recall "$SESS" 2>/dev/null || echo MISSING)"
+    if [ "$after_kill" != "$hook_target" ] && [ "$after_kill" != "$hook_target_real" ]; then
+        echo "FAIL 18 iter=$iter: hook record lost across kill-session — recall='$after_kill' (expected '$hook_target')"
+        rm -rf "$hook_target"
+        return 1
+    fi
+    rm -rf "$hook_target"
+    # §11.4.50: derive the reliability hash from OBSERVED verdicts, not from
+    # a $$ -derived path (the old hash differed on every invocation). These
+    # three booleans are the normalized evidence shape; all are 1 on PASS.
+    local _r1ok _pok _hkok
+    [ "$recalled" = "$TARGET_DIR" ] && _r1ok=1 || _r1ok=0
+    if [ "$pane_path" = "$TARGET_DIR" ] || [ "$pane_path" = "$TARGET_DIR_REAL" ]; then _pok=1; else _pok=0; fi
+    if [ "$after_hook" = "$hook_target" ] || [ "$after_hook" = "$hook_target_real" ]; then _hkok=1; else _hkok=0; fi
+    _iter_hash="$(printf 'recall1_ok=%s pane_path_ok=%s recall2_ok=%s\n' "$_r1ok" "$_pok" "$_hkok" | shasum | cut -d' ' -f1)"
+    _evidence="recall1=$TARGET_DIR pane_path=$pane_path recall2=$hook_target"
     return 0
 }
 
 # §11.4.50 deterministic consistency: 3 iterations, identical evidence shape.
+# The hash is computed INSIDE run_iteration from observed verdict booleans and
+# carries no $$ -derived path, so it is byte-identical across invocations too.
 _hashes=()
 for i in 1 2 3; do
     if ! run_iteration "$i"; then exit 1; fi
-    # Hash only the stable parts (paths) — iteration index is excluded.
-    _h="$(echo "recall1=$TARGET_DIR pane_path=$TARGET_DIR" | shasum | cut -d' ' -f1)"
-    _hashes+=("$_h")
+    _hashes+=("$_iter_hash")
     echo "[evidence] iter=$i $_evidence"
 done
 

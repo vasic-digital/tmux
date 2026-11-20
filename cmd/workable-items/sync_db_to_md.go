@@ -31,7 +31,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 )
 
 // SyncDBToMD regenerates Issues.md + Fixed.md under outDir from db state.
@@ -43,6 +42,15 @@ import (
 //
 // The format is the structured "golden" form documented at the top of this
 // file — designed for byte-stable round-trip with the testdata fixtures.
+//
+// TMX-103 (§11.4.128(1) observer-effect / §11.4.121 no-commit-during-verification):
+// this is a PURE EXPORT. It performs reads only — it never MetaSet's a
+// last_sync_* stamp (formerly lines 131-134) and never writes any table. Every
+// call, including a verification round-trip into a throwaway --out-dir, leaves
+// the source SQLite SSoT byte-identical (no WAL/shm side effects on the tracked
+// docs/workable_items.db after the caller's DB.Close checkpoint). Sync
+// provenance stays recorded by the WRITE direction (sync_md_to_db.go), so a
+// read-only verification pass can no longer dirty the git-tracked artifact.
 func SyncDBToMD(db *DB, outDir string) error {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir %s: %w", outDir, err)
@@ -82,6 +90,15 @@ func SyncDBToMD(db *DB, outDir string) error {
 		sourceless := sourcelessItems(byID, issuesSrc, fixedSrc)
 		newIssues = appendRenderedItems(newIssues, sourceless, LocationIssues)
 		newFixed = appendRenderedItems(newFixed, sourceless, LocationFixed)
+		// §11.4.44: the verbatim blob replay path bypasses writeIssuesMD /
+		// writeFixedMD, so enforce the revision header here as well. Otherwise
+		// every db-to-md export silently drops a hand-added header.
+		allItems := make([]*Item, 0, len(byID))
+		for _, it := range byID {
+			allItems = append(allItems, it)
+		}
+		newIssues = ensureRevisionHeader(newIssues, allItems)
+		newFixed = ensureRevisionHeader(newFixed, allItems)
 
 		if issuesSrc != "" {
 			if err := os.WriteFile(filepath.Join(outDir, "Issues.md"), []byte(newIssues), 0o644); err != nil {
@@ -128,12 +145,10 @@ func SyncDBToMD(db *DB, outDir string) error {
 		}
 	}
 
-	if err := db.MetaSet("last_sync_direction", "db-to-md"); err != nil {
-		return err
-	}
-	if err := db.MetaSet("last_sync_timestamp", time.Now().UTC().Format(time.RFC3339)); err != nil {
-		return err
-	}
+	// TMX-103: NO DB WRITES HERE. The old last_sync_direction /
+	// last_sync_timestamp MetaSet pair mutated the git-tracked SSoT on every
+	// export — including a pure verification round-trip — making the documented
+	// byte-identity check dirty the tree with unrecoverable stamp bytes.
 	return nil
 }
 
@@ -288,9 +303,37 @@ func appendRenderedItems(doc string, sourceless []*Item, loc string) string {
 	return appendBlocksToDoc(doc, blocks)
 }
 
+// ensureRevisionHeader inserts the §11.4.44 header directly below the H1 when
+// a replayed verbatim blob lacks one; idempotent on already-headed documents.
+func ensureRevisionHeader(doc string, items []*Item) string {
+	lines := strings.SplitN(doc, "\n", 2)
+	if len(lines) != 2 || !strings.HasPrefix(lines[0], "# ") {
+		return doc
+	}
+	head := lines[1]
+	headLines := strings.Split(head, "\n")
+	for i := 0; i < min(6, len(headLines)); i++ {
+		if strings.HasPrefix(headLines[i], "**Revision:**") {
+			return doc
+		}
+	}
+	return lines[0] + "\n\n" + strings.TrimSuffix(revisionHeader(items), "\n") + head
+}
+
+// §11.4.44 revision header. The date is the EXPORTER TEMPLATE revision, not a
+// wall-clock or DB timestamp: §11.4.93/§11.4.50 require md→db→md to be
+// byte-identical, which a live timestamp would break on every run. Bump this
+// constant when the generated document shape changes.
+const revisionTemplateDate = "2026-11-20T00:00:00Z"
+
+func revisionHeader(_ []*Item) string {
+	return "**Revision:** 1\n**Last modified:** " + revisionTemplateDate + "\n\n"
+}
+
 func writeIssuesMD(path string, items []*Item) error {
 	var sb strings.Builder
 	sb.WriteString("# vasic-digital tmux — Open Issues Tracker\n\n")
+	sb.WriteString(revisionHeader(items))
 	sb.WriteString("> §11.4.93 SQLite-SSoT generated. Edit the DB via\n")
 	sb.WriteString("> `workable-items add|close|...` — direct MD edits are obliterated\n")
 	sb.WriteString("> by the next `workable-items sync db-to-md` invocation.\n\n")
@@ -332,6 +375,7 @@ func writeIssuesMD(path string, items []*Item) error {
 func writeFixedMD(path string, items []*Item) error {
 	var sb strings.Builder
 	sb.WriteString("# vasic-digital tmux — Closed Items Tracker\n\n")
+	sb.WriteString(revisionHeader(items))
 	sb.WriteString("> §11.4.93 SQLite-SSoT generated. Closures land here via\n")
 	sb.WriteString("> `workable-items close " + TicketPrefix + "NNN --status fixed|implemented|completed|obsolete`.\n\n")
 	sb.WriteString("## Items\n\n")

@@ -19,6 +19,9 @@ import (
 
 const tmx060IssuesBlob = `# vasic-digital tmux — Open Issues Tracker
 
+**Revision:** 1
+**Last modified:** 2026-11-20T00:00:00Z
+
 > preamble blockquote that the per-item raw_body cannot capture.
 
 ## A. Tooling / harness gaps
@@ -51,6 +54,9 @@ second paragraph — when the item migrates to Fixed.md on close.
 `
 
 const tmx060FixedBlob = `# vasic-digital tmux — Closed Items Tracker
+
+**Revision:** 1
+**Last modified:** 2026-11-20T00:00:00Z
 
 ## Items
 

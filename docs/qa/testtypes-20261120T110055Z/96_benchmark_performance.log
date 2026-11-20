@@ -1,0 +1,8 @@
+── Test 96: benchmark/performance gate (run-id testtypes-20261120T110055Z) ──
+  METRIC cal1 n=24 p50=2173.2us p95=2597.6us
+  METRIC cal2 n=24 p50=2191.7us p95=2400.2us
+  METRIC cal3 n=24 p50=2271.9us p95=2511.1us
+  METRIC verify n=24 p50=2157.8us p95=2400.8us ceiling=7792.7us (3x max cal p95=2597.6us)
+RESULT: PASS
+PASS: p50/p95 emitted; verify p95 within data-derived threshold (3 calibration runs)
+PASS: benchmark/performance gate green — threshold derived from 3 measured runs, no literature SLA

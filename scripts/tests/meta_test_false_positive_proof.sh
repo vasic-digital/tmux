@@ -44,6 +44,29 @@ _pass() { echo "PASS: $*"; MUT_PASS=$((MUT_PASS + 1)); }
 _fail() { echo "FAIL: $*"; MUT_FAIL=$((MUT_FAIL + 1)); }
 _skip() { echo "SKIP: $*"; MUT_SKIP=$((MUT_SKIP + 1)); }
 
+# §11.4.98 FULL-AUTOMATION HANG FIX (measured 2026-11-20): a target test may
+# daemonise a child (xclip at M44) that inherits STDOUT and keeps a command-
+# substitution pipe open after the test exits, hanging the whole sweep.
+# Capture into a FILE (grandchildren cannot hold a pipe open), sever stdin,
+# and bound each run. The real test rc is preserved — previously `|| true`
+# followed by `$?` always yielded 0, so the rc-based catch branch was dead.
+_run_test_capture() {
+    local t="$1" f rc=0
+    f="$(mktemp "${TMPDIR:-/tmp}/tmx-meta-XXXXXX")" || { echo "FAIL: mktemp unavailable"; return 2; }
+    if command -v timeout >/dev/null 2>&1; then
+        timeout -s TERM "${TMX_META_TEST_TIMEOUT:-300}" bash "$t" </dev/null >"$f" 2>&1 || rc=$?
+    else
+        bash "$t" </dev/null >"$f" 2>&1 || rc=$?
+    fi
+    cat "$f"
+    rm -f "$f"
+    return "$rc"
+}
+# Usage: _capture_and_rc "$test"  -> sets META_TEST_OUT and META_TEST_RC
+_capture_and_rc() {
+    META_TEST_OUT="$(_run_test_capture "$1")" && META_TEST_RC=0 || META_TEST_RC=$?
+}
+
 # ── inplace_sed — portable in-place sed ───────────────────────────────
 # GNU `sed -i` and BSD `sed -i ''` (macOS) diverge; a bare `sed -i 's|…|'`
 # fails on macOS, which silently degraded M1/M2/M3/M6 to SKIP there.
@@ -118,8 +141,8 @@ run_mutation() {
 
     # ── Step 2: run test — expect FAIL ───────────────────────────
     local test_out
-    test_out=$(bash "$test_abs" 2>&1) || true
-    local test_rc=$?
+    _capture_and_rc "$test_abs"
+    local test_out="$META_TEST_OUT" test_rc="$META_TEST_RC"
 
     if echo "$test_out" | grep -qE "$expect_fail"; then
         _pass "$desc MUTATION CAUGHT — test output contains '$expect_fail'"
@@ -139,8 +162,8 @@ run_mutation() {
     rm -f "$backup" 2>/dev/null || true
 
     # ── Step 4: run test — expect PASS ───────────────────────────
-    test_out=$(bash "$test_abs" 2>&1) || true
-    test_rc=$?
+    _capture_and_rc "$test_abs"
+    test_out="$META_TEST_OUT"; test_rc="$META_TEST_RC"
 
     if echo "$test_out" | grep -qE '^PASS'; then
         _pass "$desc FEATURE RESTORED — test PASSes after revert"
@@ -972,8 +995,8 @@ v109_run_mutation() {
 
     # Run target test, expect FAIL.
     local test_out test_rc
-    test_out=$(bash "$test_abs" 2>&1) || true
-    test_rc=$?
+    _capture_and_rc "$test_abs"
+    test_out="$META_TEST_OUT"; test_rc="$META_TEST_RC"
     if echo "$test_out" | grep -qE "$expect_fail"; then
         _pass "${mut_id} MUTATION CAUGHT — test output contains '${expect_fail}'"
     elif [ "$test_rc" -ne 0 ]; then

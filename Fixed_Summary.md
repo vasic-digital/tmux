@@ -1,7 +1,7 @@
 # Fixed — Workable-items Summary (generated)
 
 **Revision:** 1
-**Content SHA256:** 80ff520fddca0330b4fe859ed590464c0d56b48ae2c39ccdc1a71d3f841fc405
+**Content SHA256:** 7c105fffbd090aac205a62074953248cbc5afd613d98b59bdfa87bc0151b8e23
 
 > GENERATED FILE — do not hand-edit. Every figure below is derived from
 > `./cmd/workable-items/workable-items report` against the git-tracked
@@ -15,20 +15,20 @@ TERMINAL closure items (Fixed / Implemented / Completed / Obsolete) — the rows
 
 | Value | Count |
 |---|---:|
-| Completed (→ Fixed.md) | 18 |
-| Fixed (→ Fixed.md) | 60 |
+| Completed (→ Fixed.md) | 23 |
+| Fixed (→ Fixed.md) | 67 |
 | Implemented (→ Fixed.md) | 10 |
 | Obsolete (→ Fixed.md) | 3 |
-| **Total** | **91** |
+| **Total** | **103** |
 
 ## Counts by type
 
 | Value | Count |
 |---|---:|
-| Bug | 61 |
+| Bug | 68 |
 | Feature | 10 |
-| Task | 20 |
-| **Total** | **91** |
+| Task | 25 |
+| **Total** | **103** |
 
 ## Per-item ledger
 
@@ -109,8 +109,12 @@ TERMINAL closure items (Fixed / Implemented / Completed / Obsolete) — the rows
 | TMX-073 | Feature | Implemented (→ Fixed.md) |
 | TMX-074 | Bug | Fixed (→ Fixed.md) |
 | TMX-075 | Feature | Implemented (→ Fixed.md) |
+| TMX-076 | Task | Completed (→ Fixed.md) |
+| TMX-077 | Bug | Fixed (→ Fixed.md) |
 | TMX-078 | Feature | Implemented (→ Fixed.md) |
 | TMX-079 | Bug | Fixed (→ Fixed.md) |
+| TMX-080 | Bug | Fixed (→ Fixed.md) |
+| TMX-081 | Bug | Fixed (→ Fixed.md) |
 | TMX-082 | Bug | Fixed (→ Fixed.md) |
 | TMX-083 | Bug | Fixed (→ Fixed.md) |
 | TMX-084 | Bug | Fixed (→ Fixed.md) |
@@ -122,9 +126,17 @@ TERMINAL closure items (Fixed / Implemented / Completed / Obsolete) — the rows
 | TMX-090 | Bug | Fixed (→ Fixed.md) |
 | TMX-091 | Task | Completed (→ Fixed.md) |
 | TMX-092 | Task | Completed (→ Fixed.md) |
+| TMX-093 | Task | Completed (→ Fixed.md) |
+| TMX-094 | Bug | Fixed (→ Fixed.md) |
+| TMX-095 | Bug | Fixed (→ Fixed.md) |
 | TMX-096 | Feature | Implemented (→ Fixed.md) |
 | TMX-097 | Task | Completed (→ Fixed.md) |
 | TMX-098 | Bug | Fixed (→ Fixed.md) |
+| TMX-099 | Bug | Fixed (→ Fixed.md) |
+| TMX-100 | Task | Completed (→ Fixed.md) |
+| TMX-101 | Task | Completed (→ Fixed.md) |
+| TMX-102 | Task | Completed (→ Fixed.md) |
+| TMX-103 | Bug | Fixed (→ Fixed.md) |
 
 ## Provenance
 

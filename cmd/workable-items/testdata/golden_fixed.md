@@ -1,5 +1,8 @@
 # vasic-digital tmux — Closed Items Tracker
 
+**Revision:** 1
+**Last modified:** 2026-11-20T00:00:00Z
+
 > §11.4.93 SQLite-SSoT generated. Closures land here via
 > `workable-items close TMX-NNN --status fixed|implemented|completed|obsolete`.
 

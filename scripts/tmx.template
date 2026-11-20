@@ -1189,7 +1189,11 @@ case "$SUBCMD" in
         # shell string is safe for the sanitised token set
         # ([A-Za-z0-9._-]) per `_sanitise` above.
         if [ -x "$TMX_DIR/tmx-state-bin" ]; then
-            HOOK_CMD="run-shell '$TMX_DIR/tmx-state-bin record $NAME #{pane_current_path}'"
+            # §11.4.54/§11.4.50: bind the format expansion to THIS session's
+            # pane. Without -t, `#{pane_current_path}` resolves against tmux's
+            # ambiguous "current" pane and can record a stale path (measured
+            # in TMX-080). $NAME is sanitised to [A-Za-z0-9._-] upstream.
+            HOOK_CMD="run-shell -t '$NAME' '$TMX_DIR/tmx-state-bin record $NAME #{pane_current_path}'"
             "$TMUX_BIN" -L "$SOCK_LABEL" set-hook -g client-detached "$HOOK_CMD" 2>/dev/null || true
             "$TMUX_BIN" -L "$SOCK_LABEL" set-hook -g session-closed  "$HOOK_CMD" 2>/dev/null || true
         fi

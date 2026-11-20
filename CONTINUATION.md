@@ -1,5 +1,9 @@
 # CONTINUATION.md — vasic-digital tmux
 
+**Revision:** 1
+**Last modified:** 2026-11-20T10:14:48Z
+
+
 **Last updated:** 2026-09-29T17:45:00Z
 
 ## §0 — How to resume work in any CLI agent

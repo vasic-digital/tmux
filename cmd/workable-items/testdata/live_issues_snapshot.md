@@ -1,5 +1,8 @@
 # vasic-digital tmux — Open Issues Tracker
 
+**Revision:** 1
+**Last modified:** 2026-11-20T00:00:00Z
+
 > **Canonical source of truth for everything currently unfinished, partially
 > validated, or at risk of violating the anti-bluff covenant
 > (`Constitution.md` §1 + §11.4.1 through §11.4.6).**

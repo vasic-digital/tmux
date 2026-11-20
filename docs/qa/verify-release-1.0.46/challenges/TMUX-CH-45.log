@@ -1,0 +1,20 @@
+CHALLENGE_ID=TMUX-CH-45
+TITLE=MULTI-LINE copy physical end-user proof (operator-path)
+TEST_SCRIPT=scripts/tests/45_multiline_copy_physical.sh
+PASS_CONDITION=FAIL=0. T1 conf-template carries the multi-line bindings (v + y + @clip); T2 all 6 markers printed into the pane scrollback; T3 copy-mode entered + cursor-down -N 5 + end-of-line + copy-pipe-and-cancel "#{@clip}"; T4 tmux own buffer carries all 6 markers (binding chain proven); T5 the OS-native paste tool returns ALL 6 markers (physical end-user proof) — or honestly SKIPs where no clipboard tool is reachable (headless Linux).
+─── captured runtime output ───
+── Test 45: MULTI-LINE copy physical proof (operator-path) ──
+  markers: MLMARK_2152816_1795170647_A MLMARK_2152816_1795170647_B MLMARK_2152816_1795170647_C MLMARK_2152816_1795170647_D MLMARK_2152816_1795170647_E MLMARK_2152816_1795170647_F
+  clipboard tool: xclip (X11)
+  ✓ template: @clip user option
+  ✓ template: copy-mode-vi v -> begin-sel
+  ✓ template: copy-mode-vi y -> copy-pipe
+PASS: T1: tmux.conf.template carries multi-line selection bindings (v + y + @clip)
+PASS: T2.0: operator-path session created
+PASS: T2.1: all 6 markers printed into the pane scrollback
+PASS: T3.1: copy-mode entered (pane_in_mode=1)
+PASS: T4: multi-line @clip copy-pipe routed all 6 markers into tmux buffer (binding chain proven)
+PASS: T5: SYSTEM CLIPBOARD (xclip (X11)) carries all 6 markers — PHYSICAL multi-line copy proven
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+EXIT_CODE=0

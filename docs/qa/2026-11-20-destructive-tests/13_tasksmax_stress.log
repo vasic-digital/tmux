@@ -1,0 +1,8 @@
+── Test 13: TasksMax fork-bomb resistance (Linux branch) ──
+PASS: T7.1: pids.max=256 matches configured TasksMax=256 (positive evidence: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/tmx-test-1994921-t7.scope/pids.max)
+/usr/bin/bash: fork: retry: Resource temporarily unavailable
+/usr/bin/bash: fork: retry: Resource temporarily unavailable
+PASS: T7.2: pids.current=256 (positive evidence: /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/tmx-test-1994921-t7.scope/pids.current)
+PASS: T7.3: pids.current=256 <= TasksMax=256 — limit enforced
+
+  Tests: PASS=3  FAIL=0  SKIP=0

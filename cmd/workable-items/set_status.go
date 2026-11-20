@@ -70,7 +70,19 @@ func SetStatus(db *DB, p SetStatusParams) (*Item, error) {
 		return nil, fmt.Errorf("item %s not found", p.ATMID)
 	}
 
+	// §11.4.54 + §11.4.19 — a reopen is a BLOCK-IDENTITY MIGRATION back to
+	// Issues: the identity triple (current_location, category, code_ordinal) is
+	// re-pointed from (Fixed, cat, ord) to (Issues, cat, ord). Block codes are
+	// CATEGORY-LOCAL and are NOT unique across the two trackers, so that
+	// destination can already be held by a different open item. Check BEFORE any
+	// write so a refusal is side-effect free (§11.4.252) — the exact mirror of
+	// close.go's checkDestinationBlockIdentityFree guard (TMX-099).
+	if err := checkReopenDestinationBlockIdentityFree(db, it, statusValue); err != nil {
+		return nil, err
+	}
+
 	from := it.Status
+	fromLocation := it.CurrentLocation
 	it.Status = statusValue
 	// Every non-terminal status is an OPEN state, so the item belongs in the
 	// Issues tracker. Moving from a terminal/Fixed status back to a non-terminal
@@ -83,6 +95,12 @@ func SetStatus(db *DB, p SetStatusParams) (*Item, error) {
 	reason := p.Reason
 	if reason == "" {
 		reason = fmt.Sprintf("set-status %s → %s", from, statusValue)
+	}
+	// §11.4.226 — a block identity that changed files with no recorded evidence
+	// is indistinguishable from one that was always there. Mirror close.go's
+	// migration note when the identity actually crossed trackers.
+	if fromLocation != LocationIssues {
+		reason = appendReopenIdentityMigrationNote(reason, it, fromLocation)
 	}
 	ev := &ItemHistoryEvent{
 		ATMID:     p.ATMID,
@@ -152,4 +170,74 @@ func normaliseStatusToken(s string) string {
 // nonTerminalStatusList renders the accepted set for error messages.
 func nonTerminalStatusList() string {
 	return strings.Join(nonTerminalStatuses, " | ")
+}
+
+// checkReopenDestinationBlockIdentityFree refuses a set-status transition that
+// would move the item's block identity onto an (Issues, category, code_ordinal)
+// triple ALREADY held by a DIFFERENT item (TMX-099) — the mirror image of
+// close.go's checkDestinationBlockIdentityFree.
+//
+// FALSE-POSITIVE GUARDS (§11.4.201(1) — a wrong refusal is as bad as a missed
+// defect). Each mirrors the close-side guard so both agree on what "claims a
+// block" means:
+//
+//   - code_ordinal <= 0 is the "unknown ordinal" sentinel, not a block claim
+//     (every `workable-items add` row carries it), so it can never collide.
+//   - an Obsolete destination may legitimately SHARE its superseder's block
+//     (§11.4.90). mapSetStatusToken rejects Obsolete as a terminal value, so
+//     this branch is unreachable for current callers; it is kept as the exact
+//     structural mirror of the close-side guard and cannot mask a real
+//     collision (no non-terminal caller can reach it).
+//   - the item itself is excluded, so a repeated set-status on an item already
+//     in Issues is never refused by its own row (§11.4.115 idempotent reopen).
+//
+// Only a DIFFERENT, non-Obsolete-destination holder is a genuine collision.
+func checkReopenDestinationBlockIdentityFree(db *DB, it *Item, statusValue string) error {
+	if it.CodeOrdinal <= 0 {
+		return nil // sentinel ordinal — asserts no block claim.
+	}
+	if statusValue == StatusObsolete {
+		return nil // §11.4.90 supersession may share its successor's block.
+	}
+	rows, err := db.conn.Query(
+		`SELECT atm_id FROM items
+		  WHERE current_location = ? AND category = ? AND code_ordinal = ? AND atm_id <> ?
+		  ORDER BY atm_id`,
+		LocationIssues, it.Category, it.CodeOrdinal, it.ATMID)
+	if err != nil {
+		return fmt.Errorf("check reopen destination block identity: %w", err)
+	}
+	defer rows.Close()
+	var holders []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return fmt.Errorf("check reopen destination block identity: %w", err)
+		}
+		holders = append(holders, id)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("check reopen destination block identity: %w", err)
+	}
+	if len(holders) == 0 {
+		return nil
+	}
+	code := fmt.Sprintf("%s%d", it.Category, it.CodeOrdinal)
+	return fmt.Errorf(
+		"§11.4.54: reopening %s would move its block identity to %s in Issues.md, "+
+			"but that block is already held by %s — two items would claim one block. "+
+			"Renumber %s's block to a free %s-category code in Fixed.md, re-run "+
+			"`workable-items sync md-to-db`, then reopen again",
+		it.ATMID, code, strings.Join(holders, ", "), it.ATMID, it.Category)
+}
+
+// appendReopenIdentityMigrationNote records the block-identity file transition
+// on the reopen "Updated" history event, preserving any operator reason.
+func appendReopenIdentityMigrationNote(reason string, it *Item, from string) string {
+	note := fmt.Sprintf("block identity %s%d migrated %s -> %s",
+		it.Category, it.CodeOrdinal, from, LocationIssues)
+	if reason == "" {
+		return note
+	}
+	return reason + "; " + note
 }

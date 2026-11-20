@@ -6,6 +6,20 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
+## [tmx-1.0.46] — 2026-11-20
+
+**Full verification:** `bash scripts/verify.sh` → `VERIFY_RC=0`, `SUMMARY: PASS=90 FAIL=0 SKIP=7`; typed gates: Go 3/3, Challenges 42 PASS / 0 FAIL / 5 honest SKIP, Constitution propagation 106/106, HelixQA-content 26/26. Evidence: `docs/qa/verify-release-1.0.46/`.
+
+**Constitution wiring:** HelixConstitution updated to `79c9c608` (v73.4), all 30 nested submodules at pinned commits, anchors §11.4.171–298 wired via `docs/governance/constitution_anchor_blocks.md` + compact index; 106/106 propagation gates pass. Stale pin references corrected in root governance docs.
+
+**All 12 open workable items closed with evidence** (TMX-076/077/080/081/093/094/095/099/100/101/102/103): hash/category conventions, add-row rendering, read-only `db-to-md`, reopen identity guard, 55→0 unlocated identities, revision headers, deterministic summaries, scope-less collision guard, quiet-phase determinism, meta-test mutations. Tracker SSoT: 103 rows, 0 open, `validate OK: 0 findings`, byte-identical round-trip. TMX-101 additionally fixed at source: `db-to-md` now emits the §11.4.44 revision header on every regeneration (deterministic exporter template date).
+
+**Verification infrastructure:** new gates 93–98 (13-type coverage matrix, security, race/deadlock, benchmark with derived thresholds, chaos/fail-closed, HelixQA content oracle with golden-good/bad); `verify.sh` wires Go/Challenge/Constitution/HelixQA gates; `run_all.sh` hang fixed (file capture instead of command substitution) + bounded per-test watchdog; challenge runner timeout 180 s and zero-count classifier fix; meta-test harness hang fixed. `TMX_TEST_DESTRUCTIVE=1` test 13 passed (3/3); tests 12/14 SKIP: `stress-ng` absent and no passwordless sudo (honest gap).
+
+**Post-fetch remediation:** merged upstream GitHub README badge commit `847f1b6` onto `main` (no force-push); rebuilt `workable-items` and `tmx-state-bin` from hardened sources; re-exported all tracked Markdown to HTML/PDF/DOCX (115 candidates, 0 failures); summary generator deterministic (sha256 of sorted keyset, two runs byte-identical).
+
+**Known SKIPs (unchanged, operator-gated):** privileged `oom_score_adj` helper, `stress-ng` for destructive OOM tests, remote-host tests, destructive opt-in by default, Kimi CLI not installed.
+
 ## [tmx-1.0.45] — 2026-10-24
 
 > Tag correction (measured 2026-11-20): the only 1.0.45 tag that exists is

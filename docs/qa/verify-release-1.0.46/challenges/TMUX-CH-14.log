@@ -1,0 +1,6 @@
+CHALLENGE_ID=TMUX-CH-14
+TITLE=concurrent OOM independence via the OPERATOR PATH (T8)
+TEST_SCRIPT=scripts/tests/14_concurrent_oom_independence.sh
+PASS_CONDITION=Only scope A is killed; B and C remain active with unchanged MainPIDs; default.target=active throughout
+─── captured runtime output ───
+SKIP: destructive challenge needs TMX_TEST_DESTRUCTIVE=1 (project §destructive-tests)

@@ -48,6 +48,20 @@ _pass() { echo "PASS: $*"; PASS=$((PASS+1)); }
 _fail() { echo "FAIL: $*"; FAIL=$((FAIL+1)); }
 _skip() { echo "SKIP: $*"; SKIP=$((SKIP+1)); }
 
+# ── measured timing contract (§11.4.98 — no blind sleeps) ────────────────
+# Live measurement 2026-11-20 (evidence: ~/.cache/claude-tmp/opencode/
+# tmx-evidence/probe_timing.log, 3 runs): `tmx new -s X -d` returned in
+# 1.20-1.75 s and scope+slice+server-pid+slice-pid were ALL ready by
+# 1.22-1.91 s.  READY_BOUND_S=8 (~4x observed max) absorbs cold-cache spikes.
+# Quiet settle: first all-zero 1 s nr_throttled window appeared at 3 s in
+# 3/3 runs (slice deltas 10-11, 10, 8-8 in windows 1-2, then 0). The historical
+# 2026-08-10 failure needed >12 s under a cold shell-framework cache, so
+# SETTLE_MAX_TRIES=30 (2.5x that historical failure point, 10x measured).
+READY_BOUND_S="${T87_READY_BOUND_S:-8}"
+SETTLE_MAX_TRIES="${T87_SETTLE_MAX_TRIES:-30}"
+T87_SCRATCH="${TMPDIR:-/tmp}/t87-$$"
+mkdir -p "$T87_SCRATCH" 2>/dev/null || true
+
 echo "── Test 87: interactive-server scope split (RED_MODE=$RED_MODE) ──"
 echo "  target: $TARGET"
 
@@ -90,22 +104,117 @@ _start_fleet() {
 # non-zero deltas.
 _quiet_settle() {
     local tries=0 all_zero cg d0 d1 out=""
-    while [ "$tries" -lt 12 ]; do
+    local base="$T87_SCRATCH/quiet-base.$$"
+    # Fail CLOSED with a diagnosable verdict if the session's cgroups are
+    # absent/unreadable — an empty cgroup path used to blow up in an associative
+    # array ("bad array subscript") and print a misleading empty "never-settled"
+    # (the TMX-081 symptom on runs where the session never came up at all).
+    if [ "$#" -eq 0 ]; then printf 'unavailable:no-cgroups-passed'; return 1; fi
+    for cg in "$@"; do
+        if [ -z "$cg" ] || [ ! -r "/sys/fs/cgroup$cg/cpu.stat" ]; then
+            printf 'unavailable:cpu.stat(%s)' "${cg:-<empty>}"
+            return 1
+        fi
+    done
+    while [ "$tries" -lt "$SETTLE_MAX_TRIES" ]; do
         all_zero=1; out=""
-        declare -A _q0=()
-        for cg in "$@"; do _q0["$cg"]="$(_throttled "$cg")"; done
+        : > "$base"
+        for cg in "$@"; do printf '%s %s\n' "$cg" "$(_throttled "$cg")" >> "$base"; done
         sleep 1
-        for cg in "$@"; do
-            d0="${_q0["$cg"]}"; d1="$(_throttled "$cg")"
+        while read -r cg d0; do
+            [ -z "$cg" ] && continue
+            d1="$(_throttled "$cg")"
             if [ -z "$d0" ] || [ -z "$d1" ] || [ "$((d1 - d0))" -ne 0 ]; then
                 all_zero=0; out="$out $cg:delta=$(( ${d1:-0} - ${d0:-0} ))"
             fi
-        done
-        if [ "$all_zero" -eq 1 ]; then printf 'settled'; return 0; fi
+        done < "$base"
+        if [ "$all_zero" -eq 1 ]; then
+            echo "[evidence] quiet settled after $((tries + 1)) x 1s window(s), bound=$SETTLE_MAX_TRIES" >&2
+            printf 'settled'
+            return 0
+        fi
         tries=$((tries + 1))
     done
     printf 'never-settled:%s' "$out"
     return 1
+}
+
+# Bounded, condition-based session readiness (replaces blind `sleep 1` after
+# `new`). mode=shared needs only the server pid; mode=split additionally needs
+# both units active + a live pid under the workload slice. $3 overrides the
+# slice unit (escaped dashed-name case, G8).
+_wait_ready() {
+    local s="$1" mode="$2" slice_unit="${3:-tmxw-$1.slice}"
+    local deadline=$(( $(date +%s) + READY_BOUND_S ))
+    local pid scg wcg
+    while [ "$(date +%s)" -lt "$deadline" ]; do
+        pid="$("$TMUX_BIN_T87" -L "tmx-$s" display-message -p '#{pid}' 2>/dev/null)"
+        if [ -n "$pid" ]; then
+            if [ "$mode" = "shared" ]; then return 0; fi
+            scg="$(_cg_of_unit "tmx-$s.scope")"
+            wcg="$(_cg_of_unit "$slice_unit")"
+            if [ -n "$scg" ] && [ -n "$wcg" ] && \
+               [ "$(systemctl --user is-active "tmx-$s.scope" 2>/dev/null)" = "active" ] && \
+               [ "$(systemctl --user is-active "$slice_unit" 2>/dev/null)" = "active" ] && \
+               _subtree_has_pid "$wcg"; then
+                return 0
+            fi
+        fi
+        sleep 0.1
+    done
+    return 1
+}
+
+# Bounded wait for units to go away after kill-session (G7/G8b).
+_wait_gone() {
+    local deadline=$(( $(date +%s) + READY_BOUND_S )) u any_active
+    while [ "$(date +%s)" -lt "$deadline" ]; do
+        any_active=0
+        for u in "$@"; do
+            if [ "$(systemctl --user is-active "$u" 2>/dev/null)" = "active" ]; then
+                any_active=1
+                break
+            fi
+        done
+        [ "$any_active" -eq 0 ] && return 0
+        sleep 0.1
+    done
+    return 1
+}
+
+# Create via the real wrapper with stderr captured as evidence, then poll for
+# readiness. Returns 0 only when the session is genuinely up; otherwise emits
+# a FAIL with the wrapper's own error text (no more hidden `2>/dev/null`).
+_new_ready() {
+    local label="$1" mode="$2" slice_unit="${3:-}"
+    shift 3
+    local errf="$T87_SCRATCH/create-$label.err"
+    : > "$errf"
+    if ! "$WRAPPER" "$@" >/dev/null 2>"$errf"; then
+        _fail "$label setup: tmx new failed — $(head -c 300 "$errf" | tr '\n' '|')"
+        return 1
+    fi
+    local sname=""
+    # derive session name from the -s argument
+    while [ "$#" -gt 0 ]; do
+        if [ "$1" = "-s" ] && [ "$#" -gt 1 ]; then sname="$2"; break; fi
+        shift
+    done
+    if [ -z "$sname" ]; then
+        _fail "$label setup: no -s session name passed to _new_ready"
+        return 1
+    fi
+    if [ -n "$slice_unit" ]; then
+        if ! _wait_ready "$sname" "$mode" "$slice_unit"; then
+            _fail "$label setup: session '$sname' not ready within ${READY_BOUND_S}s (scope/slice/pid/slice-pid)"
+            return 1
+        fi
+    elif ! _wait_ready "$sname" "$mode"; then
+        _fail "$label setup: session '$sname' not ready within ${READY_BOUND_S}s"
+        return 1
+    fi
+    echo "[evidence] $label: session '$sname' up within ${READY_BOUND_S}s, wrapper stderr empty"
+    return 0
 }
 
 SESS="t87_$$"
@@ -123,6 +232,7 @@ _cleanup() {
     systemctl --user stop "$SLICE_ESC3" >/dev/null 2>&1 || true
     rm -rf "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/systemd/user.control/tmxw-t87"* 2>/dev/null || true
     systemctl --user daemon-reload 2>/dev/null || true
+    rm -rf "$T87_SCRATCH" 2>/dev/null || true
 }
 trap _cleanup EXIT
 
@@ -140,9 +250,10 @@ _split_cpu_pcts $1" 2>/dev/null
 if [ "$RED_MODE" = "1" ]; then
     # ═════ RED: defect-present on the SHARED topology ═════
     # TMX_CPU=100 (1 CPU total) + burst disabled => throttling deterministic.
-    TMX_SERVER_SPLIT=0 TMX_CPU=100 TMX_CPU_BURST=0 TMX_RECYCLE_IDLE_SECS=0 \
-        "$WRAPPER" new -s "$SESS" -d >/dev/null 2>&1
-    sleep 1
+    if ! TMX_SERVER_SPLIT=0 TMX_CPU=100 TMX_CPU_BURST=0 TMX_RECYCLE_IDLE_SECS=0 \
+        _new_ready "RED" shared "" new -s "$SESS" -d; then
+        echo "  Tests: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 1
+    fi
     SRV_PID="$("$TMUX_BIN_T87" -L "tmx-$SESS" display-message -p '#{pid}' 2>/dev/null)"
     if [ -z "$SRV_PID" ]; then
         _fail "RED: session did not come up (no server pid)"
@@ -185,9 +296,10 @@ else
     _fail "G0: split functions missing from $TARGET (srv=${_fn_srv:+yes}${_fn_srv:-no} split=${_fn_split:+yes}${_fn_split:-no})"
 fi
 
-TMX_SERVER_SPLIT=1 TMX_CPU=100 TMX_CPU_BURST=0 TMX_RECYCLE_IDLE_SECS=0 \
-    "$WRAPPER" new -s "$SESS" -d >/dev/null 2>&1
-sleep 1
+if ! TMX_SERVER_SPLIT=1 TMX_CPU=100 TMX_CPU_BURST=0 TMX_RECYCLE_IDLE_SECS=0 \
+    _new_ready "G1" split "" new -s "$SESS" -d; then
+    echo "  Tests: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 1
+fi
 
 # G1: both units live; server pid's cgroup (kernel-authoritative, /proc) is
 # the srv scope and NOT the slice.
@@ -257,8 +369,10 @@ fi
 # DEFAULT now, so the split topology needs an explicit, splittable
 # TMX_CPU to engage at all; TMX_CPU=auto opts IN to the same host-adaptive
 # total this sub-test always intended to exercise).
-TMX_SERVER_SPLIT=1 TMX_CPU=auto TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$SESS2" -d >/dev/null 2>&1
-sleep 1
+if ! TMX_SERVER_SPLIT=1 TMX_CPU=auto TMX_RECYCLE_IDLE_SECS=0 \
+    _new_ready "G6" split "" new -s "$SESS2" -d; then
+    echo "  Tests: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 1
+fi
 SCOPE_CG2="$(_cg_of_unit "tmx-$SESS2.scope")"
 SLICE_CG2="$(_cg_of_unit "tmxw-$SESS2.slice")"
 TOTAL_DEF="$(bash -c "HOST_OS=Linux; $_fn_total; _default_cpu_pct" 2>/dev/null)"
@@ -276,7 +390,7 @@ else
     fi
 fi
 "$WRAPPER" kill-session -t "$SESS2" >/dev/null 2>&1
-sleep 1
+_wait_gone "tmx-$SESS.scope" "tmxw-$SESS.slice" "tmx-$SESS2.scope" "tmxw-$SESS2.slice" || true
 
 # G7: pair teardown — kill-session left NEITHER unit active (no leak).
 LEAK=""
@@ -293,8 +407,10 @@ fi
 # hierarchy: 'foo' quota must never bound 'foo-bar'). Live \x2d path.
 # 2026-08-10 reconciliation (§11.4.120): TMX_CPU=auto opts IN so the split
 # topology (which requires a splittable total) actually engages — see G6.
-TMX_SERVER_SPLIT=1 TMX_CPU=auto TMX_RECYCLE_IDLE_SECS=0 "$WRAPPER" new -s "$SESS3" -d >/dev/null 2>&1
-sleep 1
+if ! TMX_SERVER_SPLIT=1 TMX_CPU=auto TMX_RECYCLE_IDLE_SECS=0 \
+    _new_ready "G8" split "$SLICE_ESC3" new -s "$SESS3" -d; then
+    echo "  Tests: PASS=$PASS FAIL=$FAIL SKIP=$SKIP"; exit 1
+fi
 ESC_ACTIVE="$(systemctl --user is-active "$SLICE_ESC3" 2>/dev/null || true)"
 ESC_CG="$(_cg_of_unit "$SLICE_ESC3")"
 if [ "$ESC_ACTIVE" = "active" ] && [ -n "$ESC_CG" ] && _subtree_has_pid "$ESC_CG"; then
@@ -303,7 +419,7 @@ else
     _fail "G8: escaped slice for dashed name wrong (unit=$SLICE_ESC3 active='$ESC_ACTIVE' cg='$ESC_CG')"
 fi
 "$WRAPPER" kill-session -t "$SESS3" >/dev/null 2>&1
-sleep 1
+_wait_gone "$SLICE_ESC3" || true
 if [ "$(systemctl --user is-active "$SLICE_ESC3" 2>/dev/null || true)" != "active" ]; then
     _pass "G8b: escaped slice torn down by kill-session"
 else

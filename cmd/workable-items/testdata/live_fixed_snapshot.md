@@ -1,5 +1,8 @@
 # vasic-digital tmux — Closed Items Tracker
 
+**Revision:** 1
+**Last modified:** 2026-11-20T00:00:00Z
+
 > **Canonical record of every issue that has been fixed AND verified
 > with captured runtime evidence.** Companion to
 > [`Issues.md`](Issues.md) (open / in-flight items).
