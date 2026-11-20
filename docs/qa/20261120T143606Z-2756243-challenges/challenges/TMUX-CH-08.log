@@ -1,0 +1,11 @@
+CHALLENGE_ID=TMUX-CH-08
+TITLE=wrapper applies oom_score_adj=-500
+TEST_SCRIPT=scripts/tests/08_oom_score_adj.sh
+PASS_CONDITION=cat /proc/<server-pid>/oom_score_adj == "-500"
+─── captured runtime output ───
+── Test 08: wrapper sets oom_score_adj=-500 ──
+SKIP: oom_score_adj=-500 requires either (a) root, or (b) the setcap-enabled
+      /usr/local/bin/tmx-oom-set helper. Currently running as UID 1000 and helper is not installed.
+      To enable Test 08 PASS:  (as root) bash scripts/build_oom_set.sh --install
+      See docs/guides/TMUX_OPTIMIZED_BUILD.md §8 for full options.
+EXIT_CODE=0

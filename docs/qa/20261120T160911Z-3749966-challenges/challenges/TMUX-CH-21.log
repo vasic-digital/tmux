@@ -1,0 +1,12 @@
+CHALLENGE_ID=TMUX-CH-21
+TITLE=CodeGraph index present + non-empty
+TEST_SCRIPT=scripts/tests/21_codegraph_index_present.sh
+PASS_CONDITION=FAIL=0. T1 `.codegraph/codegraph.db` file present; T2 file size > 4 KB (non-empty SQLite); T3 `codegraph status` reports a non-zero node count.
+─── captured runtime output ───
+PASS: T1: codegraph.db present (positive evidence: file exists)
+PASS: T2: codegraph.db size = 2318868480 bytes > 4 KB SQLite minimum (positive evidence: wc -c readback)
+PASS: T3: codegraph status reports 486 nodes (positive runtime evidence per §11.4.5)
+PASS: T4: §11.4.77 regen stamp present, recorded node_count=486 (positive evidence: stamp file)
+
+  Tests: PASS=4  FAIL=0  SKIP=0
+EXIT_CODE=0

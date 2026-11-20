@@ -1,0 +1,16 @@
+CHALLENGE_ID=CME-WORKABLE-ITEMS-001
+TITLE=workable-items SQLite-SSoT end-to-end (§11.4.93 + §11.4.95)
+TEST_SCRIPT=scripts/tests/51_workable_items_db_integrity.sh
+PASS_CONDITION=FAIL=0 from test 51 — binary builds, DB present + tracked, schema-anchor present, validate clean (0 findings), round-trip byte-identical (sha256 match), 3-iter §11.4.50 deterministic reliability hash.
+─── captured runtime output ───
+── Test 51: workable-items DB integrity (§11.4.93 / §11.4.95) ──
+PASS 51: T0 binary executable at /home/milosvasic/Projects/tmx/cmd/workable-items/workable-items
+PASS 51: T1 docs/workable_items.db present + git-tracked (size=1122304 bytes)
+PASS 51: T2 schema applies cleanly: schema OK: embedded schema applied cleanly
+PASS 51: T3 validate clean: validate OK: 0 findings
+[evidence 51] iter=1 Issues.md=6933b Fixed.md=291969b byte-identical=yes
+[evidence 51] iter=2 Issues.md=6933b Fixed.md=291969b byte-identical=yes
+[evidence 51] iter=3 Issues.md=6933b Fixed.md=291969b byte-identical=yes
+PASS 51: T4 + T5 round-trip byte-identical on 3/3 iterations (hash=1605044d158b264fcb522b7ab251fda1c65920f7)
+── summary 51: PASS=5 FAIL=0 SKIP=0 ──
+EXIT_CODE=0

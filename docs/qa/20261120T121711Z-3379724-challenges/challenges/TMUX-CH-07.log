@@ -1,0 +1,11 @@
+CHALLENGE_ID=TMUX-CH-07
+TITLE=30-second sustained session
+TEST_SCRIPT=scripts/tests/07_long_session.sh
+PASS_CONDITION=growth in 25 s < 50% of T+5s baseline
+─── captured runtime output ───
+── Test 07: 30s sustained session, no runaway growth ──
+  RSS at T+5s: 4604 kB
+  RSS at T+30s: 4608 kB
+  growth in 25 s: 4 kB (0%)
+PASS (growth < 50% over 25 s)
+EXIT_CODE=0

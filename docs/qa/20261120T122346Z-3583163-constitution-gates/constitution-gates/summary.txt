@@ -1,0 +1,2 @@
+GATE=CM-CONSTITUTION-GATES RUN_ID=20261120T122346Z-3583163-constitution-gates EXCLUSIONS=constitution/config/covenant_propagation_exclusions.tsv TIMEOUT=60s
+SUMMARY total=106 pass=106 fail=0

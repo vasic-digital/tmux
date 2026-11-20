@@ -1,0 +1,16 @@
+CHALLENGE_ID=TMUX-CH-80
+TITLE=creating a new password-protected session asks twice
+TEST_SCRIPT=scripts/tests/80_new_password_confirm_flow.sh
+PASS_CONDITION="Confirm password" prompt follows the first entry; matching pair succeeds; 3x mismatch aborts with has-session failing afterward
+─── captured runtime output ───
+── Test 80: new-session password create+confirm flow ──
+[evidence A] second 'Confirm password' prompt appeared after the first entry
+PASS 80: A: matching password+confirmation → session created and attached
+PASS 80: A: password persisted correctly (verify-password accepts it)
+[evidence B attempt=1] mismatch message shown, retrying
+[evidence B attempt=2] mismatch message shown, retrying
+PASS 80: B: 3rd mismatch aborted with an explicit 'not created' message
+PASS 80: B: no session left behind after 3x password mismatch (fail-closed honored)
+PASS 80: B: no password persisted after the abort
+── Test 80 summary: PASS=5 FAIL=0 SKIP=0 ──
+EXIT_CODE=0

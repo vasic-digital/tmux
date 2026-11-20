@@ -1,0 +1,24 @@
+{
+  "calibration": [
+    {
+      "p50": 2482.1150000207126,
+      "p95": 2688.694992684759
+    },
+    {
+      "p50": 2454.665009281598,
+      "p95": 2639.2240106360987
+    },
+    {
+      "p50": 2673.183989827521,
+      "p95": 3380.277004907839
+    }
+  ],
+  "verify_p50_us": 3920.9770038723946,
+  "verify_p95_us": 6014.661004883237,
+  "ceiling_us": 10140.831014723517,
+  "threshold_rule": "3x max calibration p95 (data-derived)",
+  "finite": true,
+  "monotonic": true,
+  "within": true,
+  "verdict": "PASS"
+}

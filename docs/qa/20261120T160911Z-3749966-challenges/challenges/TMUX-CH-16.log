@@ -1,0 +1,17 @@
+CHALLENGE_ID=TMUX-CH-16
+TITLE=window-name strips `.exe` suffix (operator-path)
+TEST_SCRIPT=scripts/tests/16_window_name_strips_exe.sh
+PASS_CONDITION=PASS=6 FAIL=0 (T1 conf-template carries literal-dot-anchored `\\.exe$`; T2.0 operator-path session A created; T2.1 pane_current_command observed as `t16_target.exe`; T2.2 #W has .exe stripped; T3.0 session B created; T3.1 regression guard `t16_bashexe` preserved as-is)
+─── captured runtime output ───
+── Test 16: window-name strips .exe suffix (operator-path) ──
+PASS: T1: tmux.conf.template carries literal-dot-anchored .exe strip ('\\.exe$')
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t16_a_3770386 ls' succeeded)
+  observed: pane_current_command='t16_target.exe'  #W='t16_target'
+PASS: T2.1: pane_current_command='t16_target.exe' confirmed (defect surface is reachable in this run)
+PASS: T2.2: window name 't16_target' has .exe stripped (positive evidence: live #W read from tmx-tmx_t16_a_3770386)
+PASS: T3.0: operator-path session B created
+  observed (no-dot): pane_current_command='t16_bashexe'  #W='t16_bashexe'
+PASS: T3.1: regression guard — 't16_bashexe' (no dot) preserved as-is (positive evidence: unescaped-dot bug NOT shipping)
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+EXIT_CODE=0

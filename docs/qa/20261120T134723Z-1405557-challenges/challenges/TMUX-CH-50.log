@@ -1,0 +1,18 @@
+CHALLENGE_ID=TMUX-CH-50
+TITLE=cwd-capture hook AUTO-INSTALL via tmx.template (P5-M21 closure)
+TEST_SCRIPT=scripts/tests/50_cwd_hook_autoinstall.sh
+PASS_CONDITION=FAIL=0. T1 structural — template contains the set-hook block; T2 runtime — operator-path session, show-hooks lists both hooks referencing `tmx-state record`; T3 3-iter §11.4.50 reliability hash identical.
+─── captured runtime output ───
+── Test 50: cwd-capture hook AUTO-INSTALL via tmx.template ──
+PASS 50: T0 wrapper + tmux + tmx-state-bin all present
+PASS 50: T1 tmx.template auto-install block + tmx-state-bin record present
+PASS 50: T1 generated wrapper carries the auto-install block
+[evidence 50] iter=1 client-detached: client-detached[0] run-shell -t tmx_t50_1593148 "/home/milosvasic/Projects/tmx/scripts/tmx-state-bin record tmx_t50_1593148 #{pane_current_path}"
+[evidence 50] iter=1 session-closed:  session-closed[0] run-shell -t tmx_t50_1593148 "/home/milosvasic/Projects/tmx/scripts/tmx-state-bin record tmx_t50_1593148 #{pane_current_path}"
+[evidence 50] iter=2 client-detached: client-detached[0] run-shell -t tmx_t50_1593148 "/home/milosvasic/Projects/tmx/scripts/tmx-state-bin record tmx_t50_1593148 #{pane_current_path}"
+[evidence 50] iter=2 session-closed:  session-closed[0] run-shell -t tmx_t50_1593148 "/home/milosvasic/Projects/tmx/scripts/tmx-state-bin record tmx_t50_1593148 #{pane_current_path}"
+[evidence 50] iter=3 client-detached: client-detached[0] run-shell -t tmx_t50_1593148 "/home/milosvasic/Projects/tmx/scripts/tmx-state-bin record tmx_t50_1593148 #{pane_current_path}"
+[evidence 50] iter=3 session-closed:  session-closed[0] run-shell -t tmx_t50_1593148 "/home/milosvasic/Projects/tmx/scripts/tmx-state-bin record tmx_t50_1593148 #{pane_current_path}"
+PASS 50: T2 + T3 both hooks auto-installed on 3/3 iterations (identical evidence) on Linux
+── summary 50: PASS=4 FAIL=0 SKIP=0 ──
+EXIT_CODE=0

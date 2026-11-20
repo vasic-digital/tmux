@@ -1,0 +1,9 @@
+CHALLENGE_ID=TMUX-CH-01
+TITLE=tmux binary smoke test
+TEST_SCRIPT=scripts/tests/01_smoke.sh
+PASS_CONDITION=stdout contains "tmux 3.7b"
+─── captured runtime output ───
+── Test 01: smoke ──
+  binary reports: tmux 3.7b
+PASS
+EXIT_CODE=0

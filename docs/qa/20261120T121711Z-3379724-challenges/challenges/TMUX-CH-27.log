@@ -1,0 +1,11 @@
+CHALLENGE_ID=TMUX-CH-27
+TITLE=tmx_non_tty_safety — non-TTY stdin silent-skips fast (P2 + P6)
+TEST_SCRIPT=scripts/tests/30_non_tty_skip.sh
+PASS_CONDITION=Test exit 0 AND stdout contains `[evidence] ... elapsed_ms=<N>` with N < 2000 (well under the spec's 5000ms ceiling) per iteration AND `rc=0 no_prompt=yes no_session=yes` AND no `Enter session name` substring in captured stdout; 3/3 reliability iterations identical evidence-hash per §11.4.50.
+─── captured runtime output ───
+[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=1 elapsed_ms=22 rc=0 no_prompt=yes no_session=yes
+[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=2 elapsed_ms=23 rc=0 no_prompt=yes no_session=yes
+[evidence] Linux: POSIX TTY semantics enforced by glibc/musl iter=3 elapsed_ms=25 rc=0 no_prompt=yes no_session=yes
+[evidence] HOST_OS=Linux reliability_hash=f47384843d753c1e15005ed10c2529a8d54f89ae
+PASS 21 tmx-shell-init: non-TTY stdin silent-skips fast (3/3 iterations, Linux)
+EXIT_CODE=0

@@ -1,0 +1,14 @@
+CHALLENGE_ID=TMUX-CH-10
+TITLE=hostname→color algorithm — deterministic palette mapping
+TEST_SCRIPT=scripts/tests/10_hostname_color_algorithm.sh
+PASS_CONDITION=PASS=5 FAIL=0 (all 5 invariants: deterministic, valid colourNNN, palette member, spread ≥12/16, empty-fallback to system hostname)
+─── captured runtime output ───
+── Test 10: hostname→color algorithm ──
+PASS: T1: deterministic — 'testhost-001' → colour87 (twice)
+PASS: T2: 'colour46' is a valid tmux 256-colour
+PASS: T3: 16/16 hostnames produced unique colours (good spread)
+PASS: T4: 'colour201' is a member of the curated palette (27 colours)
+PASS: T5: empty argument uses system hostname (→ colour202)
+
+  Tests: PASS=5  FAIL=0
+EXIT_CODE=0

@@ -1,0 +1,20 @@
+CHALLENGE_ID=TMUX-CH-18
+TITLE=HelixConstitution inheritance is wired and verified
+TEST_SCRIPT=scripts/tests/18_constitution_inheritance.sh
+PASS_CONDITION=FAIL=0. T1 submodule populated; T2 .gitmodules carries the constitution entry with an SSH URL; T2b submodule initialized; T3 §11.4 anchor present in constitution/Constitution.md; T4 verbatim anti-bluff mandate present; T5–T9 project Constitution / CLAUDE / AGENTS / QWEN all carry inheritance pointers plus the §101 project anti-bluff binding.
+─── captured runtime output ───
+── Test 18: HelixConstitution inheritance gate ──
+  constitution dir: /home/milosvasic/Projects/tmx/constitution
+PASS: T1: constitution submodule populated (Constitution.md + CLAUDE.md + AGENTS.md present)
+PASS: T2: .gitmodules records constitution submodule with an SSH URL (no-HTTPS rule honored)
+PASS: T2b: constitution submodule initialized at 79c9c608734b8c6d80694be5ba16029be192189a
+PASS: T3: §11.4 End-user Quality Guarantee anchor present in constitution/Constitution.md
+PASS: T4: verbatim anti-bluff user mandate present in constitution/Constitution.md
+PASS: T5: project Constitution.md declares it extends constitution/Constitution.md
+PASS: T6: project CLAUDE.md carries the INHERITED-FROM block and @constitution/CLAUDE.md import
+PASS: T7: project AGENTS.md references constitution/AGENTS.md
+PASS: T8: project QWEN.md present and references constitution/QWEN.md
+PASS: T9: project Constitution.md §101 anti-bluff covenant binding intact
+
+  Tests: PASS=10  FAIL=0  SKIP=0
+EXIT_CODE=0

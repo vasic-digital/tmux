@@ -1,0 +1,14 @@
+CHALLENGE_ID=TMUX-CH-52
+TITLE=§11.4.99 Sources-verified footer enforcement
+TEST_SCRIPT=scripts/tests/52_docs_sources_verified.sh
+PASS_CONDITION=FAIL=0. T1 enumerates operator-facing docs; T2 each has a Sources-verified footer; T3 each date is ISO + ≤ 6 months old; T4 3-iter deterministic.
+─── captured runtime output ───
+── Test 52: §11.4.99 Sources-verified footer presence ──
+PASS 52: T0 docs/ root present
+PASS 52: T1 + T2 + T3 all 3 guarded docs carry valid Sources-verified footer (≤180d)
+[evidence 52] docs/guides/clipboard.md verified=2026-06-13 age=160d
+[evidence 52] docs/workable-items/README.md verified=2026-05-28 age=176d
+[evidence 52] docs/scripts/workable-items.md verified=2026-05-28 age=176d
+PASS 52: T4 §11.4.50 deterministic across 3 iterations (hash=5ab8b3ae38153e03cf35a8dc1c6b91794b06e15a)
+── summary 52: PASS=3 FAIL=0 SKIP=0 (threshold=2026-05-24) ──
+EXIT_CODE=0

@@ -1,0 +1,11 @@
+── Test 95: workable-items race/deadlock gate (run-id testtypes-20261120T142740Z) ──
+  deadlock watchdog: GNU timeout available
+PASS: integrity oracle rejects corrupted DB (check='error' != ok)
+  OBSERVE iter=1 ok=8 busy_rejected=0 unexpected=0
+PASS: iter=1: 8 writers safe (ok=8 fail-closed-busy=0), integrity=ok, validate 0 findings, items=103
+  OBSERVE iter=2 ok=8 busy_rejected=0 unexpected=0
+PASS: iter=2: 8 writers safe (ok=8 fail-closed-busy=0), integrity=ok, validate 0 findings, items=103
+  OBSERVE iter=3 ok=8 busy_rejected=0 unexpected=0
+PASS: iter=3: 8 writers safe (ok=8 fail-closed-busy=0), integrity=ok, validate 0 findings, items=103
+PASS: determinism: 3/3 iteration hashes identical (a97a0c97cfc0cb49...)
+PASS: race/deadlock gate green — 8 concurrent writers x3, no corruption/locks/hangs

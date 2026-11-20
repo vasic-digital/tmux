@@ -1,0 +1,21 @@
+════════════════════════════════════════════════════════════════
+ §11.4.169 test-type coverage matrix (run-id testtypes-20261120T165138Z)
+════════════════════════════════════════════════════════════════
+TYPE | TEST(S) | EVIDENCE PATH | STATUS
+ 1  unit                    | 64_session_color_parse_unit.sh, 10_hostname_color_algorithm.sh, 91_zig_yacc_contract.sh | docs/qa/<run-id>/ | PRESENT
+ 2  integration             | 11_hostname_color_integration.sh, 40_macos_linux_parity.sh | docs/qa/<run-id>/ | PRESENT
+ 3  e2e                     | 43_e2e_cwd_persist_real_shell.sh, 42_setup_install_uninstall_e2e.sh, 68_session_lifecycle.sh | docs/qa/<run-id>/ | PRESENT
+ 4  full-automation         | scripts/tests/run_all.sh (auto-discovers [0-9][0-9]_*.sh, stdin severed §11.4.98) | docs/qa/<run-id>/ | PRESENT
+ 5  Challenges              | scripts/challenges/tmux.yaml | docs/qa/<run-id>/ | PARTIAL: definitions exist; no automated challenge runner wired into run_all.sh
+ 6  HelixQA                 | 98_helixqa_content_verification_gate.sh; scripts/testing/* (separate surface) | docs/qa/<run-id>/ | PRESENT: deterministic content oracle; full HelixQA UI-Vision runner is a separate surface
+ 7  DDoS/load-flood          | 13_tasksmax_stress.sh, 14_concurrent_oom_independence.sh, 06_concurrent_panes.sh | docs/qa/<run-id>/ | PRESENT
+ 8  security                | 94_security_gate.sh, 90_install_ssh_only_no_credential_prompt.sh, 34_ssh_install_idempotent.sh | docs/qa/<run-id>/ | PRESENT
+ 9  stress+chaos            | 97_stress_chaos_gate.sh, 12_memory_pressure_under_cap.sh, 39_state_unwritable.sh | docs/qa/<run-id>/ | PRESENT
+10  concurrency/atomicity   | 33_state_concurrency.sh, 95_race_deadlock_gate.sh, 14_concurrent_oom_independence.sh | docs/qa/<run-id>/ | PRESENT
+11  race/deadlock           | 95_race_deadlock_gate.sh, 33_state_concurrency.sh | docs/qa/<run-id>/ | PRESENT
+12  memory                  | 12_memory_pressure_under_cap.sh, 08_oom_score_adj.sh, 03_jemalloc_loaded.sh | docs/qa/<run-id>/ | PRESENT
+13  benchmarking/performance| 96_benchmark_performance_gate.sh (p50/p95, derived threshold, no literature SLA) | docs/qa/<run-id>/ | PRESENT
+PASS: all 23 claimed PRESENT test artifacts exist on disk
+PASS: Challenge definitions present (scripts/challenges/tmux.yaml)
+PASS: full-automation driver present (run_all.sh)
+PASS: 13-type coverage matrix emitted; 3 structural checks green; gaps marked honestly

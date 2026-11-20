@@ -1,0 +1,76 @@
+GATE=CM-COVENANT-114-250-PROPAGATION
+SCRIPT=constitution/scripts/gates/cm_covenant_114_250_propagation.sh
+ANCHOR=11.4.250
+EXCLUSIONS=constitution/config/covenant_propagation_exclusions.tsv
+─── captured gate output ───
+CM-COVENANT-114-250-PROPAGATION: consumer exclusions applied (17) from constitution/config/covenant_propagation_exclusions.tsv:
+    ⊘ EXCLUDED  */submodules/llmctl/.specify/extensions/superspec/examples/*  [non-shipping-fixtures]
+    ⊘ EXCLUDED  */submodules/agentic-validation/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/claude-video/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/donespec/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/repo-proof/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/skill-doctor/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/verfix/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/verify/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/watch-skill/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/claude_toolkit/.specify/extensions/superspec/examples/*  [non-shipping-fixtures]
+    ⊘ EXCLUDED  */submodules/superspec/examples/*  [non-shipping-fixtures]
+    ⊘ EXCLUDED  */submodules/open_design/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/verification/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/claude_toolkit/submodules/ccusage/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/claude_toolkit/submodules/go/*  [vendored-third-party]
+    ⊘ EXCLUDED  */submodules/llmctl/submodules/llama.cpp/*  [vendored-third-party]
+    ⊘ EXCLUDED  */.specify/extensions/superspec/examples/*  [non-shipping-fixtures]
+↪ COMPACT-INDEX AGENTS.md -> docs/governance/constitution_anchor_blocks.md: compared via the pointed-to full block
+✅ PRESENT     AGENTS.md  — exactly one 11.4.250 block (lines 734-734)
+⏭ POINTER-INHERITANCE-SKIP CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+✅ PRESENT     constitution/AGENTS.md  — exactly one 11.4.250 block (lines 1752-1753)
+✅ PRESENT     constitution/CLAUDE.md  — exactly one 11.4.250 block (lines 571-572)
+✅ PRESENT     constitution/GEMINI.md  — exactly one 11.4.250 block (lines 481-482)
+✅ PRESENT     constitution/QWEN.md  — exactly one 11.4.250 block (lines 418-419)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/anti_bluff/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/anti_bluff/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/claude_toolkit/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/claude_toolkit/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/claude_toolkit/GEMINI.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/claude_toolkit/QWEN.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/clickup_sync/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/clickup_sync/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/containers/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/containers/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/containers/GEMINI.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/containers/QWEN.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/continuum/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/continuum/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/design-toolkit/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/design-toolkit/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/design-toolkit/GEMINI.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/design-toolkit/QWEN.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/docs_chain/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/docs_chain/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/docs_chain/QWEN.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/helix_perf_cache/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/helix_perf_cache/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/helix_perf_cache/GEMINI.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/helix_perf_cache/QWEN.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/llmctl/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/llmctl/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/llmctl/GEMINI.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/llmctl/QWEN.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/llmctl/.specify/extensions/superspec/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/llmctl/.specify/extensions/superspec/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/session_orchestrator/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/session_orchestrator/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/token_optimizer/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP constitution/submodules/token_optimizer/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP Containers/AGENTS.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP Containers/CLAUDE.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP Containers/GEMINI.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP Containers/QWEN.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+⏭ POINTER-INHERITANCE-SKIP GEMINI.md  — §11.4.35 pointer consumer (engine-rules-only mirror; zero 11.4.250 blocks expected, not a violation)
+↪ COMPACT-INDEX QWEN.md -> docs/governance/constitution_anchor_blocks.md: compared via the pointed-to full block
+✅ PRESENT     QWEN.md  — exactly one 11.4.250 block (lines 777-777)
+----------------------------------------------------------------------
+CM-COVENANT-114-250-PROPAGATION: 6 single-block-PRESENT, 41 POINTER-INHERITANCE-SKIP, 0 MISSING/DUPLICATED, 0 DIVERGENT (anchor 11.4.250) under /home/milosvasic/Projects/tmx
+✅ CM-COVENANT-114-250-PROPAGATION: PASS — every owned carrier carries exactly one byte-identical §11.4.250 block
+EXIT_CODE=0

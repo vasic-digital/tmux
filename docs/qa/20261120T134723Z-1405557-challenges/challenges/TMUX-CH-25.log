@@ -1,0 +1,11 @@
+CHALLENGE_ID=TMUX-CH-25
+TITLE=tmx_session_resume_cwd — per-session last-cwd recall (P4 + P6)
+TEST_SCRIPT=scripts/tests/27_state_persistence.sh
+PASS_CONDITION=Test exit 0 AND stdout contains literal `[evidence]` line with `pane_path=<TARGET_DIR>` matching the recorded path AND `recall1=<TARGET_DIR>` AND `recall2=<hook_target>` (hook fired and overwrote state); 3/3 reliability iterations identical evidence-hash per §11.4.50.
+─── captured runtime output ───
+[evidence] iter=1 recall1=/home/milosvasic/.cache/claude-tmp/tmx-test-18-target-1514740 pane_path=/home/milosvasic/.cache/claude-tmp/tmx-test-18-target-1514740 recall2=/home/milosvasic/.cache/claude-tmp/tmx-test-18-hook-1514740-1
+[evidence] iter=2 recall1=/home/milosvasic/.cache/claude-tmp/tmx-test-18-target-1514740 pane_path=/home/milosvasic/.cache/claude-tmp/tmx-test-18-target-1514740 recall2=/home/milosvasic/.cache/claude-tmp/tmx-test-18-hook-1514740-2
+[evidence] iter=3 recall1=/home/milosvasic/.cache/claude-tmp/tmx-test-18-target-1514740 pane_path=/home/milosvasic/.cache/claude-tmp/tmx-test-18-target-1514740 recall2=/home/milosvasic/.cache/claude-tmp/tmx-test-18-hook-1514740-3
+[evidence] HOST_OS=Linux reliability_hash=055021158c388b2a8b7fc1125623dd372eb96650
+PASS 18 tmx-state cwd persistence end-to-end (3/3 iterations identical, hook updated state)
+EXIT_CODE=0
