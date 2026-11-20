@@ -1,0 +1,6 @@
+CHALLENGE_ID=TMUX-CH-12
+TITLE=memory pressure under cgroup cap (T5)
+TEST_SCRIPT=scripts/tests/12_memory_pressure_under_cap.sh
+PASS_CONDITION=dmesg shows oom-kill for a PID inside the scope's cgroup; systemctl --user is-active default.target reads active after kill
+─── captured runtime output ───
+SKIP: destructive challenge needs TMX_TEST_DESTRUCTIVE=1 (project §destructive-tests)

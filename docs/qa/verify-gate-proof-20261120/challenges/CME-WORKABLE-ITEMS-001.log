@@ -1,0 +1,6 @@
+CHALLENGE_ID=CME-WORKABLE-ITEMS-001
+TITLE=workable-items SQLite-SSoT end-to-end (§11.4.93 + §11.4.95)
+TEST_SCRIPT=scripts/tests/51_workable_items_db_integrity.sh
+PASS_CONDITION=FAIL=0 from test 51 — binary builds, DB present + tracked, schema-anchor present, validate clean (0 findings), round-trip byte-identical (sha256 match), 3-iter §11.4.50 deterministic reliability hash.
+─── captured runtime output ───
+SKIP: test_script missing or not executable: scripts/tests/51_workable_items_db_integrity.sh

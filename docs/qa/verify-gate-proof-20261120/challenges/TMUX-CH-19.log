@@ -1,0 +1,27 @@
+CHALLENGE_ID=TMUX-CH-19
+TITLE=Verbatim anti-bluff covenant propagation across governance files
+TEST_SCRIPT=scripts/tests/19_covenant_propagation.sh
+PASS_CONDITION=FAIL=0. T1 Constitution.md, T2 CLAUDE.md, T3 AGENTS.md, T4 QWEN.md all carry the verbatim "We had been in position that all tests do execute with success…" anchor literally. T5 all four consumer files reference §11.4 / §101 canonical authority. T6 upstream constitution/Constitution.md retains the same anchor (composition check). T7 governance HTML+PDF siblings in sync per §11.4.65 universal-Markdown-export.
+─── captured runtime output ───
+PASS: T1: verbatim covenant present in /home/milosvasic/Projects/tmx/Constitution.md
+PASS: T2: verbatim covenant present in /home/milosvasic/Projects/tmx/CLAUDE.md
+PASS: T3: verbatim covenant present in /home/milosvasic/Projects/tmx/AGENTS.md
+PASS: T4: verbatim covenant present in /home/milosvasic/Projects/tmx/QWEN.md
+PASS: T5: §11.4 / §101 authority cross-reference present in all 4 files (positive evidence: 4/4 grep hits)
+PASS: T6: upstream constitution/Constitution.md retains verbatim covenant
+  §11.4.65 export-sync soft check (governance docs):
+    ✗ Constitution.html missing or stale (vs Constitution.md)
+    ✗ Constitution.pdf missing or stale (vs Constitution.md)
+    ✗ CLAUDE.html missing or stale (vs CLAUDE.md)
+    ✗ CLAUDE.pdf missing or stale (vs CLAUDE.md)
+    ✗ AGENTS.html missing or stale (vs AGENTS.md)
+    ✗ AGENTS.pdf missing or stale (vs AGENTS.md)
+    ✗ QWEN.html missing or stale (vs QWEN.md)
+    ✗ QWEN.pdf missing or stale (vs QWEN.md)
+    ✗ README.html missing or stale (vs README.md)
+    ✗ README.pdf missing or stale (vs README.md)
+  NOTE: T7 reports 10 export-sync deltas; tracked in CONTINUATION §3.10
+PASS: T7: governance export-sync drift noted (soft check; tracked separately)
+
+  Tests: PASS=7  FAIL=0  SKIP=0
+EXIT_CODE=0

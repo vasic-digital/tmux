@@ -128,7 +128,12 @@ check_mcp "T1 Claude Code (project)"     "$REPO_ROOT/.mcp.json"                p
 # artifact. Prefer whichever actually exists.
 OPENCODE_CFG="$HOME/.config/opencode/opencode.jsonc"
 [ -f "$OPENCODE_CFG" ] || OPENCODE_CFG="$HOME/.config/opencode/opencode.json"
-check_mcp "T2 OpenCode (host)"           "$OPENCODE_CFG"                       host    "mcp.codegraph"
+# OpenCode's schema nests MCP servers under `mcp.servers.<name>` (verified on
+# this host: ~/.config/opencode/opencode.jsonc has mcp.servers.codegraph with
+# command=["codegraph","serve","--mcp"]). The old `mcp.codegraph` path was a
+# presence-probe against the wrong JSON path (§11.4.201). check_mcp still
+# requires a bare `codegraph` command with no hardcoded host path.
+check_mcp "T2 OpenCode (host)"           "$OPENCODE_CFG"                       host    "mcp.servers.codegraph"
 
 # T3 — Kimi CLI: host-scoped (skip if absent)
 check_mcp "T3 Kimi CLI (host)"           "$HOME/.kimi/mcp.json"                host    "mcpServers.codegraph"

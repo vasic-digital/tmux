@@ -1,0 +1,3 @@
+GATE=CM-GOLDEN-GOOD
+PASS 42: golden-good fixture carries a real result marker
+SUMMARY total=1 pass=1 fail=0 skip=0

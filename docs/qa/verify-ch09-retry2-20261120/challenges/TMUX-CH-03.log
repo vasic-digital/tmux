@@ -1,0 +1,10 @@
+CHALLENGE_ID=TMUX-CH-03
+TITLE=jemalloc loaded via LD_PRELOAD
+TEST_SCRIPT=scripts/tests/03_jemalloc_loaded.sh
+PASS_CONDITION=grep "jemalloc" /proc/<server-pid>/maps returns a match
+─── captured runtime output ───
+── Test 03: jemalloc loaded ──
+  using jemalloc preload: /usr/lib/x86_64-linux-gnu/libjemalloc.so.2
+  ✓ tmux server PID 1861499 has jemalloc mapped (positive evidence: /proc/.../maps)
+PASS
+EXIT_CODE=0

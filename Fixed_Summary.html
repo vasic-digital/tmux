@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Fixed_Summary</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+<h1 id="fixed--workable-items-summary-generated">Fixed — Workable-items
+Summary (generated)</h1>
+<p><strong>Revision:</strong> 1 <strong>Content SHA256:</strong>
+80ff520fddca0330b4fe859ed590464c0d56b48ae2c39ccdc1a71d3f841fc405</p>
+<blockquote>
+<p>GENERATED FILE — do not hand-edit. Every figure below is derived from
+<code>./cmd/workable-items/workable-items report</code> against the
+git-tracked SQLite SSoT <code>docs/workable_items.db</code> (§11.4.93 /
+§11.4.95).</p>
+</blockquote>
+<h2 id="scope">Scope</h2>
+<p>TERMINAL closure items (Fixed / Implemented / Completed / Obsolete) —
+the rows that live in <code>Fixed.md</code>.</p>
+<h2 id="counts-by-status">Counts by status</h2>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th style="text-align: right;">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Completed (→ Fixed.md)</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr>
+<td>Fixed (→ Fixed.md)</td>
+<td style="text-align: right;">60</td>
+</tr>
+<tr>
+<td>Implemented (→ Fixed.md)</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>Obsolete (→ Fixed.md)</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: right;"><strong>91</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="counts-by-type">Counts by type</h2>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th style="text-align: right;">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bug</td>
+<td style="text-align: right;">61</td>
+</tr>
+<tr>
+<td>Feature</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr>
+<td>Task</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td style="text-align: right;"><strong>91</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="per-item-ledger">Per-item ledger</h2>
+<table>
+<thead>
+<tr>
+<th>TMX-ID</th>
+<th>Type</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TMX-001</td>
+<td>Task</td>
+<td>Obsolete (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-002</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-003</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-004</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-005</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-006</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-007</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-008</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-009</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-010</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-011</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-012</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-013</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-014</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-015</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-016</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-017</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-018</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-019</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-020</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-021</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-022</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-023</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-024</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-025</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-026</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-027</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-028</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-029</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-030</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-031</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-032</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-033</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-034</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-035</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-036</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-037</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-038</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-039</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-040</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-041</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-042</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-043</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-044</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-045</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-046</td>
+<td>Feature</td>
+<td>Implemented (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-047</td>
+<td>Feature</td>
+<td>Implemented (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-048</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-049</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-050</td>
+<td>Bug</td>
+<td>Obsolete (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-051</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-052</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-053</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-054</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-055</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-056</td>
+<td>Feature</td>
+<td>Implemented (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-057</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-058</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-059</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-060</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-061</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-062</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-063</td>
+<td>Feature</td>
+<td>Implemented (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-064</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-065</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-066</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-067</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-068</td>
+<td>Feature</td>
+<td>Implemented (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-069</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-070</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-071</td>
+<td>Task</td>
+<td>Obsolete (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-072</td>
+<td>Feature</td>
+<td>Implemented (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-073</td>
+<td>Feature</td>
+<td>Implemented (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-074</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-075</td>
+<td>Feature</td>
+<td>Implemented (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-078</td>
+<td>Feature</td>
+<td>Implemented (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-079</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-082</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-083</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-084</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-085</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-086</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-087</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-088</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-089</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-090</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-091</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-092</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-096</td>
+<td>Feature</td>
+<td>Implemented (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-097</td>
+<td>Task</td>
+<td>Completed (→ Fixed.md)</td>
+</tr>
+<tr>
+<td>TMX-098</td>
+<td>Bug</td>
+<td>Fixed (→ Fixed.md)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="provenance">Provenance</h2>
+<p>Control needle: the <code>report</code> footer reported the same
+total as the number of parsed ledger rows; a mismatch aborts generation.
+<code>Reopens</code> (§11.4.55) is not emitted by the current
+<code>report</code> command; this summary does not invent it. Honest
+gap, tracked under TMX-102.</p>
+</body>
+</html>

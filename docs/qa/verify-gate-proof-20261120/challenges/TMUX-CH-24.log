@@ -1,0 +1,10 @@
+CHALLENGE_ID=TMUX-CH-24
+TITLE=Per-platform CPU-cap enforcement (§11.4.81 (C) adjacent test)
+TEST_SCRIPT=scripts/tests/24_cpu_cap_enforcement.sh
+PASS_CONDITION=FAIL=0. Darwin: D-T1 — child bash with `ulimit -t 2` runs a CPU-bound loop and exits with rc=152 (= 128 + signal 24 SIGXCPU) within ~3s wall (positive evidence: kernel-enforced RLIMIT_CPU). D-T2 — `TMX_CPU_HARD_SEC=7200 tmx new -s NAME -d` session shows `ulimit -t = 7200` inside the pane (positive evidence: wrapper-to-rlimit propagation). Linux: L-T1 — cgroup CPUQuota=10% bounds a CPU-bound loop, iteration count observably throttled vs unrestricted reference.
+─── captured runtime output ───
+── Test 24: Linux cgroup CPUQuota enforcement ──
+PASS: L-T1: CPUQuota=10% throttled loop (cap iters=45 < 2× unrestricted ref=137 over 4s — positive evidence: CPU bounded by cgroup)
+
+  Tests: PASS=1 FAIL=0 SKIP=0
+EXIT_CODE=0

@@ -1,0 +1,6 @@
+ROW	VERDICT	REASON	EVIDENCE
+docs/qa/verify-gate-proof-20261120/challenges/summary.txt	PASS	marker-found-in-content	/home/milosvasic/Projects/tmx/docs/qa/verify-gate-proof-20261120/challenges/summary.txt
+docs/qa/verify-gate-proof-20261120/constitution-gates/summary.txt	PASS	marker-found-in-content	/home/milosvasic/Projects/tmx/docs/qa/verify-gate-proof-20261120/constitution-gates/summary.txt
+docs/qa/verify-gate-proof-20261120/go-tests/summary.txt	PASS	marker-found-in-content	/home/milosvasic/Projects/tmx/docs/qa/verify-gate-proof-20261120/go-tests/summary.txt
+docs/qa/verify-gate-proof-20261120-v2/challenges/summary.txt	PASS	marker-found-in-content	/home/milosvasic/Projects/tmx/docs/qa/verify-gate-proof-20261120-v2/challenges/summary.txt
+docs/qa/verify-gate-proof-20261120-v2/go-tests/summary.txt	PASS	marker-found-in-content	/home/milosvasic/Projects/tmx/docs/qa/verify-gate-proof-20261120-v2/go-tests/summary.txt

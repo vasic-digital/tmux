@@ -1,0 +1,7 @@
+GATE=CM-GO-TESTS
+RUN_ID=verify-gate-proof-20261120
+SCOPE=scripts/tmx-state scripts/tmx-orchestrator
+ENV=GOTOOLCHAIN=local GOPROXY=off TIMEOUT=90s
+PASS scripts/tmx-state rc=0 positive_marker=ok
+FAIL scripts/tmx-orchestrator rc=1
+SUMMARY total=2 pass=1 fail=1 skip=0

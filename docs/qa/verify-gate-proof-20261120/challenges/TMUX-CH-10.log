@@ -1,0 +1,6 @@
+CHALLENGE_ID=TMUX-CH-10
+TITLE=hostname→color algorithm — deterministic palette mapping
+TEST_SCRIPT=scripts/tests/10_hostname_color_algorithm.sh
+PASS_CONDITION=PASS=5 FAIL=0 (all 5 invariants: deterministic, valid colourNNN, palette member, spread ≥12/16, empty-fallback to system hostname)
+─── captured runtime output ───
+SKIP: test_script missing or not executable: scripts/tests/10_hostname_color_algorithm.sh

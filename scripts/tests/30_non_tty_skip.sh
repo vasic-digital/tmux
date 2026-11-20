@@ -28,9 +28,13 @@ export TMX_STATE_FILE="$SCRATCH/tmx-test-21-$$.json"
 _cleanup() {
     rm -f "$INIT_FILE" "$TMX_STATE_FILE" 2>/dev/null || true
     if command -v tmx >/dev/null 2>&1; then
+        # Guard the whole pipeline with `|| true`: under `set -euo pipefail`
+        # a failing `grep` (no matching sessions -> rc=1) inside this EXIT trap
+        # otherwise overrides the script's `exit 0` and makes the runner see
+        # EXIT_CODE=1 even though every assertion passed (CH-27, 2026-11-20).
         tmx ls 2>/dev/null | grep -oE "^${PREFIX}[^:]*" | while read -r s; do
             tmx kill-session -t "$s" >/dev/null 2>&1 || true
-        done
+        done || true
     fi
 }
 _wtest="$SCRATCH/.tmx_wtest_$$"

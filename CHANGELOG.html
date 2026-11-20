@@ -245,19 +245,43 @@ Versioning</a>. Every release carries a positive-runtime-evidence
 verification record per the project's anti-bluff covenant (Constitution
 §101 / universal §11.4).</p>
 <hr />
-<h2
-id="tmux-1045-also-v1045--unreleased-intended-2026-09-01">[tmux-1.0.45]
-(also v1.0.45) — Unreleased (intended 2026-09-01)</h2>
-<p>A <strong>workable-items tracker-integrity</strong> release
-(versionCode 46). The tmux product surface is UNCHANGED from v1.0.44 —
-same hardened <code>tmux 3.7b</code> binary, same <code>tmx</code>
-wrapper, same submodule pin
-(<code>e802909de06012a4df6209d55e86487c56223163</code>). Everything
-below is in the §11.4.93 SQLite single-source-of-truth engine
-(<code>cmd/workable-items/</code>), the release gate
-(<code>scripts/verify.sh</code>), and the tracker corpus itself.</p>
+<h2 id="tmx-1045--2026-10-24">[tmx-1.0.45] — 2026-10-24</h2>
+<blockquote>
+<p>Tag correction (measured 2026-11-20): the only 1.0.45 tag that exists
+is <code>tmx-1.0.45</code> (pointing at <code>eb354b6</code>, current
+HEAD). <code>git tag -l '*1.0.4*'</code> shows no
+<code>tmux-1.0.45</code> and no <code>v1.0.45</code> tag — the earlier
+"also v1.0.45" claim was inaccurate and is removed. Older releases did
+use <code>tmux-1.0.4x</code> / <code>v1.0.4x</code> tags; this release
+does not.</p>
+</blockquote>
+<p>A <strong>setup robustness + workable-items
+tracker-integrity</strong> release (versionCode 46). The tmux product
+surface is UNCHANGED from v1.0.44 — same hardened <code>tmux 3.7b</code>
+binary, same <code>tmx</code> wrapper, same submodule pin
+(<code>e802909de06012a4df6209d55e86487c56223163</code>).</p>
 <h3 id="fixed">Fixed</h3>
 <ul>
+<li><p><strong><code>setup.sh</code> CodeGraph auto-update/index
+bootstrap could hang or report a version-bluff because live
+<code>codegraph serve --mcp</code> processes held the project SQLite DB
+open, bash cached the old <code>codegraph</code> inode after
+<code>npm install</code>, and a stale lock could block
+<code>codegraph init</code>.</strong> <code>scripts/setup.sh</code> now
+stops project-scoped codegraph processes before update and before
+reindex, clears bash's command hash after npm update, captures the real
+exit code of <code>scripts/codegraph_reindex.sh</code>, and aborts on
+genuine reindex failure. <code>scripts/codegraph_reindex.sh</code> now
+unlocks before init, surfaces init failure output, and uses a portable
+Python file-size helper instead of the BSD-only <code>stat -f</code>
+that silently mis-read on Linux. Measured proof: clean
+<code>setup.sh</code> retest reports
+<code>codegraph version: 1.6.2</code>, index bootstrap completes,
+verification gate runs. Test 82
+(<code>82_session_name_sanitization_live.sh</code>) is fixed to keep
+sanitised socket labels short enough for the 108-byte Unix-domain socket
+path limit when <code>$TMPDIR</code> is a long path (e.g.
+<code>/home/$USER/.cache/&lt;tool&gt;/tmp</code>).</p></li>
 <li><p><strong>TMX-094's fix was structurally suppressed on the live
 corpus — an <code>add</code>-created row still rendered into NO tracker
 (found during release verification, 2026-09-01).</strong>

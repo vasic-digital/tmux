@@ -1,0 +1,6 @@
+CHALLENGE_ID=TMUX-CH-27
+TITLE=tmx_non_tty_safety — non-TTY stdin silent-skips fast (P2 + P6)
+TEST_SCRIPT=scripts/tests/30_non_tty_skip.sh
+PASS_CONDITION=Test exit 0 AND stdout contains `[evidence] ... elapsed_ms=<N>` with N < 2000 (well under the spec's 5000ms ceiling) per iteration AND `rc=0 no_prompt=yes no_session=yes` AND no `Enter session name` substring in captured stdout; 3/3 reliability iterations identical evidence-hash per §11.4.50.
+─── captured runtime output ───
+SKIP: test_script missing or not executable: scripts/tests/30_non_tty_skip.sh

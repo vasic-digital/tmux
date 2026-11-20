@@ -34,6 +34,35 @@ Paste this prompt:
 
 ## §3 — Active work
 
+### §3.38 — Release-state reconciliation (2026-11-20) — documentation-only, NOT a closure verdict
+
+**Observed facts (captured this date, no guessing):**
+- `VERSION` reads `version=1.0.45`, `versionCode=46`, `released=2026-10-24`.
+- `git tag -l '*1.0.4*'` contains **`tmx-1.0.45`**; `git rev-list -n1 tmx-1.0.45`
+  = `eb354b6868b0baefe7b1259ed0364c9945ded496` = current `git rev-parse HEAD`.
+- There are **no** `tmux-1.0.45` / `v1.0.45` tags (corrected in `CHANGELOG.md`).
+- Therefore the §1 Snapshot "Version = 1.0.44 (NOT yet released — no tag cut)"
+  row is factually **stale** as a *release-state* statement. This entry
+  supersedes that row and the "VERSION remains 1.0.44/45" note in §3.37b
+  **for release state only**. Historical §3.36 / §3.37 / §3.37a / §3.37b text
+  is deliberately preserved, not erased or rewritten.
+
+**Explicitly UNCONFIRMED as cleared (do NOT read the tag as proof of resolution):**
+- TMX-086, TMX-087, TMX-088, TMX-089 (§3.36) — **UNCONFIRMED** as closed by
+  this reconciliation; no issue/Fixed ledger evidence was inspected here.
+- §3.37's independent-review **NO-GO** (3 BLOCKING / 6 IMPORTANT / 5 MINOR,
+  4 reviewer-authored mutations surviving) — **UNCONFIRMED** as remediated.
+- §3.37b review-round-2 findings and the "§11.4.40 full retest all still gate
+  the tag" condition — **UNCONFIRMED** as satisfied.
+- §3.37's "IN PROGRESS … NOT yet committed" status — **UNCONFIRMED** as
+  changed; the tag's existence cannot establish commit/gate state.
+
+**Non-claims:** this entry does not assert those blockers were fixed, that any
+gate/test/Challenge passed, or that v1.0.45 is functionally correct. It only
+records the observed release-state facts and marks the unresolved items
+UNCONFIRMED. Reconciliation author: documentation subagent; no build, test,
+or verification was run as part of this edit.
+
 ### §3.37 — Heading-regex widening + corpus repair (TMX-072..075, TMX-078, TMX-093, TMX-094) → 2026-09-01
 
 **Status:** IN PROGRESS — landed in the working tree. A LATER independent review

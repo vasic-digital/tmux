@@ -1,0 +1,13 @@
+CHALLENGE_ID=TMUX-CH-23
+TITLE=tmx kill shorthand resolves to kill-session (AUDIT-2 fix)
+TEST_SCRIPT=scripts/tests/23_tmx_kill_shorthand.sh
+PASS_CONDITION=FAIL=0. T1 create a session via `tmx new -s NAME -d`; T2 `tmx ls` shows it; T3 `tmx kill -t NAME` resolves cleanly (no "ambiguous command" stderr); T4 `tmx ls` no longer shows the session.
+─── captured runtime output ───
+PASS: T1: tmx new -s t23_kill_1835616 -d succeeded
+PASS: T2: tmx ls shows 't23_kill_1835616' (positive evidence: tmx ls output)
+PASS: T3: tmx kill -t t23_kill_1835616 resolved (no 'ambiguous' stderr; AUDIT-2 fix active)
+PASS: T4: 't23_kill_1835616' removed from tmx ls within poll budget (positive evidence: post-kill listing absent)
+PASS: T5: tmux server on socket tmx-t23_kill_1835616 terminated within poll budget (positive evidence: direct -L socket query empty)
+
+  Tests: PASS=5  FAIL=0  SKIP=0
+EXIT_CODE=0

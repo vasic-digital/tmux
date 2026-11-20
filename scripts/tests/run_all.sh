@@ -130,7 +130,27 @@ for t in "$REPO_ROOT/scripts/tests/"[0-9][0-9]_*.sh; do
     # regardless of how run_all.sh is invoked (interactive shell, SSH-batch,
     # cron, CI). Tests that need a controlling terminal open /dev/tty
     # explicitly and SKIP-with-reason when absent; closing stdin is orthogonal.
-    out=$(bash "$t" </dev/null 2>&1)
+    # §11.4.98 FULL-AUTOMATION HANG FIX (measured 2026-11-20): a test may
+    # daemonise a child (xclip on Linux, tmux server, clipboard helper) that
+    # INHERITS STDOUT/STDERR. With `out=$(bash "$t" ...)` the command
+    # substitution waits for EOF on the pipe, which that grandchild holds
+    # long after the test itself exited — run_all.sh hung forever at test 44
+    # while the test passed in 5 s standalone. Capture into a FILE instead:
+    # the loop then waits only for the test process, never for grandchildren.
+    _out_file="$(mktemp "${TMPDIR:-/tmp}/tmx-runall-XXXXXX")"
+    _test_rc=0
+    if command -v timeout >/dev/null 2>&1; then
+        timeout -s TERM "${TMX_TEST_TIMEOUT:-300}" bash "$t" </dev/null >"$_out_file" 2>&1 || _test_rc=$?
+    else
+        bash "$t" </dev/null >"$_out_file" 2>&1 || _test_rc=$?
+    fi
+    if [ "$_test_rc" -eq 124 ]; then
+        # A timeout is INCONCLUSIVE, never a silent PASS: emit an explicit
+        # FAIL verdict so the typed classifier fails closed (§11.4.98/.201).
+        printf 'FAIL: test timed out after %ss (inconclusive)\n' "${TMX_TEST_TIMEOUT:-300}" >>"$_out_file"
+    fi
+    out="$(cat "$_out_file")"
+    rm -f "$_out_file"
     echo "$out"
     # Classify via the shared, independently-tested helper (§11.4.201(7)(a)
     # — match a genuine verdict-line delimiter, not a bare keyword prefix

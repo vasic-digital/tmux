@@ -1,0 +1,24 @@
+CHALLENGE_ID=TMUX-CH-48
+TITLE=Alt-drag + Shift-drag override for selection in mouse-tracking TUI
+TEST_SCRIPT=scripts/tests/48_modifier_drag_override.sh
+PASS_CONDITION=FAIL=0. T1 conf-template carries the 4 bindings; T2 live readbacks confirm all 4 routes are correct; T3 keyboard- equivalent flow routes 6 markers into tmux buffer; T4 M-MouseDrag1Pane override survives mouse_any_flag=1 surface; T5 OS clipboard carries all 6 markers (physical proof).
+─── captured runtime output ───
+── Test 48: Alt-drag + Shift-drag override for selection (operator-path) ──
+  markers: DRAGMARK_719423_1795133671_A DRAGMARK_719423_1795133671_B DRAGMARK_719423_1795133671_C DRAGMARK_719423_1795133671_D DRAGMARK_719423_1795133671_E DRAGMARK_719423_1795133671_F
+  clipboard tool: xclip (X11)
+  ✓ template: M-MouseDrag1Pane override
+  ✓ template: S-MouseDrag1Pane override
+  ✓ template: M-MouseDragEnd1Pane pipe
+  ✓ template: S-MouseDragEnd1Pane pipe
+PASS: T1: tmux.conf.template carries Alt-drag + Shift-drag overrides (both modifier paths)
+PASS: T2.0: operator-path session created
+PASS: T2.1: live M-MouseDrag1Pane binding drives copy-mode
+PASS: T2.2: live S-MouseDrag1Pane binding drives copy-mode
+PASS: T2.3: live M-MouseDragEnd1Pane binding routes selection through @clip
+PASS: T2.4: live S-MouseDragEnd1Pane binding routes selection through @clip
+PASS: T3: keyboard-equivalent of modifier-drag (v + cursor-down -N 5 + copy-pipe @clip) routes 6 markers into tmux buffer
+PASS: T4: M-MouseDrag1Pane override survives mouse_any_flag=1 surface (Claude-Code-like)
+PASS: T5: SYSTEM CLIPBOARD (xclip (X11)) carries all 6 markers from the keyboard-equivalent modifier-drag flow
+
+  Tests: PASS=9  FAIL=0  SKIP=0
+EXIT_CODE=0

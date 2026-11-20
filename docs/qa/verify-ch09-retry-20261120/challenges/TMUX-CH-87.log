@@ -1,0 +1,21 @@
+CHALLENGE_ID=TMUX-CH-87
+TITLE=no CPU or lifetime limit by default; Linux memory/tasks carry safe defaults (hostsafety), all opt-out/override-able
+TEST_SCRIPT=scripts/tests/88_no_limits_by_default.sh
+PASS_CONDITION=static wiring: TMX_CPU/TMX_RECYCLE_IDLE_SECS default to unlimited/off and TMX_TASKS defaults to 6000 (no unconditional CPUQuota, TasksMax configurable not hardcoded, idle-recycle off in BOTH the wrapper's window resolution AND the recycler script's own internal default); functional truth-table for all three knobs' unset/auto/explicit expansion; on Linux a session spawned with NONE of the three env vars set reads back cpu.max=max AND pids.max=6000 on its cgroup AND installs no idle-recycle tmux hook (§11.4.108 runtime layer); a session spawned with all three explicitly opted in still lands the bounded values and the recycle hook (regression coverage for the preserved opt-in code paths, §11.4.120)
+─── captured runtime output ───
+  hermetic-env: no ambient TMX_* knobs set (clean baseline)
+── Test 88: no resource/lifetime limits by default (RED_MODE=0) ──
+  target: /home/milosvasic/Projects/tmx/scripts/tmx.template
+  recycler: /home/milosvasic/Projects/tmx/scripts/tmx-recycler.sh
+PASS: G1: bash -n parse clean (tmx.template + tmx-recycler.sh)
+PASS: G2: no unconditional CPU cap, TasksMax configurable (no hardcoded 4096), idle-recycle OFF by default in both wrapper and recycler
+PASS: G3a: TMX_CPU expansion — unset→'' (no cap), auto→adaptive(opt-in), explicit 400 preserved
+PASS: G3b: TMX_TASKS expansion — unset→6000 (hostsafety fork backstop), empty→infinity (opt-out), auto→4096(legacy opt-in), explicit 8192 preserved
+PASS: G4: recycler's own internal WINDOW default (invoked directly, no env) → 0 (disabled)
+PASS: G5a: default session cgroup — cpu.max=max (no CPUQuota) AND pids.max=6000 (hostsafety TasksMax default) — positive cgroup readback
+PASS: G5b: default session installs NO idle-recycle hook (session cannot be auto-killed by tmx itself)
+PASS: G6a: TMX_CPU=auto TMX_TASKS=auto — live scope cpu.max=240000 (bounded, opt-in) AND pids.max=4096 (legacy opt-in value)
+PASS: G6b: TMX_RECYCLE_IDLE_SECS=5 — idle-recycle hook IS installed (opt-in mechanism still wired)
+
+  Tests: PASS=9 FAIL=0 SKIP=0
+EXIT_CODE=0

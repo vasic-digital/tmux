@@ -4,97 +4,242 @@
   <meta charset="utf-8" />
   <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>tmux documentation</title>
+  <title>tracker_structural_integrity</title>
   <style>
-
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: 1.5em;}
-div.column{flex: auto;}
-@media screen {
-div.columns{gap: min(4vw, 1.5em);}
-div.column{overflow-x: auto;}
-}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-
-ul.task-list[class]{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-font-size: inherit;
-width: 0.8em;
-margin: 0 0.8em 0.2em -1.6em;
-vertical-align: middle;
-}
-
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-color: #aaaaaa;
-}
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
-div.sourceCode
-{ background-color: #f8f8f8; }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ef2929; } 
-code span.an { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.at { color: #204a87; } 
-code span.bn { color: #0000cf; } 
-code span.cf { color: #204a87; font-weight: bold; } 
-code span.ch { color: #4e9a06; } 
-code span.cn { color: #8f5902; } 
-code span.co { color: #8f5902; font-style: italic; } 
-code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.do { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.dt { color: #204a87; } 
-code span.dv { color: #0000cf; } 
-code span.er { color: #a40000; font-weight: bold; } 
-code span.ex { } 
-code span.fl { color: #0000cf; } 
-code span.fu { color: #204a87; font-weight: bold; } 
-code span.im { } 
-code span.in { color: #8f5902; font-weight: bold; font-style: italic; } 
-code span.kw { color: #204a87; font-weight: bold; } 
-code span.op { color: #ce5c00; font-weight: bold; } 
-code span.ot { color: #8f5902; } 
-code span.pp { color: #8f5902; font-style: italic; } 
-code span.sc { color: #ce5c00; font-weight: bold; } 
-code span.ss { color: #4e9a06; } 
-code span.st { color: #4e9a06; } 
-code span.va { color: #000000; } 
-code span.vs { color: #4e9a06; } 
-code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } 
-</style>
-  <style type="text/css"></style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
 </head>
 <body>
-<header id="title-block-header">
-<h1 class="title">tmux documentation</h1>
-</header>
-<h1 id="tracker_structural_integritysh--tracker-sectionpreamble-survival-guard">tracker_structural_integrity.sh
+<h1
+id="tracker_structural_integritysh--tracker-sectionpreamble-survival-guard">tracker_structural_integrity.sh
 — tracker section/preamble survival guard</h1>
 <p><strong>Revision:</strong> 1 <strong>Last modified:</strong>
 2026-09-01T00:00:00Z</p>
@@ -109,13 +254,13 @@ paired test
 <code>8dad4e3</code>, an ad-hoc removal loop asked to delete four
 <code>### G1..G4</code> item blocks from <code>Issues.md</code> ran past
 the last one and also deleted the <strong><code>## H.</code> section
-header</strong> and that section&#39;s <strong>§11.4.114 preamble</strong>.
+header</strong> and that section's <strong>§11.4.114 preamble</strong>.
 An independent code review caught it as a BLOCKING finding and it was
 restored verbatim from <code>git show HEAD:Issues.md</code> before the
 commit landed.</p>
 <p>The guard compares each tracker document against its <strong>previous
 committed revision</strong> and refuses a silent loss of a section or of
-a section&#39;s governing preamble text.</p>
+a section's governing preamble text.</p>
 <h3 id="why-the-existing-machinery-did-not-catch-it">Why the existing
 machinery did not catch it</h3>
 <p><code>cmd/workable-items</code> plus
@@ -125,8 +270,8 @@ round trip is byte-identical. That check cannot see this defect, and the
 reason is structural rather than incidental:
 <code>sync_md_to_db.go</code> reads each tracker
 <strong>verbatim</strong> into the <code>document_sources</code> table
-(its own comment: &quot;the verbatim source is what lets db→md replay
-byte-identical&quot;). Content deleted <em>before</em> a sync is therefore
+(its own comment: "the verbatim source is what lets db→md replay
+byte-identical"). Content deleted <em>before</em> a sync is therefore
 absorbed into the DB and replayed back identically — the round trip
 compares a document to a database derived from that same document, so it
 stays green on a damaged file. It is a self-referential check, and
@@ -139,16 +284,16 @@ about the live corpus.</p>
 <p>A search of the gate corpus (<code>scripts/verify.sh</code>,
 <code>scripts/tests/</code>, <code>scripts/challenges/</code>,
 <code>cmd/workable-items/</code>) found <strong>zero</strong>
-occurrences of any check that reads a tracker&#39;s previous revision
+occurrences of any check that reads a tracker's previous revision
 (<code>git show &lt;ref&gt;:Issues.md</code> or equivalent) and zero
 shell assertions over <code>^## </code> section headers — while a
 control-needle query for a string known to be present in that same
 corpus returned 190 matches through the identical search path, so the
 zero is a real absence and not a blind instrument (§11.4.201(6)).</p>
 <p>This defect class has occurred before. <code>Issues.md</code> section
-headers A–E were restored by hand in an earlier cycle (&quot;restored
+headers A–E were restored by hand in an earlier cycle ("restored
 A/B/C/D/E section headers (C and D were missing despite conventions list
-referencing them)&quot;) — recorded in the tracker snapshot under
+referencing them)") — recorded in the tracker snapshot under
 <code>cmd/workable-items/testdata/</code>. That makes 2026-09-01 the
 second documented instance, and both were repaired by a human noticing
 an absence rather than by any gate.</p>
@@ -164,7 +309,8 @@ unavailable would be the false-positive refusal §11.4.201(1)
 forbids.</li>
 </ul>
 <h2 id="usage">Usage</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Default: Issues.md and Fixed.md, working tree vs HEAD.</span></span>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Default: Issues.md and Fixed.md, working tree vs HEAD.</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/testing/tracker_structural_integrity.sh</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Against another revision, or a specific file.</span></span>
@@ -209,26 +355,26 @@ fires.</td>
 <td><strong>A3</strong></td>
 <td>Anchor survival</td>
 <td>A governing <code>§N.N…</code> citation present in a baseline
-preamble is missing from that section&#39;s current preamble. This is the
+preamble is missing from that section's current preamble. This is the
 clause that catches the exact historical loss: the <code>## H.</code>
 preamble cited §11.4.114.</td>
 </tr>
 </tbody>
 </table>
-<p>A section&#39;s <em>preamble</em> is the content between its
+<p>A section's <em>preamble</em> is the content between its
 <code>## X.</code> header and the first <code>### </code> item heading
 (or the next <code>## </code> / end of file), with blank lines and
 <code>---</code> rules excluded as scaffolding.</p>
 <h3 id="the-honest-boundary">The honest boundary</h3>
 <p>A2 catches <strong>total</strong> preamble loss, not partial erosion.
-A partial-erosion rule needs a &quot;how much may disappear&quot; threshold, and
+A partial-erosion rule needs a "how much may disappear" threshold, and
 no evidence in this repo calibrates one — inventing a number would be
 the guess §11.4.6 forbids. A3 narrows the gap where it matters most (a
 governing citation cannot be dropped even by a partial rewrite), and the
 residual gap is stated here rather than papered over.</p>
-<p>The guard also says nothing about whether an item&#39;s <em>content</em>
-is correct, whether the DB agrees with the markdown (that is test 51&#39;s
-job), or whether a removal was a good idea (that is the operator&#39;s,
+<p>The guard also says nothing about whether an item's <em>content</em>
+is correct, whether the DB agrees with the markdown (that is test 51's
+job), or whether a removal was a good idea (that is the operator's,
 §11.4.122).</p>
 <hr />
 <h2 id="how-to-remove-a-section">How to remove a section</h2>
@@ -236,9 +382,9 @@ job), or whether a removal was a good idea (that is the operator&#39;s,
 <p><strong>(a) Tombstone — preferred.</strong> Keep the
 <code>## X.</code> header and annotate it as closed. A1 passes
 naturally, the historical context stays readable, and no manifest row is
-needed. This is the corpus&#39;s own precedent: <code>## G.</code> was
+needed. This is the corpus's own precedent: <code>## G.</code> was
 annotated rather than deleted in <code>8dad4e3</code>, and that
-annotated section is what the guard&#39;s <code>good_repaired.md</code>
+annotated section is what the guard's <code>good_repaired.md</code>
 fixture reproduces.</p>
 <p><strong>(b) Manifest — when the header itself must go.</strong> Add a
 row to <code>scripts/testing/tracker_section_removals.tsv</code>:</p>
@@ -264,7 +410,7 @@ wants, and it needs no second file to stay in sync.</p>
 <h2 id="internal-behaviour">Internal behaviour</h2>
 <p><strong>Control needle (§11.4.201(6)/(7)(b)).</strong> A baseline
 with zero extracted sections and a genuinely clean comparison both
-produce &quot;0 missing&quot;. Before reporting a clean result the gate prints the
+produce "0 missing". Before reporting a clean result the gate prints the
 number of sections its extractor actually saw, and if the baseline
 yields zero it reports <code>BLIND</code> and SKIPs instead of returning
 a confident zero.</p>
@@ -272,19 +418,19 @@ a confident zero.</p>
 guard</strong>, both caught by running the assertions rather than
 trusting a green summary, and both fixed:</p>
 <ol type="1">
-<li><code>grep -c . &quot;$f&quot; || echo 0</code> prints <code>0</code>
+<li><code>grep -c . "$f" || echo 0</code> prints <code>0</code>
 <strong>and</strong> exits 1 on an empty file, so the
 <code>|| echo 0</code> appended a second zero. Every later
-<code>[ &quot;$n&quot; -gt 0 ]</code> then died with <code>integer expected</code>
+<code>[ "$n" -gt 0 ]</code> then died with <code>integer expected</code>
 and evaluated false — <strong>A2 was silently blind</strong>. Replaced
-with <code>awk &#39;NF{n++} END{print n+0}&#39;</code>, which always emits one
+with <code>awk 'NF{n++} END{print n+0}'</code>, which always emits one
 integer and always exits 0. The test caught this only because it asserts
 the <em>specific</em> assertion name in the output rather than the exit
-code alone; an exit-code-only test would have passed on A3&#39;s
+code alone; an exit-code-only test would have passed on A3's
 coincidental failure and shipped a blind A2.</li>
-<li>The T11 mutation&#39;s <code>sed</code> pattern carried the wrong
+<li>The T11 mutation's <code>sed</code> pattern carried the wrong
 leading indentation, so the mutation never landed in the copy and the
-&quot;mutation missed the defect&quot; result would have proven nothing. The test
+"mutation missed the defect" result would have proven nothing. The test
 now checks that the mutation marker is present in the copy
 <em>before</em> trusting the run — a mutation that did not land is a
 finding, not a pass.</li>

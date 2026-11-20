@@ -1,0 +1,6 @@
+CHALLENGE_ID=TMUX-CH-49
+TITLE=tmx-shell-init non-TTY guard FIRED (P5-M20 layer-4 escape closure)
+TEST_SCRIPT=scripts/tests/49_tmx_shell_init_guard_specific.sh
+PASS_CONDITION=FAIL=0. T1 template carries the marker text; T2 runtime invocation with stdin=/dev/null + TMX_INIT_DEBUG=1 emits the marker on stderr; T3 3-iter deterministic identical output.
+─── captured runtime output ───
+SKIP: test_script missing or not executable: scripts/tests/49_tmx_shell_init_guard_specific.sh

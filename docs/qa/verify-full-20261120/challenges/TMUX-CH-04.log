@@ -1,0 +1,9 @@
+CHALLENGE_ID=TMUX-CH-04
+TITLE=history-limit configuration honored
+TEST_SCRIPT=scripts/tests/04_history_limit.sh
+PASS_CONDITION=tmux show-options -g history-limit returns the configured value
+─── captured runtime output ───
+── Test 04: history-limit respect ──
+  ✓ history-limit reports 1500 as configured
+PASS
+EXIT_CODE=0

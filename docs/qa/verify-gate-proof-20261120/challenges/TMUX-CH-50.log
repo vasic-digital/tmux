@@ -1,0 +1,6 @@
+CHALLENGE_ID=TMUX-CH-50
+TITLE=cwd-capture hook AUTO-INSTALL via tmx.template (P5-M21 closure)
+TEST_SCRIPT=scripts/tests/50_cwd_hook_autoinstall.sh
+PASS_CONDITION=FAIL=0. T1 structural — template contains the set-hook block; T2 runtime — operator-path session, show-hooks lists both hooks referencing `tmx-state record`; T3 3-iter §11.4.50 reliability hash identical.
+─── captured runtime output ───
+SKIP: test_script missing or not executable: scripts/tests/50_cwd_hook_autoinstall.sh

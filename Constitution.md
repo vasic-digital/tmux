@@ -6,7 +6,7 @@
 | Created | 2026-05-07 |
 | Last modified | 2026-09-01 |
 | Status | active |
-| Extends | `constitution/Constitution.md` — Helix Universal Constitution, pinned `7f738df` |
+| Extends | `constitution/Constitution.md` — Helix Universal Constitution, pinned `79c9c608` |
 | Status summary | R6 (2026-09-01): §107 rewritten AGAIN — the 2026-09-01 `next-3.8` adoption was REVISED by the operator the same day and the `tmux/` submodule is now pinned to upstream RELEASE TAG `3.7b` (annotated; `3.7b^{}` = commit `e802909`). Reason recorded as captured fact, not opinion: the untagged `next-3.8` master commit has no upstream release tarball, so it withdrew the root-free zig build path — test 71 check C4 FAILED — and tag `3.7b` HAS a tarball (ships pre-generated `configure` + `cmd-parse.c`), restoring that path AND making the built binary's version equal its pin (`tmux 3.7b`). The rewind `40381bdc`→`3.7b` is pure (`3.7b` IS an ancestor, 808 commits back); relative to `3.6a` it is still a 531-commit forward move. Stated plainly per §11.4.6: `3.7b` is NOT the newest upstream tag (`3.7c` exists) — it is a deliberate known-good release pin. The full timeline is on the record, including BOTH silent drifts — 2026-05-13 `f4132aa` (reverted by `2836956`) and 2026-08-31 `1344dba` "Auto-commit" (regularised by the 2026-09-01 decision, still recorded as the §11.4.6 violation it was, and now also recorded as the drift that caused the measured C4 capability loss). Immutability preserved verbatim: never modified (the submodule tree carries zero tracked modifications — the `3.7b` version string is upstream's own), never advanced again without a new documented decision. R4 (2026-08-10): §105/§106 updated — no CPU/task/lifetime cap by default (matching the already-correct "liquid" memory model); root-cause fix for sessions/processes being killed despite ample host capacity (idle-recycler default-on kill + unconditional CPUQuota/TasksMax with no full opt-out). R3 (2026-05-21): full refactor to the HelixConstitution extends-template form. Universal clauses now inherited from the `constitution/` submodule; this file holds only Project Articles §101–§109. No universal clause weakened — inheritance is verified by `scripts/tests/test_constitution_inheritance.sh` + its paired mutation. |
 
 This constitution **extends** the Helix Universal Constitution at
@@ -364,7 +364,7 @@ Submodules this project owns and is responsible for:
 
 ```
 Containers     git@github.com:vasic-digital/Containers.git   (cgroup orchestration helpers)
-constitution   git@github.com:HelixDevelopment/HelixConstitution.git   (governance; pinned 7f738df)
+constitution   git@github.com:HelixDevelopment/HelixConstitution.git   (governance; pinned 79c9c608)
 ```
 
 `tmux/` is a **third-party upstream** submodule (`tmux/tmux` pinned at

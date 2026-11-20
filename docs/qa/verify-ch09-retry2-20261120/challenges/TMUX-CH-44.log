@@ -1,0 +1,22 @@
+CHALLENGE_ID=TMUX-CH-44
+TITLE=clipboard copy-OUT physical end-user proof (operator-path)
+TEST_SCRIPT=scripts/tests/44_clipboard_copy_out_physical.sh
+PASS_CONDITION=FAIL=0. T1 conf-template carries @clip + the three bindings; T2.1+T2.2 live `list-keys -T copy-mode-vi` show y and MouseDragEnd1Pane routing through copy-pipe-and-cancel "#{@clip}"; T3 direct -X copy-pipe puts the marker into tmux's own buffer (binding chain proven); T4 sending the literal 'y' key in copy-mode triggers the binding and puts the marker into the buffer (bind table dispatch proven); T5 the OS-native paste tool returns the marker (physical end-user proof) — or honestly SKIPs with reason where no clipboard tool is reachable.
+─── captured runtime output ───
+── Test 44: clipboard copy-OUT physical proof (operator-path) ──
+  marker: CLIPMARK_1883723_1795148011
+  clipboard tool: xclip (X11)
+  ✓ template: @clip user option present
+  ✓ template: copy-mode-vi y -> copy-pipe
+  ✓ template: copy-mode-vi Enter -> copy-pipe
+  ✓ template: MouseDragEnd1Pane -> copy-pipe
+PASS: T1: tmux.conf.template carries @clip + y / Enter / MouseDragEnd1Pane bindings
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t44_1883723 ls' succeeded)
+PASS: T2.1: live copy-mode-vi y binding routes selection through @clip (operator key path active)
+PASS: T2.2: live MouseDragEnd1Pane routes selection through @clip (operator mouse path active)
+PASS: T3: direct @clip copy-pipe routed selection into tmux's own buffer (binding chain proven)
+PASS: T4: pressing the 'y' key in copy-mode routed the selection (bind table active end-to-end)
+PASS: T5: SYSTEM CLIPBOARD (xclip (X11)) carries the marker — physical end-user proof copy worked
+
+  Tests: PASS=7  FAIL=0  SKIP=0
+EXIT_CODE=0

@@ -421,6 +421,51 @@ sacred invariant</li>
 </ul>
 <h2 id="3--active-work">§3 — Active work</h2>
 <h3
+id="338--release-state-reconciliation-2026-11-20--documentation-only-not-a-closure-verdict">§3.38
+— Release-state reconciliation (2026-11-20) — documentation-only, NOT a
+closure verdict</h3>
+<p><strong>Observed facts (captured this date, no
+guessing):</strong></p>
+<ul>
+<li><code>VERSION</code> reads <code>version=1.0.45</code>,
+<code>versionCode=46</code>, <code>released=2026-10-24</code>.</li>
+<li><code>git tag -l '*1.0.4*'</code> contains
+<strong><code>tmx-1.0.45</code></strong>;
+<code>git rev-list -n1 tmx-1.0.45</code> =
+<code>eb354b6868b0baefe7b1259ed0364c9945ded496</code> = current
+<code>git rev-parse HEAD</code>.</li>
+<li>There are <strong>no</strong> <code>tmux-1.0.45</code> /
+<code>v1.0.45</code> tags (corrected in <code>CHANGELOG.md</code>).</li>
+<li>Therefore the §1 Snapshot "Version = 1.0.44 (NOT yet released — no
+tag cut)" row is factually <strong>stale</strong> as a
+<em>release-state</em> statement. This entry supersedes that row and the
+"VERSION remains 1.0.44/45" note in §3.37b <strong>for release state
+only</strong>. Historical §3.36 / §3.37 / §3.37a / §3.37b text is
+deliberately preserved, not erased or rewritten.</li>
+</ul>
+<p><strong>Explicitly UNCONFIRMED as cleared (do NOT read the tag as
+proof of resolution):</strong></p>
+<ul>
+<li>TMX-086, TMX-087, TMX-088, TMX-089 (§3.36) —
+<strong>UNCONFIRMED</strong> as closed by this reconciliation; no
+issue/Fixed ledger evidence was inspected here.</li>
+<li>§3.37's independent-review <strong>NO-GO</strong> (3 BLOCKING / 6
+IMPORTANT / 5 MINOR, 4 reviewer-authored mutations surviving) —
+<strong>UNCONFIRMED</strong> as remediated.</li>
+<li>§3.37b review-round-2 findings and the "§11.4.40 full retest all
+still gate the tag" condition — <strong>UNCONFIRMED</strong> as
+satisfied.</li>
+<li>§3.37's "IN PROGRESS … NOT yet committed" status —
+<strong>UNCONFIRMED</strong> as changed; the tag's existence cannot
+establish commit/gate state.</li>
+</ul>
+<p><strong>Non-claims:</strong> this entry does not assert those
+blockers were fixed, that any gate/test/Challenge passed, or that
+v1.0.45 is functionally correct. It only records the observed
+release-state facts and marks the unresolved items UNCONFIRMED.
+Reconciliation author: documentation subagent; no build, test, or
+verification was run as part of this edit.</p>
+<h3
 id="337--heading-regex-widening--corpus-repair-tmx-072075-tmx-078-tmx-093-tmx-094--2026-09-01">§3.37
 — Heading-regex widening + corpus repair (TMX-072..075, TMX-078,
 TMX-093, TMX-094) → 2026-09-01</h3>

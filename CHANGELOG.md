@@ -6,7 +6,13 @@ anti-bluff covenant (Constitution §101 / universal §11.4).
 
 ---
 
-## [tmux-1.0.45] (also v1.0.45) — 2026-10-24
+## [tmx-1.0.45] — 2026-10-24
+
+> Tag correction (measured 2026-11-20): the only 1.0.45 tag that exists is
+> `tmx-1.0.45` (pointing at `eb354b6`, current HEAD). `git tag -l '*1.0.4*'`
+> shows no `tmux-1.0.45` and no `v1.0.45` tag — the earlier "also v1.0.45"
+> claim was inaccurate and is removed. Older releases did use `tmux-1.0.4x`
+> / `v1.0.4x` tags; this release does not.
 
 A **setup robustness + workable-items tracker-integrity** release
 (versionCode 46). The tmux product surface is UNCHANGED from v1.0.44 — same

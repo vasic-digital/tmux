@@ -239,7 +239,17 @@ func cmdList(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	st, lerr := loadState(path)
-	if lerr != nil && !errors.Is(lerr, errStateRebuilt) {
+	// FAIL CLOSED on a corrupt pre-existing state file: `list` is a read-only
+	// surface, so rebuilding-in-memory and printing an empty list presents a
+	// corrupt SSoT as "no state" — the exact lie the anti-bluff covenant forbids.
+	// A missing file (loadState returns nil error) and a valid-empty state file
+	// remain legitimate empty lists. Mutating commands (record/forget/... ) keep
+	// their documented rebuild-on-corrupt behaviour per spec §6 edge #6.
+	if errors.Is(lerr, errStateRebuilt) {
+		fmt.Fprintf(stderr, "tmx-state list: state file %s is corrupt; refusing to report it as empty (repair with `tmx-state record` or remove the file)\n", path)
+		return 1
+	}
+	if lerr != nil {
 		fmt.Fprintf(stderr, "tmx-state list: %v\n", lerr)
 		return 1
 	}

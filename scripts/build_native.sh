@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build_native.sh — build the locally-pinned tmux 3.6a natively for the
+# build_native.sh — build the locally-pinned tmux 3.7b natively for the
 # host OS (macOS Darwin or Linux). Produces a binary that runs as a
 # host-native process: full host PATH, full filesystem access, plus the
 # OS's strongest isolation primitive (cgroup on Linux, rlimit on macOS)
@@ -118,7 +118,7 @@ case "$HOST_OS" in
         fi
 
         echo "[build_native] configuring with hardened flags + jemalloc link..."
-        # `--enable-utf8proc` — required by tmux 3.6a configure on Darwin
+        # `--enable-utf8proc` — required by tmux 3.7b configure on Darwin
         # (libutf8proc provides proper emoji/CJK width on macOS where the
         # native libc Unicode tables are incomplete).
         CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" \
@@ -300,10 +300,14 @@ case "$HOST_OS" in
             #
             # WHY NOT AN UPSTREAM RELEASE TARBALL (changed 2026-09-01, when the
             # operator adopted the next-3.8 pin). This path previously downloaded
-            # the sha256-pinned tmux 3.6a RELEASE tarball, because release
+            # the sha256-pinned tmux 3.7b RELEASE tarball, because release
             # tarballs ship a pre-generated `configure` + `cmd-parse.c` and the
             # pipeline then needed only zig + make. That is no longer viable and
-            # is no longer honest:
+            # is no longer honest.
+            # CURRENT PIN (2026-09-01 operator decision, a6f3fc4): release TAG
+            # 3.7b = e802909de06012a4df6209d55e86487c56223163. The 40381bdc /
+            # next-3.8 references below are HISTORICAL context for why this
+            # path changed, NOT a description of the present pin.
             #   * the submodule is pinned at 40381bdc (`3.7b-808-g40381bdc`;
             #     tmux/configure.ac: AC_INIT([tmux], next-3.8));
             #   * upstream publishes NO release tarball for that version —
@@ -364,6 +368,8 @@ case "$HOST_OS" in
             # binary whose -V disagrees with the pin (§11.4.108 SOURCE->ARTIFACT).
             TMUX_REL_VER="$PIN_VER"
             TMUX_REL_SHA=""
+            # Historical fallback case retained for older pins; the current
+            # 3.7b pin selects ONLY the 3.7b case below (build logic unchanged).
             case "$TMUX_REL_VER" in
                 3.7b) TMUX_REL_SHA="87f2e99e3b685973f2ca002ffd6ed7e51a5744f7009daae5a15670b6d532db96" ;;
                 3.6a) TMUX_REL_SHA="b6d8d9c76585db8ef5fa00d4931902fa4b8cbe8166f528f44fc403961a3f3759" ;;

@@ -49,11 +49,11 @@ The orchestrator runs five gated phases:
 
 ```
 <project>/
-├── tmux/                                  # Git submodule (upstream tmux/tmux, pinned to 3.6a)
+├── tmux/                                  # Git submodule (upstream tmux/tmux, pinned to release tag 3.7b / e802909)
 │   └── build/bin/tmux                     # Built artifact (volume-mounted from container)
 ├── docker/
-│   ├── Dockerfile.tmux-build              # Ubuntu 22.04 + libevent-dev + libncurses-dev + libjemalloc-dev
-│   ├── docker-compose.tmux-build.yml      # mem_limit:2g, cpus:2, network:none
+│   ├── Dockerfile                         # Ubuntu 22.04 + libevent-dev + libncurses-dev + libjemalloc-dev
+│   ├── docker-compose.yml                 # mem_limit:2g, cpus:2, network:none
 │   └── build_inside_container.sh          # Runs autogen + configure + make + install (in-container)
 └── scripts/
     ├── install_deps.sh                    # Host package installer (sudo, OS-aware)
@@ -197,8 +197,8 @@ If `TMX_DRY_RUN_PROPS=1` is left exported in the environment, every
 
 | Cap | Default | `=auto` opt-in | Explicit opt-in | Linux | Darwin |
 |---|---|---|---|---|---|
-| Memory | `MemoryMax=infinity` + soft `MemoryHigh` default (`16G` on Linux; none on macOS) | `TMX_MEM=auto` → host-adaptive `max(MemTotal × 60% / 4, 2 GB)` *soft* `MemoryHigh`; `TMX_MEM=` (empty) removes the default | `TMX_MEM=16G tmx new -s heavy` | ✓ cgroup `MemoryHigh` (soft, reclaim never kill) | ✗ NOT enforced (XNU gap) |
-| CPU | unlimited (no `CPUQuota` / `RLIMIT_CPU=unlimited`) | `TMX_CPU=auto` → cores × 15% (floor 200%, cap cores × 100%) | `TMX_CPU=400` (Linux, %); `TMX_CPU_HARD_SEC=3600` (Darwin, seconds) | ✓ `CPUQuota` | ✓ `RLIMIT_CPU` |
+| Memory | `MemoryMax=infinity` + soft `MemoryHigh` default (`16G` on Linux; none on macOS) — **NOT a "60 % RAM cap"** (`scripts/tmx.template` lines 671, 710–711) | `TMX_MEM=auto` → host-adaptive `max(MemTotal × 60% / 4, 2 GB)` *soft* `MemoryHigh` (line 138); the 60 % is a §12.6 shared-budget factor, not an enforced cap. `TMX_MEM=` (empty) removes the default | `TMX_MEM=16G tmx new -s heavy` | ✓ cgroup `MemoryHigh` (soft, reclaim never kill) | ✗ NOT enforced (XNU gap) |
+| CPU | unlimited (no `CPUQuota` / `RLIMIT_CPU=unlimited`) | `TMX_CPU=auto` → cores × 15% (floor 200%, cap cores × 100%) — same 60 % budget ÷ 4 assumed sessions (`scripts/tmx.template` lines 147–148, 173) | `TMX_CPU=400` (Linux, %); `TMX_CPU_HARD_SEC=3600` (Darwin, seconds) | ✓ `CPUQuota` | ✓ `RLIMIT_CPU` |
 | Tasks | `TasksMax=6000` on Linux (default); `RLIMIT_NPROC=unlimited` on macOS | `TMX_TASKS=auto` → legacy fixed `4096`; `TMX_TASKS=` (empty) → `infinity` (opt out) | `TMX_TASKS=8192` (Linux); `TMX_PROC_MAX=4096` (Darwin) | ✓ `TasksMax` per scope | ✓ `RLIMIT_NPROC` per user |
 | Session lifetime | unbounded (never auto-recycled) | — (no `auto` form) | `TMX_RECYCLE_IDLE_SECS=900` — auto-recycle after N idle (no-client-attached) seconds; state (dir/color/password) always survives | ✓ `scripts/tmx-recycler.sh` watcher | ✓ (same watcher, cross-platform) |
 
@@ -226,7 +226,10 @@ $ systemctl --user list-units --type=scope --no-legend | grep tmx-
   tmx-a.scope loaded active running ...
   tmx-b.scope loaded active running ...
 $ cat /sys/fs/cgroup/.../tmx-a.scope/memory.max
-  2147483648                                ← per-session memory cap
+  max                                       ← MemoryMax=infinity (never OOM-killed)
+$ cat /sys/fs/cgroup/.../tmx-a.scope/memory.high
+  17179869184                               ← soft MemoryHigh default (16G), illustrative
+                                              (not a 60 % RAM cap; see §5.6 / Caps table)
 $ cat /sys/fs/cgroup/.../tmx-a.scope/cgroup.procs
   <session A PIDs>                          ← distinct from B's
 ```

@@ -1,0 +1,14 @@
+CHALLENGE_ID=TMUX-CH-49
+TITLE=tmx-shell-init non-TTY guard FIRED (P5-M20 layer-4 escape closure)
+TEST_SCRIPT=scripts/tests/49_tmx_shell_init_guard_specific.sh
+PASS_CONDITION=FAIL=0. T1 template carries the marker text; T2 runtime invocation with stdin=/dev/null + TMX_INIT_DEBUG=1 emits the marker on stderr; T3 3-iter deterministic identical output.
+─── captured runtime output ───
+── Test 49: tmx-shell-init non-TTY guard SPECIFIC layer-4 isolation ──
+PASS 49: T0 template present at /home/milosvasic/Projects/tmx/scripts/tmx-shell-init.sh.template
+PASS 49: T1 template guard + marker present
+[evidence 49] iter=1 rc=0 marker="tmx-shell-init: non-TTY guard fired (stdin/stdout not a TTY) — skipping interactive prompt"
+[evidence 49] iter=2 rc=0 marker="tmx-shell-init: non-TTY guard fired (stdin/stdout not a TTY) — skipping interactive prompt"
+[evidence 49] iter=3 rc=0 marker="tmx-shell-init: non-TTY guard fired (stdin/stdout not a TTY) — skipping interactive prompt"
+PASS 49: T2 + T3 marker fired on 3/3 iterations (identical evidence) on Linux
+── summary 49: PASS=3 FAIL=0 SKIP=0 ──
+EXIT_CODE=0

@@ -1,0 +1,7 @@
+──────── root pkg github.com/vasic-digital/tmux/cmd/workable-items ────────
+ok  	github.com/vasic-digital/tmux/cmd/workable-items	6.307s
+──────── module scripts/tmx-state ────────
+ok  	digital.vasic.tmx-state	1.251s
+──────── module scripts/tmx-orchestrator ────────
+go: updates to go.mod needed; to update it:
+	go mod tidy

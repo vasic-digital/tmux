@@ -1,0 +1,11 @@
+CHALLENGE_ID=TMUX-CH-05
+TITLE=clear-history releases memory (the "apparent leak" check)
+TEST_SCRIPT=scripts/tests/05_clear_history_releases.sh
+PASS_CONDITION=RSS_after / RSS_peak <= 0.95 OR drop >= 5 MB OR drop >= 1 MB (jemalloc-tolerant)
+─── captured runtime output ───
+── Test 05: clear-history releases memory ──
+  RSS after history fill: 19560 kB
+  RSS after clear-history: 17416 kB
+  drop: 2144 kB (11.0%)
+PASS
+EXIT_CODE=0

@@ -1,0 +1,6 @@
+── Test 97: stress+chaos gate (RED_MODE=0, run-id testtypes-20261120T043452Z) ──
+PASS: C1 ENOTDIR: record failed closed (rc=1)
+PASS: C2 EISDIR: record failed closed (rc=1)
+PASS: C3 kill -9 x10: state file remains valid JSON (json_ok sessions=1)
+PASS: C4 resource cap: sandbox 20KB <= 1024KB, no host damage
+PASS: stress+chaos gate green — fail-closed under 2 fault classes, kill-safe, resource-capped

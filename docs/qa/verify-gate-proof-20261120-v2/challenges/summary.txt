@@ -1,0 +1,2 @@
+GATE=CM-CHALLENGES YAML=/home/milosvasic/Projects/tmx/scripts/challenges/tmux.yaml RUN_ID=verify-gate-proof-20261120-v2 TIMEOUT=75s
+SUMMARY total=47 pass=39 fail=2 skip=6 unclassified=0

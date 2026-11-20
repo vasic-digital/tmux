@@ -112,7 +112,7 @@ Never `git push` directly — use `commit_all.sh`.
 
 | Path | Role |
 |---|---|
-| `constitution/` | HelixConstitution submodule — universal governance (pinned `7f738df`) — **do not modify** |
+| `constitution/` | HelixConstitution submodule — universal governance (pinned `79c9c608`) — **do not modify** |
 | `tmux/` | upstream submodule (pinned to release tag `3.7b` = commit `e802909`) — **do not modify** |
 | `Containers/` | vasic-digital cgroup helpers submodule |
 | `tmux/build*/` | build output (`.gitignore`'d) |

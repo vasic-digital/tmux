@@ -1,0 +1,11 @@
+CHALLENGE_ID=TMUX-CH-77
+TITLE=password input masked with '*'
+TEST_SCRIPT=scripts/tests/77_password_masked_echo.sh
+PASS_CONDITION=PTY pane buffer contains only '*' characters for the typed password, never the literal characters
+─── captured runtime output ───
+  hermetic-env: no ambient TMX_* knobs set (clean baseline)
+── Test 77: password input masked with '*' ──
+PASS 77: exactly two '*' characters shown after typing 2 chars, no plaintext
+PASS 77: backspace + retype shows exactly 2 masked stars, no plaintext leaked
+── Test 77 summary: PASS=2 FAIL=0 SKIP=0 ──
+EXIT_CODE=0

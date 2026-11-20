@@ -1,0 +1,6 @@
+CHALLENGE_ID=TMUX-CH-51
+TITLE=workable-items DB integrity (anti-bluff §11.4.93/95)
+TEST_SCRIPT=scripts/tests/51_workable_items_db_integrity.sh
+PASS_CONDITION=FAIL=0 per test 51 assertion suite.
+─── captured runtime output ───
+SKIP: test_script missing or not executable: scripts/tests/51_workable_items_db_integrity.sh

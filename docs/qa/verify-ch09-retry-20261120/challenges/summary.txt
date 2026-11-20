@@ -1,0 +1,2 @@
+GATE=CM-CHALLENGES YAML=/home/milosvasic/Projects/tmx/scripts/challenges/tmux.yaml RUN_ID=verify-ch09-retry-20261120 TIMEOUT=180s
+SUMMARY total=47 pass=41 fail=1 skip=5 unclassified=0

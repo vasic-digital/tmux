@@ -1,0 +1,2 @@
+GATE=CM-CHALLENGES YAML=/home/milosvasic/Projects/tmx/scripts/challenges/tmux.yaml RUN_ID=verify-full-20261120-r2 TIMEOUT=75s
+SUMMARY total=47 pass=41 fail=0 skip=6 unclassified=0

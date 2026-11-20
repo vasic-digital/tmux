@@ -1,0 +1,9 @@
+CHALLENGE_ID=TMUX-CH-02
+TITLE=tmux session lifecycle
+TEST_SCRIPT=scripts/tests/02_session.sh
+PASS_CONDITION=session is listed AND kill-server returns clean
+─── captured runtime output ───
+── Test 02: session lifecycle ──
+  listed: tmx_test_831909: 1 windows (created Fri Nov 20 01:19:13 2026)
+PASS
+EXIT_CODE=0

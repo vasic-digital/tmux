@@ -7,7 +7,9 @@
 #      (libjemalloc-dev recommended — install via `bash scripts/install_deps.sh` as root)
 #   2. Containerized build (podman/docker, isolated cgroup, mem_limit=2g)
 #   3. Generate tmx wrapper (LD_PRELOAD=jemalloc + oom_score_adj=-500)
-#   4. Run verification gate (verify.sh — full 14-test suite)
+#   4. Run verification gate (verify.sh — full numbered test suite;
+#      2026-11-20 measured count: 91 at task start, 92 at final check — live,
+#      re-run `ls scripts/tests/[0-9][0-9]_*.sh | wc -l`)
 #   5. ONLY IF GREEN: install ~/.tmux.conf + .bashrc snippet + PATH export
 #
 # §11.4 invariant: step 5 is GATED by step 4. Failing tests means no PATH export.

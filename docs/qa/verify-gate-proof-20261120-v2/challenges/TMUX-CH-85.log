@@ -1,0 +1,14 @@
+CHALLENGE_ID=TMUX-CH-85
+TITLE=extended-keys-format set to CSI-u for modern TUI compatibility
+TEST_SCRIPT=scripts/tests/85_extended_keys_format_csi_u.sh
+PASS_CONDITION=config template contains 'extended-keys-format csi-u'; live tmux server has the option applied; source code confirms csi-u index 0, xterm index 1; source code has both CSI-u and xterm encoding format strings
+─── captured runtime output ───
+PASS 85: config template contains 'extended-keys-format csi-u'
+PASS 85: live tmux server has extended-keys-format csi-u applied
+PASS 85: source: csi-u is index 0, xterm is index 1 in options-table.c
+PASS 85: source: extended-keys-format default is xterm (default_num=1)
+PASS 85: source: input_key_extended() has csi-u format string (\033[K;Mu)
+PASS 85: source: input_key_extended() has xterm format string (\033[27;M;K~)
+PASS 85: source: input_key_extended() switches on extended-keys-format option
+── Test 85 summary: PASS=7 FAIL=0 SKIP=0 ──
+EXIT_CODE=0

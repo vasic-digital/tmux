@@ -1,0 +1,28 @@
+CHALLENGE_ID=TMUX-CH-17
+TITLE=scrollback + copy-mode scrolling works (operator-path)
+TEST_SCRIPT=scripts/tests/17_scrollback_copy_mode.sh
+PASS_CONDITION=FAIL=0. T1 conf-template carries all six scroll settings; T2 reads back history-limit=50000 / mode-keys=vi / mouse=off (default — terminal owns the mouse; tmux mouse on demand via prefix m) / allow-passthrough=on / extended-keys=on from the LIVE server; T3 confirms the live WheelUpPane binding drives copy-mode scroll-up (override active, not tmux default); T4 generates 3000 lines, proves SCROLLMARK_FIRST left the visible screen (defect surface real), proves the scrollback buffer retained it (history-limit bump functional — would be evicted at the old 2000 default), and proves copy-mode reached + copied it.
+─── captured runtime output ───
+── Test 17: scrollback + copy-mode scrolling (operator-path) ──
+  ✓ template: history-limit 50000
+  ✓ template: mode-keys vi
+  ✓ template: WheelUpPane -> copy-mode
+  ✓ template: WheelUpPane scroll-up cmd
+  ✓ template: allow-passthrough on
+  ✓ template: extended-keys on
+PASS: T1: tmux.conf.template carries all scrollback + copy-mode + passthrough settings
+PASS: T2.0: operator-path session created (positive evidence: 'tmux -L tmx-tmx_t17_383370 ls' succeeded)
+PASS: T2.1: live server history-limit = 50000 (readback from tmx-tmx_t17_383370)
+PASS: T2.2: live server mode-keys = vi (readback from tmx-tmx_t17_383370)
+PASS: T2.3: live server mouse = off by default — terminal owns the mouse (tmux mouse on demand via prefix m) (readback from tmx-tmx_t17_383370)
+PASS: T2.4: live server allow-passthrough = on (Claude Code TUI passthrough)
+PASS: T2.5: live server extended-keys = on (Shift+Enter reaches the app)
+PASS: T3: live WheelUpPane binding drives copy-mode scroll-up (override active, not tmux default)
+PASS: T4.1: SCROLLMARK_FIRST scrolled off the visible screen (defect surface real; LAST is visible)
+PASS: T4.2: scrollback retained line 1 of 3000 — live history_size=2982 >= 2900 (history-limit 50000 functional; OLD 2000 cap pins history_size at 2000 and evicts line 1) [race-free #{history_size}]
+PASS: T4.3a: copy-mode entered (pane_in_mode=1)
+PASS: T4.3b: copy-mode search reached the old content (scroll_position=2982 lines up)
+PASS: T4.4: operator scrolled to + copied line 1 of 3000 via copy-mode (show-buffer carries SCROLLMARK_FIRST)
+
+  Tests: PASS=13  FAIL=0  SKIP=0
+EXIT_CODE=0

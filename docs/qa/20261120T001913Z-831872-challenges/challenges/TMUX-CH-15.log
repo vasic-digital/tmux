@@ -1,0 +1,38 @@
+CHALLENGE_ID=TMUX-CH-15
+TITLE=per-session cgroup distinctness (operator-path)
+TEST_SCRIPT=scripts/tests/15_per_session_cgroup_distinct.sh
+PASS_CONDITION=PASS=8 FAIL=0 (T1 two distinct scopes active; T2 cgroup paths differ with their own pids; T3 memory.max=max by default (elastic) + MemoryMin floor; T4 cpu.max=max by default (no CPUQuota); T5 TMX_MEM=3G override = 3 GiB soft MemoryHigh exactly, memory.max stays max; T6 unit names operator-targetable as tmx-NAME.scope)
+─── captured runtime output ───
+── Test 15: per-session isolation (Linux) ──
+
+--- T1: distinct scope units per session ---
+PASS: T1: tmx-tmx_t15_a_866605.scope and tmx-tmx_t15_b_866605.scope both active and distinct (positive evidence: systemctl --user is-active for each)
+
+--- T2: cgroup paths differ, each contains its session's PID ---
+PASS: T2: cgroup paths differ AND each contains its own pids (positive evidence: cgroup.procs A=[867595 867596 ] B=[868008 868013 ] read from /sys/fs/cgroup)
+
+--- T3: default session is fully elastic (memory.max=max) with a MemoryMin floor ---
+PASS: T3: memory.max A=max B=max (fully elastic — never per-scope OOM-killed)
+PASS: T3b: memory.min A=134217728 (128 MiB floor — session not reclaimed to death)
+
+--- T4: default session cpu.max=max (fully elastic — no CPUQuota unless TMX_CPU opts in) ---
+PASS: T4: cpu.max A='max 100000' B='max 100000' (positive evidence: no CPUQuota by default, per-session cgroup readback)
+
+--- T5: TMX_MEM=3G sets a soft memory.high=3 GiB (throttle); memory.max stays elastic ---
+PASS: T5: TMX_MEM=3G → memory.high=3221225472 (soft throttle = 3 GiB exactly)
+PASS: T5b: TMX_MEM=3G → memory.max=max (soft throttle only — never a hard kill)
+
+--- T6: scope unit names are predictable from session name ---
+PASS: T6: all 3 sessions produced scope units named tmx-<session>.scope (operator-targetable by name)
+
+--- T7: split topology — distinct scope+slice pair per session ---
+PASS: T7: both split sessions produced their own active scope+slice PAIR (4/4 units active, names derived from session names)
+
+--- T8: pair cgroups distinct; server in scope, pane shell in slice ---
+PASS: T8: 4 distinct pair cgroups; server pid 869332 lives in D's scope cgroup and D's slice subtree holds the pane shell (positive evidence: /proc/<pid>/cgroup + cgroup.procs)
+
+--- T9: pair teardown via the operator path ---
+PASS: T9: tmx kill-session tore down BOTH pair units per session (no lingering scope/slice)
+
+  Tests: PASS=11  FAIL=0  SKIP=0
+EXIT_CODE=0

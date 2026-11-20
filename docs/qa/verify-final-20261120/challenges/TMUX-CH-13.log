@@ -1,0 +1,6 @@
+CHALLENGE_ID=TMUX-CH-13
+TITLE=TasksMax fork-bomb resistance (T7)
+TEST_SCRIPT=scripts/tests/13_tasksmax_stress.sh
+PASS_CONDITION=pids.current == pids.max == the test's own configured cap (sized for MemoryMax headroom, not the wrapper's TasksMax); no processes escape the scope
+─── captured runtime output ───
+SKIP: destructive challenge needs TMX_TEST_DESTRUCTIVE=1 (project §destructive-tests)

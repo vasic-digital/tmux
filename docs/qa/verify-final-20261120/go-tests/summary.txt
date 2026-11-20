@@ -1,0 +1,7 @@
+GATE=CM-GO-TESTS RUN_ID=verify-final-20261120 ENV=GOTOOLCHAIN=local,GOPROXY=off,count=1 TIMEOUT=90s
+EXCLUDE constitution/submodules/claude_toolkit/submodules/go/test/** reason=vendored-go-toolchain-source-corpus measured_failures=299 source=Go-tracker-agent-2026-11-20
+EXCLUDE Containers/** reason=separate-submodule-with-own-test-surface out-of-root-module-scope
+PASS github.com/vasic-digital/tmux/cmd/workable-items rc=0 positive_marker=ok
+PASS scripts/tmx-state rc=0 positive_marker=ok
+SKIP scripts/tmx-orchestrator reason=no-test-files
+SUMMARY total=3 pass=2 fail=0

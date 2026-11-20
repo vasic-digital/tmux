@@ -1,0 +1,11 @@
+CHALLENGE_ID=TMUX-CH-06
+TITLE=10 concurrent panes — RSS bounded
+TEST_SCRIPT=scripts/tests/06_concurrent_panes.sh
+PASS_CONDITION=delta_RSS < 20 MB
+─── captured runtime output ───
+── Test 06: 10 concurrent panes — RSS bounded ──
+  RSS with 1 pane: 4600 kB
+  RSS with 10 panes: 4628 kB
+  growth: 28 kB
+PASS (growth < 20 MB)
+EXIT_CODE=0

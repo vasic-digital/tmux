@@ -1,0 +1,20 @@
+CHALLENGE_ID=TMUX-CH-28
+TITLE=tmx_docs_user_guides_render — operator + manual docs ship HTML+PDF (P8)
+TEST_SCRIPT=scripts/tests/41_docs_user_guides_render.sh
+PASS_CONDITION=For each of the 4 required paths: .md exists AND .html exists AND .pdf exists AND .html mtime ≥ .md mtime AND .pdf mtime ≥ .md mtime AND .html size > 0 AND .pdf size > 0. Captured stat output for each file triple printed as `[evidence] path=<p> md=<ts> html=<ts> pdf=<ts> html_size=<N> pdf_size=<N>` lines. Driver invokes the check 3 times and asserts identical verdict per §11.4.50.
+─── captured runtime output ───
+[evidence] iter=1 doc=docs/guides/tmx-shell-integration.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=15704 html_size=34904 pdf_size=58316
+[evidence] iter=1 doc=docs/guides/tmx-state.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=9944 html_size=31632 pdf_size=48142
+[evidence] iter=1 doc=docs/guides/tmx-ssh-dispatch.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=15736 html_size=35076 pdf_size=53985
+[evidence] iter=1 doc=docs/manual/tmx-shell-integration.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=20222 html_size=50958 pdf_size=67828
+[evidence] iter=2 doc=docs/guides/tmx-shell-integration.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=15704 html_size=34904 pdf_size=58316
+[evidence] iter=2 doc=docs/guides/tmx-state.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=9944 html_size=31632 pdf_size=48142
+[evidence] iter=2 doc=docs/guides/tmx-ssh-dispatch.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=15736 html_size=35076 pdf_size=53985
+[evidence] iter=2 doc=docs/manual/tmx-shell-integration.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=20222 html_size=50958 pdf_size=67828
+[evidence] iter=3 doc=docs/guides/tmx-shell-integration.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=15704 html_size=34904 pdf_size=58316
+[evidence] iter=3 doc=docs/guides/tmx-state.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=9944 html_size=31632 pdf_size=48142
+[evidence] iter=3 doc=docs/guides/tmx-ssh-dispatch.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=15736 html_size=35076 pdf_size=53985
+[evidence] iter=3 doc=docs/manual/tmx-shell-integration.md md_mtime=1792763571 html_mtime=1792763571 pdf_mtime=1792763571 md_size=20222 html_size=50958 pdf_size=67828
+[evidence] HOST_OS=Linux doc_count=4 reliability_hash=4a9e7966a70b7358b637ab13c70a0a6a8e8c9a7f
+PASS 41 v1.0.9 user guides + master manual render (4 docs × {md,html,pdf} verified, 3/3 iterations identical, §11.4.65)
+EXIT_CODE=0

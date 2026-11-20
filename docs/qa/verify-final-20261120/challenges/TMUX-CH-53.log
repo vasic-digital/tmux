@@ -1,0 +1,16 @@
+CHALLENGE_ID=TMUX-CH-53
+TITLE=§102 per-session color via name:color
+TEST_SCRIPT=scripts/tests/63_session_color.sh
+PASS_CONDITION=FAIL=0. T1 name:red → live status-style==bg=red; T2 name:#hex → bg=#hex; T3 all-4-surfaces reflect the color; T4 persisted color wins on bare re-run (kill→re-create bare); T5 invalid color rejected + no server created; T6 escaped '\:' in name; T7 extra :fields ignored; T8 hostname fallback intact for a fresh name. Every assertion reads live show-options from the real server.
+─── captured runtime output ───
+── Test 63: per-session color (operator-path) ──
+PASS: T1 name:red → bg=red
+PASS: T2 name:#hex → bg=#3b82f6
+PASS: T3 all-4-surfaces blue
+PASS: T4 persisted color wins on bare re-run
+PASS: T5 invalid color rejected, no server created
+PASS: T6 escaped colon → t63w6x bg=cyan
+PASS: T7 extra fields ignored → bg=green
+PASS: T8 hostname fallback → bg=colour94
+── Test 63 result: PASS=8 FAIL=0 SKIP=0 ──
+EXIT_CODE=0

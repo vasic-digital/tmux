@@ -1,0 +1,13 @@
+CHALLENGE_ID=TMUX-CH-20
+TITLE=CodeGraph CLI installed and initialised
+TEST_SCRIPT=scripts/tests/20_codegraph_installed.sh
+PASS_CONDITION=FAIL=0. T1 `codegraph --version` ≥ 0.6.0; T2 `.codegraph/ config.json` exists; T3 secret-exclusion patterns (.env*, *.pem, *.key, secrets/, constitution/, Containers/, tmux/) present in config exclude list; T4 .gitignore covers `.codegraph/codegraph.db` and friends; T5 `.gitignore-meta/codegraph-db.yaml` declares the §11.4.77 regeneration mechanism.
+─── captured runtime output ───
+PASS: T1: codegraph CLI on PATH, version=1.6.2 ≥ 0.6.0 (positive evidence: codegraph --version)
+PASS: T2: /home/milosvasic/Projects/tmx/.codegraph/config.json present and valid JSON (positive evidence: python3 json.load)
+PASS: T3: §11.4.10 secret/third-party patterns excluded; §11.4.79 own-org submodules NOT excluded (positive evidence: 12 must-exclude + 2 must-include patterns verified via python json parse)
+PASS: T4: .gitignore covers .codegraph/codegraph.db (positive evidence: grep hit on literal line)
+PASS: T5: §11.4.77 manifest + executable regen script scripts/codegraph_reindex.sh (positive evidence: file readable, declared script path resolves)
+
+  Tests: PASS=5  FAIL=0  SKIP=0
+EXIT_CODE=0

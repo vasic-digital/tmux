@@ -1058,6 +1058,26 @@ if [ "$TRACKGOV_FAIL" -ne 0 ]; then
 fi
 echo "  ✓ Layer-1 tracker/governance gates GREEN"
 
+# ── Layer-1 — typed evidence gates (Go tests / Challenges / constitution
+# propagation fleet / HelixQA content oracle) ────────────────────────────────
+# Each gate prints an EVIDENCE path under docs/qa/<run-id>/ and fails on a
+# metadata-only / absence-of-error PASS. Fail-fast: any FAIL refuses the
+# operator-safe verdict before the runtime suite runs (§11.4 anti-bluff).
+echo ""
+echo "  Layer-1 typed evidence gates — go tests, challenges, covenant propagation, HelixQA content..."
+TYPEDGATES_FAIL=0
+bash "$REPO_ROOT/scripts/testing/go_tests_gate.sh"          || TYPEDGATES_FAIL=1
+bash "$REPO_ROOT/scripts/challenges/run_challenges.sh"      || TYPEDGATES_FAIL=1
+bash "$REPO_ROOT/scripts/testing/constitution_gates_gate.sh" || TYPEDGATES_FAIL=1
+bash "$REPO_ROOT/scripts/testing/helixqa_content_gate.sh"   || TYPEDGATES_FAIL=1
+if [ "$TYPEDGATES_FAIL" -ne 0 ]; then
+    echo ""
+    echo "RED: one or more typed evidence gates FAILed. Inspect the EVIDENCE paths"
+    echo "     printed above (docs/qa/<run-id>/). setup.sh will REFUSE to PATH-export."
+    exit 1
+fi
+echo "  ✓ Layer-1 typed evidence gates GREEN"
+
 # Run the full test suite
 echo ""
 echo "  running test suite..."

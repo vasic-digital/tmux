@@ -1,0 +1,13 @@
+CHALLENGE_ID=TMUX-CH-79
+TITLE=wizard existing-session picker on blank input
+TEST_SCRIPT=scripts/tests/79_wizard_select_existing.sh
+PASS_CONDITION=menu lists all existing sessions plus a None option; selection attaches the chosen session; password-protected selection shows exactly one password prompt
+─── captured runtime output ───
+── Test 79: wizard existing-session picker ──
+PASS 79: blank input lists both pre-created sessions + '0) None'
+PASS 79: selecting the plain session's number attaches it
+PASS 79: selecting a password-protected session prompts once and attaches on correct password
+PASS 79: no second create-style prompt on picker-selected password-protected attach
+PASS 79: '0' selection attached to neither pre-created session (attached-count 0/0)
+── Test 79 summary: PASS=5 FAIL=0 SKIP=0 ──
+EXIT_CODE=0

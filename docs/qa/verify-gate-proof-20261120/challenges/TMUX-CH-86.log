@@ -1,0 +1,6 @@
+CHALLENGE_ID=TMUX-CH-86
+TITLE=host-adaptive CPUQuota (opt-in via TMX_CPU=auto) prevents progressive session sluggishness
+TEST_SCRIPT=scripts/tests/86_cpu_quota_host_adaptive.sh
+PASS_CONDITION=_default_cpu_pct present and functionally correct (64->960, 4->200 floor, 256->3840, unknown->200 fallback); TMX_CPU unset expands to '' (no cap), TMX_CPU=auto expands to the adaptive default (opt-in), explicit value preserved; on Linux a session spawned with TMX_CPU=auto reads back the adaptive quota on its cgroup (runtime layer, §11.4.108)
+─── captured runtime output ───
+SKIP: test_script missing or not executable: scripts/tests/86_cpu_quota_host_adaptive.sh

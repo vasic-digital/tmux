@@ -1,0 +1,12 @@
+CHALLENGE_ID=TMUX-CH-78
+TITLE=wizard-created session name gets a random 4-digit suffix
+TEST_SCRIPT=scripts/tests/78_wizard_suffix_appended.sh
+PASS_CONDITION=created session name matches ^<base>-[0-9]{4}$ (or equals the literal base name when TMX_EXACT_NAME=1)
+─── captured runtime output ───
+── Test 78: wizard-created session gets a random 4-digit suffix ──
+[evidence] wizard transcript captured (1113 bytes)
+PASS 78: wizard-created session name is 'wiztest78-7240' (base + 4-digit suffix)
+[evidence] TMX_EXACT_NAME wizard transcript captured (1092 bytes)
+PASS 78: TMX_EXACT_NAME=1 → wizard created the literal name 'wiztest78exact', no suffix
+── Test 78 summary: PASS=2 FAIL=0 SKIP=0 ──
+EXIT_CODE=0

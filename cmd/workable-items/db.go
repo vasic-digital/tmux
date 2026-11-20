@@ -31,8 +31,20 @@ type DB struct {
 
 // OpenDB opens (or creates) the SQLite DB at path, applies schema, sets WAL mode.
 // Caller MUST call Close() to checkpoint+release.
+//
+// PRAGMA ORDER IS LOAD-BEARING (concurrent-open probe, 2026-11-20). modernc.org/sqlite
+// applies every `_pragma` from the DSN on EACH newly opened connection, IN QUERY
+// ORDER (driver sqlite.go applyQueryParams loops q["_pragma"] and returns on the
+// first error). `PRAGMA journal_mode(WAL)` needs an exclusive file lock the first
+// time a connection sets it; if `busy_timeout` is still at the driver default (0)
+// when that pragma runs, 8 concurrent `sync md-to-db` processes get an immediate
+// SQLITE_BUSY (261) at OpenDB/Ping before any sync work starts. Measured on a
+// COPY of docs/workable_items.db: journal_mode-first DSN failed 25/100 runs of
+// 8 concurrent open+Ping; busy_timeout-first failed 0/100. Set the busy timeout
+// FIRST so every subsequent pragma — including the WAL switch — has the retry
+// window. Do not reorder these query parameters back.
 func OpenDB(path string) (*DB, error) {
-	conn, err := sql.Open("sqlite", path+"?_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)")
+	conn, err := sql.Open("sqlite", path+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)&_pragma=synchronous(NORMAL)")
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite %q: %w", path, err)
 	}

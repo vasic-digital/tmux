@@ -354,6 +354,57 @@ func TestSetColorInvalid(t *testing.T) {
 	}
 }
 
+// TestListFailsClosedOnCorruptState — a corrupt pre-existing state file MUST
+// NOT be presented as an empty list. `list` is read-only; silently rebuilding
+// in memory would report "no state" for a damaged SSoT (§11.4 anti-bluff).
+func TestListFailsClosedOnCorruptState(t *testing.T) {
+	path := withTempState(t)
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("not json {{{"), 0o600); err != nil {
+		t.Fatalf("seed corrupt state: %v", err)
+	}
+	stdout, stderr, code := runCLI(t, "list")
+	if code == 0 {
+		t.Errorf("list exit = 0 on corrupt state, want non-zero (fail closed)")
+	}
+	if stdout != "" {
+		t.Errorf("list stdout = %q on corrupt state, want empty (no fake empty list)", stdout)
+	}
+	if !strings.Contains(stderr, "corrupt") {
+		t.Errorf("stderr did not name the corrupt state: %q", stderr)
+	}
+}
+
+// TestListEmptyIsNotCorrupt — the two legitimate "empty" cases (file missing,
+// file present but valid-empty) MUST stay empty lists with exit 0. The corrupt
+// refusal above must not turn into a blanket "non-empty file" error.
+func TestListEmptyIsNotCorrupt(t *testing.T) {
+	path := withTempState(t) // file does not exist yet
+
+	// Case 1: missing file.
+	stdout, stderr, code := runCLI(t, "list")
+	if code != 0 {
+		t.Errorf("missing-file list exit = %d, want 0 (stderr=%q)", code, stderr)
+	}
+	if stdout != "" || stderr != "" {
+		t.Errorf("missing-file list stdout=%q stderr=%q, want both empty", stdout, stderr)
+	}
+
+	// Case 2: valid empty state file.
+	if err := saveState(path, newEmptyState()); err != nil {
+		t.Fatalf("save empty state: %v", err)
+	}
+	stdout, stderr, code = runCLI(t, "list")
+	if code != 0 {
+		t.Errorf("valid-empty list exit = %d, want 0 (stderr=%q)", code, stderr)
+	}
+	if stdout != "" || stderr != "" {
+		t.Errorf("valid-empty list stdout=%q stderr=%q, want both empty", stdout, stderr)
+	}
+}
+
 // TestSetColorPreservesSiblingFields — set-color must not clobber last_pwd.
 func TestSetColorPreservesSiblingFields(t *testing.T) {
 	tmp := filepath.Join(t.TempDir(), "state.json")

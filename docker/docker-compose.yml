@@ -1,8 +1,8 @@
-# docker-compose.tmux-build.yml — tmux source build container, isolated from
+# docker-compose.yml — tmux source build container, isolated from
 # host per §12.9 architecture. Memory bounded so an OOM in this container
 # never escalates to user.slice.
 #
-# Usage: invoked by scripts/tmux/build_tmux_containerized.sh.
+# Usage: invoked by scripts/build_containerized.sh.
 # Do NOT `podman-compose up` directly; the orchestrator pre-builds the image
 # with the correct BUILD_UID/BUILD_GID matching the host operator.
 
@@ -13,7 +13,7 @@ services:
     image: tmx-build:latest
     build:
       context: ..
-      dockerfile: docker/Dockerfile.tmux-build
+      dockerfile: docker/Dockerfile
       args:
         BUILD_UID: ${BUILD_UID:-1000}
         BUILD_GID: ${BUILD_GID:-1000}
