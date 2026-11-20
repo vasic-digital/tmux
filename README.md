@@ -1,3 +1,5 @@
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/vasic-digital/tmux)
+
 # vasic-digital tmux — optimized + verified containerized build
 
 ## What's new — interactive wizard + session passwords (2026-07-05)
