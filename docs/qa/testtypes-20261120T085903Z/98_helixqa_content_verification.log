@@ -1,0 +1,7 @@
+── Test 98: HelixQA-style content verification gate (run-id testtypes-20261120T085903Z) ──
+PASS: golden-good: genuine captured validate artifact ACCEPTed
+PASS: golden-bad(a): flipped-findings artifact REJECTed
+PASS: golden-bad(b): metadata-only counter artifact REJECTed
+PASS: golden-bad(c): error/traceback artifact REJECTed
+PASS: end-to-end: fresh capture ACCEPTed (reproducible)
+PASS: HelixQA-style content gate green — analyzer self-validated (1 good / 3 bad)

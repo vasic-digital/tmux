@@ -127,8 +127,54 @@ else
           done
           git -c user.email=t@t -c user.name=t commit -q -am "test69: local submodule urls" >/dev/null 2>&1 || true
         )
+        # §11.4.98 FULL AUTOMATION — the nested submodule URLs inside
+        # constitution/ still point at GitHub. Rewriting only the TOP-LEVEL
+        # .gitmodules (above) is no longer sufficient: install.sh's recursive
+        # update then tries the network for 27+ nested repos (one private) and
+        # hangs indefinitely. Inject url.*.insteadOf rewrites via GIT_CONFIG_*
+        # env so EVERY git subprocess in the installer resolves nested
+        # submodules to the local checkouts — truly offline, no credentials.
+        local_map="$(python3 - "$REPO_ROOT" <<'PY'
+import subprocess, sys, pathlib
+root = pathlib.Path(sys.argv[1])
+for gm in root.rglob('.gitmodules'):
+    if 'tmux' in gm.parts:
+        continue
+    try:
+        txt = subprocess.run(['git', 'config', '-f', str(gm), '--get-regexp',
+                              r'^submodule\..*\.(path|url)$'],
+                             capture_output=True, text=True, check=True).stdout
+    except subprocess.CalledProcessError:
+        continue
+    opts = {}
+    for line in txt.splitlines():
+        key, val = line.split(None, 1)
+        opts.setdefault(key.rsplit('.', 1)[0], {})[key.rsplit('.', 1)[1]] = val
+    base = gm.parent
+    for name, pair in opts.items():
+        url, path = pair.get('url'), pair.get('path')
+        if not url or not path:
+            continue
+        local = base / path
+        if local.exists():
+            print(f'{url}\t{local}')
+PY
+        )"
+        cfg_n=0
+        while IFS=$'\t' read -r sm_url local_path; do
+            [ -n "${sm_url:-}" ] && [ -d "${local_path:-}" ] || continue
+            export "GIT_CONFIG_KEY_${cfg_n}=url.file://${local_path}.insteadOf"
+            export "GIT_CONFIG_VALUE_${cfg_n}=${sm_url}"
+            cfg_n=$((cfg_n + 1))
+        done <<< "$local_map"
+        export GIT_CONFIG_COUNT="$cfg_n"
+        echo "[offline] nested submodule URL rewrites: $cfg_n"
         out=$(TMX_REPO_URL="$SRC" TMX_INSTALL_DIR="$DST" TMX_INSTALL_NO_SETUP=1 \
               bash "$INSTALL" 2>&1); rc=$?
+        unset GIT_CONFIG_COUNT
+        for ((i=0; i<cfg_n; i++)); do
+            unset "GIT_CONFIG_KEY_$i" "GIT_CONFIG_VALUE_$i"
+        done
         ok=1
         [ "$rc" -eq 0 ]                              || { ok=0; reason="exit=$rc"; }
         [ -d "$DST/.git" ]                           || { ok=0; reason="${reason:-} no-.git"; }

@@ -1,0 +1,2 @@
+GATE=CM-CONSTITUTION-GATES RUN_ID=verify-postfetch-fix-20261120 EXCLUSIONS=constitution/config/covenant_propagation_exclusions.tsv TIMEOUT=60s
+SUMMARY total=106 pass=106 fail=0

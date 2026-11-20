@@ -1,0 +1,11 @@
+── Test 94: security gate (run-id testtypes-20261120T074838Z) ──
+  [golden-bad] seeded tree: active workflow + 2 force flags + token literal + HTTPS own remote
+  DETECT: CI :: active workflow ci.yml
+  DETECT: FORCE :: scripts/deploy_lease.sh:1
+  DETECT: SECRET :: scripts/config.sh:2
+  DETECT: FORCE :: scripts/deploy_force.sh:1
+  DETECT: REMOTE :: non-SSH own remote URL (value redacted)
+PASS: self-validation: all 4 seeded defect classes detected (CI=1 FORCE=2 SECRET=1 REMOTE=1)
+  DETECT: FORCE :: scripts/tests/94_security_gate.sh:6
+FAIL: repo has security findings (CI=0 FORCE=1 SECRET=0 REMOTE=0)
+FAIL: security gate FAIL=1 SKIP=0

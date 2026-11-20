@@ -139,15 +139,24 @@ for t in "$REPO_ROOT/scripts/tests/"[0-9][0-9]_*.sh; do
     # the loop then waits only for the test process, never for grandchildren.
     _out_file="$(mktemp "${TMPDIR:-/tmp}/tmx-runall-XXXXXX")"
     _test_rc=0
+    # Measured per-test allowances (§11.4.6, no invented numbers): test 09
+    # exercises real systemd scopes (104 s observed standalone, but >300 s
+    # under load); test 69 performs a real recursive local submodule mirror.
+    # All other tests keep the 300 s default. Both still fail closed on timeout.
+    _limit="${TMX_TEST_TIMEOUT:-300}"
+    case "$name" in
+        09_crash_isolation_scope.sh) _limit="${TMX_TEST_TIMEOUT_SLOW:-600}" ;;
+        69_install_script.sh)        _limit="${TMX_TEST_TIMEOUT_SLOW:-1200}" ;;
+    esac
     if command -v timeout >/dev/null 2>&1; then
-        timeout -s TERM "${TMX_TEST_TIMEOUT:-300}" bash "$t" </dev/null >"$_out_file" 2>&1 || _test_rc=$?
+        timeout -s TERM "$_limit" bash "$t" </dev/null >"$_out_file" 2>&1 || _test_rc=$?
     else
         bash "$t" </dev/null >"$_out_file" 2>&1 || _test_rc=$?
     fi
     if [ "$_test_rc" -eq 124 ]; then
         # A timeout is INCONCLUSIVE, never a silent PASS: emit an explicit
         # FAIL verdict so the typed classifier fails closed (§11.4.98/.201).
-        printf 'FAIL: test timed out after %ss (inconclusive)\n' "${TMX_TEST_TIMEOUT:-300}" >>"$_out_file"
+        printf 'FAIL: test timed out after %ss (inconclusive)\n' "$_limit" >>"$_out_file"
     fi
     out="$(cat "$_out_file")"
     rm -f "$_out_file"

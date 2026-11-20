@@ -1,0 +1,2 @@
+GATE=CM-CHALLENGES YAML=/home/milosvasic/Projects/tmx/scripts/challenges/tmux.yaml RUN_ID=verify-postfetch-fix-20261120 TIMEOUT=180s
+SUMMARY total=47 pass=42 fail=0 skip=5 unclassified=0

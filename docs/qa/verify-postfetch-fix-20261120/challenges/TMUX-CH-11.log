@@ -1,0 +1,16 @@
+CHALLENGE_ID=TMUX-CH-11
+TITLE=hostname colour applied to tmux status-bg via wrapper
+TEST_SCRIPT=scripts/tests/11_hostname_color_integration.sh
+PASS_CONDITION=tmx wrapper contains _apply_host_color + hostname_color.sh ref; status-style bg matches expected hostname colour on first and subsequent sessions
+─── captured runtime output ───
+── Test 11: hostname colour applied by wrapper (operator-path) ──
+PASS: T1: tmx wrapper includes _apply_host_color
+PASS: T2: tmx wrapper calls hostname_color.sh
+  expected status-bg: colour202 (host: anton)
+PASS: T4.0: status-style bg='colour202' read from session A's server (positive evidence: tmux -L tmx-tmx_t11_a_256778 show -g status-style)
+PASS: T4.1: status-bg 'colour202' matches expected 'colour202' (hostname-derived colour applied)
+PASS: T5: second session on different socket has SAME colour 'colour202' (positive evidence: same-host-same-colour invariant holds across servers)
+PASS: T6: wrapper did not silently produce tmux's default bg=green (positive evidence: ACTUAL='colour202' from T4)
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+EXIT_CODE=0

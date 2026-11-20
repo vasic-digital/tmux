@@ -70,6 +70,13 @@ _analyze(){
   script_list="$(_list_files "$root" "$mode" | grep -E '^(scripts/.*\.(sh|bash)|commit_all\.sh)$' || true)"
   while IFS= read -r rel; do
     [ -z "$rel" ] && continue
+    # SELF-EXCLUSION (§11.4.201(1) false-positive refusal): this gate's OWN
+    # source documents the forbidden literals in its header comment. Once the
+    # gate is committed, `git ls-files` includes it and the scan flags itself
+    # (measured 2026-11-20: FORCE at scripts/tests/94_security_gate.sh:6).
+    # Exclude only this one file from the literal scan; its golden-bad fixture
+    # is a separate throwaway tree and remains fully self-validated.
+    [ "$rel" = "scripts/tests/94_security_gate.sh" ] && continue
     local f="$root/$rel"
     [ -f "$f" ] || continue
     # (2) force-push flags — print file:lineno ONLY, never the line value

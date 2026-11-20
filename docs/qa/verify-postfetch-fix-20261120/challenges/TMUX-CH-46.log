@@ -1,0 +1,19 @@
+CHALLENGE_ID=TMUX-CH-46
+TITLE=PASTE-INTO from OS clipboard physical end-user proof
+TEST_SCRIPT=scripts/tests/46_paste_in_physical.sh
+PASS_CONDITION=FAIL=0. T1 conf-template carries @clip-read + prefix+P bindings; T2 live readback of both confirm they exist; T3 the marker seeded in the OS clipboard reaches the pane via the binding mechanism (physical proof); T4 the prefix+P bind body references @clip-read.
+─── captured runtime output ───
+── Test 46: PASTE-INTO from OS clipboard physical proof (operator-path) ──
+  marker: PASTEMARK_270412_1795163574
+  clipboard tool: xclip (X11)
+  ✓ template: @clip-read user option
+  ✓ template: prefix+P bind to paste
+PASS: T1: tmux.conf.template carries @clip-read + prefix+P paste binding
+PASS: T2.0: operator-path session created
+PASS: T2.1: live server has @clip-read user-option set
+PASS: T2.2: live prefix+P binding present (paste-IN keystroke path active)
+PASS: T3: PHYSICAL paste-IN proven — clipboard marker reached the tmux pane via @clip-read + paste-buffer
+PASS: T4: prefix+P bind performs an OS-adaptive clipboard read (POSIX, no '<<<') and pastes via buffer
+
+  Tests: PASS=6  FAIL=0  SKIP=0
+EXIT_CODE=0

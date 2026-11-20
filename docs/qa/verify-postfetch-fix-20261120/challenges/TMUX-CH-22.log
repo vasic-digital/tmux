@@ -1,0 +1,16 @@
+CHALLENGE_ID=TMUX-CH-22
+TITLE=CodeGraph MCP wired for every CLI agent we support
+TEST_SCRIPT=scripts/tests/22_codegraph_mcp_wired.sh
+PASS_CONDITION=FAIL=0. For each agent: config file exists OR is documented as "agent not installed on this host" SKIP; if present, codegraph MCP server entry resolvable via JSON parse; `command` field references the bare `codegraph` on PATH (no hardcoded host paths).
+─── captured runtime output ───
+=== CodeGraph MCP wiring per CLI agent (§11.4.78) ===
+PASS: T1 Claude Code (project): codegraph MCP server wired in /home/milosvasic/Projects/tmx/.mcp.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T2 OpenCode (host): codegraph MCP server wired in /home/milosvasic/.config/opencode/opencode.jsonc (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+SKIP: T3 Kimi CLI (host): host-scoped config /home/milosvasic/.kimi/mcp.json not present (agent likely not installed on this host) — §11.4.3 topology dispatch
+PASS: T4 Crush (project): codegraph MCP server wired in /home/milosvasic/Projects/tmx/.crush.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T5 Qwen Code (project): codegraph MCP server wired in /home/milosvasic/Projects/tmx/.qwen/settings.json (codegraph serve --mcp) [positive evidence: JSON parse + portable-command check]
+PASS: T6: bare 'codegraph' resolves on PATH to /home/milosvasic/.local/bin/codegraph (positive evidence: command -v)
+PASS: T7: codegraph serve --mcp spawns + stays alive (positive evidence: process alive after 400ms then terminated cleanly)
+
+  Tests: PASS=6  FAIL=0  SKIP=1
+EXIT_CODE=0
